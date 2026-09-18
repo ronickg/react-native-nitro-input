@@ -307,6 +307,9 @@ class MorphInputView(context: Context) : FrameLayout(context) {
     overlay.importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
     overlay.setWillNotDraw(false)
     addView(overlay, matchParent)
+    // The overlay draws a hair outside its bounds while glyphs slide through the line box.
+    clipChildren = false
+    clipToPadding = false
 
     applyKeyboard()
     applyEditTextLayout()
@@ -916,8 +919,12 @@ class MorphInputView(context: Context) : FrameLayout(context) {
       val str = charString(g.character)
       val slides = effect == Effect.SLIDE || (effect == Effect.AUTO && g.kind != 0)
       canvas.save()
-      // Sliding glyphs pass through the line box: clip so they appear from its edges.
-      if (slides) canvas.clipRect(-1e5f, 0f, 1e5f, lineHeight)
+      // Sliding glyphs pass through the line box: clip so they appear from its
+      // edges, with a 0.15 em margin so a comma's tail is never cut at rest.
+      if (slides) {
+        val band = min(lineHeight / 3f, 0.15f * f.paint(Role.BODY).textSize)
+        canvas.clipRect(-1e5f, -band, 1e5f, lineHeight + band)
+      }
       if (g.scale != 1f) canvas.scale(g.scale, g.scale, g.x + g.width / 2f, lineHeight / 2f)
       canvas.drawText(str, g.x, f.baseline(role, str, 0f) + g.y * lineHeight, paint)
       canvas.restore()

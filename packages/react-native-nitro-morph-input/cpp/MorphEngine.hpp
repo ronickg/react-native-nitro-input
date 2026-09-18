@@ -34,9 +34,9 @@ public:
   enum Kind : int {
     Text = 0,
     Digit = 1,
-    /// Grouping separator: pairs by distance from the units end, slides like a symbol.
+    /// Grouping separator: pairs by distance from the units end; enters from below.
     Separator = 2,
-    /// Decimal separator: part of the typed sequence, slides like a symbol.
+    /// Decimal separator: part of the typed sequence; enters from below.
     Decimal = 3,
   };
   /// Where a glyph sits. Prefix and suffix are static decorations around the editable body.

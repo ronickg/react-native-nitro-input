@@ -284,16 +284,16 @@ static void groupingSeparatorReflows() {
   CHECK(near(comma->x, 10));
   CHECK(near(four->x, 34));
 
-  // Backspace: the comma and the 4 leave (comma upwards, digit downwards).
+  // Backspace: the comma and the 4 leave, both downwards.
   feed(e, "", "123", 3, 2);
   CHECK(countExiting(e) == 2);
-  bool commaUp = false, fourDown = false;
+  bool commaDown = false, fourDown = false;
   e.tick(2.2);                            // half way: faded out already (45 % share), half slid
   for (const auto& g : e.glyphs()) {
-    if (g.exiting && g.character == ',') commaUp = near(g.y, -0.5) && near(g.opacity, 0);
+    if (g.exiting && g.character == ',') commaDown = near(g.y, 0.5) && near(g.opacity, 0);
     if (g.exiting && g.character == '4') fourDown = near(g.y, 0.5) && near(g.opacity, 0);
   }
-  CHECK(commaUp && fourDown);
+  CHECK(commaDown && fourDown);
   e.tick(2.4);
   CHECK(countExiting(e) == 0);
   CHECK(liveIds(e).size() == 3);

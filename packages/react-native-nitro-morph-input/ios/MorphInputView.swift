@@ -835,11 +835,14 @@ final class MorphInputView: UIView {
     contentLayer.transform = placement.scale == 1 ? CATransform3DIdentity : CATransform3DMakeScale(placement.scale, placement.scale, 1)
 
     // The clip box extends one line height to each side so glyphs at the edges
-    // are not cut while they slide; only the top and bottom clip (softly).
+    // are not cut while they slide, and a soft band (0.15 em, Torph's) above and
+    // below the line box: the box itself stays fully opaque (a comma's tail
+    // reaches its bottom edge), glyphs dissolve in the bands as they pass through.
     let pad = lineHeight
-    clipLayer.frame = CGRect(x: -pad, y: 0, width: max(contentWidth, 1) + 2 * pad, height: lineHeight)
+    let band = min(lineHeight / 3, 0.15 * fonts.body.pointSize)
+    clipLayer.frame = CGRect(x: -pad, y: -band, width: max(contentWidth, 1) + 2 * pad, height: lineHeight + 2 * band)
     edgeMask.frame = clipLayer.bounds
-    let fade = min(0.45, 0.15 * fonts.body.pointSize / max(lineHeight, 1))
+    let fade = band / max(lineHeight + 2 * band, 1)
     edgeMask.locations = [0, NSNumber(value: Double(fade)), NSNumber(value: Double(1 - fade)), 1]
 
     var seen = Set<Int64>()
@@ -864,7 +867,7 @@ final class MorphInputView: UIView {
         glyphLayers[g.id] = glyphLayer
       }
       let size = glyphLayer.bounds.size
-      let top = fonts.top(for: role, text: text, lineTop: 0) + CGFloat(g.y) * lineHeight
+      let top = fonts.top(for: role, text: text, lineTop: band) + CGFloat(g.y) * lineHeight
       glyphLayer.position = CGPoint(x: pad + CGFloat(g.x) + size.width / 2, y: top + size.height / 2)
       glyphLayer.opacity = Float(min(1, max(0, g.opacity)))
       let scale = CGFloat(g.scale)

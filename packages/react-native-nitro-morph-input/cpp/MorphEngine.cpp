@@ -265,7 +265,9 @@ void MorphEngine::commitText(int caretIndex, double now) {
     s.start = now;
     s.fromX = s.toX = s.g.x;
     s.fromY = s.g.y;
-    s.toY = s.slide ? ((s.g.kind == Separator || s.g.kind == Decimal) ? -1 : 1) : 0;
+    // Everything leaves downwards (Torph): digits pass through the line box like
+    // an odometer, separators drop back to where they came in from.
+    s.toY = s.slide ? 1 : 0;
     s.fromOpacity = s.g.opacity;
     s.toOpacity = 0;
     s.fadeFrom = 0;

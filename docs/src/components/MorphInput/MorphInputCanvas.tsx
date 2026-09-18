@@ -263,19 +263,24 @@ export const MorphInputCanvas = forwardRef<MorphInputCanvasHandle, MorphInputCan
       if (!ctx) return;
       const dpr = window.devicePixelRatio || 1;
       const cssWidth = state.current.width;
-      const cssHeight = fonts.lineHeight;
+      const lineHeight = fonts.lineHeight;
+      // Torph's slot mask: a soft 0.15 em band above and below the line box. The
+      // box itself stays fully opaque (a comma's tail reaches its bottom edge);
+      // glyphs dissolve in the bands as they slide through.
+      const band = Math.min(fontSize * 0.15, lineHeight / 3);
+      const cssHeight = lineHeight + 2 * band;
       if (canvas.width !== Math.round(cssWidth * dpr) || canvas.height !== Math.round(cssHeight * dpr)) {
         canvas.width = Math.round(cssWidth * dpr);
         canvas.height = Math.round(cssHeight * dpr);
         canvas.style.height = `${cssHeight}px`;
+        canvas.style.top = `${-band}px`;
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, cssWidth, cssHeight);
 
       const contentWidth = engine.contentWidth();
       const x0 = textAlign === 'left' ? 0 : textAlign === 'center' ? (cssWidth - contentWidth) / 2 : cssWidth - contentWidth;
-      const lineTop = 0;
-      const lineHeight = fonts.lineHeight;
+      const lineTop = band;
       ctx.textBaseline = 'alphabetic';
 
       const count = engine.glyphCount();
@@ -287,7 +292,7 @@ export const MorphInputCanvas = forwardRef<MorphInputCanvasHandle, MorphInputCan
         ctx.save();
         if (slides) {
           ctx.beginPath();
-          ctx.rect(-1e5, lineTop, 2e5, lineHeight);
+          ctx.rect(-1e5, 0, 2e5, cssHeight);
           ctx.clip();
         }
         ctx.font = fonts.fonts[role];
@@ -306,6 +311,17 @@ export const MorphInputCanvas = forwardRef<MorphInputCanvasHandle, MorphInputCan
         ctx.restore();
       }
 
+      const mask = ctx.createLinearGradient(0, 0, 0, cssHeight);
+      mask.addColorStop(0, 'rgba(0,0,0,0)');
+      mask.addColorStop(band / cssHeight, 'rgba(0,0,0,1)');
+      mask.addColorStop(1 - band / cssHeight, 'rgba(0,0,0,1)');
+      mask.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-in';
+      ctx.fillStyle = mask;
+      ctx.fillRect(0, 0, cssWidth, cssHeight);
+      ctx.restore();
+
       const input = inputRef.current;
       const collapsed = !input || input.selectionStart === input.selectionEnd;
       if (state.current.focused && state.current.blinkOn && collapsed) {
@@ -318,7 +334,7 @@ export const MorphInputCanvas = forwardRef<MorphInputCanvasHandle, MorphInputCan
         ctx.roundRect(cx - 1, lineTop + inset, 2, lineHeight - inset * 2, 1);
         ctx.fill();
       }
-    }, [effect, resolvedCaret, resolvedColor, resolvedPlaceholder, textAlign]);
+    }, [effect, fontSize, resolvedCaret, resolvedColor, resolvedPlaceholder, textAlign]);
 
     const loop = useCallback(() => {
       cancelAnimationFrame(frameRef.current);
@@ -612,8 +628,8 @@ export const MorphInputCanvas = forwardRef<MorphInputCanvasHandle, MorphInputCan
     const inputMode = mode === 'number' ? (fractionDigits > 0 ? 'decimal' : 'numeric') : 'text';
 
     return (
-      <div ref={rootRef} className={className} style={{position: 'relative', width: '100%', ...style}}>
-        <canvas ref={canvasRef} style={{display: 'block', width: '100%', pointerEvents: 'none'}} />
+      <div ref={rootRef} className={className} style={{position: 'relative', width: '100%', height: fontsRef.current?.lineHeight ?? fontSize * 1.25, ...style}}>
+        <canvas ref={canvasRef} style={{position: 'absolute', left: 0, top: 0, display: 'block', width: '100%', pointerEvents: 'none'}} />
         <input
           ref={inputRef}
           type="text"
