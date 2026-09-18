@@ -11,7 +11,7 @@ Pod::Spec.new do |s|
   s.authors      = package["author"]
 
   s.platforms    = { :ios => min_ios_version_supported, :visionos => 1.0 }
-  s.source       = { :git => "https://github.com/ronickg/react-native-nitro-rolling-number.git", :tag => "#{s.version}" }
+  s.source       = { :git => "https://github.com/ronickg/react-native-nitro-rolling-number.git", :tag => "v#{s.version}" }
 
   s.source_files = [
     # Implementation (Swift)
@@ -25,6 +25,8 @@ Pod::Spec.new do |s|
   # The shared C++ engine is a public header so the pod's Swift sources can
   # call it directly through Swift/C++ interop (enabled by Nitro below).
   s.public_header_files = ["cpp/**/*.hpp"]
+  # The engine's unit tests build as a host executable (`bun run test:cpp`).
+  s.exclude_files = ["cpp/__tests__/**"]
 
   load 'nitrogen/generated/ios/NitroRollingNumber+autolinking.rb'
   add_nitrogen_files(s)

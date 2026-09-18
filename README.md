@@ -107,6 +107,8 @@ bun example ios             # or: bun example android
 cd docs && npm install && npm start                                  # docs site
 ```
 
+Releasing: `bun --cwd packages/react-native-nitro-rolling-number release <patch|minor|major>` runs the typecheck, the Jest and engine tests, bumps the version, commits and tags `v<version>`, publishes to npm and creates the GitHub release (needs `npm login` and a `GITHUB_TOKEN`).
+
 The example's Android Gradle files point at the workspace root `node_modules`, and Metro watches the whole repo.
 
 ## License

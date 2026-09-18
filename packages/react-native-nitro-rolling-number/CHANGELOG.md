@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.0 (2026-09-18)
 
 - Initial release: native rolling number view (iOS + Android) built with Nitro Modules.
 - `value`-driven digit roll with easing/spring, `stagger` and `direction`.
