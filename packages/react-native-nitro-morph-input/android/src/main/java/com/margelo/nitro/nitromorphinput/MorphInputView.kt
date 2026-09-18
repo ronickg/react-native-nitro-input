@@ -938,8 +938,15 @@ class MorphInputView(context: Context) : FrameLayout(context) {
 
   private val layoutScratch = ContentLayout()
 
-  /** Where the (possibly shrunk) content box sits inside a `width` x `height` view. */
-  private fun contentLayout(width: Int, height: Int, contentWidth: Float): ContentLayout {
+  /** Horizontal offset (px) when the content is wider than the view; follows the caret like an EditText scrolls. */
+  private var scrollX = 0f
+
+  /**
+   * Where the (possibly shrunk) content box sits inside a `width` x `height` view.
+   * With [trackCaret] the scroll offset is updated to keep the caret in view
+   * (drawing); without it the current offset is only read (hit testing).
+   */
+  private fun contentLayout(width: Int, height: Int, contentWidth: Float, trackCaret: Boolean = false): ContentLayout {
     val t = typography
     var fit = 1f
     if (t.adjustsFontSizeToFit && width > 0 && contentWidth > width) {
@@ -947,10 +954,32 @@ class MorphInputView(context: Context) : FrameLayout(context) {
     }
     val out = layoutScratch
     out.fit = fit
-    out.originX = when (alignment) {
-      Alignment.LEFT -> 0f
-      Alignment.CENTER -> (width - contentWidth * fit) / 2f
-      Alignment.RIGHT -> width - contentWidth * fit
+    val shown = contentWidth * fit
+    if (width > 0 && shown > width + 0.5f) {
+      // Wider than the view (no shrink-to-fit, or its floor reached): scroll so
+      // the caret stays visible while editing; at rest show the start (the end
+      // for right-aligned content).
+      val maxScroll = shown - width
+      if (trackCaret) {
+        if (editText.hasFocus()) {
+          val margin = 2f * density
+          val index = codePointIndex(text, editText.selectionStart).coerceIn(0, engine.bodyCount())
+          val caretOnScreen = engine.caretX(index).toFloat() * fit - scrollX
+          if (caretOnScreen > width - margin) scrollX += caretOnScreen - (width - margin)
+          else if (caretOnScreen < margin) scrollX -= margin - caretOnScreen
+        } else {
+          scrollX = if (alignment == Alignment.RIGHT) maxScroll else 0f
+        }
+      }
+      scrollX = scrollX.coerceIn(0f, maxScroll)
+      out.originX = -scrollX
+    } else {
+      scrollX = 0f
+      out.originX = when (alignment) {
+        Alignment.LEFT -> 0f
+        Alignment.CENTER -> (width - shown) / 2f
+        Alignment.RIGHT -> width - shown
+      }
     }
     out.originY = (height - fonts.lineHeight * fit) / 2f
     return out
@@ -959,13 +988,18 @@ class MorphInputView(context: Context) : FrameLayout(context) {
   private fun drawContent(canvas: Canvas, view: View) {
     syncFromEngine()
     val f = fonts
-    val layout = contentLayout(view.width, view.height, contentWidth)
+    val layout = contentLayout(view.width, view.height, contentWidth, trackCaret = true)
     val lineHeight = f.lineHeight
     val textColor = typography.color ?: defaultTextColor()
     val placeholderColor = typography.placeholderColor ?: defaultPlaceholderColor()
     val effect = timing.effect
 
     val outer = canvas.save()
+    // Content wider than the view is scrolled and clipped to the view's edges
+    // (like an EditText); otherwise glyphs may overhang while they move.
+    if (layout.originX < 0f || contentWidth * layout.fit > view.width + 0.5f) {
+      canvas.clipRect(0f, -1e5f, view.width.toFloat(), 1e5f)
+    }
     canvas.translate(layout.originX, layout.originY)
     canvas.scale(layout.fit, layout.fit)
 

@@ -303,6 +303,9 @@ final class MorphInputView: UIView {
   private var formatter = AmountFormatter()
   private var fonts: FontSet
   private var fontScale: CGFloat = 1
+  /// Horizontal offset (in view points) when the content is wider than the
+  /// view: it follows the caret like a UITextField's own scrolling does.
+  private var scrollX: CGFloat = 0
   private var displayLink: CADisplayLink?
   private var lastReportedSize: CGSize = .zero
   /// A narrower settled size waiting for the current morph to finish before it is reported.
@@ -849,14 +852,41 @@ final class MorphInputView: UIView {
 
   private func contentPlacement(total: CGFloat, lineHeight: CGFloat) -> (origin: CGPoint, scale: CGFloat) {
     let fit = fontScale
+    let shown = total * fit
     let originX: CGFloat
-    switch alignment {
-    case .left: originX = 0
-    case .center: originX = (bounds.width - total * fit) / 2
-    case .right: originX = bounds.width - total * fit
+    if bounds.width > 0, shown > bounds.width + 0.5 {
+      // Wider than the view (no shrink-to-fit, or its floor reached): scroll
+      // horizontally so the caret stays in view while editing; at rest show
+      // the start (the end for right-aligned content).
+      let maxScroll = shown - bounds.width
+      if field.isFirstResponder {
+        let margin: CGFloat = 2
+        let caretOnScreen = CGFloat(engine.caretX(caretBodyIndex())) * fit - scrollX
+        if caretOnScreen > bounds.width - margin {
+          scrollX += caretOnScreen - (bounds.width - margin)
+        } else if caretOnScreen < margin {
+          scrollX -= margin - caretOnScreen
+        }
+      } else {
+        scrollX = alignment == .right ? maxScroll : 0
+      }
+      scrollX = min(max(0, scrollX), maxScroll)
+      originX = -scrollX
+    } else {
+      scrollX = 0
+      switch alignment {
+      case .left: originX = 0
+      case .center: originX = (bounds.width - shown) / 2
+      case .right: originX = bounds.width - shown
+      }
     }
     let originY = (bounds.height - lineHeight * fit) / 2
     return (CGPoint(x: originX, y: originY), fit)
+  }
+
+  /// Whether the content is wider than the view, so a caret move may need to scroll it.
+  private var contentOverflows: Bool {
+    bounds.width > 0 && CGFloat(engine.contentWidth()) * fontScale > bounds.width + 0.5
   }
 
   private func render() {
@@ -878,9 +908,20 @@ final class MorphInputView: UIView {
     // are not cut while they slide, and a soft band (0.15 em, Torph's) above and
     // below the line box: the box itself stays fully opaque (a comma's tail
     // reaches its bottom edge), glyphs dissolve in the bands as they pass through.
-    let pad = lineHeight
+    // When the content is wider than the view it is clipped to the view's
+    // edges instead (scrolled like a UITextField), in content coordinates.
     let band = min(lineHeight / 3, 0.15 * fonts.body.pointSize)
-    clipLayer.frame = CGRect(x: -pad, y: -band, width: max(contentWidth, 1) + 2 * pad, height: lineHeight + 2 * band)
+    let clipLeft: CGFloat
+    let clipRight: CGFloat
+    if scrollX > 0 || (bounds.width > 0 && contentWidth * placement.scale > bounds.width + 0.5) {
+      clipLeft = scrollX / max(placement.scale, 0.0001)
+      clipRight = (scrollX + bounds.width) / max(placement.scale, 0.0001)
+    } else {
+      clipLeft = -lineHeight
+      clipRight = max(contentWidth, 1) + lineHeight
+    }
+    let pad = -clipLeft
+    clipLayer.frame = CGRect(x: clipLeft, y: -band, width: max(clipRight - clipLeft, 1), height: lineHeight + 2 * band)
     edgeMask.frame = clipLayer.bounds
     let fade = band / max(lineHeight + 2 * band, 1)
     edgeMask.locations = [0, NSNumber(value: Double(fade)), NSNumber(value: Double(1 - fade)), 1]
@@ -1010,6 +1051,22 @@ final class MorphInputView: UIView {
     var leftInset: CGFloat = 0
     var rightInset: CGFloat = 0
 
+    /// UIKit's paste controller puts the selection back where the pasted text
+    /// would have ended *if it had inserted it*, which after a declined
+    /// (formatted, transformed) edit is the pre-paste caret. Apply pasted
+    /// text through the same path as a keystroke instead.
+    override func paste(_ sender: Any?) {
+      guard let owner, let string = UIPasteboard.general.string, let range = selectedTextRange else {
+        return super.paste(sender)
+      }
+      let location = offset(from: beginningOfDocument, to: range.start)
+      let length = offset(from: range.start, to: range.end)
+      let nsRange = NSRange(location: location, length: length)
+      if owner.textField(self, shouldChangeCharactersIn: nsRange, replacementString: string) {
+        replace(range, withText: string)
+      }
+    }
+
     override func caretRect(for position: UITextPosition) -> CGRect {
       let rect = super.caretRect(for: position)
       return CGRect(origin: rect.origin, size: .zero)
@@ -1034,15 +1091,18 @@ final class MorphInputView: UIView {
       return r
     }
 
+    // UITextInput geometry is in `textInputView`'s coordinates: for a
+    // UITextField that is its internal text canvas, which scrolls on its own
+    // once the text is wider than the field, so convert from there.
     override func closestPosition(to point: CGPoint) -> UITextPosition? {
-      if let owner, let position = owner.closestTextPosition(to: convert(point, to: owner)) {
+      if let owner, let position = owner.closestTextPosition(to: textInputView.convert(point, to: owner)) {
         return position
       }
       return super.closestPosition(to: point)
     }
 
     override func closestPosition(to point: CGPoint, within range: UITextRange) -> UITextPosition? {
-      guard let owner, let position = owner.closestTextPosition(to: convert(point, to: owner)) else {
+      guard let owner, let position = owner.closestTextPosition(to: textInputView.convert(point, to: owner)) else {
         return super.closestPosition(to: point, within: range)
       }
       if compare(position, to: range.start) == .orderedAscending { return range.start }
@@ -1146,17 +1206,22 @@ extension MorphInputView: UITextFieldDelegate {
   }
 
   func textFieldDidBeginEditing(_ textField: UITextField) {
+    if contentOverflows { render() }
     updateCaret(restartBlink: true)
     onFocusChange?(true)
   }
 
   func textFieldDidEndEditing(_ textField: UITextField) {
+    if contentOverflows { render() }
     updateCaret()
     onFocusChange?(false)
   }
 
   func textFieldDidChangeSelection(_ textField: UITextField) {
     guard !isSettingText else { return }
+    // A caret move alone does not re-render; when the content is wider than
+    // the view the scroll offset has to follow it.
+    if contentOverflows { render() }
     updateCaret(restartBlink: true)
   }
 

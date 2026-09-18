@@ -84,6 +84,19 @@ static void formatterGroupsAsYouType() {
   e = f.applyEdit("1,234", 2, 5, "5");
   CHECK_EQ_STR(e.text, "15");
   CHECK(e.caret == 2);
+  // Pasting: letters are dropped, the grouping separator groups, the decimal
+  // separator is the decimal and the fraction is cut to fit.
+  e = f.applyEdit("", 0, 0, "ab12,345.678xyz");
+  CHECK_EQ_STR(e.text, "12,345.67");
+  CHECK(e.caret == 9);
+  // Pasting into the middle of an amount.
+  e = f.applyEdit("1,234", 3, 3, "9,9");
+  CHECK_EQ_STR(e.text, "129,934");
+  CHECK(e.caret == 5);
+  // A single typed comma is still the decimal.
+  e = f.applyEdit("1,234", 5, 5, ",");
+  CHECK_EQ_STR(e.text, "1,234.");
+  CHECK(e.caret == 6);
 }
 
 static void formatterDecimals() {

@@ -130,11 +130,17 @@ AmountFormatter::Edit AmountFormatter::applyEdit(const std::string& current, int
   const int rawStart = rawOf(cur, start).caret;
   const int rawEnd = rawOf(cur, end).caret;
 
+  // A single typed '.' or ',' is the decimal whatever the locale (Numora's
+  // rule). In a pasted string the grouping separator is a grouping separator:
+  // "12,345.67" pasted into a US field must not become 12.34.
+  const bool pasted = rep.size() > 1;
   std::vector<uint32_t> accepted;
   bool typedDecimal = false;
   for (uint32_t c : rep) {
     if (isDigit(c)) {
       accepted.push_back(c);
+    } else if (pasted && isGrouping(c)) {
+      continue;
     } else if (isTypedDecimal(c) && !typedDecimal) {
       accepted.push_back(decimal_);
       typedDecimal = true;
