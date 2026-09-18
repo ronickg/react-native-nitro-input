@@ -155,10 +155,13 @@ to reflow while digits appear (e.g. a counter that grows past `999`).
   natively (`CADisplayLink` on the main run loop, `ValueAnimator` on the UI
   thread). A busy JS thread delays the *next* value, never the animation in
   flight, the shimmer, or the shrink-to-fit scaling.
-- Per frame the view draws about a dozen glyphs: on iOS they are pre-rasterized
-  once per font/color and blitted (Core Text never runs per frame), on Android
-  they go through `Canvas.drawText` and HWUI's glyph cache. Scaling is a canvas
-  transform, so no fonts are rebuilt while fitting.
+- On iOS a frame never redraws a bitmap: each glyph and wheel is a `CALayer`
+  with a pre-rasterized image (a wheel is a clipped strip of the digits), and a
+  frame only moves layers, so the render server composites the roll. The
+  Core Graphics path is used only while the loading glint is showing. On
+  Android a frame is about a dozen `Canvas.drawText` calls through HWUI's glyph
+  cache. Scaling is a layer / canvas transform, so no fonts are rebuilt while
+  fitting.
 - `jumpTo` / `animateTo` coalesce: only the newest value per main-thread turn
   is applied, so pushing a value every frame into many views never builds a
   backlog of main-thread dispatches.

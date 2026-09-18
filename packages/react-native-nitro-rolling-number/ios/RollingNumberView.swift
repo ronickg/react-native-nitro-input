@@ -5,7 +5,17 @@
 //  Draws the rolling number. All behaviour (wheel positions, rolls, stagger,
 //  easing, loading fade, shimmer phase) lives in the shared C++ `RollingEngine`
 //  (cpp/RollingEngine.hpp); this view owns fonts, layout, fit-to-width and
-//  Core Graphics drawing, and drives the engine from a display link.
+//  rendering, and drives the engine from a display link.
+//
+//  Rendering has two modes:
+//  - Layers (default): every glyph and wheel is a CALayer whose contents is a
+//    pre-rasterized image (a wheel is a clipped strip of the digits 0–9); a
+//    frame only moves layers, so the render server composites the roll and
+//    the main thread never redraws a bitmap. Profiling 24 rolling views showed
+//    two thirds of the main thread inside Core Animation's backing-store work
+//    for `draw(_:)` views, which this avoids entirely.
+//  - Bitmap (`draw(_:)`): used only while the loading glint is visible, because
+//    the source-atop sweep needs a Core Graphics transparency layer.
 //
 
 import CoreText
@@ -80,7 +90,7 @@ final class RollingNumberView: UIView {
       if engine.hasShownValue() {
         reportIntrinsicSize()
       }
-      setNeedsDisplay()
+      render()
     }
   }
 
@@ -98,7 +108,7 @@ final class RollingNumberView: UIView {
   }
 
   var shimmer = Shimmer() {
-    didSet { setNeedsDisplay() }
+    didSet { render() }
   }
 
   /// Loading glint: full-color ink with a light band sweeping through it.
@@ -109,12 +119,12 @@ final class RollingNumberView: UIView {
       engine.setLoading(loading, CACurrentMediaTime())
       updateAccessibility()
       updateDisplayLinkNeed()
-      setNeedsDisplay()
+      render()
     }
   }
 
   var alignment: Alignment = .left {
-    didSet { setNeedsDisplay() }
+    didSet { render() }
   }
 
   /// Called with the settled (target) intrinsic size whenever it changes.
@@ -157,7 +167,9 @@ final class RollingNumberView: UIView {
     private var widthCache: [String: CGFloat] = [:]
     private var imageCache: [String: UIImage] = [:]
     /// Pixel density the glyph images are rendered at.
-    private let renderScale: CGFloat
+    let renderScale: CGFloat
+    /// Slots in a wheel strip: index -1 (blank) through 10 (the 0 after 9).
+    static let stripSlots = 12
 
     init(_ t: Typography) {
       renderScale = max(1, UIScreen.main.scale)
@@ -220,6 +232,31 @@ final class RollingNumberView: UIView {
       return image
     }
 
+    /// A wheel's whole digit strip as one image: slots for index -1 (blank) to
+    /// 10 (the 0 that follows 9 on a wrap), each `lineHeight` tall with the
+    /// digit centred in `digitWidth`. A wheel layer shows one slot-high window
+    /// of it and just moves the strip, so a roll is a position change.
+    func strip(blankZero: Bool) -> UIImage? {
+      let key = blankZero ? "strip|blank0" : "strip"
+      if let cached = imageCache[key] { return cached }
+      guard digitWidth > 0, lineHeight > 0 else { return nil }
+      let format = UIGraphicsImageRendererFormat()
+      format.scale = renderScale
+      format.opaque = false
+      let size = CGSize(width: ceil(digitWidth), height: lineHeight * CGFloat(Self.stripSlots))
+      let image = UIGraphicsImageRenderer(size: size, format: format).image { _ in
+        for slot in 0..<Self.stripSlots {
+          let index = slot - 1
+          if index < 0 || (blankZero && index == 0) { continue }
+          let text = String(index % 10)
+          let w = width(of: text, role: .digit)
+          attributed(text, role: .digit).draw(at: CGPoint(x: (digitWidth - w) / 2, y: CGFloat(slot) * lineHeight))
+        }
+      }
+      imageCache[key] = image
+      return image
+    }
+
     /// Top of the glyph's line box for `role`, given the top of the digit line box.
     func top(for role: GlyphRole, lineTop: CGFloat) -> CGFloat {
       guard role != .digit else { return lineTop }
@@ -253,6 +290,25 @@ final class RollingNumberView: UIView {
   private var displayLink: CADisplayLink?
   private var lastReportedSize: CGSize = .zero
 
+  /// Scaled and aligned container for the element layers.
+  private let contentLayer = CALayer()
+  /// One entry per laid-out element, in drawing order.
+  private var slots: [ElementLayer] = []
+  /// True while the loading glint is visible and frames go through `draw(_:)`.
+  private var usesBitmap = false
+
+  private enum LayerKind: Equatable {
+    case wheel
+    case glyph(String, GlyphRole)
+  }
+
+  private struct ElementLayer {
+    var kind: LayerKind
+    var layer: CALayer
+    /// Wheels only: which strip variant the layer currently shows.
+    var blankZero: Bool
+  }
+
   // MARK: - Lifecycle
 
   override init(frame: CGRect) {
@@ -261,6 +317,9 @@ final class RollingNumberView: UIView {
     isOpaque = false
     backgroundColor = .clear
     contentMode = .redraw
+    contentLayer.anchorPoint = .zero
+    contentLayer.contentsScale = fonts.renderScale
+    layer.addSublayer(contentLayer)
     // Not clipped: in auto-size mode a new leading digit can draw past the old
     // frame for the one render it takes JS to apply the reported size, instead
     // of being cut off. Nothing else about the roll touches the JS thread.
@@ -285,8 +344,8 @@ final class RollingNumberView: UIView {
 
   override func layoutSubviews() {
     super.layoutSubviews()
-    // The shrink-to-fit scale depends on the bounds; it is re-evaluated in draw().
-    setNeedsDisplay()
+    // The shrink-to-fit scale and alignment depend on the bounds.
+    render()
   }
 
   @objc private func contentSizeCategoryDidChange() {
@@ -312,7 +371,10 @@ final class RollingNumberView: UIView {
     alignment = .left
     accessibilityLabel = nil
     accessibilityValue = nil
-    setNeedsDisplay()
+    clearSlots()
+    layer.contents = nil
+    usesBitmap = false
+    contentLayer.isHidden = false
   }
 
   // MARK: - Public API
@@ -323,7 +385,7 @@ final class RollingNumberView: UIView {
     engine.setValue(value)
     reportIntrinsicSize()
     updateDisplayLinkNeed()
-    setNeedsDisplay()
+    render()
   }
 
   /// Rolls every wheel to `value` (snaps on first show, duration 0 or Reduce Motion).
@@ -332,7 +394,7 @@ final class RollingNumberView: UIView {
     engine.animateTo(value, CACurrentMediaTime())
     reportIntrinsicSize()
     updateDisplayLinkNeed()
-    setNeedsDisplay()
+    render()
   }
 
   /// Re-sends the last reported intrinsic size (e.g. after a listener was attached).
@@ -346,7 +408,7 @@ final class RollingNumberView: UIView {
   fileprivate func step(_ link: CADisplayLink) {
     _ = engine.tick(CACurrentMediaTime())
     updateDisplayLinkNeed()
-    setNeedsDisplay()
+    render()
   }
 
   /// Keeps the display link alive only while the engine says something moves.
@@ -382,10 +444,12 @@ final class RollingNumberView: UIView {
   private func rebuildFonts() {
     fonts = FontSet(typography)
     fontScale = 1
+    // Every cached glyph image belongs to the old font set.
+    clearSlots()
     if engine.hasShownValue() {
       reportIntrinsicSize()
     }
-    setNeedsDisplay()
+    render()
   }
 
   /// Shrink-to-fit scale for the current bounds and the content as it is drawn
@@ -539,10 +603,148 @@ final class RollingNumberView: UIView {
     }
   }
 
-  // MARK: - Drawing
+  // MARK: - Rendering (layers)
+
+  /// Renders the current engine state: layers normally, `draw(_:)` while the
+  /// loading glint is showing.
+  private func render() {
+    guard engine.hasShownValue() else {
+      clearSlots()
+      return
+    }
+    let wantBitmap = engine.loadingProgress() > 0
+    if wantBitmap != usesBitmap {
+      usesBitmap = wantBitmap
+      contentLayer.isHidden = wantBitmap
+      if !wantBitmap {
+        layer.contents = nil
+      }
+    }
+    if usesBitmap {
+      setNeedsDisplay()
+    } else {
+      renderLayers()
+    }
+  }
+
+  private func clearSlots() {
+    for slot in slots {
+      slot.layer.removeFromSuperlayer()
+    }
+    slots = []
+  }
+
+  private func renderLayers() {
+    let fonts = self.fonts
+    let wheels = currentWheels()
+    let elements = buildElements(wheels: wheels, signFactor: engine.signFactor())
+    let total = elements.reduce(CGFloat(0)) { $0 + $1.width }
+    updateFontScale(contentWidth: total)
+    let scale = fontScale
+
+    let originX: CGFloat
+    switch alignment {
+    case .left: originX = 0
+    case .center: originX = (bounds.width - total * scale) / 2
+    case .right: originX = bounds.width - total * scale
+    }
+    let originY = (bounds.height - fonts.lineHeight * scale) / 2
+
+    CATransaction.begin()
+    CATransaction.setDisableActions(true)
+    defer { CATransaction.commit() }
+
+    contentLayer.bounds = CGRect(x: 0, y: 0, width: max(total, 1), height: fonts.lineHeight)
+    contentLayer.position = CGPoint(x: originX, y: originY)
+    contentLayer.transform = scale == 1 ? CATransform3DIdentity : CATransform3DMakeScale(scale, scale, 1)
+
+    syncSlots(with: elements, wheels: wheels, fonts: fonts)
+
+    var x: CGFloat = 0
+    for (i, element) in elements.enumerated() {
+      let slot = slots[i]
+      slot.layer.frame = CGRect(x: x, y: 0, width: element.width, height: fonts.lineHeight)
+      switch element.kind {
+      case .wheel(let index):
+        let wheel = wheels[index]
+        slot.layer.opacity = Float(wheel.width)
+        if let strip = slot.layer.sublayers?.first {
+          if slot.blankZero != wheel.blankZero {
+            strip.contents = fonts.strip(blankZero: wheel.blankZero)?.cgImage
+            slots[i].blankZero = wheel.blankZero
+          }
+          // Linear strips run from -1 (blank) to 9; a roll can be any real, so wrap it onto 0..<10.
+          let position = wheel.linear ? wheel.position : Self.wrap10(wheel.position)
+          strip.frame = CGRect(
+            x: element.width - fonts.digitWidth,
+            y: -(position + 1) * fonts.lineHeight,
+            width: strip.bounds.width,
+            height: strip.bounds.height
+          )
+        }
+      case .glyph(_, let role):
+        slot.layer.opacity = Float(element.factor)
+        if let image = slot.layer.sublayers?.first {
+          image.frame = CGRect(
+            x: element.width - element.fullWidth,
+            y: fonts.top(for: role, lineTop: 0),
+            width: image.bounds.width,
+            height: image.bounds.height
+          )
+        }
+      }
+      x += element.width
+    }
+  }
+
+  /// Makes `slots` match `elements` one to one; layers are only rebuilt when
+  /// the element kinds change (a wheel appearing or disappearing).
+  private func syncSlots(with elements: [Element], wheels: [Engine.Wheel], fonts: FontSet) {
+    let kinds: [LayerKind] = elements.map { element in
+      switch element.kind {
+      case .wheel: return .wheel
+      case .glyph(let text, let role): return .glyph(text, role)
+      }
+    }
+    if kinds == slots.map(\.kind) { return }
+    clearSlots()
+    slots.reserveCapacity(elements.count)
+    for (i, element) in elements.enumerated() {
+      let container = CALayer()
+      container.masksToBounds = true
+      let inner = CALayer()
+      inner.contentsScale = fonts.renderScale
+      switch element.kind {
+      case .wheel(let index):
+        let blankZero = wheels[index].blankZero
+        if let strip = fonts.strip(blankZero: blankZero) {
+          inner.contents = strip.cgImage
+          inner.bounds = CGRect(origin: .zero, size: strip.size)
+        }
+        container.addSublayer(inner)
+        contentLayer.addSublayer(container)
+        slots.append(ElementLayer(kind: kinds[i], layer: container, blankZero: blankZero))
+      case .glyph(let text, let role):
+        if let image = fonts.image(text, role: role) {
+          inner.contents = image.cgImage
+          inner.bounds = CGRect(origin: .zero, size: image.size)
+        }
+        container.addSublayer(inner)
+        contentLayer.addSublayer(container)
+        slots.append(ElementLayer(kind: kinds[i], layer: container, blankZero: false))
+      }
+    }
+  }
+
+  private static func wrap10(_ position: Double) -> Double {
+    let r = fmod(position, 10)
+    return r < 0 ? r + 10 : r
+  }
+
+  // MARK: - Drawing (bitmap, loading glint only)
 
   override func draw(_ rect: CGRect) {
-    guard engine.hasShownValue(), let ctx = UIGraphicsGetCurrentContext() else { return }
+    guard usesBitmap, engine.hasShownValue(), let ctx = UIGraphicsGetCurrentContext() else { return }
     let fonts = self.fonts
     let wheels = currentWheels()
     let elements = buildElements(wheels: wheels, signFactor: engine.signFactor())

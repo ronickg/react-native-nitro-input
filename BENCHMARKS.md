@@ -34,8 +34,8 @@ as CPU. With 24 copies the differences become dropped frames.
 | Implementation | UI fps | dropped | JS fps | process CPU | main thread |
 |---|---|---|---|---|---|
 | Text (no animation) | 60.0 | 0 | 60.0 | 20 % | 10 % |
-| **Nitro `value` prop** | 60.0 | 0 | 60.0 | 20 % | 12 % |
-| **Nitro `jumpTo`** | 60.0 | 0 | 60.0 | 9 % | 7 % |
+| **Nitro `value` prop** (bitmap build) | 60.0 | 0 | 60.0 | 20 % | 12 % |
+| **Nitro `jumpTo`** (bitmap build) | 60.0 | 0 | 60.0 | 9 % | 7 % |
 | NumberFlow View | 60.0 | 0 | 60.0 | 45 % | 21 % |
 | NumberFlow Skia | 60.0 | 0 | 60.0 | 54 % | 9 % |
 | NumberFlow Skia sharedValue | 59.9 | 1 | 60.0 | 13 % | 9 % |
@@ -46,31 +46,44 @@ as CPU. With 24 copies the differences become dropped frames.
 | Implementation | UI fps | dropped | worst gap | JS fps | process CPU | main thread |
 |---|---|---|---|---|---|---|
 | Text (no animation) | 60.0 | 0 | 17 ms | 60.0 | 24 % | 16 % |
-| **Nitro `value` prop** | 57.2 | 34 | 46 ms | 60.0 | 69 % | 60 % |
-| **Nitro `jumpTo`** | 59.3 | 8 | 49 ms | 60.0 | 50 % | 49 % |
+| **Nitro `value` prop** | 59.4 | 8 | 55 ms | 59.9 | 25 % | 12 % |
+| **Nitro `jumpTo`** | 60.0 | 0 | 17 ms | 60.0 | 12 % | 9 % |
 | NumberFlow View | 34.0 | 307 | 131 ms | 7.9 | 178 % | 76 % |
 | NumberFlow Skia | 42.4 | 239 | 42 ms | 1.5 | 208 % | 78 % |
 | NumberFlow Skia sharedValue | 35.3 | 320 | 1036 ms | 41.0 | 127 % | 73 % |
 | AnimatedNumbers | 57.1 | 34 | 140 ms | 13.9 | 173 % | 51 % |
 
-Before this round's optimizations the same Nitro rows read 31.3 fps / 158
-dropped / 811 ms (prop) and 32.5 fps / 329 dropped / 3375 ms (`jumpTo`).
-Profiling showed per-glyph Core Text drawing at 27 % of the main thread and
-an unbounded backlog of main-thread dispatches from `jumpTo`; glyphs are now
-rasterized once and blitted, and `jumpTo`/`animateTo` coalesce to the newest
-value per main-thread turn.
+How the Nitro rows got there, same scenario, three builds:
+
+| build | prop: UI fps / dropped / main thread | `jumpTo`: UI fps / dropped / main thread |
+|---|---|---|
+| bitmap `draw(_:)`, Core Text per glyph | 31.3 / 158 / 64 % (worst gap 811 ms) | 32.5 / 329 / 62 % (worst gap 3375 ms) |
+| + cached glyph images, coalesced `jumpTo` | 57.2 / 34 / 60 % | 59.3 / 8 / 49 % |
+| **+ CALayer wheels (no per-frame bitmap)** | **59.4 / 8 / 12 %** | **60.0 / 0 / 9 %** |
+
+The first profile showed per-glyph Core Text drawing at 27 % of the main
+thread plus an unbounded backlog of `jumpTo` dispatches. The second profile
+showed that two thirds of what remained was Core Animation's backing-store
+work for a `draw(_:)` view (allocate, clear, convert, upload a bitmap for each
+of the 24 views every frame), which no drawing optimization can remove. Each
+glyph and wheel is now a `CALayer` with a pre-rasterized image, a wheel being
+a clipped strip of the ten digits that moves per frame, so the render server
+composites the roll and the main thread only sets layer positions.
 
 ### 24 copies, ten values a second
 
 | Implementation | UI fps | dropped | JS fps | process CPU | main thread |
 |---|---|---|---|---|---|
 | Text (no animation) | 59.9 | 1 | 60.0 | 12 % | 8 % |
-| **Nitro `value` prop** | 59.9 | 1 | 60.0 | 59 % | 57 % |
-| **Nitro `jumpTo`** | 53.2 | 83 | 60.0 | 16 % | 15 % |
+| **Nitro `value` prop** | 60.0 | 0 | 60.0 | 12 % | 8 % |
+| **Nitro `jumpTo`** | 60.0 | 0 | 60.0 | 3 % | 3 % |
 | NumberFlow View | 31.3 | 342 | 8.6 | 178 % | 78 % |
 | NumberFlow Skia | 45.7 | 204 | 1.4 | 206 % | 80 % |
 | NumberFlow Skia sharedValue | 49.8 | 143 | 43.2 | 143 % | 81 % |
 | AnimatedNumbers | 57.0 | 36 | 27.2 | 126 % | 43 % |
+
+(With the bitmap renderer the Nitro rows were 59.9 / 1 / 57 % and 53.2 / 83 /
+15 %.)
 
 Reading: the prop-driven libraries pay for every update on the JS thread
 (React render, formatting, per-digit animation setup) and, for the View and
@@ -78,8 +91,9 @@ Skia renderers, again on the main thread; with 24 copies the JS thread falls
 to 1–9 fps and the UI thread to 31–46 fps. AnimatedNumbers keeps the UI
 thread mostly free (native-driver transforms) but its JS thread still drops to
 14–27 fps. This library keeps the JS thread at 60 fps in every scenario
-because a value is a single JSI call; its remaining cost is the main-thread
-redraw of 24 bitmap-backed views (about 0.4 ms per view per frame here).
+because a value is a single JSI call, and with layer rendering 24 continuously
+rolling copies cost about the same main-thread time as 24 plain `<Text>`
+updates.
 
 ## Android
 

@@ -12,4 +12,4 @@
 - `allowFontScaling` / `maxFontSizeMultiplier` (off by default).
 - View recycling (`RecyclableView`) for long lists.
 - Rapid updates: a value that arrives mid-roll continues with the ease-out half of the curve instead of restarting from rest, so per-frame `value` updates keep rolling.
-- iOS draws pre-rasterized glyph images (Core Text no longer runs per frame); `jumpTo` / `animateTo` coalesce to the newest value per main-thread turn on both platforms. 24 views at 60 updates/s went from ~31 fps to 57–59 fps on the simulator (see `BENCHMARKS.md`).
+- iOS renders with Core Animation layers (a wheel is a clipped strip of pre-rasterized digits that moves per frame) instead of redrawing a bitmap; the Core Graphics path is only used while the loading glint shows. `jumpTo` / `animateTo` coalesce to the newest value per main-thread turn on both platforms. See `BENCHMARKS.md`.
