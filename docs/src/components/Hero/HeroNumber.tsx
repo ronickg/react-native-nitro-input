@@ -19,6 +19,8 @@ function LiveHero() {
   const ref = useRef<RollingNumberCanvasHandle>(null);
   const [value, setValue] = useState(12480.5);
   const [auto, setAuto] = useState(true);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [stageWidth, setStageWidth] = useState(520);
   useEffect(() => {
     if (!auto) return;
     const id = setInterval(() => {
@@ -26,24 +28,35 @@ function LiveHero() {
     }, 1400);
     return () => clearInterval(id);
   }, [auto]);
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const update = () => setStageWidth(Math.min(520, el.getBoundingClientRect().width));
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  // The figure scales with the width it gets, so a phone shows the whole number.
+  const fontSize = Math.max(40, Math.min(76, Math.floor(stageWidth / 6.8)));
   return (
-    <div className={styles.stage}>
+    <div className={styles.stage} ref={stageRef}>
       <RollingNumberCanvas
         ref={ref}
         value={value}
         fractionDigits={2}
         groupingSeparator=","
         prefix="$"
-        prefixFontSize={34}
+        prefixFontSize={Math.round(fontSize * 0.45)}
         affixAlign="top"
-        fontSize={76}
+        fontSize={fontSize}
         fontWeight={800}
         easing="spring"
         bounce={0.12}
         stagger={30}
         duration={700}
         textAlign="center"
-        width={520}
+        width={stageWidth}
         className={styles.number}
       />
       <div className={styles.buttons}>

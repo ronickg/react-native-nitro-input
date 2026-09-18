@@ -28,6 +28,7 @@ class RollingEngine {
   external fun isRolling(): Boolean
   external fun reset()
   external fun setRevealTiming(durationSeconds: Double, bounce: Double, style: Int, staggerSeconds: Double)
+  external fun setRevealGrow(grow: Double)
   external fun holdReveal(value: Double)
   external fun reveal(value: Double, now: Double)
   external fun isRevealing(): Boolean

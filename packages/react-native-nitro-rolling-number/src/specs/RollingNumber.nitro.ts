@@ -87,8 +87,14 @@ export interface RollingNumberProps extends HybridViewProps {
   revealStyle?: RollingNumberRevealStyle
   /** Duration of the reveal in ms (the count, or the time until the last reel locks). Default: `2200`. */
   revealDuration?: number
-  /** Peak overshoot of the reveal's landing pop, `0` (none) to `1`. Default: `0.07`. */
+  /** Peak overshoot of the reveal's landing pop, `0` (none) to `1`. Default: `0.12`. */
   revealBounce?: number
+  /**
+   * `'count'` style: how much smaller the figure opens, as a fraction of its
+   * size, growing to full size over the count (a big win's meter is enlarged
+   * as it climbs). `0` = no growth. Default: `0.2`.
+   */
+  revealGrow?: number
   /**
    * `'spin'` style: delay in ms between one reel locking and the next, from
    * the left. Shortened automatically when the reels wouldn't fit `revealDuration`. Default: `200`.

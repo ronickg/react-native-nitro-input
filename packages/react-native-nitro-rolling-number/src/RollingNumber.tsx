@@ -83,18 +83,25 @@ export interface RollingNumberProps extends Omit<ViewProps, 'children'> {
    */
   reveal?: boolean
   /**
-   * `'count'` (default) is the win-meter rollup: the figure counts up from 0
-   * in one decelerating sweep, exponential in value so tens, hundreds and
-   * thousands each get the same screen time, digits swapping in place and
-   * leading digits appearing as the count reaches them. `'spin'` is the
-   * jackpot reels: every digit spins like a slot reel, then the reels brake
-   * and lock one at a time from the left, each with a mechanical bounce.
+   * `'count'` (default) is the win-meter rollup: the figure tallies up from 0
+   * like a slot's win counter, taking off at once, running at a constant
+   * rate and braking into the total (and into each tier with
+   * `revealMilestones`), swelling slightly as it climbs, digits swapping in
+   * place and leading digits appearing as the count reaches them. `'spin'`
+   * is the jackpot reels: every digit spins like a slot reel, then the reels
+   * brake and lock one at a time from the left, each with a mechanical bounce.
    */
   revealStyle?: RollingNumberRevealStyle
   /** Duration of the reveal in ms (the count, or the time until the last reel locks). Default: `2200`. */
   revealDuration?: number
-  /** Peak overshoot of the reveal's landing pop, `0` (none) to `1`. Default: `0.07`. */
+  /** Peak overshoot of the reveal's landing pop, `0` (none) to `1`. Default: `0.12`. */
   revealBounce?: number
+  /**
+   * `'count'` style: how much smaller the figure opens, as a fraction of its
+   * size, growing to full size over the count, the way a big win's meter is
+   * enlarged as it climbs. `0` = no growth. Default: `0.2`.
+   */
+  revealGrow?: number
   /** `'spin'` style: ms between one reel locking and the next, shortened to fit `revealDuration`. Default: `200`. */
   revealStagger?: number
   /**
@@ -250,6 +257,7 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
       revealStyle,
       revealDuration,
       revealBounce,
+      revealGrow,
       revealStagger,
       revealMilestones,
       revealMilestoneHold,
@@ -393,7 +401,8 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
         revealState={reveal === undefined ? 0 : reveal ? 2 : 1}
         revealStyle={revealStyle ?? 'count'}
         revealDuration={revealDuration ?? 2200}
-        revealBounce={revealBounce ?? 0.07}
+        revealBounce={revealBounce ?? 0.12}
+        revealGrow={revealGrow ?? 0.2}
         revealStagger={revealStagger ?? 200}
         revealMilestones={stableMilestones}
         revealMilestoneHold={revealMilestoneHold ?? 0}

@@ -134,6 +134,11 @@ void JHybridRollingNumberViewStateUpdater::updateViewProps(jni::alias_ref<jni::J
     hybridView->setRevealBounce(newProps->revealBounce.get());
   }
   if (oldProps == nullptr
+        ? newProps->revealGrow.isProvided()
+        : !newProps->revealGrow.hasSameValue(oldProps->revealGrow)) {
+    hybridView->setRevealGrow(newProps->revealGrow.get());
+  }
+  if (oldProps == nullptr
         ? newProps->revealStagger.isProvided()
         : !newProps->revealStagger.hasSameValue(oldProps->revealStagger)) {
     hybridView->setRevealStagger(newProps->revealStagger.get());

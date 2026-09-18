@@ -69,12 +69,14 @@ public:
   // Two casino "you won" presentations, both landing with a pop (a velocity
   // kick on `revealScale()` rung out by a damped spring):
   //
-  // - Style 0, count (the win-meter rollup): the figure opens at 0 and counts
-  //   itself up to the target in one decelerating sweep, exponential in value
-  //   so tens, hundreds and thousands each get the same screen time. Digits
-  //   swap in place (the count's own speed is the animation, there is no
-  //   roll) and leading digits appear as the count reaches their place; the
-  //   layout is the target's from the first frame, so nothing reflows.
+  // - Style 0, count (the win-meter rollup): the figure opens at 0 and
+  //   tallies up to the target like a slot's win counter: it takes off at
+  //   once, runs at a constant rate and brakes into the total (and into each
+  //   milestone, tier by tier, when there are milestones), swelling slightly
+  //   as it climbs. Digits swap in place (the count's own speed is the
+  //   animation, there is no roll) and leading digits appear as the count
+  //   reaches their place; the layout is the target's from the first frame,
+  //   so nothing reflows.
   // - Style 1, spin (the jackpot reels): every digit spins like a slot reel,
   //   then the reels brake and lock one at a time from the left, each with a
   //   small mechanical bounce, the last one landing at the duration.
@@ -82,8 +84,11 @@ public:
   /// Timing of a reveal: the total duration, the landing pop's peak overshoot
   /// (`0` = no pop), the style (0 count, 1 spin) and, for the spin style, the
   /// delay between reel stops (shortened when the reels don't fit the
-  /// duration). Defaults: 2.2 s, 0.07, count, 0.2 s.
+  /// duration). Defaults: 2.2 s, 0.12, count, 0.2 s.
   void setRevealTiming(double durationSeconds, double bounce, int style, double staggerSeconds);
+  /// Count style: how much smaller the figure opens, as a fraction of its
+  /// size, growing to full size over the count (`0` = no growth). Default 0.2.
+  void setRevealGrow(double grow);
   /// Shows the opening frame of a reveal for `value`: its layout with the
   /// mandatory digits at 0 and every other digit blank ("$0", "$0.00").
   /// Cancels any roll.
@@ -93,7 +98,8 @@ public:
   void reveal(double value, double now);
   /// True while a reveal counts or its landing pop rings out.
   bool isRevealing() const { return reveal_.active; }
-  /// Scale of the landing pop, about the figure's centre; 1 when idle.
+  /// Scale of the figure during a reveal (its growth times the punches),
+  /// about its centre; 1 when idle.
   double revealScale() const { return revealScale_; }
   /// Wall-clock length of a whole reveal (count, milestone holds, landing pop).
   double revealTotalSeconds() const;
@@ -207,10 +213,12 @@ private:
   void applyReveal(double elapsed);
   void applyRevealCount(double elapsed);
   void applyRevealSpin(double elapsed);
-  /// The spring impulse of a punch `tau` seconds after it was kicked, scaled to peak at `overshoot`.
+  /// A punch `tau` seconds after its kick: one overshoot peaking at `overshoot`, then settling.
   static double punch(double tau, double overshoot);
   /// The reveal's count as a fraction of the target at clock fraction `t`.
   static double revealFraction(double t, double magnitude);
+  /// One tally run: constant-rate count with a ramp in and a brake out.
+  static double tally(double t, double rampIn, double rampOut);
   double ease(double t) const;
   /// The curve used when re-targeting mid-roll: the ease-in curves collapse to
   /// their ease-out / linear counterparts so a wheel in motion never stalls.
@@ -229,9 +237,10 @@ private:
   int direction_ = 0;
   bool reduceMotion_ = false;
   double revealDuration_ = 2.2;
-  double revealBounce_ = 0.07;
+  double revealBounce_ = 0.12;
   int revealStyle_ = 0;
   double revealStagger_ = 0.2;
+  double revealGrow_ = 0.2;
   std::vector<double> revealMilestones_;
   double revealMilestoneHold_ = 0;
 

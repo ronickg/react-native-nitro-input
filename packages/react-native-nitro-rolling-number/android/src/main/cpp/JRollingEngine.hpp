@@ -33,6 +33,7 @@ public:
   bool isRolling();
   void reset();
   void setRevealTiming(double durationSeconds, double bounce, int style, double staggerSeconds);
+  void setRevealGrow(double grow);
   void holdReveal(double value);
   void reveal(double value, double now);
   bool isRevealing();

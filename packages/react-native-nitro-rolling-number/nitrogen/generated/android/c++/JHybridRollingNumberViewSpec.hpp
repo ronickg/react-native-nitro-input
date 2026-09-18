@@ -82,6 +82,8 @@ namespace margelo::nitro::nitrorollingnumber {
     void setRevealDuration(std::optional<double> revealDuration) override;
     std::optional<double> getRevealBounce() override;
     void setRevealBounce(std::optional<double> revealBounce) override;
+    std::optional<double> getRevealGrow() override;
+    void setRevealGrow(std::optional<double> revealGrow) override;
     std::optional<double> getRevealStagger() override;
     void setRevealStagger(std::optional<double> revealStagger) override;
     std::optional<std::vector<double>> getRevealMilestones() override;

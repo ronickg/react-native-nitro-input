@@ -73,7 +73,9 @@ final class RollingNumberView: UIView {
     /// Length of a jackpot reveal (the count, or until the last reel locks).
     var revealDuration: TimeInterval = 2.2
     /// Peak overshoot of the reveal's landing pop (0 = none).
-    var revealBounce: Double = 0.07
+    var revealBounce: Double = 0.12
+    /// Count style: how much smaller the figure opens, growing to full size over the count.
+    var revealGrow: Double = 0.2
     /// The reveal's presentation.
     var revealStyle: RevealStyle = .count
     /// Spin style: delay between reel stops, from the left.
@@ -119,6 +121,7 @@ final class RollingNumberView: UIView {
     didSet {
       engine.setTiming(timing.duration, timing.easing.rawValue, timing.bounce, timing.stagger, timing.direction.rawValue)
       engine.setRevealTiming(timing.revealDuration, timing.revealBounce, timing.revealStyle.rawValue, timing.revealStagger)
+      engine.setRevealGrow(timing.revealGrow)
       engine.setRevealMilestoneHold(timing.revealMilestoneHold)
     }
   }
@@ -420,8 +423,9 @@ final class RollingNumberView: UIView {
     shimmer = Shimmer()
     alignment = .left
     revealMilestones = []
-    onRevealEnd = nil
-    onRevealMilestone = nil
+    // `onIntrinsicSizeChange`, `onRevealEnd` and `onRevealMilestone` are the
+    // hybrid's wiring, not the element's props: they stay across recycling
+    // (the hybrid clears its own callback props).
     accessibilityLabel = nil
     accessibilityValue = nil
     clearSlots()

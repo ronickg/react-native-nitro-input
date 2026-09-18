@@ -231,26 +231,31 @@ static void jackpotRevealCountsUpAndLands() {
     return count;
   };
   double previous = 0;
-  int visibleAtQuarter = 0;
+  int visibleEarly = 0;
+  double swellStart = 0;
   for (int i = 1; i <= 21; i++) {
     e.tick(10 + 0.1 * i);
     int visible = 0;
     const double count = shown(&visible);
     CHECK(count >= previous);                   // the count only ever grows
     previous = count;
-    if (i == 5) visibleAtQuarter = visible;
-    CHECK(near(e.revealScale(), 1));            // no pop while counting
+    if (i == 1) {
+      visibleEarly = visible;
+      swellStart = e.revealScale();
+    }
+    CHECK(e.revealScale() <= 1 + 1e-9);         // no pop while counting, only the growth
   }
-  CHECK(visibleAtQuarter < 7);                  // still growing into the label a quarter of the way
-  CHECK(previous < 5000000 && previous > 4000000);   // decelerating into the target
+  CHECK(visibleEarly < 7);                      // still growing into the label early on
+  CHECK(swellStart < 0.82 && e.revealScale() > swellStart);   // opens 20 % smaller and grows as it climbs
+  CHECK(previous < 5000000 && previous > 4000000);   // braking into the target
   e.tick(12.2 + 1e-6);
   CHECK(near(shown(nullptr), 5000000));         // landed on the target at t == 1
   CHECK(!e.isRolling());                        // the count is done…
   CHECK(e.isRevealing() && e.needsFrames());    // …but the landing pop still rings out
-  e.tick(12.2 + 0.0961);                        // the spring's first peak
-  CHECK(e.revealScale() > 1.06 && e.revealScale() < 1.08);
-  e.tick(12.2 + 0.36);                          // the dip under
-  CHECK(e.revealScale() < 1);
+  e.tick(12.2 + 0.1);                           // the punch's peak
+  CHECK(e.revealScale() > 1.11 && e.revealScale() < 1.13);
+  e.tick(12.2 + 0.36);                          // settling, never under the resting size
+  CHECK(e.revealScale() > 1 && e.revealScale() < 1.06);
   e.tick(13.1);
   CHECK(!e.isRevealing() && !e.needsFrames());
   CHECK(near(e.revealScale(), 1));
@@ -332,7 +337,7 @@ static void jackpotRevealSpinsReelsAndLocksLeftToRight() {
 static void jackpotRevealMilestonesPunchAndHold() {
   RollingEngine e;
   e.setFormat(2, 1);
-  e.setRevealTiming(2.0, 0.07, 0, 0.2);
+  e.setRevealTiming(2.0, 0.12, 0, 0.2);
   e.addRevealMilestone(25000);                  // out of order and one beyond the target: sorted, dropped
   e.addRevealMilestone(1000);
   e.addRevealMilestone(80000);
@@ -352,6 +357,7 @@ static void jackpotRevealMilestonesPunchAndHold() {
   // Walk the reveal: find when the first milestone is reached, check the hold and the punch.
   double reachedAt = -1;
   double afterHold = 0, midTier = 0, lateTier = 0;
+  double punchPeak = 0, punchSettled = 0;
   for (int i = 1; i <= 400; i++) {
     const double now = i * 0.01;
     e.tick(now);
@@ -361,9 +367,8 @@ static void jackpotRevealMilestonesPunchAndHold() {
     }
     if (reachedAt > 0 && now < reachedAt + 0.45) {
       CHECK(near(shown(), 100000));             // …for the whole hold
-      if (now > reachedAt + 0.08 && now < reachedAt + 0.12) {
-        CHECK(e.revealScale() > 1.03);          // punching meanwhile (75 % of the landing pop)
-      }
+      if (near(now, reachedAt + 0.1, 1e-6)) punchPeak = e.revealScale();
+      if (near(now, reachedAt + 0.44, 1e-6)) punchSettled = e.revealScale();
     }
     if (reachedAt > 0 && near(now, reachedAt + 0.6, 1e-6)) afterHold = shown();
     if (reachedAt > 0 && near(now, reachedAt + 0.8, 1e-6)) midTier = shown();
@@ -371,11 +376,39 @@ static void jackpotRevealMilestonesPunchAndHold() {
   }
   // Tiers share the duration equally: $1,000 lands at 2.0 / 3 s.
   CHECK(near(reachedAt, 0.67, 0.011));
-  // Out of the hold the counter accelerates: it covers far more of the
-  // $1,000 → $25,000 tier in its middle tenth of a second than in its first.
+  // The milestone punch (75 % of the landing pop) rides on top of the still
+  // growing figure and has mostly settled by the end of the hold.
+  CHECK(punchPeak > punchSettled * 1.03 && punchPeak < punchSettled * 1.11);
+  CHECK(punchSettled < 1);                      // still growing towards full size
+  // Out of the hold the counter ramps up: it covers far more of the
+  // $1,000 → $25,000 tier in its middle tenth of a second than in its first,
+  // then runs at a steady rate.
   CHECK(afterHold > 100000 && afterHold < 2500000);
-  CHECK(midTier - afterHold > 4 * (afterHold - 100000));
+  CHECK(midTier - afterHold > 3 * (afterHold - 100000));
   CHECK(lateTier > midTier);
+  CHECK(near(lateTier - midTier, (midTier - afterHold) / 2, (midTier - afterHold) * 0.15));   // linear middle
+  // The tally crawls into the next milestone: the last tenth of the tier covers
+  // far less than the middle tenth did.
+  {
+    RollingEngine c;
+    c.setFormat(0, 1);
+    c.setRevealTiming(1.0, 0, 0, 0.2);
+    c.reveal(100000, 0);
+    auto shownOf = [&]() {
+      double count = 0;
+      for (int p = c.wheelCount() - 1; p >= 0; p--) {
+        const auto w = c.wheelAt(p);
+        if (w.width > 0) count = count * 10 + w.position;
+      }
+      return count;
+    };
+    c.tick(0.40); const double a = shownOf();
+    c.tick(0.50); const double b = shownOf();
+    c.tick(0.90); const double d = shownOf();
+    c.tick(1.00); const double e2 = shownOf();
+    CHECK(near(e2, 100000));
+    CHECK(e2 - d < (b - a) / 3);
+  }
   CHECK(e.revealMilestonesReached() == 2);      // $25,000 too; $80,000 never
   CHECK(!e.isRevealing());
   CHECK(near(shown(), 5000000));

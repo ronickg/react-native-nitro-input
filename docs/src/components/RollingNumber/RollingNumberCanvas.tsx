@@ -42,6 +42,7 @@ export interface RollingNumberCanvasProps {
   revealStyle?: RevealStyle;
   revealDuration?: number;
   revealBounce?: number;
+  revealGrow?: number;
   revealStagger?: number;
   revealMilestones?: number[];
   revealMilestoneHold?: number;
@@ -220,7 +221,8 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
       reveal,
       revealStyle = 'count',
       revealDuration = 2200,
-      revealBounce = 0.07,
+      revealBounce = 0.12,
+      revealGrow = 0.2,
       revealStagger = 200,
       revealMilestones,
       revealMilestoneHold = 0,
@@ -344,18 +346,7 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
       if (!ctx) return;
       const dpr = window.devicePixelRatio || 1;
       const cssWidth = width ?? Math.ceil(measureSettled(engine, f));
-      const bleedY = Math.ceil(f.lineHeight * 0.12);
-      const bleedX = Math.ceil(cssWidth * 0.08);
       const cssHeight = f.lineHeight;
-      const pw = Math.round((cssWidth + 2 * bleedX) * dpr);
-      const ph = Math.round((cssHeight + 2 * bleedY) * dpr);
-      if (canvas.width !== pw || canvas.height !== ph) {
-        canvas.width = pw;
-        canvas.height = ph;
-      }
-      canvas.style.width = `${cssWidth + 2 * bleedX}px`;
-      canvas.style.height = `${cssHeight + 2 * bleedY}px`;
-      canvas.style.margin = `${-bleedY}px ${-bleedX}px`;
 
       const wheels: Wheel[] = [];
       const count = engine.wheelCount();
@@ -375,6 +366,23 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
         originY += (f.lineHeight * fit * (1 - pop)) / 2;
       }
       const scale = fit * pop;
+
+      // Like the native views, never clip: the bitmap bleeds past the layout
+      // box far enough for the pop and for content wider than a fixed width.
+      const overflowLeft = Math.max(0, -originX);
+      const overflowRight = Math.max(0, originX + total * scale - cssWidth);
+      const bleedX = Math.ceil(Math.max(cssWidth * 0.08, overflowLeft, overflowRight) + 4);
+      const bleedY = Math.ceil(f.lineHeight * 0.15);
+      const pw = Math.round((cssWidth + 2 * bleedX) * dpr);
+      const ph = Math.round((cssHeight + 2 * bleedY) * dpr);
+      if (canvas.width !== pw || canvas.height !== ph) {
+        canvas.width = pw;
+        canvas.height = ph;
+      }
+      canvas.style.width = `${cssWidth + 2 * bleedX}px`;
+      canvas.style.height = `${cssHeight + 2 * bleedY}px`;
+      canvas.style.left = `${-bleedX}px`;
+      canvas.style.top = `${-bleedY}px`;
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, cssWidth + 2 * bleedX, cssHeight + 2 * bleedY);
@@ -544,13 +552,14 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
       e.setFormat(fractionDigits, minimumIntegerDigits);
       e.setTiming(duration / 1000, EASINGS[easing], bounce, stagger / 1000, DIRECTIONS[direction]);
       e.setRevealTiming(revealDuration / 1000, revealBounce, revealStyle === 'spin' ? 1 : 0, revealStagger / 1000);
+      e.setRevealGrow(revealGrow);
       e.setRevealMilestoneHold(revealMilestoneHold / 1000);
       e.clearRevealMilestones();
       for (const m of revealMilestones ?? []) e.addRevealMilestone(m);
       if (e.hasShownValue()) reportSize();
       draw();
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [module, fractionDigits, minimumIntegerDigits, duration, easing, bounce, stagger, direction, revealDuration, revealBounce, revealStyle, revealStagger, revealMilestoneHold, milestonesKey]);
+    }, [module, fractionDigits, minimumIntegerDigits, duration, easing, bounce, stagger, direction, revealDuration, revealBounce, revealGrow, revealStyle, revealStagger, revealMilestoneHold, milestonesKey]);
 
     // Loading glint.
     useEffect(() => {
@@ -614,7 +623,7 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
         onClick={skipOnClick ? () => engineRef.current?.isRevealing() && commands.jumpTo(engineRef.current.targetValue()) : undefined}
         role="img"
         aria-label={`${prefix}${value.toLocaleString(undefined, {minimumFractionDigits: fractionDigits, maximumFractionDigits: fractionDigits})}${suffix}`}>
-        <canvas ref={canvasRef} style={{display: 'block', color: color ?? 'inherit'}} />
+        <canvas ref={canvasRef} style={{display: 'block', position: 'absolute', color: color ?? 'inherit', pointerEvents: 'none'}} />
       </div>
     );
   },

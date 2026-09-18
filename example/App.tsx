@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   View,
@@ -626,7 +627,8 @@ function RevealDemo() {
           reveal={spin}
           revealStyle={style}
           revealMilestones={tiers ? REVEAL_MILESTONES : undefined}
-          revealMilestoneHold={350}
+          revealMilestoneHold={400}
+          revealDuration={tiers && style === 'count' ? 4800 : 2200}
           onRevealEnd={() => setLanded(true)}
           prefix="$"
           fractionDigits={2}
@@ -669,13 +671,232 @@ function RevealDemo() {
   )
 }
 
+// ---------------------------------------------------------------------------
+// Showcase: button-free, auto-playing screens for the docs recordings. Tap the
+// invisible top-right corner to leave.
+// ---------------------------------------------------------------------------
+
+type Showcase = 'balance' | 'reveal' | null
+
+const round = (v: number, places: number) => Math.round(v * 10 ** places) / 10 ** places
+
+function AssetRow({ name, ticker, tint, amount, price }: { name: string; ticker: string; tint: string; amount: number; price: number }) {
+  return (
+    <View style={showcase.card}>
+      <View style={[showcase.coin, { backgroundColor: tint }]}>
+        <Text style={showcase.coinText}>{ticker[0]}</Text>
+      </View>
+      <View>
+        <Text style={showcase.cardName}>{name}</Text>
+        <Text style={showcase.cardSub}>{ticker}</Text>
+      </View>
+      <View style={showcase.cardRight}>
+        <RollingNumber
+          value={amount}
+          fractionDigits={4}
+          suffix={' ' + ticker}
+          suffixFontSize={12}
+          suffixAlign="bottom"
+          fontSize={20}
+          fontWeight="700"
+          color="#fff"
+          textAlign="right"
+          duration={600}
+          easing="easeOut"
+          style={showcase.cardAmount}
+        />
+        <RollingNumber
+          value={price}
+          prefix="$"
+          fractionDigits={2}
+          groupingSeparator=","
+          fontSize={13}
+          fontWeight="500"
+          color="rgba(255,255,255,0.55)"
+          textAlign="right"
+          duration={600}
+          easing="easeOut"
+          style={showcase.cardAmount}
+        />
+      </View>
+    </View>
+  )
+}
+
+function BalanceShowcase({ onExit }: { onExit: () => void }) {
+  const [balance, setBalance] = useState(128_430.55)
+  const [today, setToday] = useState(1_284.12)
+  const [btc, setBtc] = useState(0.4821)
+  const [eth, setEth] = useState(3.2041)
+  const [btcPrice, setBtcPrice] = useState(64_210.9)
+  const [ethPrice, setEthPrice] = useState(3_412.75)
+  useEffect(() => {
+    const balanceTimer = setInterval(() => {
+      const delta = (Math.random() - 0.42) * 1900
+      setBalance((b) => Math.max(0, round(b + delta, 2)))
+      setToday((t) => round(t + delta, 2))
+    }, 1300)
+    const priceTimer = setInterval(() => {
+      setBtcPrice((p) => round(p + (Math.random() - 0.5) * 700, 2))
+      setEthPrice((p) => round(p + (Math.random() - 0.5) * 40, 2))
+    }, 900)
+    const holdingsTimer = setInterval(() => {
+      setBtc((v) => round(v + (Math.random() - 0.45) * 0.05, 4))
+      setEth((v) => round(v + (Math.random() - 0.45) * 0.3, 4))
+    }, 2600)
+    return () => {
+      clearInterval(balanceTimer)
+      clearInterval(priceTimer)
+      clearInterval(holdingsTimer)
+    }
+  }, [])
+  const up = today >= 0
+  return (
+    <View style={showcase.root}>
+      <StatusBar hidden />
+      <View style={showcase.glowA} />
+      <View style={showcase.glowB} />
+      <Pressable style={showcase.exit} onPress={onExit} testID="showcase-exit" />
+      <Text style={showcase.eyebrow}>Total balance</Text>
+      <RollingNumber
+        value={balance}
+        prefix="$"
+        prefixFontSize={30}
+        affixAlign="top"
+        fractionDigits={2}
+        groupingSeparator=","
+        fontSize={58}
+        fontWeight="800"
+        color="#fff"
+        easing="spring"
+        bounce={0.12}
+        stagger={25}
+        duration={700}
+        textAlign="center"
+        style={showcase.hero}
+      />
+      <View style={showcase.pill}>
+        <RollingNumber
+          value={Math.abs(today)}
+          prefix={up ? '+$' : '−$'}
+          fractionDigits={2}
+          groupingSeparator=","
+          fontSize={16}
+          fontWeight="700"
+          color={up ? '#34D399' : '#F87171'}
+          duration={600}
+          easing="easeOut"
+        />
+        <Text style={showcase.pillText}>today</Text>
+      </View>
+      <View style={showcase.cards}>
+        <AssetRow name="Bitcoin" ticker="BTC" tint="#F7931A" amount={btc} price={btcPrice} />
+        <AssetRow name="Ethereum" ticker="ETH" tint="#627EEA" amount={eth} price={ethPrice} />
+      </View>
+    </View>
+  )
+}
+
+function RevealShowcase({ onExit }: { onExit: () => void }) {
+  const [style, setStyle] = useState<'count' | 'spin'>('count')
+  const [amount, setAmount] = useState(50_000)
+  const [reveal, setReveal] = useState(false)
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+  const later = (ms: number, fn: () => void) => {
+    timers.current.push(setTimeout(fn, ms))
+  }
+  useEffect(() => {
+    later(900, () => setReveal(true))
+    const pending = timers.current
+    return () => pending.forEach(clearTimeout)
+  }, [])
+  // Count with tiers → hold → reels → hold → again.
+  const onRevealEnd = () => {
+    later(1800, () => {
+      setReveal(false)
+      later(700, () => {
+        setStyle((s) => (s === 'count' ? 'spin' : 'count'))
+        setAmount((a) => (a === 50_000 ? 25_750 : 50_000))
+        later(400, () => setReveal(true))
+      })
+    })
+  }
+  return (
+    <View style={[showcase.root, showcase.rootBrand]}>
+      <StatusBar hidden />
+      <View style={[showcase.glowA, showcase.glowBrand]} />
+      <Pressable style={showcase.exit} onPress={onExit} testID="showcase-exit" />
+      <View style={showcase.badge}>
+        <Text style={showcase.badgeText}>🎉</Text>
+      </View>
+      <Text style={showcase.revealTitle}>Congratulations!</Text>
+      <Text style={showcase.revealSub}>You've unlocked</Text>
+      <RollingNumber
+        value={amount}
+        reveal={reveal}
+        revealStyle={style}
+        revealMilestones={[1000, 10000, 25000]}
+        revealMilestoneHold={400}
+        revealDuration={style === 'count' ? 4800 : 2400}
+        onRevealEnd={onRevealEnd}
+        prefix="$"
+        fractionDigits={2}
+        groupingSeparator=","
+        fontSize={62}
+        fontWeight="800"
+        color="#fff"
+        textAlign="center"
+        style={showcase.hero}
+      />
+      <Text style={showcase.revealSub}>in credit</Text>
+      <View style={showcase.cta}>
+        <Text style={showcase.ctaText}>Claim credit</Text>
+      </View>
+    </View>
+  )
+}
+
+const showcase = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#0B0F19', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, overflow: 'hidden' },
+  rootBrand: { backgroundColor: '#1D4ED8' },
+  glowA: { position: 'absolute', width: 460, height: 460, borderRadius: 230, backgroundColor: '#2563EB', opacity: 0.3, top: -160, left: -140 },
+  glowB: { position: 'absolute', width: 380, height: 380, borderRadius: 190, backgroundColor: '#0EA5E9', opacity: 0.18, bottom: -140, right: -120 },
+  glowBrand: { backgroundColor: '#60A5FA', opacity: 0.35 },
+  exit: { position: 'absolute', top: 0, right: 0, width: 72, height: 72 },
+  eyebrow: { color: 'rgba(255,255,255,0.65)', fontSize: 13, letterSpacing: 1.6, textTransform: 'uppercase', fontWeight: '600', marginBottom: 10 },
+  hero: { width: '100%' },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, marginTop: 14 },
+  pillText: { color: 'rgba(255,255,255,0.7)', fontSize: 14 },
+  cards: { width: '100%', marginTop: 40, gap: 12 },
+  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 18, padding: 16, gap: 14 },
+  coin: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  coinText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  cardName: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  cardSub: { color: 'rgba(255,255,255,0.55)', fontSize: 13, marginTop: 2 },
+  cardRight: { marginLeft: 'auto', alignItems: 'flex-end', gap: 2 },
+  cardAmount: { width: 150 },
+  badge: { width: 76, height: 76, borderRadius: 38, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
+  badgeText: { fontSize: 36 },
+  revealTitle: { color: '#fff', fontSize: 28, fontWeight: '800' },
+  revealSub: { color: 'rgba(255,255,255,0.8)', fontSize: 16, marginVertical: 10 },
+  cta: { position: 'absolute', bottom: 132, left: 24, right: 24, backgroundColor: '#fff', borderRadius: 999, paddingVertical: 16, alignItems: 'center' },
+  ctaText: { color: '#1D4ED8', fontWeight: '700', fontSize: 16 },
+})
+
 function App() {
   const dark = useColorScheme() === 'dark'
+  const [showing, setShowing] = useState<Showcase>(null)
+  if (showing === 'balance') return <BalanceShowcase onExit={() => setShowing(null)} />
+  if (showing === 'reveal') return <RevealShowcase onExit={() => setShowing(null)} />
   return (
     <SafeAreaProvider>
       <SafeAreaView style={[styles.root, dark && styles.rootDark]}>
         <ScrollView contentContainerStyle={styles.content}>
           <Text style={[styles.title, dark && styles.titleDark]}>Nitro Rolling Number</Text>
+          <View style={styles.row}>
+            <Button title="Showcase: Balance" testID="showcase-balance" onPress={() => setShowing('balance')} />
+            <Button title="Showcase: Reveal" testID="showcase-reveal" onPress={() => setShowing('reveal')} />
+          </View>
           <RevealDemo />
           <ReactDrivenDemo />
           <CurrencyDemo />

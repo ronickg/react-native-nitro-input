@@ -65,6 +65,7 @@ namespace margelo::nitro::nitrorollingnumber::views {
     nitro::ReactProp<std::optional<RollingNumberRevealStyle>> revealStyle;
     nitro::ReactProp<std::optional<double>> revealDuration;
     nitro::ReactProp<std::optional<double>> revealBounce;
+    nitro::ReactProp<std::optional<double>> revealGrow;
     nitro::ReactProp<std::optional<double>> revealStagger;
     nitro::ReactProp<std::optional<std::vector<double>>> revealMilestones;
     nitro::ReactProp<std::optional<double>> revealMilestoneHold;
@@ -108,6 +109,7 @@ namespace margelo::nitro::nitrorollingnumber::views {
              revealStyle.hasSameValue(other.revealStyle) &&
              revealDuration.hasSameValue(other.revealDuration) &&
              revealBounce.hasSameValue(other.revealBounce) &&
+             revealGrow.hasSameValue(other.revealGrow) &&
              revealStagger.hasSameValue(other.revealStagger) &&
              revealMilestones.hasSameValue(other.revealMilestones) &&
              revealMilestoneHold.hasSameValue(other.revealMilestoneHold) &&
@@ -152,6 +154,7 @@ namespace margelo::nitro::nitrorollingnumber::views {
              revealStyle.isProvided() ||
              revealDuration.isProvided() ||
              revealBounce.isProvided() ||
+             revealGrow.isProvided() ||
              revealStagger.isProvided() ||
              revealMilestones.isProvided() ||
              revealMilestoneHold.isProvided() ||

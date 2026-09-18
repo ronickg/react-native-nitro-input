@@ -194,6 +194,12 @@ using namespace margelo::nitro::nitrorollingnumber::views;
           : !newViewProps.revealBounce.hasSameValue(oldViewProps->revealBounce)) {
       swiftPart.setRevealBounce(newViewProps.revealBounce.get());
     }
+    // revealGrow: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.revealGrow.isProvided()
+          : !newViewProps.revealGrow.hasSameValue(oldViewProps->revealGrow)) {
+      swiftPart.setRevealGrow(newViewProps.revealGrow.get());
+    }
     // revealStagger: optional
     if (oldViewProps == nullptr
           ? newViewProps.revealStagger.isProvided()

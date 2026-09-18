@@ -97,23 +97,24 @@ const [reveal, setReveal] = useState(false)
   reveal={reveal}                      // false: hold "$0.00" in the final layout; true: play
   revealStyle="count"                  // the win-meter rollup, or "spin" for slot reels
   revealMilestones={[1000, 10000, 25000]}
-  revealMilestoneHold={350}
+  revealMilestoneHold={400}
+  revealDuration={4800}                // about a second per tier
   onRevealMilestone={(index, at) => haptics.impact()}
   onRevealEnd={() => setShowNextStep(true)}
   prefix="$" fractionDigits={2} groupingSeparator="," textAlign="center" style={{ width: '100%' }}
 />
 ```
 
-`count` opens at 0 and counts itself up in one decelerating sweep, exponential
-in value so tens, hundreds and thousands each get the same screen time; digits
-swap in place and leading digits appear as the count reaches them. With
-`revealMilestones` (the "big win → mega win" tiers, numbers in the figure's
-units) the count runs tier by tier: equal time per tier, decelerating into each
-milestone, a punch, a pause of `revealMilestoneHold` ms, then accelerating
-again. `spin` spins every digit like a slot reel and locks the reels one at a
-time from the left. Both land with a pop. `jumpTo(value)` skips a running
-reveal (tap to slam). Banners, confetti and sounds are the app's: the callbacks
-give you the beats.
+`count` opens at 0, smaller, and tallies up like a slot's win counter: it takes
+off at once, runs at a constant rate (the low digits blur), grows as it climbs
+(`revealGrow`) and crawls into the total; digits swap in place and leading
+digits appear as the count reaches them. With `revealMilestones` (the "big win → mega
+win" tiers, numbers in the figure's units) the count runs tier by tier: equal
+time per tier, braking into each milestone, a punch, a pause of
+`revealMilestoneHold` ms, then taking off again. `spin` spins every digit like
+a slot reel and locks the reels one at a time from the left. Both land with a
+pop. `jumpTo(value)` skips a running reveal (tap to slam). Banners, confetti
+and sounds are the app's: the callbacks give you the beats.
 
 ### Imperative
 
@@ -150,7 +151,8 @@ scroll or drag handler drives the number.
 | `reveal` | `boolean` | – | `false` holds the opening frame (`$0.00` in the final layout); `true` plays the reveal to `value`. Unset = a normal rolling number. |
 | `revealStyle` | `'count' \| 'spin'` | `'count'` | The win-meter rollup, or slot reels locking from the left. |
 | `revealDuration` | `number` | `2200` | ms of the count, or until the last reel locks (holds and the pop come on top). |
-| `revealBounce` | `number` | `0.07` | Peak overshoot of the landing pop; `0` = none. |
+| `revealBounce` | `number` | `0.12` | Peak overshoot of the landing pop and the milestone punches; `0` = none. |
+| `revealGrow` | `number` | `0.2` | `count`: how much smaller the figure opens, growing to full size over the count. |
 | `revealStagger` | `number` | `200` | `spin`: ms between reel stops, shortened to fit the duration. |
 | `revealMilestones` | `number[]` | – | `count`: tiers in the figure's units; the count lands on each, punches, holds, then accelerates again. |
 | `revealMilestoneHold` | `number` | `0` | `count`: ms the count pauses on each milestone. |

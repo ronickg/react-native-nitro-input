@@ -65,6 +65,7 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
   }
   var revealDuration: Double? { didSet { markConfigDirty() } }
   var revealBounce: Double? { didSet { markConfigDirty() } }
+  var revealGrow: Double? { didSet { markConfigDirty() } }
   var revealStagger: Double? { didSet { markConfigDirty() } }
   var revealMilestones: [Double]? { didSet { markConfigDirty() } }
   var revealMilestoneHold: Double? { didSet { markConfigDirty() } }
@@ -184,6 +185,7 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
     revealStyle = nil
     revealDuration = nil
     revealBounce = nil
+    revealGrow = nil
     revealStagger = nil
     revealMilestones = nil
     revealMilestoneHold = nil
@@ -290,7 +292,8 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
     timing.stagger = max(0, (stagger ?? 0) / 1000)
     timing.direction = Self.mapDirection(direction)
     timing.revealDuration = max(0, (revealDuration ?? 2200) / 1000)
-    timing.revealBounce = min(1, max(0, revealBounce ?? 0.07))
+    timing.revealBounce = min(1, max(0, revealBounce ?? 0.12))
+    timing.revealGrow = min(1, max(0, revealGrow ?? 0.2))
     timing.revealStyle = revealStyle == .spin ? .spin : .count
     timing.revealStagger = max(0, (revealStagger ?? 200) / 1000)
     timing.revealMilestoneHold = max(0, (revealMilestoneHold ?? 0) / 1000)

@@ -32,6 +32,7 @@ EMSCRIPTEN_BINDINGS(rolling_engine) {
       .function("tick", &RollingEngine::tick)
       .function("reset", &RollingEngine::reset)
       .function("setRevealTiming", &RollingEngine::setRevealTiming)
+      .function("setRevealGrow", &RollingEngine::setRevealGrow)
       .function("holdReveal", &RollingEngine::holdReveal)
       .function("reveal", &RollingEngine::reveal)
       .function("isRevealing", &RollingEngine::isRevealing)

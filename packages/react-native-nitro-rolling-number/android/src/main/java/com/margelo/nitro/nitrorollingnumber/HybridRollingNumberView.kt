@@ -87,6 +87,8 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
     set(v) { field = v; markConfigDirty() }
   override var revealBounce: Double? = null
     set(v) { field = v; markConfigDirty() }
+  override var revealGrow: Double? = null
+    set(v) { field = v; markConfigDirty() }
   override var revealStagger: Double? = null
     set(v) { field = v; markConfigDirty() }
   override var revealMilestones: DoubleArray? = null
@@ -232,6 +234,7 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
     revealStyle = null
     revealDuration = null
     revealBounce = null
+    revealGrow = null
     revealStagger = null
     revealMilestones = null
     revealMilestoneHold = null
@@ -344,7 +347,8 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
         RollingNumberDirection.AUTO, null -> RollingNumberView.Direction.AUTO
       },
       revealDurationMs = Math.max(0.0, revealDuration ?: 2200.0).toLong(),
-      revealBounce = (revealBounce ?: 0.07).coerceIn(0.0, 1.0),
+      revealBounce = (revealBounce ?: 0.12).coerceIn(0.0, 1.0),
+      revealGrow = (revealGrow ?: 0.2).coerceIn(0.0, 1.0),
       revealStyle = when (revealStyle) {
         RollingNumberRevealStyle.SPIN -> RollingNumberView.RevealStyle.SPIN
         RollingNumberRevealStyle.COUNT, null -> RollingNumberView.RevealStyle.COUNT

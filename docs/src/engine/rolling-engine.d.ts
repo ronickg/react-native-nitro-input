@@ -28,6 +28,7 @@ export interface RollingEngine extends ClassHandle {
   tick(_0: number): boolean;
   reset(): void;
   setRevealTiming(_0: number, _1: number, _2: number, _3: number): void;
+  setRevealGrow(_0: number): void;
   holdReveal(_0: number): void;
   reveal(_0: number, _1: number): void;
   isRevealing(): boolean;

@@ -190,6 +190,13 @@ namespace margelo::nitro::nitrorollingnumber {
     inline void setRevealBounce(std::optional<double> revealBounce) noexcept override {
       _swiftPart.setRevealBounce(revealBounce);
     }
+    inline std::optional<double> getRevealGrow() noexcept override {
+      auto __result = _swiftPart.getRevealGrow();
+      return __result;
+    }
+    inline void setRevealGrow(std::optional<double> revealGrow) noexcept override {
+      _swiftPart.setRevealGrow(revealGrow);
+    }
     inline std::optional<double> getRevealStagger() noexcept override {
       auto __result = _swiftPart.getRevealStagger();
       return __result;

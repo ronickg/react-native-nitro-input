@@ -40,7 +40,8 @@ See [Jackpot reveal](/docs/reveal).
 | `reveal` | `boolean` | – | `false` holds the opening frame (`$0.00` in the final layout); `true` plays the reveal to `value`. `undefined` = a normal rolling number. |
 | `revealStyle` | `'count' \| 'spin'` | `'count'` | The win-meter rollup, or the slot reels locking from the left. |
 | `revealDuration` | `number` | `2200` | ms of the count, or until the last reel locks. |
-| `revealBounce` | `number` | `0.07` | Peak overshoot of the landing pop; `0` = none. |
+| `revealBounce` | `number` | `0.12` | Peak overshoot of the landing pop and the milestone punches; `0` = none. |
+| `revealGrow` | `number` | `0.2` | `count`: how much smaller the figure opens (a fraction of its size), growing to full size over the count. |
 | `revealStagger` | `number` | `200` | `spin`: ms between reel stops, shortened to fit the duration. |
 | `revealMilestones` | `number[]` | – | `count`: tiers in the figure's units. The count lands on each, punches, holds, then accelerates again. |
 | `revealMilestoneHold` | `number` | `0` | `count`: ms the count pauses on each milestone. |

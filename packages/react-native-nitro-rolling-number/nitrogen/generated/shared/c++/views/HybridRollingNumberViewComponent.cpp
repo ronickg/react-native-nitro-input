@@ -36,6 +36,7 @@ namespace margelo::nitro::nitrorollingnumber::views {
     revealStyle(nitro::ReactProp<std::optional<RollingNumberRevealStyle>>::fromRawValue("RollingNumberView", "revealStyle", rawProps, sourceProps.revealStyle)),
     revealDuration(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "revealDuration", rawProps, sourceProps.revealDuration)),
     revealBounce(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "revealBounce", rawProps, sourceProps.revealBounce)),
+    revealGrow(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "revealGrow", rawProps, sourceProps.revealGrow)),
     revealStagger(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "revealStagger", rawProps, sourceProps.revealStagger)),
     revealMilestones(nitro::ReactProp<std::optional<std::vector<double>>>::fromRawValue("RollingNumberView", "revealMilestones", rawProps, sourceProps.revealMilestones)),
     revealMilestoneHold(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "revealMilestoneHold", rawProps, sourceProps.revealMilestoneHold)),
@@ -79,6 +80,7 @@ namespace margelo::nitro::nitrorollingnumber::views {
       case hashString("revealStyle"): return true;
       case hashString("revealDuration"): return true;
       case hashString("revealBounce"): return true;
+      case hashString("revealGrow"): return true;
       case hashString("revealStagger"): return true;
       case hashString("revealMilestones"): return true;
       case hashString("revealMilestoneHold"): return true;

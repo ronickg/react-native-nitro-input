@@ -210,6 +210,15 @@ namespace margelo::nitro::nitrorollingnumber {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* revealBounce */)>("setRevealBounce");
     method(_javaPart, revealBounce.has_value() ? jni::JDouble::valueOf(revealBounce.value()) : nullptr);
   }
+  std::optional<double> JHybridRollingNumberViewSpec::getRevealGrow() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getRevealGrow");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridRollingNumberViewSpec::setRevealGrow(std::optional<double> revealGrow) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* revealGrow */)>("setRevealGrow");
+    method(_javaPart, revealGrow.has_value() ? jni::JDouble::valueOf(revealGrow.value()) : nullptr);
+  }
   std::optional<double> JHybridRollingNumberViewSpec::getRevealStagger() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getRevealStagger");
     auto __result = method(_javaPart);

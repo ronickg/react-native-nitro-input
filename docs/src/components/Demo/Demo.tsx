@@ -15,6 +15,22 @@ import {
  * number-flow style (Preview / Code tabs).
  */
 
+/** Width of a container element, kept current on resize (for canvases that need a pixel width). */
+export function useContainerWidth<T extends HTMLElement>(): [React.RefObject<T | null>, number] {
+  const ref = useRef<T | null>(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => setWidth(el.getBoundingClientRect().width);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return [ref, width];
+}
+
 export function Frame({children, caption}: {children: ReactNode; caption?: string}) {
   return (
     <div className="rn-demo">
@@ -198,7 +214,7 @@ export function LoadingDemo() {
   return (
     <>
       <Stage>
-        <RollingNumberCanvas value={value} loading={loading} fractionDigits={2} groupingSeparator="," prefix="$" fontSize={56} fontWeight={800} width={260} />
+        <RollingNumberCanvas value={value} loading={loading} fractionDigits={2} groupingSeparator="," prefix="$" fontSize={56} fontWeight={800} textAlign="center" width={300} />
       </Stage>
       <Controls>
         <Btn primary onClick={load}>
@@ -255,10 +271,14 @@ export function RevealDemo({initialStyle = 'count', milestones = false}: {initia
     setStatus('Ready when you are');
     setHits([]);
   };
+  const [cardRef, cardWidth] = useContainerWidth<HTMLDivElement>();
+  const figureWidth = Math.max(200, cardWidth - 40);
+  const fontSize = figureWidth < 340 ? Math.max(30, Math.floor(figureWidth / 6.5)) : 52;
   return (
     <>
       <Stage height={150}>
         <div
+          ref={cardRef}
           style={{
             background: 'var(--rn-brand)',
             borderRadius: 16,
@@ -278,17 +298,18 @@ export function RevealDemo({initialStyle = 'count', milestones = false}: {initia
             reveal={reveal}
             revealStyle={style}
             revealMilestones={tiers ? [1000, 10000, 25000] : undefined}
-            revealMilestoneHold={350}
+            revealMilestoneHold={400}
+            revealDuration={tiers && style === 'count' ? 4800 : 2200}
             onRevealMilestone={(index, value) => setHits((h) => [...h, value])}
             onRevealEnd={() => setStatus('Credit unlocked')}
             prefix="$"
             fractionDigits={2}
             groupingSeparator=","
-            fontSize={52}
+            fontSize={fontSize}
             fontWeight={800}
             color="#fff"
             textAlign="center"
-            width={340}
+            width={figureWidth}
             skipOnClick
           />
           <div style={{fontSize: 13, opacity: 0.85}}>

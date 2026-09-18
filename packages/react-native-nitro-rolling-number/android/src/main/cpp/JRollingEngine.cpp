@@ -25,6 +25,7 @@ void JRollingEngine::registerNatives() {
       makeNativeMethod("isRolling", JRollingEngine::isRolling),
       makeNativeMethod("reset", JRollingEngine::reset),
       makeNativeMethod("setRevealTiming", JRollingEngine::setRevealTiming),
+      makeNativeMethod("setRevealGrow", JRollingEngine::setRevealGrow),
       makeNativeMethod("holdReveal", JRollingEngine::holdReveal),
       makeNativeMethod("reveal", JRollingEngine::reveal),
       makeNativeMethod("isRevealing", JRollingEngine::isRevealing),
@@ -86,6 +87,10 @@ void JRollingEngine::reset() {
 
 void JRollingEngine::setRevealTiming(double durationSeconds, double bounce, int style, double staggerSeconds) {
   engine_.setRevealTiming(durationSeconds, bounce, style, staggerSeconds);
+}
+
+void JRollingEngine::setRevealGrow(double grow) {
+  engine_.setRevealGrow(grow);
 }
 
 void JRollingEngine::holdReveal(double value) {

@@ -77,7 +77,9 @@ class RollingNumberView(context: Context) : View(context) {
     /** Length of a jackpot reveal (the count, or until the last reel locks). */
     val revealDurationMs: Long = 2200,
     /** Peak overshoot of the reveal's landing pop (0 = none). */
-    val revealBounce: Double = 0.07,
+    val revealBounce: Double = 0.12,
+    /** Count style: how much smaller the figure opens, growing to full size over the count. */
+    val revealGrow: Double = 0.2,
     /** The reveal's presentation. */
     val revealStyle: RevealStyle = RevealStyle.COUNT,
     /** Spin style: delay between reel stops, from the left. */
@@ -118,6 +120,7 @@ class RollingNumberView(context: Context) : View(context) {
       field = value
       engine.setTiming(value.durationMs / 1000.0, value.easing.raw, value.bounce, value.staggerMs / 1000.0, value.direction.raw)
       engine.setRevealTiming(value.revealDurationMs / 1000.0, value.revealBounce, value.revealStyle.raw, value.revealStaggerMs / 1000.0)
+      engine.setRevealGrow(value.revealGrow)
       engine.setRevealMilestoneHold(value.revealMilestoneHoldMs / 1000.0)
     }
 
@@ -359,8 +362,9 @@ class RollingNumberView(context: Context) : View(context) {
     shimmer = Shimmer()
     alignment = Alignment.LEFT
     revealMilestones = DoubleArray(0)
-    onRevealEnd = null
-    onRevealMilestone = null
+    // onIntrinsicSizeChange, onRevealEnd and onRevealMilestone are the hybrid's
+    // wiring, not the element's props: they stay across recycling (the hybrid
+    // clears its own callback props).
     contentDescription = null
     invalidate()
   }

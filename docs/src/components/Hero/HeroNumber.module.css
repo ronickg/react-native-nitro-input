@@ -4,6 +4,9 @@
   align-items: center;
   gap: 18px;
   padding: 8px 0 4px;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
 }
 
 .number {

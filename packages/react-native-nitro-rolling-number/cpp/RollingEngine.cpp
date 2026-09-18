@@ -16,14 +16,22 @@ constexpr int kMaxPowerCount = 18;
 constexpr double kLoadingFadeSeconds = 0.25;
 constexpr double kPi = 3.14159265358979323846;
 
-// Jackpot reveal. The count multiplies by `spread` across the sweep (capped by
-// the target's own size so a small figure counts near-linearly instead of
-// dwelling on single digits). The landing is the impulse response of an
-// underdamped spring (damping ratio ≈ 0.42), rung out over the tail.
-constexpr double kRevealSpread = 200;
-constexpr double kRevealSpreadMin = 2;
-constexpr double kRevealStiffness = 170;
-constexpr double kRevealDamping = 11;
+// Jackpot reveal. The count is a slot's win tally, a rank at a time (US
+// 9,495,843 sets seconds per win rank; US 9,111,423 derives the speed from
+// the remaining count, so it slows into the final value, and shows the win
+// meter enlarged during a big win's increment): the counter winds up out of
+// the rank's start, runs at a constant rate (the low digits blur) and crawls
+// into the rank's boundary so the milestone is readable as it lands.
+// `kTallyRampIn` / `kTallyRampOut` are the fractions of a tier spent winding
+// up and crawling; the final tier crawls longer. The figure grows over the
+// count (`revealGrow_`), and every punch is one overshoot that settles back
+// without ever dipping under the resting size (a spring that rang out under
+// the size read as the figure shrinking): a pulse peaking `kPunchPeakSeconds`
+// after the kick and gone by the tail.
+constexpr double kTallyRampIn = 0.25;
+constexpr double kTallyRampOut = 0.35;
+constexpr double kTallyFinalRampOut = 0.45;
+constexpr double kPunchPeakSeconds = 0.1;
 constexpr double kRevealTailSeconds = 0.8;
 /// A milestone punch relative to the landing pop.
 constexpr double kMilestonePunch = 0.75;
@@ -348,17 +356,18 @@ void RollingEngine::cancelReveal() {
   revealScale_ = 1;
 }
 
+/// One punch: rises to `overshoot` at kPunchPeakSeconds and eases back to
+/// zero (x·e^(1−x)), never negative, ~2 % of the peak left at the tail.
 double RollingEngine::punch(double tau, double overshoot) {
   if (tau <= 0 || overshoot <= 0) {
     return 0;
   }
-  const double a = kRevealDamping / 2;
-  const double wd = std::sqrt(kRevealStiffness - a * a);
-  // Scale the kick so the first peak overshoots by exactly `overshoot`.
-  const double peakTau = std::atan(wd / a) / wd;
-  const double peakGain = std::exp(-a * peakTau) * std::sin(wd * peakTau) / wd;
-  const double kick = overshoot / peakGain;
-  return kick * std::exp(-a * tau) * std::sin(wd * tau) / wd;
+  const double x = tau / kPunchPeakSeconds;
+  return overshoot * x * std::exp(1 - x);
+}
+
+void RollingEngine::setRevealGrow(double grow) {
+  revealGrow_ = clamp01(grow);
 }
 
 /// Resolves the milestones for the target. Like a slot's tiered rollup, the
@@ -467,46 +476,65 @@ void RollingEngine::planReels() {
   }
 }
 
-/// Clock fraction → value fraction: exponential growth (a straight line in
-/// magnitude, so the count multiplies at a steady rate) on a quad-eased clock,
-/// so the multiplication decelerates into the target.
-double RollingEngine::revealFraction(double t, double magnitude) {
+/// Clock fraction → value fraction of one tally run. The counter's rate winds
+/// up linearly over `rampIn`, holds steady, then falls off quadratically over
+/// `rampOut`, so the count is linear in the middle like a slot's tally and
+/// crawls the last stretch into its target instead of slamming into it.
+double RollingEngine::tally(double t, double rampIn, double rampOut) {
   if (t <= 0) {
     return 0;
   }
   if (t >= 1) {
     return 1;
   }
-  const double spread = std::min(kRevealSpread, std::max(kRevealSpreadMin, magnitude / 10));
-  const double eased = 1 - (1 - t) * (1 - t);
-  return (std::pow(spread, eased) - 1) / (spread - 1);
+  const double area = rampIn / 2 + (1 - rampIn - rampOut) + rampOut / 3;
+  double distance;
+  if (t < rampIn) {
+    distance = t * t / (2 * rampIn);
+  } else if (t < 1 - rampOut) {
+    distance = rampIn / 2 + (t - rampIn);
+  } else {
+    const double rest = 1 - t;
+    distance = area - rest * rest * rest / (3 * rampOut * rampOut);
+  }
+  return distance / area;
+}
+
+double RollingEngine::revealFraction(double t, double /* magnitude */) {
+  return tally(t, kTallyRampIn, kTallyFinalRampOut);
 }
 
 void RollingEngine::applyReveal(double elapsed) {
   const bool spin = revealStyle_ == 1 && !reveal_.holding;
-  // The landing bounce: a velocity kick at the settle, rung out by the spring.
-  // Closed form, so the whole timeline is a pure function of the clock.
-  double scale = 1;
+  // The scale: the figure's size as the count grows, times the punches. A
+  // closed form of the clock, so the whole timeline is deterministic.
+  double base = 1;
+  double punches = 0;
   if (spin) {
     applyRevealSpin(elapsed);
     reveal_.counting = elapsed < revealDuration_;
-    scale += punch(elapsed - revealDuration_, revealBounce_);
+    punches += punch(elapsed - revealDuration_, revealBounce_);
   } else {
     applyRevealCount(elapsed);
-    // Each milestone punches when reached; the count has finished once the
-    // curve and every hold are behind us.
+    // The figure opens smaller and grows with the tally, the way a big win's
+    // meter is enlarged as it climbs; each milestone punches when reached and
+    // the landing punches hardest. The count has finished once the curve and
+    // every hold are behind us.
     const double hold = revealMilestoneHold_;
     const size_t reached = static_cast<size_t>(reveal_.milestonesReached);
     for (size_t i = 0; i < reached; i++) {
       const double wall = reveal_.milestoneTimes[i] + hold * static_cast<double>(i);
-      scale += punch(elapsed - wall, revealBounce_ * kMilestonePunch);
+      punches += punch(elapsed - wall, revealBounce_ * kMilestonePunch);
     }
     const double end = revealDuration_ + hold * static_cast<double>(reveal_.milestoneTimes.size());
     reveal_.counting = elapsed < end;
-    scale += punch(elapsed - end, revealBounce_);
+    if (!reveal_.holding) {
+      base = 1 - revealGrow_ * (1 - clamp01(end > 0 ? elapsed / end : 1.0));
+    }
+    punches += punch(elapsed - end, revealBounce_);
   }
   signFactor_ = reveal_.target.negative ? 1.0 : 0.0;
-  revealScale_ = scale;
+  revealScale_ = base * (1 + punches);
 }
 
 void RollingEngine::applyRevealCount(double elapsed) {
@@ -533,10 +561,11 @@ void RollingEngine::applyRevealCount(double elapsed) {
   }
   reveal_.milestonesReached = std::max(reveal_.milestonesReached, reached);
 
-  // The count. Without milestones, one exponential sweep from 0 (see
-  // revealFraction). With them, one tier at a time: the first opens from 0 on
-  // that same sweep, the others run linearly in value on an ease-in-out clock,
-  // so the counter accelerates out of a milestone and decelerates into the next.
+  // The count: a slot's tally. One tier at a time (the whole figure is one
+  // tier without milestones), each running linearly in value at a constant
+  // rate, winding up out of the tier's start and crawling into its end, so it
+  // reads slow → fast → slow and lands squarely on every milestone. The
+  // final tier crawls longer so the total is readable as it arrives.
   double count;
   if (heldAt >= 0) {
     count = heldAt;
@@ -548,14 +577,9 @@ void RollingEngine::applyRevealCount(double elapsed) {
     const double u = segment > 0 ? clamp01((curve - segment * static_cast<double>(tier)) / segment) : 1.0;
     const double lo = tier == 0 ? 0 : reveal_.milestoneMagnitudes[tier - 1];
     const double hi = tier == tiers - 1 ? magnitude : reveal_.milestoneMagnitudes[tier];
-    if (tier == 0) {
-      // ceil, not floor: the count leaves 0 on its first moving frame instead
-      // of holding a small target frozen through the curve's slow opening.
-      count = std::ceil(hi * revealFraction(u, hi));
-    } else {
-      const double eased = u < 0.5 ? 4 * u * u * u : 1 - std::pow(-2 * u + 2, 3) / 2;
-      count = std::min(hi, std::ceil(lo + (hi - lo) * eased));
-    }
+    const double rampOut = tier == tiers - 1 ? kTallyFinalRampOut : kTallyRampOut;
+    // ceil, not floor: the count leaves its start on the first moving frame.
+    count = std::min(hi, std::ceil(lo + (hi - lo) * tally(u, kTallyRampIn, rampOut)));
   }
   const int mandatory = std::min(kMaxPowerCount, minimumIntegerDigits_ + fractionDigits_);
   const size_t powerCount = static_cast<size_t>(target.powerCount);
@@ -740,9 +764,10 @@ void RollingEngine::reset() {
   stagger_ = 0;
   direction_ = 0;
   revealDuration_ = 2.2;
-  revealBounce_ = 0.07;
+  revealBounce_ = 0.12;
   revealStyle_ = 0;
   revealStagger_ = 0.2;
+  revealGrow_ = 0.2;
   revealMilestones_.clear();
   revealMilestoneHold_ = 0;
   reveal_ = Reveal{};
