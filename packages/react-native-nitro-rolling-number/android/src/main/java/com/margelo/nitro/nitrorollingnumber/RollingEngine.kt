@@ -25,9 +25,12 @@ class RollingEngine {
   external fun setLoading(loading: Boolean, now: Double)
   external fun tick(now: Double): Boolean
   external fun needsFrames(): Boolean
+  external fun isRolling(): Boolean
   external fun reset()
   /** `[signFactor, loadingProgress, wheelCount, (position, width, linear, blankZero)…]` */
   external fun frame(): DoubleArray
+  /** Allocation-free [frame]: fills [out] and returns the number of doubles written, or -1 if it is too small. */
+  external fun frameInto(out: DoubleArray): Int
   external fun shimmerPhase(now: Double, periodSeconds: Double): Double
   external fun targetValue(): Double
   external fun hasShownValue(): Boolean

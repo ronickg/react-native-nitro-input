@@ -332,6 +332,10 @@ bool RollingEngine::needsFrames() const {
   return transition_.active || loadingFadeActive_ || sweeping;
 }
 
+bool RollingEngine::isRolling() const {
+  return transition_.active;
+}
+
 double RollingEngine::shimmerPhase(double now, double periodSeconds) const {
   if (reduceMotion_) {
     return 0;

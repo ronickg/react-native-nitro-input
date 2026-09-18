@@ -364,6 +364,7 @@ final class RollingNumberView: UIView {
     engine.reset()
     fontScale = 1
     lastReportedSize = .zero
+    pendingSizeReport = false
     format = Format()
     typography = Typography()
     timing = Timing()
@@ -407,6 +408,9 @@ final class RollingNumberView: UIView {
 
   fileprivate func step(_ link: CADisplayLink) {
     _ = engine.tick(CACurrentMediaTime())
+    if pendingSizeReport, !engine.isRolling() {
+      reportIntrinsicSize()
+    }
     updateDisplayLinkNeed()
     render()
   }
@@ -592,15 +596,30 @@ final class RollingNumberView: UIView {
     accessibilityValue = loading ? "Loading" : nil
   }
 
+  /// A narrower settled size waiting for the current roll to finish before it is reported.
+  private var pendingSizeReport = false
+
   private func reportIntrinsicSize() {
     updateAccessibility()
     // The reported size is always the full-size one: with shrink-to-fit the view
     // keeps its height and the scaled number is centred inside it when drawing.
     let size = CGSize(width: ceil(settledWidth()), height: fonts.lineHeight)
-    if abs(size.width - lastReportedSize.width) > 0.01 || abs(size.height - lastReportedSize.height) > 0.01 {
-      lastReportedSize = size
-      onIntrinsicSizeChange?(size)
+    guard abs(size.width - lastReportedSize.width) > 0.01 || abs(size.height - lastReportedSize.height) > 0.01 else {
+      pendingSizeReport = false
+      return
     }
+    // Growing: report right away so React widens the box before the new digit has
+    // fully appeared (the view is not clipped meanwhile). Shrinking mid-roll: keep
+    // the wider box until the roll has finished, otherwise adjustsFontSizeToFit
+    // would squeeze the still-rolling digits into the smaller box and the whole
+    // amount would visibly shrink and grow back.
+    if lastReportedSize != .zero, size.width < lastReportedSize.width, engine.isRolling() {
+      pendingSizeReport = true
+      return
+    }
+    pendingSizeReport = false
+    lastReportedSize = size
+    onIntrinsicSizeChange?(size)
   }
 
   // MARK: - Rendering (layers)

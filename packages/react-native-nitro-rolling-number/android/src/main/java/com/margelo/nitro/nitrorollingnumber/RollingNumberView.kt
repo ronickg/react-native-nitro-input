@@ -260,6 +260,7 @@ class RollingNumberView(context: Context) : View(context) {
   private val frameCallback = Choreographer.FrameCallback { frameTimeNanos ->
     frameScheduled = false
     engine.tick(frameTimeNanos / 1e9)
+    if (pendingSizeReport && !engine.isRolling()) reportIntrinsicSize()
     invalidate()
     scheduleFrameIfNeeded()
   }
@@ -369,9 +370,13 @@ class RollingNumberView(context: Context) : View(context) {
     return scale <= 0f
   }
 
+  /** Reused per frame so the JNI hop never allocates (room for far more wheels than the engine's 18). */
+  private val frameBuffer = DoubleArray(3 + 4 * 32)
+
   /** Pulls the engine's render state into reusable [Wheel] objects (no per-frame allocation once warm). */
   private fun syncFromEngine() {
-    val f = engine.frame()
+    val f = frameBuffer
+    if (engine.frameInto(f) < 0) return
     signFactor = f[0]
     loadingProgress = f[1].toFloat()
     val count = f[2].toInt()
@@ -478,17 +483,32 @@ class RollingNumberView(context: Context) : View(context) {
     }
   }
 
+  /** A narrower settled size waiting for the current roll to finish before it is reported. */
+  private var pendingSizeReport = false
+
   private fun reportIntrinsicSize() {
     updateAccessibility()
     // The reported size is always the full-size one: with shrink-to-fit the view
     // keeps its height and the scaled number is centred inside it when drawing.
     val widthDp = ceil(settledWidth() / density)
     val heightDp = ceil(fonts.lineHeight / density)
-    if (abs(widthDp - lastReportedWidth) > 0.01f || abs(heightDp - lastReportedHeight) > 0.01f) {
-      lastReportedWidth = widthDp
-      lastReportedHeight = heightDp
-      onIntrinsicSizeChange?.invoke(widthDp, heightDp)
+    if (abs(widthDp - lastReportedWidth) <= 0.01f && abs(heightDp - lastReportedHeight) <= 0.01f) {
+      pendingSizeReport = false
+      return
     }
+    // Growing: report right away so React widens the box before the new digit has
+    // fully appeared (the view is not clipped meanwhile). Shrinking mid-roll: keep
+    // the wider box until the roll has finished, otherwise adjustsFontSizeToFit
+    // would squeeze the still-rolling digits into the smaller box and the whole
+    // amount would visibly shrink and grow back.
+    if (lastReportedWidth > 0f && widthDp < lastReportedWidth && engine.isRolling()) {
+      pendingSizeReport = true
+      return
+    }
+    pendingSizeReport = false
+    lastReportedWidth = widthDp
+    lastReportedHeight = heightDp
+    onIntrinsicSizeChange?.invoke(widthDp, heightDp)
   }
 
   // endregion

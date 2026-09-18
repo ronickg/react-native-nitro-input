@@ -15,3 +15,4 @@ example/vendor/
 example/android/local.properties
 example/ios/build/
 *.log
+example/ios/build-device/

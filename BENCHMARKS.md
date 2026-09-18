@@ -95,13 +95,52 @@ because a value is a single JSI call, and with layer rendering 24 continuously
 rolling copies cost about the same main-thread time as 24 plain `<Text>`
 updates.
 
-## Android
+## Real devices
+
+### iPhone 13 Pro Max (iOS 26.6, 120 Hz ProMotion, release build, layer renderer)
+
+"Every frame" here means 120 pushes a second. One copy: every library holds
+120 fps on both threads. 24 copies:
+
+| Implementation | UI fps | dropped | JS fps |
+|---|---|---|---|
+| Text (no animation) | 120.0 | 0 | 120.0 |
+| **Nitro `value` prop** | 120.0 | 0 | 120.0 |
+| **Nitro `jumpTo`** | 120.0 | 0 | 120.0 |
+| NumberFlow View | 35.4 | 358 | 6.3 |
+| NumberFlow Skia | 94.5 | 40 | 1.1 |
+| NumberFlow Skia sharedValue | 76.6 | 55 | 40.7 |
+| AnimatedNumbers | 114.1 | 19 | 12.4 |
+
+(No per-thread CPU on the phone: there is no `ps` access from the host.)
+
+### Pixel 10 (Android 17, 60 Hz, release build)
+
+| Implementation, 24 copies | UI fps | dropped | JS fps | process CPU | main | JS | RenderThread |
+|---|---|---|---|---|---|---|---|
+| Text (no animation) | 60.0 | 0 | 58.2 | 85 % | 27 % | 35 % | 13 % |
+| **Nitro `value` prop** | 60.0 | 0 | 58.7 | 83 % | 22 % | 35 % | 22 % |
+| **Nitro `jumpTo`** | 60.0 | 0 | 59.9 | 47 % | 18 % | 6 % | 19 % |
+| NumberFlow View | 33.2 | 329 | 1.7 | 141 % | 77 % | 43 % | 11 % |
+| NumberFlow Skia | 59.2 | 13 | 27.7 | 191 % | 66 % | 70 % | 11 % |
+| NumberFlow Skia sharedValue | 55.6 | 51 | 17.7 | 141 % | 75 % | 36 % | 10 % |
+| AnimatedNumbers | 56.4 | 44 | 14.1 | 193 % | 34 % | 88 % | 31 % |
+
+The JS column for the Nitro prop row is the harness re-rendering 24 React
+elements per frame, the same 35 % as plain `<Text>`; the library's own
+Android cost is the main-thread `onDraw` recording (22 %) plus HWUI's
+RenderThread (22 %). With one copy and light JS work the Pixel's
+`requestAnimationFrame` settled at ~30 Hz (a scheduling / power-state effect,
+identical for every library), so the one-copy rows are not listed.
+
+## Android emulators
 
 The Pixel 9 Pro AVD on this host cannot render even a plain scroll above
 ~13 fps (its 1280×2856 surface goes through host GPU emulation), so the
-series was run on a Moto G AVD (720×1280, Android 14). Even there the
-emulator's RenderThread alone costs ~50 % for plain `<Text>`, capping every
-library at 30–45 fps; treat the table as relative, and re-run on a device.
+emulator series was run on a Moto G AVD (720×1280, Android 14). Even there
+the emulator's RenderThread alone costs ~50 % for plain `<Text>`, capping
+every library at 30–45 fps; treat the table as relative and prefer the Pixel
+10 numbers above.
 
 ### 24 copies, new value every frame (Moto G emulator)
 

@@ -30,9 +30,13 @@ public:
   void setLoading(bool loading, double now);
   bool tick(double now);
   bool needsFrames();
+  bool isRolling();
   void reset();
   /// [signFactor, loadingProgress, wheelCount, then (position, width, linear, blankZero) per wheel]
   jni::local_ref<jni::JArrayDouble> frame();
+  /// Writes the render state into `out` (same layout as `frame()`) without
+  /// allocating; returns the number of doubles written, or -1 if `out` is too small.
+  int frameInto(jni::alias_ref<jni::JArrayDouble> out);
   double shimmerPhase(double now, double periodSeconds);
   double targetValue();
   bool hasShownValue();

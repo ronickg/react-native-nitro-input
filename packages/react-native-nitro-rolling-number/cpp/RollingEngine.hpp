@@ -77,6 +77,8 @@ public:
   double shimmerPhase(double now, double periodSeconds) const;
   /// Whether anything is still moving (roll, fade, or an active glint).
   bool needsFrames() const;
+  /// True while a roll (`animateTo`) is in progress; false for the loading fade alone.
+  bool isRolling() const;
 
   // MARK: Settled target (intrinsic size, accessibility)
 

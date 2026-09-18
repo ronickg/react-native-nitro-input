@@ -169,7 +169,9 @@ to reflow while digits appear (e.g. a counter that grows past `999`).
   reports its new intrinsic size and React applies it. Give the view a fixed
   `width` (recommended for amounts anyway) and nothing depends on JS at all;
   in auto-size mode the view is not clipped, so a late size update never cuts
-  a digit off.
+  a digit off. A size that grows is reported at once; a size that shrinks is
+  reported when the roll has finished, so the box never squeezes digits that
+  are still on their way out.
 
 ## How it works
 
