@@ -17,3 +17,6 @@ example/ios/build/
 *.log
 example/ios/build-device/
 .claude/
+raw/
+scripts/iosrec/IosRec.app/Contents/MacOS/iosrec
+scripts/iosrec/IosRec.app/Contents/_CodeSignature/

@@ -13,10 +13,10 @@
 </p>
 
 <p align="center">
-  <img src="docs/static/img/readme/market.gif" width="536" alt="A live market screen with about thirty rolling numbers, on an iPhone simulator and a Pixel emulator" />
+  <img src="docs/static/img/readme/market.webp" width="536" alt="A live market screen with about thirty rolling numbers, on an iPhone and a Pixel" />
 </p>
 
-<p align="center"><sub>The example app's market showcase on an iPhone 17 Pro simulator (left) and a Pixel 9 Pro emulator (right): fourteen coins with price and 24 h change, a handful ticking every 200 ms, the balance derived from them. Every number is native.</sub></p>
+<p align="center"><sub>The example app's market showcase on an iPhone 13 Pro Max (left) and a Pixel 10 (right): fourteen coins with price and 24 h change, a handful ticking every 200 ms, the balance derived from them. Every number is native.</sub></p>
 
 ## Why
 
@@ -60,7 +60,7 @@ Change `value` and the digits roll. `ref.current.jumpTo(v)` positions the wheels
 ## Jackpot reveal
 
 <p align="center">
-  <img src="docs/static/img/readme/reveal.gif" width="536" alt="The count reveal with tiers, then the slot-reel reveal, on iOS and Android" />
+  <img src="docs/static/img/readme/reveal.webp" width="536" alt="The count reveal with tiers, then the slot-reel reveal, on iOS and Android" />
 </p>
 
 ```tsx

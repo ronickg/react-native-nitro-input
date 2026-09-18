@@ -3,8 +3,8 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 import styles from './Phones.module.css';
 
 /**
- * Side-by-side screen recordings of the example app, captured on an iPhone
- * simulator and a Pixel 10. Same code, same engine, both platforms.
+ * Side-by-side screen recordings of the example app, captured on an
+ * iPhone 13 Pro Max and a Pixel 10. Same code, same engine, both platforms.
  */
 export default function Phones({
   ios,
