@@ -772,9 +772,18 @@ class MorphInputView(context: Context) : FrameLayout(context) {
     notifyChange()
   }
 
+  /** Replaces only the span that differs (a comma that appeared, a mask's punctuation), not the whole editable. */
   private fun setEditable(editable: Editable, value: String, caretCodePoints: Int, selectionEndCodePoints: Int = caretCodePoints) {
     applying = true
-    editable.replace(0, editable.length, value)
+    val current = editable.toString()
+    var prefix = 0
+    while (prefix < current.length && prefix < value.length && current[prefix] == value[prefix]) prefix++
+    var suffix = 0
+    while (suffix < current.length - prefix && suffix < value.length - prefix &&
+      current[current.length - 1 - suffix] == value[value.length - 1 - suffix]) suffix++
+    if (prefix + suffix < current.length || prefix + suffix < value.length) {
+      editable.replace(prefix, current.length - suffix, value, prefix, value.length - suffix)
+    }
     Selection.setSelection(editable, utf16Index(value, caretCodePoints), utf16Index(value, selectionEndCodePoints))
     applying = false
   }

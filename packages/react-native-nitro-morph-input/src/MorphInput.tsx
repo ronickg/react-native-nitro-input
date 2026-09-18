@@ -8,6 +8,7 @@ import React, {
 } from 'react'
 import {
   processColor,
+  StyleSheet,
   type ColorValue,
   type TextStyle,
   type ViewProps,
@@ -339,16 +340,23 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
         }),
       []
     )
+    // A field with a width of its own (the usual case) never needs a React
+    // commit per keystroke: only the height (font-dependent) is taken from native.
+    const flat = StyleSheet.flatten(style) as { width?: unknown; flex?: unknown } | undefined
+    const autoWidth = flat?.width == null && flat?.flex == null
+    const autoWidthRef = useRef(autoWidth)
+    autoWidthRef.current = autoWidth
     const onSizeChange = useMemo(
       () =>
         callback((width: number, height: number) => {
-          setSize((previous) =>
-            previous !== null &&
-            previous.width === width &&
-            previous.height === height
+          setSize((previous) => {
+            if (!autoWidthRef.current) {
+              return previous !== null && previous.height === height ? previous : { width: previous?.width ?? width, height }
+            }
+            return previous !== null && previous.width === width && previous.height === height
               ? previous
               : { width, height }
-          )
+          })
         }),
       []
     )
@@ -437,9 +445,11 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
     const autoSize = useMemo(
       () =>
         size !== null
-          ? { width: size.width, height: size.height }
+          ? autoWidth
+            ? { width: size.width, height: size.height }
+            : { height: size.height }
           : { height: resolvedFontSize * 1.25 },
-      [size, resolvedFontSize]
+      [size, resolvedFontSize, autoWidth]
     )
 
     return (

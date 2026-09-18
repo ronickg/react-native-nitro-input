@@ -701,8 +701,14 @@ final class MorphInputView: UIView {
       reportIntrinsicSize()
     }
     updateDisplayLinkNeed()
+    // One Core Animation commit per frame: render() and updateCaret() each
+    // open a transaction, and inside a display-link callback the outermost
+    // explicit transaction commits to the render server immediately.
+    CATransaction.begin()
+    CATransaction.setDisableActions(true)
     render()
     updateCaret()
+    CATransaction.commit()
   }
 
   private func updateDisplayLinkNeed() {
@@ -1094,8 +1100,18 @@ extension MorphInputView: UITextFieldDelegate {
         selectionEnd = min(max(caret, Int(result.selectionEnd)), count)
       }
     }
+    // The common keystroke: the formatter and transform changed nothing beyond
+    // the typed characters, and the caret lands where UIKit would put it. Let
+    // the field apply the edit itself (its incremental path is far cheaper than
+    // replacing the text); `fieldEditingChanged` then reports it.
+    if let swiftRange = Range(range, in: current), selectionEnd == caret,
+       caret == start + string.unicodeScalars.count {
+      var plain = current
+      plain.replaceSubrange(swiftRange, with: string)
+      if plain == newText { return true }
+    }
     isSettingText = true
-    textField.text = newText
+    replaceMinimally(in: textField, with: newText)
     let from = Self.utf16Offset(in: newText, codePoint: caret)
     let to = Self.utf16Offset(in: newText, codePoint: selectionEnd)
     if let fromPosition = textField.position(from: textField.beginningOfDocument, offset: from),
@@ -1105,6 +1121,28 @@ extension MorphInputView: UITextFieldDelegate {
     isSettingText = false
     textDidChange(caret: caret, reason: .user)
     return false
+  }
+
+  /// Replaces only the span that differs between the field's text and `newText`
+  /// (a comma that appeared, a mask's punctuation): `UITextField.text = ...`
+  /// rebuilds the whole text storage and was the bulk of a keystroke's cost.
+  private func replaceMinimally(in textField: UITextField, with newText: String) {
+    let current = Array((textField.text ?? "").utf16)
+    let next = Array(newText.utf16)
+    var prefix = 0
+    while prefix < current.count, prefix < next.count, current[prefix] == next[prefix] { prefix += 1 }
+    var suffix = 0
+    while suffix < current.count - prefix, suffix < next.count - prefix,
+          current[current.count - 1 - suffix] == next[next.count - 1 - suffix] { suffix += 1 }
+    guard prefix + suffix < current.count || prefix + suffix < next.count else { return }
+    let replacement = String(utf16CodeUnits: Array(next[prefix..<(next.count - suffix)]), count: next.count - suffix - prefix)
+    if let from = textField.position(from: textField.beginningOfDocument, offset: prefix),
+       let to = textField.position(from: textField.beginningOfDocument, offset: current.count - suffix),
+       let textRange = textField.textRange(from: from, to: to) {
+      textField.replace(textRange, withText: replacement)
+    } else {
+      textField.text = newText
+    }
   }
 
   func textFieldDidBeginEditing(_ textField: UITextField) {
