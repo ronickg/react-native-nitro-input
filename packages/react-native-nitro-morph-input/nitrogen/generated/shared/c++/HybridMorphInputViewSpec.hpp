@@ -147,6 +147,12 @@ namespace margelo::nitro::nitromorphinput {
       virtual void setAutoFocus(bool autoFocus) = 0;
       virtual double getMaxLength() = 0;
       virtual void setMaxLength(double maxLength) = 0;
+      virtual double getTransformWorklet() = 0;
+      virtual void setTransformWorklet(double transformWorklet) = 0;
+      virtual double getOnChangeTextWorklet() = 0;
+      virtual void setOnChangeTextWorklet(double onChangeTextWorklet) = 0;
+      virtual double getOnChangeValueWorklet() = 0;
+      virtual void setOnChangeValueWorklet(double onChangeValueWorklet) = 0;
       virtual std::optional<std::function<void(const std::string& /* text */, double /* eventCount */)>> getOnChangeText() = 0;
       virtual void setOnChangeText(const std::optional<std::function<void(const std::string& /* text */, double /* eventCount */)>>& onChangeText) = 0;
       virtual std::optional<std::function<void(double /* value */)>> getOnChangeValue() = 0;

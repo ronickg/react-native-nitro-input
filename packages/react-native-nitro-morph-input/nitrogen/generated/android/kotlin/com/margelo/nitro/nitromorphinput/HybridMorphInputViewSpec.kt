@@ -261,6 +261,24 @@ abstract class HybridMorphInputViewSpec: HybridView() {
   @set:Keep
   abstract var maxLength: Double
   
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var transformWorklet: Double
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var onChangeTextWorklet: Double
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var onChangeValueWorklet: Double
+  
   abstract var onChangeText: ((text: String, eventCount: Double) -> Unit)?
   
   private var onChangeText_cxx: Func_void_std__string_double?

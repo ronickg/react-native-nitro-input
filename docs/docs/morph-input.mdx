@@ -86,6 +86,25 @@ In `mode="text"` (the default) characters fade and scale in and out. Digits and 
   <MorphEuroDemo />
 </Example>
 
+## Worklets
+
+With `react-native-worklets` installed (it ships with Reanimated 4), a `transform` worklet and worklet-marked `onChangeText` / `onChangeValue` handlers run on the UI thread *inside* the native edit, before a frame is drawn: a mask written in JS applies with no flicker, and a shared value is updated with no JS thread in between. This is the mechanism of Expo UI's worklet callbacks and react-native-transformer-text-input, with the native formatter still running first in `mode="number"`.
+
+```tsx
+const usernameTransform: MorphTransform = ({ text }) => {
+  'worklet'
+  const cleaned = text.replace(/[^0-9a-zA-Z_]/g, '').toLowerCase()
+  return { text: cleaned ? '@' + cleaned : '' }
+}
+
+<MorphInput placeholder="@username" transform={usernameTransform} />
+
+const progress = useSharedValue(0)
+<MorphInput mode="number" onChangeValue={(value) => { 'worklet'; progress.value = value / 10 }} />
+```
+
+Without `react-native-worklets` the props are ignored with a single warning and everything else keeps working.
+
 ## How the morph decides what moves
 
 - **Typing** (a caret is known): everything before the caret pairs by position from the left, everything after it from the right, so the edit is exactly the characters that entered or left. Grouping separators are kept out of that walk, because a comma reflows with the magnitude rather than with the keystroke; they pair from the units end instead, so the thousands comma stays the thousands comma and glides.
@@ -106,6 +125,7 @@ The full table is in the package [README](https://github.com/ronickg/react-nativ
 | `placeholder` | `''` | Morphed away by the first character. |
 | `duration`, `easing`, `effect` | `400`, `'expo'`, `'auto'` | The morph. |
 | `keyboardType`, `returnKeyType`, `autoCapitalize`, `autoCorrect`, `maxLength`, `editable`, `autoFocus` | | Input traits. |
-| `onChangeText`, `onChangeValue`, `onFocus`, `onBlur`, `onSubmitEditing` | | |
+| `transform` | | A worklet mask, run synchronously on the UI thread. |
+| `onChangeText`, `onChangeValue`, `onFocus`, `onBlur`, `onSubmitEditing` | | The change handlers may be worklets. |
 
 Imperative handle: `focus()`, `blur()`, `clear()`, `setText()`, `setValue()`, `getText()`, `getValue()`, `isFocused()`.

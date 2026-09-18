@@ -138,5 +138,15 @@ dependencies {
 
   // Add a dependency on NitroModules
   implementation project(":react-native-nitro-modules")
+
+  // Optional: with react-native-worklets in the app, `transform` and worklet
+  // callbacks run synchronously on the UI thread (see CMakeLists.txt).
+  if (rootProject.subprojects.find { it.name == "react-native-worklets" }) {
+    implementation project(":react-native-worklets")
+  }
+}
+
+if (rootProject.subprojects.find { it.name == "react-native-worklets" }) {
+  evaluationDependsOn(":react-native-worklets")
 }
 

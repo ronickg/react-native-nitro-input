@@ -119,6 +119,17 @@ describe('MorphInput', () => {
     expect(nativeProps(renderer).style).toEqual([{ width: 120, height: 48 }, undefined])
   })
 
+  it('sends no worklet ids when worklets are unavailable', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+    const transform = Object.assign(() => null, { __workletHash: 1 })
+    const onChangeText = Object.assign(() => {}, { __workletHash: 2 })
+    const props = nativeProps(render(<MorphInput transform={transform} onChangeText={onChangeText} />))
+    expect(props.transformWorklet).toBe(0)
+    expect(props.onChangeTextWorklet).toBe(0)
+    expect(props.onChangeValueWorklet).toBe(0)
+    warn.mockRestore()
+  })
+
   it('exposes a handle whose methods are no-ops before mount', () => {
     const ref = createRef<MorphInputHandle>()
     render(<MorphInput ref={ref} defaultValue="abc" />)

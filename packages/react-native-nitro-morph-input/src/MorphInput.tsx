@@ -1,5 +1,6 @@
 import React, {
   forwardRef,
+  useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -29,6 +30,13 @@ import type {
   MorphInputReturnKeyType,
   MorphInputTextAlign,
 } from './specs/MorphInput.nitro'
+import {
+  isWorklet,
+  registerCallback,
+  registerTransform,
+  unregisterWorklet,
+  type MorphTransform,
+} from './worklets'
 
 /**
  * The raw Nitro host component. Prefer {@link MorphInput}, which adds the
@@ -142,9 +150,24 @@ export interface MorphInputProps extends Omit<ViewProps, 'children'> {
   autoFocus?: boolean
   /** `'text'` mode: most characters accepted. Default: unlimited. */
   maxLength?: number
-  /** Called after every edit with the field's (formatted) text. */
+  /**
+   * A worklet that rewrites the text after every edit, synchronously on the UI
+   * thread before a frame is drawn (needs `react-native-worklets`): masks,
+   * custom formats, anything JS can express. It receives the edited text, the
+   * previous text and both selections (code point offsets) and returns the
+   * new text and optionally where the caret should go; `null` keeps the edit.
+   * In `'number'` mode it runs after the native formatter. Create it once
+   * (module scope or `useCallback`): a new function re-registers the worklet.
+   */
+  transform?: MorphTransform
+  /**
+   * Called after every edit with the field's (formatted) text. Mark it with
+   * `'worklet'` (with `react-native-worklets` installed) and it runs
+   * synchronously on the UI thread instead, where it can write shared values
+   * before the next frame.
+   */
   onChangeText?: (text: string) => void
-  /** `'number'` mode: called after every edit with the numeric value, `NaN` when empty. */
+  /** `'number'` mode: called after every edit with the numeric value, `NaN` when empty. A `'worklet'` runs on the UI thread. */
   onChangeValue?: (value: number) => void
   onFocus?: () => void
   onBlur?: () => void
@@ -259,6 +282,7 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
       editable,
       autoFocus,
       maxLength,
+      transform,
       onChangeText,
       onChangeValue,
       onFocus,
@@ -289,6 +313,13 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
     }
 
     const [size, setSize] = useState<Size | null>(null)
+    // Worklets are registered on the UI runtime and referenced by id; a
+    // handler marked 'worklet' runs there instead of on the JS thread.
+    const transformId = useWorkletId(transform, registerTransform)
+    const onChangeTextWorklet = isWorklet(onChangeText) ? onChangeText : undefined
+    const onChangeValueWorklet = isWorklet(onChangeValue) ? onChangeValue : undefined
+    const onChangeTextId = useWorkletId(onChangeTextWorklet, registerCallback)
+    const onChangeValueId = useWorkletId(onChangeValueWorklet, registerCallback)
     // The latest native event count JS has processed: sent back with `text` so
     // native can tell a stale controlled value (the user typed since) from a
     // deliberate change.
@@ -325,14 +356,17 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
       () =>
         callback((text: string, count: number) => {
           setEventCount(count)
-          latest.current.onChangeText?.(text)
+          const handler = latest.current.onChangeText
+          // A worklet handler already ran on the UI thread.
+          if (handler && !isWorklet(handler)) handler(text)
         }),
       []
     )
     const onChangeValueCallback = useMemo(
       () =>
         callback((next: number) => {
-          latest.current.onChangeValue?.(next)
+          const handler = latest.current.onChangeValue
+          if (handler && !isWorklet(handler)) handler(next)
         }),
       []
     )
@@ -452,6 +486,9 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
         editable={editable ?? true}
         autoFocus={autoFocus ?? false}
         maxLength={maxLength ?? 0}
+        transformWorklet={transformId}
+        onChangeTextWorklet={onChangeTextId}
+        onChangeValueWorklet={onChangeValueId}
         onChangeText={onChangeTextCallback}
         onChangeValue={onChangeValueCallback}
         onFocusChange={onFocusChangeCallback}
@@ -461,3 +498,16 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
     )
   }
 )
+
+/**
+ * Registers `fn` on the UI runtime for as long as it stays the same function
+ * and returns its id (`0` while there is none or worklets are unavailable).
+ */
+function useWorkletId<T extends (...args: never[]) => unknown>(
+  fn: T | undefined,
+  register: (fn: T) => number
+): number {
+  const id = useMemo(() => (fn ? register(fn) : 0), [fn, register])
+  useEffect(() => () => unregisterWorklet(id), [id])
+  return id
+}

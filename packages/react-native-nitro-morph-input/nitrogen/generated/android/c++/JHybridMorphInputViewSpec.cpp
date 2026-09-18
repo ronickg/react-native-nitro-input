@@ -431,6 +431,33 @@ namespace margelo::nitro::nitromorphinput {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* maxLength */)>("setMaxLength");
     method(_javaPart, maxLength);
   }
+  double JHybridMorphInputViewSpec::getTransformWorklet() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getTransformWorklet");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridMorphInputViewSpec::setTransformWorklet(double transformWorklet) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* transformWorklet */)>("setTransformWorklet");
+    method(_javaPart, transformWorklet);
+  }
+  double JHybridMorphInputViewSpec::getOnChangeTextWorklet() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getOnChangeTextWorklet");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridMorphInputViewSpec::setOnChangeTextWorklet(double onChangeTextWorklet) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* onChangeTextWorklet */)>("setOnChangeTextWorklet");
+    method(_javaPart, onChangeTextWorklet);
+  }
+  double JHybridMorphInputViewSpec::getOnChangeValueWorklet() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getOnChangeValueWorklet");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridMorphInputViewSpec::setOnChangeValueWorklet(double onChangeValueWorklet) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* onChangeValueWorklet */)>("setOnChangeValueWorklet");
+    method(_javaPart, onChangeValueWorklet);
+  }
   std::optional<std::function<void(const std::string& /* text */, double /* eventCount */)>> JHybridMorphInputViewSpec::getOnChangeText() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JFunc_void_std__string_double::javaobject>()>("getOnChangeText_cxx");
     auto __result = method(_javaPart);

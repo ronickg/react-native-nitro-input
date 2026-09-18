@@ -28,6 +28,23 @@ Pod::Spec.new do |s|
   # The engine's unit tests build as a host executable (`bun run test:cpp`).
   s.exclude_files = ["cpp/__tests__/**"]
 
+  # Worklets are optional: with react-native-worklets in the app, `transform`
+  # and worklet callbacks run synchronously on the UI thread.
+  worklets_package = begin
+    `cd "#{Pod::Config.instance.installation_root}" && node --print "require.resolve('react-native-worklets/package.json')" 2>/dev/null`.strip
+  rescue StandardError
+    ""
+  end
+  has_worklets = !worklets_package.empty? && File.exist?(worklets_package)
+  if has_worklets
+    Pod::UI.puts "[NitroMorphInput] react-native-worklets found, worklet support enabled"
+    s.dependency 'RNWorklets'
+    s.pod_target_xcconfig = {
+      "GCC_PREPROCESSOR_DEFINITIONS" => "$(inherited) MORPH_INPUT_WORKLETS=1",
+      "HEADER_SEARCH_PATHS" => "$(inherited) \"$(PODS_ROOT)/Headers/Public/RNWorklets\"",
+    }
+  end
+
   load 'nitrogen/generated/ios/NitroMorphInput+autolinking.rb'
   add_nitrogen_files(s)
 

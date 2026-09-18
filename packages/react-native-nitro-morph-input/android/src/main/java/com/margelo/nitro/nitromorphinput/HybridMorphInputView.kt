@@ -132,6 +132,12 @@ class HybridMorphInputView(context: ThemedReactContext) : HybridMorphInputViewSp
     set(v) { field = v; markConfigDirty() }
   override var maxLength: Double = 0.0
     set(v) { field = v; markConfigDirty() }
+  override var transformWorklet: Double = 0.0
+    set(v) { field = v; markConfigDirty() }
+  override var onChangeTextWorklet: Double = 0.0
+    set(v) { field = v; markConfigDirty() }
+  override var onChangeValueWorklet: Double = 0.0
+    set(v) { field = v; markConfigDirty() }
   override var onChangeText: ((text: String, eventCount: Double) -> Unit)? = null
   override var onChangeValue: ((value: Double) -> Unit)? = null
   override var onFocusChange: ((focused: Boolean) -> Unit)? = null
@@ -233,6 +239,9 @@ class HybridMorphInputView(context: ThemedReactContext) : HybridMorphInputViewSp
     editable = true
     autoFocus = false
     maxLength = 0.0
+    transformWorklet = 0.0
+    onChangeTextWorklet = 0.0
+    onChangeValueWorklet = 0.0
     onChangeText = null
     onChangeValue = null
     onFocusChange = null
@@ -322,6 +331,11 @@ class HybridMorphInputView(context: ThemedReactContext) : HybridMorphInputViewSp
       minimumFontScale = finite(minimumFontScale, 0.5).coerceIn(0.05, 1.0).toFloat(),
       allowFontScaling = allowFontScaling,
       maxFontSizeMultiplier = Math.max(0.0, finite(maxFontSizeMultiplier, 0.0)).toFloat(),
+    )
+    inputView.worklets = MorphInputView.Worklets(
+      transform = clampInt(transformWorklet, 0, Int.MAX_VALUE, 0),
+      onChangeText = clampInt(onChangeTextWorklet, 0, Int.MAX_VALUE, 0),
+      onChangeValue = clampInt(onChangeValueWorklet, 0, Int.MAX_VALUE, 0),
     )
     inputView.timing = MorphInputView.Timing(
       durationMs = Math.max(0.0, finite(duration, 400.0)).toLong(),

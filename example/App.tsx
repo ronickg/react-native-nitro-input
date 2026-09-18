@@ -14,12 +14,12 @@ import {
   RollingNumber,
   type RollingNumberHandle,
 } from 'react-native-nitro-rolling-number'
-import { MorphInput, type MorphInputHandle } from 'react-native-nitro-morph-input'
+import { MorphInput, type MorphInputHandle, type MorphTransform } from 'react-native-nitro-morph-input'
 import { NumberFlow } from 'number-flow-react-native'
 import { SkiaNumberFlow } from 'number-flow-react-native/skia'
 import { Canvas, matchFont } from '@shopify/react-native-skia'
 import AnimatedNumbers from 'react-native-animated-numbers'
-import { useFrameCallback, useSharedValue } from 'react-native-reanimated'
+import Animated, { useAnimatedStyle, useFrameCallback, useSharedValue } from 'react-native-reanimated'
 
 // React Native exposes performance.now() at runtime; the RN types omit the DOM lib.
 declare const performance: { now(): number }
@@ -416,6 +416,52 @@ function Benchmark() {
 // ---------------------------------------------------------------------------
 // Feature demos
 // ---------------------------------------------------------------------------
+
+// A username mask: lowercase letters, digits and underscores, always led by "@".
+const usernameTransform: MorphTransform = ({ text }) => {
+  'worklet'
+  const cleaned = text.replace(/[^0-9a-zA-Z_]/g, '').toLowerCase()
+  return { text: cleaned ? '@' + cleaned : '' }
+}
+
+/** Worklets: a shared value fed from the UI thread on every keystroke, and a JS mask applied before a frame is drawn. */
+function MorphWorkletDemo() {
+  const progress = useSharedValue(0)
+  const barStyle = useAnimatedStyle(() => ({ width: `${Math.min(100, progress.value)}%` }))
+  const onChangeValue = (value: number) => {
+    'worklet'
+    progress.value = Number.isNaN(value) ? 0 : value / 10
+  }
+  return (
+    <Section title="Worklets" hint="onChangeValue is a worklet: it writes a shared value on the UI thread, no JS in between. The username field's transform worklet masks the text before it is drawn.">
+      <MorphInput
+        testID="morph-worklet-amount"
+        mode="number"
+        prefix="$"
+        placeholder="0"
+        fractionDigits={0}
+        fontSize={36}
+        fontWeight="700"
+        style={styles.morphAmount}
+        onChangeValue={onChangeValue}
+      />
+      <View style={styles.morphBarTrack}>
+        <Animated.View style={[styles.morphBar, barStyle]} />
+      </View>
+      <View style={styles.morphTextBox}>
+        <MorphInput
+          testID="morph-worklet-username"
+          placeholder="@username"
+          fontSize={22}
+          style={styles.morphText}
+          autoCapitalize="none"
+          autoCorrect={false}
+          transform={usernameTransform}
+        />
+      </View>
+    </Section>
+  )
+}
 
 function MorphInputDemo() {
   const amountRef = useRef<MorphInputHandle>(null)
@@ -983,6 +1029,7 @@ function App() {
             <Button title="Showcase: Reveal" testID="showcase-reveal" onPress={() => setShowing('reveal')} />
           </View>
           <MorphInputDemo />
+          <MorphWorkletDemo />
           <RevealDemo />
           <ReactDrivenDemo />
           <CurrencyDemo />
@@ -1057,6 +1104,8 @@ const styles = StyleSheet.create({
   morphAmount: { width: '100%' },
   morphTextBox: { backgroundColor: '#F2F2F7', borderRadius: 10, paddingHorizontal: 12, height: 44, justifyContent: 'center' },
   morphText: { width: '100%' },
+  morphBarTrack: { height: 8, borderRadius: 4, backgroundColor: '#E5E5EA', overflow: 'hidden' },
+  morphBar: { height: 8, backgroundColor: '#0A84FF', borderRadius: 4 },
   morphReadout: { fontSize: 12, color: '#666', fontVariant: ['tabular-nums'] },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   button: {

@@ -550,6 +550,39 @@ open class HybridMorphInputViewSpec_cxx {
     }
   }
   
+  public final var transformWorklet: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.transformWorklet
+    }
+    @inline(__always)
+    set {
+      self.__implementation.transformWorklet = newValue
+    }
+  }
+  
+  public final var onChangeTextWorklet: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.onChangeTextWorklet
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onChangeTextWorklet = newValue
+    }
+  }
+  
+  public final var onChangeValueWorklet: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.onChangeValueWorklet
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onChangeValueWorklet = newValue
+    }
+  }
+  
   public final var onChangeText: bridge.std__optional_std__function_void_const_std__string_____text_____double____eventCount______ {
     @inline(__always)
     get {

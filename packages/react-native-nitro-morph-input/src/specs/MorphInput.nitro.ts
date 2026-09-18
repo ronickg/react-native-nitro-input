@@ -148,6 +148,16 @@ export interface MorphInputProps extends HybridViewProps {
   /** `'text'` mode: most characters accepted; `0` = unlimited. Default: `0`. */
   maxLength: number
   /**
+   * Id of a `transform` worklet registered with `MorphWorklets` (`0` = none):
+   * run synchronously on the UI thread after every edit, it can rewrite the
+   * text and selection before a frame is drawn (masks, custom formats).
+   */
+  transformWorklet: number
+  /** Id of an `onChangeText` worklet run synchronously on the UI thread after every change (`0` = none). */
+  onChangeTextWorklet: number
+  /** Id of an `onChangeValue` worklet run synchronously on the UI thread after every change (`0` = none). */
+  onChangeValueWorklet: number
+  /**
    * Called after every native edit with the field's (formatted) text and a
    * monotonically increasing event count. Feed the count back through
    * `mostRecentEventCount`.

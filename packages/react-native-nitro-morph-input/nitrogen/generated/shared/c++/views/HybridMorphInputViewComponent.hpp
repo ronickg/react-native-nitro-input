@@ -90,6 +90,9 @@ namespace margelo::nitro::nitromorphinput::views {
     nitro::ReactProp<bool> editable;
     nitro::ReactProp<bool> autoFocus;
     nitro::ReactProp<double> maxLength;
+    nitro::ReactProp<double> transformWorklet;
+    nitro::ReactProp<double> onChangeTextWorklet;
+    nitro::ReactProp<double> onChangeValueWorklet;
     nitro::ReactProp<std::optional<std::function<void(const std::string& /* text */, double /* eventCount */)>>> onChangeText;
     nitro::ReactProp<std::optional<std::function<void(double /* value */)>>> onChangeValue;
     nitro::ReactProp<std::optional<std::function<void(bool /* focused */)>>> onFocusChange;
@@ -138,6 +141,9 @@ namespace margelo::nitro::nitromorphinput::views {
              editable.hasSameValue(other.editable) &&
              autoFocus.hasSameValue(other.autoFocus) &&
              maxLength.hasSameValue(other.maxLength) &&
+             transformWorklet.hasSameValue(other.transformWorklet) &&
+             onChangeTextWorklet.hasSameValue(other.onChangeTextWorklet) &&
+             onChangeValueWorklet.hasSameValue(other.onChangeValueWorklet) &&
              onChangeText.hasSameValue(other.onChangeText) &&
              onChangeValue.hasSameValue(other.onChangeValue) &&
              onFocusChange.hasSameValue(other.onFocusChange) &&
@@ -187,6 +193,9 @@ namespace margelo::nitro::nitromorphinput::views {
              editable.isProvided() ||
              autoFocus.isProvided() ||
              maxLength.isProvided() ||
+             transformWorklet.isProvided() ||
+             onChangeTextWorklet.isProvided() ||
+             onChangeValueWorklet.isProvided() ||
              onChangeText.isProvided() ||
              onChangeValue.isProvided() ||
              onFocusChange.isProvided() ||

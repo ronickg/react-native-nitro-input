@@ -332,6 +332,24 @@ using namespace margelo::nitro::nitromorphinput::views;
           : !newViewProps.maxLength.hasSameValue(oldViewProps->maxLength)) {
       swiftPart.setMaxLength(newViewProps.maxLength.get());
     }
+    // transformWorklet: number
+    if (oldViewProps == nullptr
+          ? newViewProps.transformWorklet.isProvided()
+          : !newViewProps.transformWorklet.hasSameValue(oldViewProps->transformWorklet)) {
+      swiftPart.setTransformWorklet(newViewProps.transformWorklet.get());
+    }
+    // onChangeTextWorklet: number
+    if (oldViewProps == nullptr
+          ? newViewProps.onChangeTextWorklet.isProvided()
+          : !newViewProps.onChangeTextWorklet.hasSameValue(oldViewProps->onChangeTextWorklet)) {
+      swiftPart.setOnChangeTextWorklet(newViewProps.onChangeTextWorklet.get());
+    }
+    // onChangeValueWorklet: number
+    if (oldViewProps == nullptr
+          ? newViewProps.onChangeValueWorklet.isProvided()
+          : !newViewProps.onChangeValueWorklet.hasSameValue(oldViewProps->onChangeValueWorklet)) {
+      swiftPart.setOnChangeValueWorklet(newViewProps.onChangeValueWorklet.get());
+    }
     // onChangeText: optional
     if (oldViewProps == nullptr
           ? newViewProps.onChangeText.isProvided()

@@ -11,6 +11,7 @@
 #import <type_traits>
 
 #include "HybridMorphInputViewSpecSwift.hpp"
+#include "HybridMorphWorklets.hpp"
 
 @interface NitroMorphInputAutolinking : NSObject
 @end
@@ -26,6 +27,15 @@
     []() -> std::shared_ptr<HybridObject> {
       std::shared_ptr<HybridMorphInputViewSpec> hybridObject = NitroMorphInput::NitroMorphInputAutolinking::createMorphInputView();
       return hybridObject;
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "MorphWorklets",
+    []() -> std::shared_ptr<HybridObject> {
+      static_assert(std::is_default_constructible_v<HybridMorphWorklets>,
+                    "The HybridObject \"HybridMorphWorklets\" is not default-constructible! "
+                    "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
+      return std::make_shared<HybridMorphWorklets>();
     }
   );
 }

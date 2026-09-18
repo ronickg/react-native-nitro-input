@@ -1,11 +1,15 @@
 {
   "$schema": "https://nitro.margelo.com/nitro.schema.json",
-  "cxxNamespace": ["nitromorphinput"],
+  "cxxNamespace": [
+    "nitromorphinput"
+  ],
   "ios": {
     "iosModuleName": "NitroMorphInput"
   },
   "android": {
-    "androidNamespace": ["nitromorphinput"],
+    "androidNamespace": [
+      "nitromorphinput"
+    ],
     "androidCxxLibName": "NitroMorphInput"
   },
   "autolinking": {
@@ -18,7 +22,16 @@
         "language": "kotlin",
         "implementationClassName": "HybridMorphInputView"
       }
+    },
+    "MorphWorklets": {
+      "all": {
+        "language": "c++",
+        "implementationClassName": "HybridMorphWorklets"
+      }
     }
   },
-  "ignorePaths": ["**/node_modules", "**/lib"]
+  "ignorePaths": [
+    "**/node_modules",
+    "**/lib"
+  ]
 }

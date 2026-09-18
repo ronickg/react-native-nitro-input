@@ -8,4 +8,6 @@ export function callback<T>(func: T) {
 }
 export const NitroModules = {
   box: (obj: unknown) => ({ unbox: () => obj }),
+  // No native side in Jest: the worklets bridge reports itself unavailable.
+  createHybridObject: () => ({ isAvailable: false, install: () => false }),
 }

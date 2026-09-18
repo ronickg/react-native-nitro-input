@@ -102,6 +102,9 @@ final class HybridMorphInputView: HybridMorphInputViewSpec, RecyclableView {
   var editable: Bool = true { didSet { markConfigDirty() } }
   var autoFocus: Bool = false { didSet { markConfigDirty() } }
   var maxLength: Double = 0 { didSet { markConfigDirty() } }
+  var transformWorklet: Double = 0 { didSet { markConfigDirty() } }
+  var onChangeTextWorklet: Double = 0 { didSet { markConfigDirty() } }
+  var onChangeValueWorklet: Double = 0 { didSet { markConfigDirty() } }
   var onChangeText: ((String, Double) -> Void)?
   var onChangeValue: ((Double) -> Void)?
   var onFocusChange: ((Bool) -> Void)?
@@ -220,6 +223,9 @@ final class HybridMorphInputView: HybridMorphInputViewSpec, RecyclableView {
     editable = true
     autoFocus = false
     maxLength = 0
+    transformWorklet = 0
+    onChangeTextWorklet = 0
+    onChangeValueWorklet = 0
     onChangeText = nil
     onChangeValue = nil
     onFocusChange = nil
@@ -320,10 +326,16 @@ final class HybridMorphInputView: HybridMorphInputViewSpec, RecyclableView {
     traits.caretColor = Self.color(fromARGB: caretColor)
     traits.selectionColor = Self.color(fromARGB: selectionColor)
 
+    var worklets = MorphInputView.Worklets()
+    worklets.transform = Self.clampInt(transformWorklet, 0, Int(Int32.max), fallback: 0)
+    worklets.onChangeText = Self.clampInt(onChangeTextWorklet, 0, Int(Int32.max), fallback: 0)
+    worklets.onChangeValue = Self.clampInt(onChangeValueWorklet, 0, Int(Int32.max), fallback: 0)
+
     inputView.typography = typography
     inputView.format = format
     inputView.timing = timing
     inputView.traits = traits
+    inputView.worklets = worklets
     inputView.alignment = Self.mapAlignment(textAlign)
   }
 

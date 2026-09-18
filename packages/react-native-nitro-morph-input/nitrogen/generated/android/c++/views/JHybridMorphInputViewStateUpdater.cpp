@@ -249,6 +249,21 @@ void JHybridMorphInputViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCla
     hybridView->setMaxLength(newProps->maxLength.get());
   }
   if (oldProps == nullptr
+        ? newProps->transformWorklet.isProvided()
+        : !newProps->transformWorklet.hasSameValue(oldProps->transformWorklet)) {
+    hybridView->setTransformWorklet(newProps->transformWorklet.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->onChangeTextWorklet.isProvided()
+        : !newProps->onChangeTextWorklet.hasSameValue(oldProps->onChangeTextWorklet)) {
+    hybridView->setOnChangeTextWorklet(newProps->onChangeTextWorklet.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->onChangeValueWorklet.isProvided()
+        : !newProps->onChangeValueWorklet.hasSameValue(oldProps->onChangeValueWorklet)) {
+    hybridView->setOnChangeValueWorklet(newProps->onChangeValueWorklet.get());
+  }
+  if (oldProps == nullptr
         ? newProps->onChangeText.isProvided()
         : !newProps->onChangeText.hasSameValue(oldProps->onChangeText)) {
     hybridView->setOnChangeText(newProps->onChangeText.get());

@@ -23,6 +23,7 @@
 #include "JFunc_void_double_double.hpp"
 #include "views/JHybridMorphInputViewStateUpdater.hpp"
 #include <NitroModules/DefaultConstructableObject.hpp>
+#include "HybridMorphWorklets.hpp"
 
 namespace margelo::nitro::nitromorphinput {
 
@@ -59,6 +60,15 @@ void registerAllNatives() {
     "MorphInputView",
     []() -> std::shared_ptr<HybridObject> {
       return JHybridMorphInputViewSpecImpl::create();
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "MorphWorklets",
+    []() -> std::shared_ptr<HybridObject> {
+      static_assert(std::is_default_constructible_v<HybridMorphWorklets>,
+                    "The HybridObject \"HybridMorphWorklets\" is not default-constructible! "
+                    "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
+      return std::make_shared<HybridMorphWorklets>();
     }
   );
 }

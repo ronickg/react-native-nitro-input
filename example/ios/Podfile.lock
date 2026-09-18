@@ -60,6 +60,7 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
+    - RNWorklets
     - Yoga
   - NitroRollingNumber (0.0.0):
     - hermes-engine
@@ -2234,7 +2235,7 @@ SPEC CHECKSUMS:
   glog: b4427c3119645da795ff09985ba9da909c940c96
   hermes-engine: 35975068890c71d4609534b47111140882468c3a
   NitroModules: 08aff3b1a45badb71cf10d8f2d9cfb4e87cb468e
-  NitroMorphInput: 8c3917cdeb69b9e695351fb685186bbef9be07b6
+  NitroMorphInput: c12f4f95fdc861b27a316f149383b1e3b33a1809
   NitroRollingNumber: 89acafe4b3bf56e96de4b2e862bb35c87036103b
   RCT-Folly: d173e541eeb78cad5c81011c1bbf62d5b86b9778
   RCTDeprecation: 1dce662386078170e119b89c1600db1b6e3d42f6

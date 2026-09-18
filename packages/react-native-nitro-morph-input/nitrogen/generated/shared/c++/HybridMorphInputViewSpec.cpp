@@ -92,6 +92,12 @@ namespace margelo::nitro::nitromorphinput {
       prototype.registerHybridSetter("autoFocus", &HybridMorphInputViewSpec::setAutoFocus);
       prototype.registerHybridGetter("maxLength", &HybridMorphInputViewSpec::getMaxLength);
       prototype.registerHybridSetter("maxLength", &HybridMorphInputViewSpec::setMaxLength);
+      prototype.registerHybridGetter("transformWorklet", &HybridMorphInputViewSpec::getTransformWorklet);
+      prototype.registerHybridSetter("transformWorklet", &HybridMorphInputViewSpec::setTransformWorklet);
+      prototype.registerHybridGetter("onChangeTextWorklet", &HybridMorphInputViewSpec::getOnChangeTextWorklet);
+      prototype.registerHybridSetter("onChangeTextWorklet", &HybridMorphInputViewSpec::setOnChangeTextWorklet);
+      prototype.registerHybridGetter("onChangeValueWorklet", &HybridMorphInputViewSpec::getOnChangeValueWorklet);
+      prototype.registerHybridSetter("onChangeValueWorklet", &HybridMorphInputViewSpec::setOnChangeValueWorklet);
       prototype.registerHybridGetter("onChangeText", &HybridMorphInputViewSpec::getOnChangeText);
       prototype.registerHybridSetter("onChangeText", &HybridMorphInputViewSpec::setOnChangeText);
       prototype.registerHybridGetter("onChangeValue", &HybridMorphInputViewSpec::getOnChangeValue);

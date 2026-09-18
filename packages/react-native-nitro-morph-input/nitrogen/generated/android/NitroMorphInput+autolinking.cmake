@@ -35,6 +35,7 @@ target_sources(
   # Shared Nitrogen C++ sources
   ../nitrogen/generated/shared/c++/HybridMorphInputViewSpec.cpp
   ../nitrogen/generated/shared/c++/views/HybridMorphInputViewComponent.cpp
+  ../nitrogen/generated/shared/c++/HybridMorphWorkletsSpec.cpp
   # Android-specific Nitrogen C++ sources
   ../nitrogen/generated/android/c++/JHybridMorphInputViewSpec.cpp
   ../nitrogen/generated/android/c++/views/JHybridMorphInputViewStateUpdater.cpp

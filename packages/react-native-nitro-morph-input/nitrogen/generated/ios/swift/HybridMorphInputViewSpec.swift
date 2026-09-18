@@ -49,6 +49,9 @@ public protocol HybridMorphInputViewSpec_protocol: HybridObject, HybridView {
   var editable: Bool { get set }
   var autoFocus: Bool { get set }
   var maxLength: Double { get set }
+  var transformWorklet: Double { get set }
+  var onChangeTextWorklet: Double { get set }
+  var onChangeValueWorklet: Double { get set }
   var onChangeText: ((_ text: String, _ eventCount: Double) -> Void)? { get set }
   var onChangeValue: ((_ value: Double) -> Void)? { get set }
   var onFocusChange: ((_ focused: Bool) -> Void)? { get set }

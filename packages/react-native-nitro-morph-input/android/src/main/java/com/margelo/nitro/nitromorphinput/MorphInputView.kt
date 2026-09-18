@@ -105,6 +105,15 @@ class MorphInputView(context: Context) : FrameLayout(context) {
     val hidden: Boolean = false,
   )
 
+  /** Ids of worklets registered from JS (0 = none), run synchronously on the UI thread while an edit is handled. */
+  data class Worklets(
+    val transform: Int = 0,
+    val onChangeText: Int = 0,
+    val onChangeValue: Int = 0,
+  )
+
+  var worklets: Worklets = Worklets()
+
   var format: Format = Format()
     set(value) {
       if (field == value) return
@@ -589,6 +598,7 @@ class MorphInputView(context: Context) : FrameLayout(context) {
    * element (RecyclableView). Props are re-applied by Nitro afterwards.
    */
   fun resetForRecycle() {
+    worklets = Worklets()
     stopAnimation()
     removeCallbacks(blink)
     blur()
@@ -651,7 +661,16 @@ class MorphInputView(context: Context) : FrameLayout(context) {
     return value.substring(0, end)
   }
 
-  private fun setProgrammatic(next: String, notify: Boolean) {
+  private fun setProgrammatic(value: String, notify: Boolean) {
+    var next = value
+    if (worklets.transform != 0) {
+      val count = next.codePointCount(0, next.length)
+      val transformed = MorphWorklets.runTransform(
+        worklets.transform, next, text, count, count,
+        codePointIndex(text, editText.selectionStart), codePointIndex(text, editText.selectionEnd),
+      )
+      if (transformed != null) next = transformed
+    }
     if (next == text && next == editText.text.toString()) return
     applying = true
     editText.setText(next)
@@ -660,7 +679,14 @@ class MorphInputView(context: Context) : FrameLayout(context) {
     val changed = next != text
     text = next
     requestFeed(-1)
-    if (notify && changed) onTextChange?.invoke(text, currentValue())
+    if (notify && changed) notifyChange()
+  }
+
+  /** Worklet callbacks first (synchronously, on this thread), then the JS ones. */
+  private fun notifyChange() {
+    if (worklets.onChangeText != 0) MorphWorklets.runChangeText(worklets.onChangeText, text)
+    if (worklets.onChangeValue != 0 && format.mode == Mode.NUMBER) MorphWorklets.runChangeValue(worklets.onChangeValue, currentValue())
+    onTextChange?.invoke(text, currentValue())
   }
 
   /** Every change to the edit text (typing, backspace, paste, IME) lands here and goes through the engine. */
@@ -669,12 +695,16 @@ class MorphInputView(context: Context) : FrameLayout(context) {
     private var start = 0
     private var count = 0
     private var replacement = ""
+    private var previousSelectionStart = 0
+    private var previousSelectionEnd = 0
 
     override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
       if (applying) return
       previous = s.toString()
       this.start = start
       this.count = count
+      previousSelectionStart = codePointIndex(previous, editText.selectionStart)
+      previousSelectionEnd = codePointIndex(previous, editText.selectionEnd)
     }
 
     override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
@@ -684,12 +714,20 @@ class MorphInputView(context: Context) : FrameLayout(context) {
 
     override fun afterTextChanged(s: Editable) {
       if (applying) return
-      handleUserEdit(s, previous, start, count, replacement)
+      handleUserEdit(s, previous, start, count, replacement, previousSelectionStart, previousSelectionEnd)
     }
   }
 
-  private fun handleUserEdit(editable: Editable, previous: String, start: Int, count: Int, replacement: String) {
-    val caretCodePoints: Int
+  private fun handleUserEdit(
+    editable: Editable,
+    previous: String,
+    start: Int,
+    count: Int,
+    replacement: String,
+    previousSelectionStart: Int,
+    previousSelectionEnd: Int,
+  ) {
+    var caretCodePoints: Int
     if (format.mode == Mode.NUMBER) {
       val cpStart = codePointIndex(previous, start)
       val cpEnd = codePointIndex(previous, start + count)
@@ -714,17 +752,30 @@ class MorphInputView(context: Context) : FrameLayout(context) {
     } else {
       caretCodePoints = codePointIndex(editable.toString(), start + replacement.length)
     }
+    if (worklets.transform != 0) {
+      val current = editable.toString()
+      val transformed = MorphWorklets.runTransform(
+        worklets.transform, current, previous, caretCodePoints, caretCodePoints, previousSelectionStart, previousSelectionEnd,
+      )
+      if (transformed != null) {
+        val length = transformed.codePointCount(0, transformed.length)
+        val selStart = MorphWorklets.lastSelectionStart().let { if (it < 0) length else min(it, length) }
+        val selEnd = MorphWorklets.lastSelectionEnd().coerceIn(selStart, length)
+        setEditable(editable, transformed, selStart, selEnd)
+        caretCodePoints = selStart
+      }
+    }
     val updated = editable.toString()
     if (updated == text) return
     text = updated
     requestFeed(caretCodePoints)
-    onTextChange?.invoke(text, currentValue())
+    notifyChange()
   }
 
-  private fun setEditable(editable: Editable, value: String, caretCodePoints: Int) {
+  private fun setEditable(editable: Editable, value: String, caretCodePoints: Int, selectionEndCodePoints: Int = caretCodePoints) {
     applying = true
     editable.replace(0, editable.length, value)
-    Selection.setSelection(editable, utf16Index(value, caretCodePoints))
+    Selection.setSelection(editable, utf16Index(value, caretCodePoints), utf16Index(value, selectionEndCodePoints))
     applying = false
   }
 

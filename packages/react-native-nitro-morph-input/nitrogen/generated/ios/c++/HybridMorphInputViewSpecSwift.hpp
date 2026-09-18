@@ -338,6 +338,24 @@ namespace margelo::nitro::nitromorphinput {
     inline void setMaxLength(double maxLength) noexcept override {
       _swiftPart.setMaxLength(std::forward<decltype(maxLength)>(maxLength));
     }
+    inline double getTransformWorklet() noexcept override {
+      return _swiftPart.getTransformWorklet();
+    }
+    inline void setTransformWorklet(double transformWorklet) noexcept override {
+      _swiftPart.setTransformWorklet(std::forward<decltype(transformWorklet)>(transformWorklet));
+    }
+    inline double getOnChangeTextWorklet() noexcept override {
+      return _swiftPart.getOnChangeTextWorklet();
+    }
+    inline void setOnChangeTextWorklet(double onChangeTextWorklet) noexcept override {
+      _swiftPart.setOnChangeTextWorklet(std::forward<decltype(onChangeTextWorklet)>(onChangeTextWorklet));
+    }
+    inline double getOnChangeValueWorklet() noexcept override {
+      return _swiftPart.getOnChangeValueWorklet();
+    }
+    inline void setOnChangeValueWorklet(double onChangeValueWorklet) noexcept override {
+      _swiftPart.setOnChangeValueWorklet(std::forward<decltype(onChangeValueWorklet)>(onChangeValueWorklet));
+    }
     inline std::optional<std::function<void(const std::string& /* text */, double /* eventCount */)>> getOnChangeText() noexcept override {
       auto __result = _swiftPart.getOnChangeText();
       return __result;

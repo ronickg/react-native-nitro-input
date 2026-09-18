@@ -133,6 +133,16 @@ final class MorphInputView: UIView {
     }
   }
 
+  /// Ids of worklets registered from JS (0 = none), run synchronously on the
+  /// UI thread through `MorphWorkletsBridge` while an edit is handled.
+  struct Worklets: Equatable {
+    var transform = 0
+    var onChangeText = 0
+    var onChangeValue = 0
+  }
+
+  var worklets = Worklets()
+
   var alignment: Alignment = .left {
     didSet {
       guard alignment != oldValue else { return }
@@ -410,6 +420,7 @@ final class MorphInputView: UIView {
   /// Returns the view to its pristine state so Fabric can reuse it for a new
   /// element (`RecyclableView`). Props are re-applied by Nitro afterwards.
   func resetForRecycle() {
+    worklets = Worklets()
     if field.isFirstResponder { field.resignFirstResponder() }
     stopDisplayLink()
     stopBlink()
@@ -449,7 +460,14 @@ final class MorphInputView: UIView {
   /// text mode), caret at the end. Returns false when nothing changed.
   @discardableResult
   func setText(_ newText: String, reason: ChangeReason) -> Bool {
-    let normalized = normalized(newText)
+    var normalized = normalized(newText)
+    if worklets.transform != 0 {
+      let count = normalized.unicodeScalars.count
+      let (selStart, selEnd) = selectionCodePoints()
+      let result = margelo.nitro.nitromorphinput.morphworklets.runTransform(
+        Int32(worklets.transform), std.string(normalized), std.string(text), Int32(count), Int32(count), Int32(selStart), Int32(selEnd))
+      if result.applied { normalized = String(result.text) }
+    }
     // The first application always commits so the engine has the (possibly
     // empty) text and its placeholder to draw.
     guard normalized != text || !engine.hasText() else { return false }
@@ -597,8 +615,24 @@ final class MorphInputView: UIView {
     feedEngine(caret: caret)
     if reason != .prop {
       eventCount += 1
+      // Worklet callbacks run synchronously on the UI thread, before JS hears of the change.
+      if worklets.onChangeText != 0 {
+        margelo.nitro.nitromorphinput.morphworklets.runChangeText(Int32(worklets.onChangeText), std.string(text))
+      }
+      if worklets.onChangeValue != 0, format.mode == .number {
+        margelo.nitro.nitromorphinput.morphworklets.runChangeValue(Int32(worklets.onChangeValue), value)
+      }
     }
     onTextChange?(text, value, eventCount, reason)
+  }
+
+  /// The current selection as code point offsets.
+  private func selectionCodePoints() -> (Int, Int) {
+    let count = text.unicodeScalars.count
+    guard let range = field.selectedTextRange else { return (count, count) }
+    let start = Self.codePointOffset(in: text, utf16: field.offset(from: field.beginningOfDocument, to: range.start))
+    let end = Self.codePointOffset(in: text, utf16: field.offset(from: field.beginningOfDocument, to: range.end))
+    return (start, end)
   }
 
   /// Hands the engine the current text as glyphs (prefix, body or placeholder,
@@ -1018,50 +1052,59 @@ extension MorphInputView: UITextFieldDelegate {
 
   func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
     let current = text
+    let start = Self.codePointOffset(in: current, utf16: range.location)
+    let end = Self.codePointOffset(in: current, utf16: range.location + range.length)
+    var newText: String
+    var caret: Int
     switch format.mode {
     case .number:
       // Run the edit through the formatter and apply the result ourselves, so
       // the field never shows an unformatted frame.
-      let start = Self.codePointOffset(in: current, utf16: range.location)
-      let end = Self.codePointOffset(in: current, utf16: range.location + range.length)
       let edit = formatter.applyEdit(std.string(current), Int32(start), Int32(end), std.string(string))
       guard edit.accepted else { return false }
-      let newText = String(edit.text)
-      let caret = Int(edit.caret)
-      isSettingText = true
-      textField.text = newText
-      let utf16 = Self.utf16Offset(in: newText, codePoint: caret)
-      if let position = textField.position(from: textField.beginningOfDocument, offset: utf16) {
-        textField.selectedTextRange = textField.textRange(from: position, to: position)
-      }
-      isSettingText = false
-      textDidChange(caret: caret, reason: .user)
-      return false
+      newText = String(edit.text)
+      caret = Int(edit.caret)
     case .text:
-      guard format.maxLength > 0 else { return true }
-      let removed = Self.codePointOffset(in: current, utf16: range.location + range.length)
-        - Self.codePointOffset(in: current, utf16: range.location)
-      let inserted = string.unicodeScalars.count
-      let resulting = current.unicodeScalars.count - removed + inserted
-      guard resulting > format.maxLength else { return true }
-      // Too long: keep as much of the replacement as fits (a paste), or nothing.
-      let room = format.maxLength - (current.unicodeScalars.count - removed)
-      guard room > 0, let swiftRange = Range(range, in: current) else { return false }
-      var replacement = String.UnicodeScalarView()
-      replacement.append(contentsOf: string.unicodeScalars.prefix(room))
-      var newText = current
-      newText.replaceSubrange(swiftRange, with: String(replacement))
-      let caret = Self.codePointOffset(in: current, utf16: range.location) + room
-      isSettingText = true
-      textField.text = newText
-      let utf16 = Self.utf16Offset(in: newText, codePoint: caret)
-      if let position = textField.position(from: textField.beginningOfDocument, offset: utf16) {
-        textField.selectedTextRange = textField.textRange(from: position, to: position)
+      // Without a transform or a length limit the field edits itself (keeps
+      // marked text / autocorrect intact); `fieldEditingChanged` reports it.
+      guard worklets.transform != 0 || format.maxLength > 0, let swiftRange = Range(range, in: current) else { return true }
+      var replacement = string
+      if format.maxLength > 0 {
+        // Keep as much of the replacement as fits (a paste), or nothing.
+        let room = format.maxLength - (current.unicodeScalars.count - (end - start))
+        if !string.isEmpty && room <= 0 { return false }
+        if string.unicodeScalars.count > room {
+          var view = String.UnicodeScalarView()
+          view.append(contentsOf: string.unicodeScalars.prefix(max(0, room)))
+          replacement = String(view)
+        }
       }
-      isSettingText = false
-      textDidChange(caret: caret, reason: .user)
-      return false
+      newText = current
+      newText.replaceSubrange(swiftRange, with: replacement)
+      caret = start + replacement.unicodeScalars.count
     }
+    var selectionEnd = caret
+    if worklets.transform != 0 {
+      let result = margelo.nitro.nitromorphinput.morphworklets.runTransform(
+        Int32(worklets.transform), std.string(newText), std.string(current), Int32(caret), Int32(caret), Int32(start), Int32(end))
+      if result.applied {
+        newText = String(result.text)
+        let count = newText.unicodeScalars.count
+        caret = Int(result.selectionStart) < 0 ? count : min(Int(result.selectionStart), count)
+        selectionEnd = min(max(caret, Int(result.selectionEnd)), count)
+      }
+    }
+    isSettingText = true
+    textField.text = newText
+    let from = Self.utf16Offset(in: newText, codePoint: caret)
+    let to = Self.utf16Offset(in: newText, codePoint: selectionEnd)
+    if let fromPosition = textField.position(from: textField.beginningOfDocument, offset: from),
+       let toPosition = textField.position(from: textField.beginningOfDocument, offset: to) {
+      textField.selectedTextRange = textField.textRange(from: fromPosition, to: toPosition)
+    }
+    isSettingText = false
+    textDidChange(caret: caret, reason: .user)
+    return false
   }
 
   func textFieldDidBeginEditing(_ textField: UITextField) {

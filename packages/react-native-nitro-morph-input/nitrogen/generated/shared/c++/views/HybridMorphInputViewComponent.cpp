@@ -59,6 +59,9 @@ namespace margelo::nitro::nitromorphinput::views {
     editable(nitro::ReactProp<bool>::fromRawValue("MorphInputView", "editable", rawProps, sourceProps.editable)),
     autoFocus(nitro::ReactProp<bool>::fromRawValue("MorphInputView", "autoFocus", rawProps, sourceProps.autoFocus)),
     maxLength(nitro::ReactProp<double>::fromRawValue("MorphInputView", "maxLength", rawProps, sourceProps.maxLength)),
+    transformWorklet(nitro::ReactProp<double>::fromRawValue("MorphInputView", "transformWorklet", rawProps, sourceProps.transformWorklet)),
+    onChangeTextWorklet(nitro::ReactProp<double>::fromRawValue("MorphInputView", "onChangeTextWorklet", rawProps, sourceProps.onChangeTextWorklet)),
+    onChangeValueWorklet(nitro::ReactProp<double>::fromRawValue("MorphInputView", "onChangeValueWorklet", rawProps, sourceProps.onChangeValueWorklet)),
     onChangeText(nitro::ReactProp<std::optional<std::function<void(const std::string& /* text */, double /* eventCount */)>>>::fromRawValue("MorphInputView", "onChangeText", rawProps, sourceProps.onChangeText)),
     onChangeValue(nitro::ReactProp<std::optional<std::function<void(double /* value */)>>>::fromRawValue("MorphInputView", "onChangeValue", rawProps, sourceProps.onChangeValue)),
     onFocusChange(nitro::ReactProp<std::optional<std::function<void(bool /* focused */)>>>::fromRawValue("MorphInputView", "onFocusChange", rawProps, sourceProps.onFocusChange)),
@@ -107,6 +110,9 @@ namespace margelo::nitro::nitromorphinput::views {
       case hashString("editable"): return true;
       case hashString("autoFocus"): return true;
       case hashString("maxLength"): return true;
+      case hashString("transformWorklet"): return true;
+      case hashString("onChangeTextWorklet"): return true;
+      case hashString("onChangeValueWorklet"): return true;
       case hashString("onChangeText"): return true;
       case hashString("onChangeValue"): return true;
       case hashString("onFocusChange"): return true;

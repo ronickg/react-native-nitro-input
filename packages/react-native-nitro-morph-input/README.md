@@ -124,6 +124,50 @@ In `mode="text"` (the default) characters fade and scale in and out (Torph's
 text morph); digits and separators only slide in `mode="number"`, unless you
 force one style with `effect="slide"` / `effect="fade"`.
 
+### Worklets: masks in JS and shared values, synchronously
+
+With [`react-native-worklets`](https://docs.swmansion.com/react-native-worklets/)
+installed (it comes with Reanimated 4), two things run on the UI thread while
+the native input handles the keystroke, before a frame is drawn:
+
+```tsx
+import { useSharedValue, useAnimatedStyle } from 'react-native-reanimated'
+
+// A mask written in JS: lowercase, no symbols, always led by "@".
+const usernameTransform: MorphTransform = ({ text }) => {
+  'worklet'
+  const cleaned = text.replace(/[^0-9a-zA-Z_]/g, '').toLowerCase()
+  return { text: cleaned ? '@' + cleaned : '' }
+}
+
+<MorphInput placeholder="@username" autoCapitalize="none" transform={usernameTransform} />
+
+// A shared value fed on every keystroke, no JS thread in between.
+const progress = useSharedValue(0)
+<MorphInput
+  mode="number"
+  onChangeValue={(value) => {
+    'worklet'
+    progress.value = Number.isNaN(value) ? 0 : value / 10
+  }}
+/>
+```
+
+- `transform` receives `{ text, previousText, selection, previousSelection }`
+  (code point offsets) and returns `{ text?, selection? }` or `null` to keep
+  the edit as is. Without a `selection` the caret keeps its place relative to
+  the edit. In `mode="number"` it runs after the native formatter. Create it
+  once (module scope or `useCallback`); a new function re-registers the worklet.
+- `onChangeText` / `onChangeValue` marked `'worklet'` run on the UI thread
+  instead of the JS thread, the way Expo UI's worklet callbacks do; plain
+  functions keep working as before.
+- Everything degrades cleanly: without `react-native-worklets` the props are
+  ignored with one console warning, and the native code compiles without it.
+
+This is the same mechanism as [react-native-transformer-text-input](https://github.com/AppAndFlow/react-native-transformer-text-input):
+the worklets UI runtime is handed to native once, the worklet is called with
+`runSync` inside the edit, so there is no bridge hop and no caret flicker.
+
 ### Imperative
 
 ```tsx
@@ -187,8 +231,9 @@ rather than renumbering the columns.
 | `editable` | `boolean` | `true` | |
 | `autoFocus` | `boolean` | `false` | |
 | `maxLength` | `number` | unlimited | `text` mode. |
-| `onChangeText` | `(text) => void` | – | After every edit, the formatted text. |
-| `onChangeValue` | `(value) => void` | – | `number` mode: the numeric value, `NaN` while empty. |
+| `transform` | `MorphTransform` | – | A `'worklet'` that rewrites text and selection after every edit, synchronously on the UI thread (needs `react-native-worklets`). |
+| `onChangeText` | `(text) => void` | – | After every edit, the formatted text. A `'worklet'` runs on the UI thread. |
+| `onChangeValue` | `(value) => void` | – | `number` mode: the numeric value, `NaN` while empty. A `'worklet'` runs on the UI thread. |
 | `onFocus` / `onBlur` | `() => void` | – | |
 | `onSubmitEditing` | `(text) => void` | – | Return key pressed (the field then blurs). |
 | `onNativeRef` | `(ref) => void` | – | Receives the Nitro object on mount. |

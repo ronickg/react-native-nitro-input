@@ -94,7 +94,7 @@ Method and full tables: [BENCHMARKS.md](BENCHMARKS.md).
 
 ## Also in this repo: a morphing input
 
-[`react-native-nitro-morph-input`](packages/react-native-nitro-morph-input) is a native single-line **text and amount input** whose text morphs as you type, the way [Torph](https://torph.lochie.me) morphs text on the web: characters that stay glide to their new place, new ones slide or fade in, removed ones leave with their neighbours. A system text field owns the keyboard, editing, selection and accessibility; in `mode="number"` every keystroke is formatted on the native side before a frame is drawn (grouping, decimals, a currency prefix or suffix, the caret kept in place), so there is no JS round trip and none of the flicker of a `TextInput` formatted in `onChangeText`.
+[`react-native-nitro-morph-input`](packages/react-native-nitro-morph-input) is a native single-line **text and amount input** whose text morphs as you type, the way [Torph](https://torph.lochie.me) morphs text on the web: characters that stay glide to their new place, new ones slide or fade in, removed ones leave with their neighbours. A system text field owns the keyboard, editing, selection and accessibility; in `mode="number"` every keystroke is formatted on the native side before a frame is drawn (grouping, decimals, a currency prefix or suffix, the caret kept in place), so there is no JS round trip and none of the flicker of a `TextInput` formatted in `onChangeText`. With `react-native-worklets` installed, a `transform` worklet and worklet change handlers run on the UI thread inside the edit, for masks written in JS and shared values updated before the next frame.
 
 ```tsx
 import { MorphInput } from 'react-native-nitro-morph-input'
