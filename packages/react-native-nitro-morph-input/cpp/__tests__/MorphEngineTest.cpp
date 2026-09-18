@@ -323,10 +323,15 @@ static void insertInTheMiddleKeepsBothSides() {
   CHECK(after.size() == 6);
   CHECK(after[0] == ids[0]);   // 1
   CHECK(after[1] == ids[2]);   // 2
-  CHECK(after[2] == ids[1]);   // the thousands comma is still the thousands comma
   CHECK(after[4] == ids[3]);   // 3
   CHECK(after[5] == ids[4]);   // 4
-  CHECK(countExiting(e) == 0);
+  // The integer gained a column, so the comma belongs a group further along —
+  // past the 2 that just carried the other way. It leaves and a new one rises
+  // rather than gliding through it.
+  CHECK(after[2] != ids[1]);
+  CHECK(countExiting(e) == 1);
+  const auto* comma = liveGlyph(e, ',');
+  CHECK(comma && near(comma->y, 1));      // the new one arrives from below
 }
 
 static void placeMatchingSwapsChangedColumns() {

@@ -527,9 +527,34 @@ void MorphEngine::matchByCaret(const std::vector<Input>& inputs, const std::vect
   };
   for (size_t i = 1; i < sepOld.size() && uniform; ++i) uniform = sepChar(sepOld, oldBody, i, true) == sepChar(sepOld, oldBody, 0, true);
   for (size_t i = 0; i < sepNew.size() && uniform; ++i) uniform = sepOld.empty() || sepChar(sepNew, newBody, i, false) == sepChar(sepOld, oldBody, 0, true);
+  // A grouping separator only holds its place while the integer columns hold
+  // theirs. Type a digit into them and every comma belongs a group further
+  // along; gliding it there would drag it sideways across the very digits that
+  // just carried, the two passing through each other. So it leaves downwards
+  // and a new one rises instead — the same reshape rule the place walk uses.
+  // A mask's mixed punctuation is structure, not grouping, and is left alone.
+  const auto integerDigits = [&](const std::vector<int>& body, bool old) {
+    int count = 0;
+    for (size_t p = 0; p < body.size(); ++p) {
+      const size_t index = static_cast<size_t>(body[p]);
+      const int kind = old ? slots_[index].g.kind : inputs[index].kind;
+      if (kind == Decimal) break;
+      if (kind == Digit) ++count;
+    }
+    return count;
+  };
+  bool carried = false;
+  for (size_t p = 0; p < newBody.size() && !carried; ++p) {
+    const size_t index = static_cast<size_t>(newBody[p]);
+    if (inputs[index].kind == Decimal) break;
+    if (inputs[index].kind == Digit && matchOfNew[index] >= 0) carried = true;
+  }
+  const bool reshaped = carried && integerDigits(oldBody, true) != integerDigits(newBody, false);
   if (uniform) {
-    for (size_t k = 1; k <= sepOld.size() && k <= sepNew.size(); ++k) {
-      pairPositions(sepNew[sepNew.size() - k], sepOld[sepOld.size() - k]);
+    if (!reshaped) {
+      for (size_t k = 1; k <= sepOld.size() && k <= sepNew.size(); ++k) {
+        pairPositions(sepNew[sepNew.size() - k], sepOld[sepOld.size() - k]);
+      }
     }
   } else {
     std::vector<std::pair<int, int>> pairs;
