@@ -42,7 +42,10 @@ constexpr double kMilestonePunch = 0.75;
 // zero coming out, over 4–14 digits of travel so it only ever decelerates),
 // and the lock overshoots by `kReelBounceDigits` for `kReelBounceSeconds`,
 // the mechanical clunk of a reel catching its stop. The first reel locks no
-// earlier than `kReelMinLead` of the duration so every reel is seen spinning.
+// earlier than `kReelMinLead` of the duration so every reel is seen spinning,
+// and the last locks a clunk short of the end so the whole figure is still by
+// the duration — otherwise the rightmost reel hops on alone after every other
+// digit has stopped, which reads as a glitch rather than as machinery.
 constexpr double kReelSpeed = 24;
 constexpr double kReelBrakeSeconds = 0.5;
 constexpr double kReelBounceDigits = 0.15;
@@ -321,9 +324,9 @@ void RollingEngine::setRevealTiming(double durationSeconds, double bounce, int s
 
 double RollingEngine::revealTotalSeconds() const {
   const double popTail = revealBounce_ > 0 ? kRevealTailSeconds : 0;
-  const double reelTail = revealStyle_ == 1 ? kReelBounceSeconds : 0;
   const double holds = revealStyle_ == 1 ? 0 : revealMilestoneHold_ * static_cast<double>(reveal_.milestoneTimes.size());
-  return revealDuration_ + holds + std::max(popTail, reelTail);
+  // The reels need no tail of their own: the last clunk ends on the duration.
+  return revealDuration_ + holds + popTail;
 }
 
 void RollingEngine::clearRevealMilestones() {
@@ -448,14 +451,17 @@ void RollingEngine::reveal(double value, double now) {
 void RollingEngine::planReels() {
   const Target& target = reveal_.target;
   const int count = target.powerCount;
-  // Reel k (from the left) locks at lead + k * stagger; the stagger shrinks
-  // when the reels wouldn't fit, and the lead is at least kReelMinLead.
+  // Reel k (from the left) locks at lead + k * stagger. The last one locks a
+  // clunk short of the duration, so its bounce is spent by the time the figure
+  // pops. The stagger shrinks when the reels wouldn't fit between the earliest
+  // lead and that last lock; the lead is still at least kReelMinLead.
+  const double last = std::max(0.0, revealDuration_ - kReelBounceSeconds);
   double stagger = revealStagger_;
-  const double room = revealDuration_ * (1 - kReelMinLead);
+  const double room = std::max(0.0, last - revealDuration_ * kReelMinLead);
   if (count > 1 && stagger * (count - 1) > room) {
     stagger = room / (count - 1);
   }
-  const double lead = revealDuration_ - stagger * (count - 1);
+  const double lead = last - stagger * (count - 1);
   reveal_.reels.assign(static_cast<size_t>(count), Reel{});
   for (int k = 0; k < count; k++) {
     Reel& reel = reveal_.reels[static_cast<size_t>(k)];

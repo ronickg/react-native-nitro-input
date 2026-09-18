@@ -278,7 +278,8 @@ static void jackpotRevealSpinsReelsAndLocksLeftToRight() {
   e.tick(0.1);
   CHECK(near(e.wheelAt(6).position - before, 2.4, 1e-6));
   CHECK(near(e.wheelAt(0).position - e.wheelAt(0).position, 0));
-  // Reels lock from the left: lead = 2.2 - 6 * 0.2 = 1.0 s, then one every 0.2 s.
+  // Reels lock from the left, the last a clunk short of the duration:
+  // lead = (2.2 - 0.2) - 6 * 0.2 = 0.8 s, then one every 0.2 s.
   const int digits[7] = {0, 0, 0, 0, 0, 0, 5};  // powers 0..6 of 5000000
   e.tick(1.0 + 0.25);                           // leftmost locked (its bounce is over), the rest still moving
   auto landed = [&](int power) {
@@ -298,27 +299,31 @@ static void jackpotRevealSpinsReelsAndLocksLeftToRight() {
   CHECK(!e.isRevealing());
   CHECK(e.wheelAt(6).position == 5 && e.wheelAt(0).position == 0);
 
-  // A reel never turns backwards while braking, and the lock bounces forward then settles.
+  // A reel never turns backwards while braking, and the lock bounces forward
+  // then settles - all of it inside the duration, so nothing is still moving
+  // once the reveal is over.
   RollingEngine m;
   m.setFormat(0, 1);
   m.setRevealTiming(1.0, 0, 1, 0.1);
   m.reveal(7, 0);
   double previous = -1;
-  bool bounced = false;
-  for (int i = 1; i <= 100; i++) {
+  for (int i = 1; i <= 80; i++) {               // ... up to the lock at 1.0 - 0.2
     m.tick(i * 0.01);
     const double pos = m.wheelAt(0).position;
-    if (i * 0.01 < 1.0 && i * 0.01 > 0.02) {
+    if (i * 0.01 > 0.02) {
       CHECK(pos >= previous - 1e-9);
     }
     previous = pos;
   }
-  const double locked = m.wheelAt(0).position;
-  m.tick(1.1);
-  if (m.wheelAt(0).position > locked + 0.05) bounced = true;
-  CHECK(m.isRevealing());                       // the reel's bounce outlasts the duration even without a pop
-  m.tick(1.3);
-  CHECK(bounced && !m.isRevealing());
+  const double locked = previous;               // on the digit, the instant it locks
+  double peak = locked;
+  for (int i = 81; i < 100; i++) {              // the clunk: past the digit and back
+    m.tick(i * 0.01);
+    peak = std::max(peak, m.wheelAt(0).position);
+  }
+  CHECK(peak > locked + 0.05);                  // it really did overshoot
+  m.tick(1.0);
+  CHECK(!m.isRevealing());                      // and with no pop, the duration is the end of it
   CHECK(near(std::fmod(locked, 10.0), 7) && near(m.wheelAt(0).position, 7));
 
   // Many reels squeeze their stagger into the duration; the lead never drops below 30 %.
@@ -330,8 +335,7 @@ static void jackpotRevealSpinsReelsAndLocksLeftToRight() {
   CHECK(w.isRolling());
   w.tick(1.0);
   CHECK(!w.isRolling());                        // every reel is down at the duration…
-  w.tick(1.25);
-  CHECK(!w.isRevealing());                      // …and the last bounce is over 0.2 s later
+  CHECK(!w.isRevealing());                      // …clunk included, with no pop to ring out
 }
 
 static void jackpotRevealMilestonesPunchAndHold() {
@@ -419,7 +423,7 @@ static void jackpotRevealMilestonesPunchAndHold() {
   s.addRevealMilestone(5);
   s.setRevealMilestoneHold(1.0);
   s.reveal(9, 0);
-  CHECK(near(s.revealTotalSeconds(), 1.2));
+  CHECK(near(s.revealTotalSeconds(), 1.0));     // the duration itself: no hold, and the clunk fits inside
   s.tick(1.3);
   CHECK(!s.isRevealing() && s.revealMilestonesReached() == 0);
 }
