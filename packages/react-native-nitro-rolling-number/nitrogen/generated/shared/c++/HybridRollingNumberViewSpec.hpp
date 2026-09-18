@@ -103,6 +103,10 @@ namespace margelo::nitro::nitrorollingnumber {
       virtual void setAdjustsFontSizeToFit(std::optional<bool> adjustsFontSizeToFit) = 0;
       virtual std::optional<double> getMinimumFontScale() = 0;
       virtual void setMinimumFontScale(std::optional<double> minimumFontScale) = 0;
+      virtual std::optional<bool> getAllowFontScaling() = 0;
+      virtual void setAllowFontScaling(std::optional<bool> allowFontScaling) = 0;
+      virtual std::optional<double> getMaxFontSizeMultiplier() = 0;
+      virtual void setMaxFontSizeMultiplier(std::optional<double> maxFontSizeMultiplier) = 0;
       virtual std::optional<double> getFontWeight() = 0;
       virtual void setFontWeight(std::optional<double> fontWeight) = 0;
       virtual std::optional<std::string> getFontFamily() = 0;

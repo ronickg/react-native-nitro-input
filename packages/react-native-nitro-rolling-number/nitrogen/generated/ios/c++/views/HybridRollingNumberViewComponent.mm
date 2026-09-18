@@ -236,6 +236,18 @@ using namespace margelo::nitro::nitrorollingnumber::views;
           : !newViewProps.minimumFontScale.hasSameValue(oldViewProps->minimumFontScale)) {
       swiftPart.setMinimumFontScale(newViewProps.minimumFontScale.get());
     }
+    // allowFontScaling: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.allowFontScaling.isProvided()
+          : !newViewProps.allowFontScaling.hasSameValue(oldViewProps->allowFontScaling)) {
+      swiftPart.setAllowFontScaling(newViewProps.allowFontScaling.get());
+    }
+    // maxFontSizeMultiplier: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.maxFontSizeMultiplier.isProvided()
+          : !newViewProps.maxFontSizeMultiplier.hasSameValue(oldViewProps->maxFontSizeMultiplier)) {
+      swiftPart.setMaxFontSizeMultiplier(newViewProps.maxFontSizeMultiplier.get());
+    }
     // fontWeight: optional
     if (oldViewProps == nullptr
           ? newViewProps.fontWeight.isProvided()

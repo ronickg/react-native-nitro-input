@@ -108,6 +108,13 @@ export interface RollingNumberProps extends Omit<ViewProps, 'children'> {
   adjustsFontSizeToFit?: boolean
   /** Smallest scale `adjustsFontSizeToFit` may apply, `0`–`1`. Default: `0.5`. */
   minimumFontScale?: number
+  /**
+   * Scale the fonts with the system text size (Dynamic Type / Android font
+   * scale) like `Text` does. Off by default so amounts keep their design size.
+   */
+  allowFontScaling?: boolean
+  /** Upper bound for `allowFontScaling`, e.g. `1.3`. `0` means no cap. Default: `0`. */
+  maxFontSizeMultiplier?: number
   /** Font weight, like `Text`'s `fontWeight`. Default: `'normal'`. */
   fontWeight?: TextStyle['fontWeight']
   /** Font family name, like `Text`'s `fontFamily`. Defaults to the system font. */
@@ -209,6 +216,8 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
       suffixAlign,
       adjustsFontSizeToFit,
       minimumFontScale,
+      allowFontScaling,
+      maxFontSizeMultiplier,
       fontWeight,
       fontFamily,
       color,
@@ -305,6 +314,8 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
         suffixAlign={suffixAlign}
         adjustsFontSizeToFit={adjustsFontSizeToFit}
         minimumFontScale={minimumFontScale}
+        allowFontScaling={allowFontScaling}
+        maxFontSizeMultiplier={maxFontSizeMultiplier}
         fontWeight={numericWeight}
         fontFamily={fontFamily}
         color={processedColor}

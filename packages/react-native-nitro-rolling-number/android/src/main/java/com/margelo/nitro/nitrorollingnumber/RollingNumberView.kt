@@ -66,6 +66,8 @@ class RollingNumberView(context: Context) : View(context) {
     val suffixAlign: AffixAlign = AffixAlign.BASELINE,
     val adjustsFontSizeToFit: Boolean = false,
     val minimumFontScale: Float = 0.5f,
+    val allowFontScaling: Boolean = false,
+    val maxFontSizeMultiplier: Float = 0f,
   )
 
   enum class Easing { LINEAR, EASE_IN, EASE_OUT, EASE_IN_OUT, SPRING }
@@ -180,7 +182,8 @@ class RollingNumberView(context: Context) : View(context) {
   private enum class GlyphRole { DIGIT, PREFIX, SUFFIX }
 
   /** Digit / prefix / suffix paints at one scale, with per-glyph width caches. */
-  private inner class FontSet(t: Typography, scale: Float) {
+  private inner class FontSet(t: Typography, baseScale: Float) {
+    private val scale = baseScale * systemFontMultiplier(t)
     val digit = makePaint(t, t.fontSize * scale)
     val prefix = makePaint(t, (t.prefixFontSize ?: t.fontSize) * scale)
     val suffix = makePaint(t, (t.suffixFontSize ?: t.fontSize) * scale)
@@ -226,6 +229,42 @@ class RollingNumberView(context: Context) : View(context) {
       paint(role).getTextBounds("0", 0, 1, bounds)
       -bounds.top.toFloat()
     }
+  }
+
+  /** System font scale for `allowFontScaling`, capped by `maxFontSizeMultiplier`. */
+  private fun systemFontMultiplier(t: Typography): Float {
+    if (!t.allowFontScaling) return 1f
+    val multiplier = context.resources.configuration.fontScale
+    return if (t.maxFontSizeMultiplier > 0f) min(multiplier, t.maxFontSizeMultiplier) else multiplier
+  }
+
+  /**
+   * Returns the view to its pristine state so Fabric can reuse it for a new
+   * element (RecyclableView). Props are re-applied by Nitro afterwards.
+   */
+  fun resetForRecycle() {
+    stopAnimation()
+    loading = false
+    loadingAnimator?.cancel(); loadingAnimator = null
+    shimmerAnimator?.cancel(); shimmerAnimator = null
+    loadingProgress = 0f
+    columns = mutableListOf()
+    signFactor = 0.0
+    hasShownValue = false
+    transition = null
+    targetValue = 0.0
+    settledPowerCount = 1
+    settledNegative = false
+    lastReportedWidth = -1f
+    lastReportedHeight = -1f
+    fontScale = 1f
+    format = Format()
+    typography = Typography()
+    timing = Timing()
+    shimmer = Shimmer()
+    alignment = Alignment.LEFT
+    contentDescription = null
+    invalidate()
   }
 
   private fun makePaint(t: Typography, sizeDp: Float): TextPaint {

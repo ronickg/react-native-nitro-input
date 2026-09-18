@@ -7,13 +7,14 @@ import android.view.View
 import androidx.annotation.Keep
 import com.facebook.proguard.annotations.DoNotStrip
 import com.facebook.react.uimanager.ThemedReactContext
+import com.margelo.nitro.views.RecyclableView
 
 /**
  * Nitro glue between React props / hybrid methods and [RollingNumberView].
  */
 @Keep
 @DoNotStrip
-class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumberViewSpec() {
+class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumberViewSpec(), RecyclableView {
   private val rollingView = RollingNumberView(context)
   private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -82,6 +83,10 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
     set(v) { field = v; markConfigDirty() }
   override var minimumFontScale: Double? = null
     set(v) { field = v; markConfigDirty() }
+  override var allowFontScaling: Boolean? = null
+    set(v) { field = v; markConfigDirty() }
+  override var maxFontSizeMultiplier: Double? = null
+    set(v) { field = v; markConfigDirty() }
   override var fontWeight: Double? = null
     set(v) { field = v; markConfigDirty() }
   override var fontFamily: String? = null
@@ -133,6 +138,48 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
     onMain { rollingView.stopAnimation() }
   }
 
+  /**
+   * Fabric is about to reuse this view for another element: forget every prop
+   * and all animation state. Nitro re-applies the new element's props next.
+   */
+  override fun prepareForRecycle() {
+    // Batch the resets so the setters don't flush config thirty times.
+    isBatching = true
+    pendingValue = null
+    fractionDigits = null
+    minimumIntegerDigits = null
+    groupingSeparator = null
+    decimalSeparator = null
+    prefix = null
+    suffix = null
+    duration = null
+    easing = null
+    bounce = null
+    stagger = null
+    direction = null
+    loading = null
+    shimmerColor = null
+    shimmerDuration = null
+    fontSize = null
+    prefixFontSize = null
+    suffixFontSize = null
+    affixAlign = null
+    prefixAlign = null
+    suffixAlign = null
+    adjustsFontSizeToFit = null
+    minimumFontScale = null
+    allowFontScaling = null
+    maxFontSizeMultiplier = null
+    fontWeight = null
+    fontFamily = null
+    color = null
+    textAlign = null
+    onSizeChange = null
+    configDirty = true
+    isBatching = false
+    onMain { rollingView.resetForRecycle() }
+  }
+
   // endregion
 
   // region Batching
@@ -172,6 +219,8 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
       suffixAlign = mapAffixAlign(suffixAlign ?: affixAlign),
       adjustsFontSizeToFit = adjustsFontSizeToFit ?: false,
       minimumFontScale = (minimumFontScale ?: 0.5).coerceIn(0.05, 1.0).toFloat(),
+      allowFontScaling = allowFontScaling ?: false,
+      maxFontSizeMultiplier = Math.max(0.0, maxFontSizeMultiplier ?: 0.0).toFloat(),
     )
     rollingView.format = RollingNumberView.Format(
       fractionDigits = clampInt(fractionDigits, 0, 9, 0),

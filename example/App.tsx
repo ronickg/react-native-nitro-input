@@ -37,9 +37,11 @@ function Section({ title, hint, children }: { title: string; hint: string; child
 
 function ReactDrivenDemo() {
   const [value, setValue] = useState(1234.5)
+  const [mounted, setMounted] = useState(true)
   return (
     <Section title="React prop" hint="Change `value`, the digits roll natively. Fits the card: full size until it would overflow, then it shrinks.">
       <View style={styles.display}>
+        {mounted ? (
         <RollingNumber
           value={value}
           fractionDigits={2}
@@ -57,6 +59,9 @@ function ReactDrivenDemo() {
           style={styles.fitCard}
           testID="react-driven"
         />
+        ) : (
+          <Text style={styles.sectionHint}>unmounted</Text>
+        )}
       </View>
       <View style={styles.row}>
         <Button title="+1" onPress={() => setValue((v) => v + 1)} />
@@ -67,6 +72,7 @@ function ReactDrivenDemo() {
         <Button title="Random" onPress={() => setValue(Math.round(Math.random() * 1_000_000_00) / 100)} />
         <Button title="Negate" onPress={() => setValue((v) => -v)} />
         <Button title="Reset" onPress={() => setValue(1234.5)} />
+        <Button title={mounted ? 'Unmount' : 'Remount'} onPress={() => setMounted((m) => !m)} />
       </View>
     </Section>
   )

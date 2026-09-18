@@ -9,3 +9,5 @@
 - `loading` shine glint (`shimmerColor`, `shimmerDuration`).
 - Imperative `animateTo` / `jumpTo` / `getValue` via ref.
 - VoiceOver / TalkBack read the formatted amount; Reduce Motion / "remove animations" snap instead of rolling.
+- `allowFontScaling` / `maxFontSizeMultiplier` (off by default).
+- View recycling (`RecyclableView`) for long lists.

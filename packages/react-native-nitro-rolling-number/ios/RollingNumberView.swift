@@ -43,6 +43,8 @@ final class RollingNumberView: UIView {
     var suffixAlign: AffixAlign = .baseline
     var adjustsFontSizeToFit: Bool = false
     var minimumFontScale: CGFloat = 0.5
+    var allowFontScaling: Bool = false
+    var maxFontSizeMultiplier: CGFloat = 0
   }
 
   enum Easing {
@@ -200,6 +202,7 @@ final class RollingNumberView: UIView {
     private var widthCache: [String: CGFloat] = [:]
 
     init(_ t: Typography, scale: CGFloat) {
+      let scale = scale * RollingNumberView.systemFontMultiplier(t)
       digit = RollingNumberView.makeFont(size: t.fontSize * scale, weight: t.fontWeight, family: t.fontFamily)
       prefix = RollingNumberView.makeFont(size: (t.prefixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily)
       suffix = RollingNumberView.makeFont(size: (t.suffixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily)
@@ -294,6 +297,10 @@ final class RollingNumberView: UIView {
     contentMode = .redraw
     isAccessibilityElement = true
     accessibilityTraits = .staticText
+    NotificationCenter.default.addObserver(
+      self, selector: #selector(contentSizeCategoryDidChange),
+      name: UIContentSizeCategory.didChangeNotification, object: nil
+    )
     // Not clipped: in auto-size mode a new leading digit can draw past the old
     // frame for the one render it takes JS to apply the reported size, instead
     // of being cut off. Nothing else about the roll touches the JS thread.
@@ -307,6 +314,39 @@ final class RollingNumberView: UIView {
 
   deinit {
     displayLink?.invalidate()
+    NotificationCenter.default.removeObserver(self)
+  }
+
+  @objc private func contentSizeCategoryDidChange() {
+    guard typography.allowFontScaling else { return }
+    rebuildFonts()
+  }
+
+  /// Returns the view to its pristine state so Fabric can reuse it for a new
+  /// element (`RecyclableView`). Props are re-applied by Nitro afterwards.
+  func resetForRecycle() {
+    stopAnimation()
+    loading = false
+    loadingAnimStart = nil
+    loadingProgress = 0
+    columns = []
+    signFactor = 0
+    hasShownValue = false
+    transition = nil
+    targetValue = 0
+    settledPowerCount = 1
+    settledNegative = false
+    lastReportedSize = .zero
+    fontScale = 1
+    format = Format()
+    typography = Typography()
+    timing = Timing()
+    shimmer = Shimmer()
+    alignment = .left
+    accessibilityLabel = nil
+    accessibilityValue = nil
+    updateDisplayLinkNeed()
+    setNeedsDisplay()
   }
 
   override func layoutSubviews() {
@@ -633,6 +673,16 @@ final class RollingNumberView: UIView {
       scale = max(min(1, typography.minimumFontScale), bounds.width / contentWidth)
     }
     fontScale = scale
+  }
+
+  /// Dynamic Type multiplier for `allowFontScaling`, capped by `maxFontSizeMultiplier`.
+  private static func systemFontMultiplier(_ t: Typography) -> CGFloat {
+    guard t.allowFontScaling else { return 1 }
+    let multiplier = UIFontMetrics(forTextStyle: .body).scaledValue(for: 100) / 100
+    if t.maxFontSizeMultiplier > 0 {
+      return min(multiplier, t.maxFontSizeMultiplier)
+    }
+    return multiplier
   }
 
   private static func makeFont(size: CGFloat, weight: CGFloat, family: String?) -> UIFont {

@@ -43,6 +43,8 @@ namespace margelo::nitro::nitrorollingnumber::views {
     suffixAlign(nitro::ReactProp<std::optional<RollingNumberAffixAlign>>::fromRawValue("RollingNumberView", "suffixAlign", rawProps, sourceProps.suffixAlign)),
     adjustsFontSizeToFit(nitro::ReactProp<std::optional<bool>>::fromRawValue("RollingNumberView", "adjustsFontSizeToFit", rawProps, sourceProps.adjustsFontSizeToFit)),
     minimumFontScale(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "minimumFontScale", rawProps, sourceProps.minimumFontScale)),
+    allowFontScaling(nitro::ReactProp<std::optional<bool>>::fromRawValue("RollingNumberView", "allowFontScaling", rawProps, sourceProps.allowFontScaling)),
+    maxFontSizeMultiplier(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "maxFontSizeMultiplier", rawProps, sourceProps.maxFontSizeMultiplier)),
     fontWeight(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "fontWeight", rawProps, sourceProps.fontWeight)),
     fontFamily(nitro::ReactProp<std::optional<std::string>>::fromRawValue("RollingNumberView", "fontFamily", rawProps, sourceProps.fontFamily)),
     color(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "color", rawProps, sourceProps.color)),
@@ -75,6 +77,8 @@ namespace margelo::nitro::nitrorollingnumber::views {
       case hashString("suffixAlign"): return true;
       case hashString("adjustsFontSizeToFit"): return true;
       case hashString("minimumFontScale"): return true;
+      case hashString("allowFontScaling"): return true;
+      case hashString("maxFontSizeMultiplier"): return true;
       case hashString("fontWeight"): return true;
       case hashString("fontFamily"): return true;
       case hashString("color"): return true;

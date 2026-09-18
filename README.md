@@ -7,6 +7,7 @@
 bun install                 # hoisted linker, see bunfig.toml
 bun specs                   # re-run nitrogen after editing src/specs/*.nitro.ts
 bun build                   # emit lib/ for the package
+bun test                    # jest tests for the JS wrapper
 bun example ios             # or: bun example android
 ```
 

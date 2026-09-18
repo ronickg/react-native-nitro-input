@@ -235,6 +235,20 @@ namespace margelo::nitro::nitrorollingnumber {
     inline void setMinimumFontScale(std::optional<double> minimumFontScale) noexcept override {
       _swiftPart.setMinimumFontScale(minimumFontScale);
     }
+    inline std::optional<bool> getAllowFontScaling() noexcept override {
+      auto __result = _swiftPart.getAllowFontScaling();
+      return __result;
+    }
+    inline void setAllowFontScaling(std::optional<bool> allowFontScaling) noexcept override {
+      _swiftPart.setAllowFontScaling(allowFontScaling);
+    }
+    inline std::optional<double> getMaxFontSizeMultiplier() noexcept override {
+      auto __result = _swiftPart.getMaxFontSizeMultiplier();
+      return __result;
+    }
+    inline void setMaxFontSizeMultiplier(std::optional<double> maxFontSizeMultiplier) noexcept override {
+      _swiftPart.setMaxFontSizeMultiplier(maxFontSizeMultiplier);
+    }
     inline std::optional<double> getFontWeight() noexcept override {
       auto __result = _swiftPart.getFontWeight();
       return __result;

@@ -123,6 +123,8 @@ scroll or drag handler drives the number.
 | `prefixAlign` / `suffixAlign` | same | `affixAlign` | Per-affix override, e.g. `$` pinned top and `USD` pinned bottom. |
 | `adjustsFontSizeToFit` | `boolean` | `false` | Shrink the whole number to fit the view's fixed `width`; the view keeps its full height. |
 | `minimumFontScale` | `number` | `0.5` | Lower bound for `adjustsFontSizeToFit`. |
+| `allowFontScaling` | `boolean` | `false` | Follow the system text size like `Text` (off by default so amounts keep their design size). |
+| `maxFontSizeMultiplier` | `number` | `0` | Cap for `allowFontScaling`; `0` = no cap. |
 | `fontWeight` | `TextStyle['fontWeight']` | `'normal'` | Font weight. |
 | `fontFamily` | `string` | system | Font family, resolved like `Text` (bundled / expo-font fonts work). |
 | `color` | `ColorValue` | label color | Text color. |
@@ -141,6 +143,8 @@ to reflow while digits appear (e.g. a counter that grows past `999`).
   `loading` the element is announced as loading.
 - Reduce Motion (iOS) and "Remove animations" / animator scale 0 (Android)
   snap to the new value instead of rolling, and freeze the loading glint.
+- The view implements Nitro's `RecyclableView`, so Fabric reuses instances in
+  long lists; a recycled view forgets all props and animation state first.
 - Custom fonts resolve like `Text`: on iOS by PostScript or family name from
   `UIAppFonts`, on Android through React Native's font manager (`assets/fonts`,
   `res/font`, or fonts registered by expo-font).

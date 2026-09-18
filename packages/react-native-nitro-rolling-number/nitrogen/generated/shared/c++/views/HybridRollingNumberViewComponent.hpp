@@ -70,6 +70,8 @@ namespace margelo::nitro::nitrorollingnumber::views {
     nitro::ReactProp<std::optional<RollingNumberAffixAlign>> suffixAlign;
     nitro::ReactProp<std::optional<bool>> adjustsFontSizeToFit;
     nitro::ReactProp<std::optional<double>> minimumFontScale;
+    nitro::ReactProp<std::optional<bool>> allowFontScaling;
+    nitro::ReactProp<std::optional<double>> maxFontSizeMultiplier;
     nitro::ReactProp<std::optional<double>> fontWeight;
     nitro::ReactProp<std::optional<std::string>> fontFamily;
     nitro::ReactProp<std::optional<double>> color;
@@ -102,6 +104,8 @@ namespace margelo::nitro::nitrorollingnumber::views {
              suffixAlign.hasSameValue(other.suffixAlign) &&
              adjustsFontSizeToFit.hasSameValue(other.adjustsFontSizeToFit) &&
              minimumFontScale.hasSameValue(other.minimumFontScale) &&
+             allowFontScaling.hasSameValue(other.allowFontScaling) &&
+             maxFontSizeMultiplier.hasSameValue(other.maxFontSizeMultiplier) &&
              fontWeight.hasSameValue(other.fontWeight) &&
              fontFamily.hasSameValue(other.fontFamily) &&
              color.hasSameValue(other.color) &&
@@ -135,6 +139,8 @@ namespace margelo::nitro::nitrorollingnumber::views {
              suffixAlign.isProvided() ||
              adjustsFontSizeToFit.isProvided() ||
              minimumFontScale.isProvided() ||
+             allowFontScaling.isProvided() ||
+             maxFontSizeMultiplier.isProvided() ||
              fontWeight.isProvided() ||
              fontFamily.isProvided() ||
              color.isProvided() ||

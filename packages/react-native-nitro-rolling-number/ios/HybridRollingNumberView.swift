@@ -9,7 +9,7 @@ import Foundation
 import NitroModules
 import UIKit
 
-final class HybridRollingNumberView: HybridRollingNumberViewSpec {
+final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView {
   private let rollingView = RollingNumberView()
 
   var view: UIView { rollingView }
@@ -56,6 +56,8 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec {
   var suffixAlign: RollingNumberAffixAlign? { didSet { markConfigDirty() } }
   var adjustsFontSizeToFit: Bool? { didSet { markConfigDirty() } }
   var minimumFontScale: Double? { didSet { markConfigDirty() } }
+  var allowFontScaling: Bool? { didSet { markConfigDirty() } }
+  var maxFontSizeMultiplier: Double? { didSet { markConfigDirty() } }
   var fontWeight: Double? { didSet { markConfigDirty() } }
   var fontFamily: String? { didSet { markConfigDirty() } }
   var color: Double? { didSet { markConfigDirty() } }
@@ -95,6 +97,46 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec {
 
   func onDropView() {
     onMain { self.rollingView.stopAnimation() }
+  }
+
+  /// Fabric is about to reuse this view for another element: forget every prop
+  /// and all animation state. Nitro re-applies the new element's props next.
+  func prepareForRecycle() {
+    // Batch the resets so the setters don't flush config thirty times.
+    isBatching = true
+    pendingValue = nil
+    fractionDigits = nil
+    minimumIntegerDigits = nil
+    groupingSeparator = nil
+    decimalSeparator = nil
+    prefix = nil
+    suffix = nil
+    duration = nil
+    easing = nil
+    bounce = nil
+    stagger = nil
+    direction = nil
+    loading = nil
+    shimmerColor = nil
+    shimmerDuration = nil
+    fontSize = nil
+    prefixFontSize = nil
+    suffixFontSize = nil
+    affixAlign = nil
+    prefixAlign = nil
+    suffixAlign = nil
+    adjustsFontSizeToFit = nil
+    minimumFontScale = nil
+    allowFontScaling = nil
+    maxFontSizeMultiplier = nil
+    fontWeight = nil
+    fontFamily = nil
+    color = nil
+    textAlign = nil
+    onSizeChange = nil
+    configDirty = true
+    isBatching = false
+    onMain { self.rollingView.resetForRecycle() }
   }
 
   // MARK: - Batching
@@ -142,6 +184,8 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec {
     typography.suffixAlign = suffixAlign.map { Self.mapAffixAlign($0) } ?? sharedAlign
     typography.adjustsFontSizeToFit = adjustsFontSizeToFit ?? false
     typography.minimumFontScale = CGFloat(min(1, max(0.05, minimumFontScale ?? 0.5)))
+    typography.allowFontScaling = allowFontScaling ?? false
+    typography.maxFontSizeMultiplier = CGFloat(max(0, maxFontSizeMultiplier ?? 0))
 
     var timing = RollingNumberView.Timing()
     timing.duration = max(0, (duration ?? 500) / 1000)

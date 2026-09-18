@@ -27,6 +27,8 @@
     "suffixAlign": true,
     "adjustsFontSizeToFit": true,
     "minimumFontScale": true,
+    "allowFontScaling": true,
+    "maxFontSizeMultiplier": true,
     "fontWeight": true,
     "fontFamily": true,
     "color": true,

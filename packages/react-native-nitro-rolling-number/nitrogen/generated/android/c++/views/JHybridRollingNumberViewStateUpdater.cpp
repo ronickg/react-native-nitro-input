@@ -169,6 +169,16 @@ void JHybridRollingNumberViewStateUpdater::updateViewProps(jni::alias_ref<jni::J
     hybridView->setMinimumFontScale(newProps->minimumFontScale.get());
   }
   if (oldProps == nullptr
+        ? newProps->allowFontScaling.isProvided()
+        : !newProps->allowFontScaling.hasSameValue(oldProps->allowFontScaling)) {
+    hybridView->setAllowFontScaling(newProps->allowFontScaling.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->maxFontSizeMultiplier.isProvided()
+        : !newProps->maxFontSizeMultiplier.hasSameValue(oldProps->maxFontSizeMultiplier)) {
+    hybridView->setMaxFontSizeMultiplier(newProps->maxFontSizeMultiplier.get());
+  }
+  if (oldProps == nullptr
         ? newProps->fontWeight.isProvided()
         : !newProps->fontWeight.hasSameValue(oldProps->fontWeight)) {
     hybridView->setFontWeight(newProps->fontWeight.get());

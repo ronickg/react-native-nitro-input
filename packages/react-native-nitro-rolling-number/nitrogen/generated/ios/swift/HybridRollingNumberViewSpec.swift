@@ -33,6 +33,8 @@ public protocol HybridRollingNumberViewSpec_protocol: HybridObject, HybridView {
   var suffixAlign: RollingNumberAffixAlign? { get set }
   var adjustsFontSizeToFit: Bool? { get set }
   var minimumFontScale: Double? { get set }
+  var allowFontScaling: Bool? { get set }
+  var maxFontSizeMultiplier: Double? { get set }
   var fontWeight: Double? { get set }
   var fontFamily: String? { get set }
   var color: Double? { get set }

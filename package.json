@@ -9,6 +9,7 @@
     "specs": "bun --cwd packages/react-native-nitro-rolling-number run specs",
     "build": "bun --cwd packages/react-native-nitro-rolling-number run build",
     "typecheck": "bun --cwd packages/react-native-nitro-rolling-number run typecheck",
-    "example": "bun --cwd example"
+    "example": "bun --cwd example",
+    "test": "bun --cwd packages/react-native-nitro-rolling-number run test"
   }
 }

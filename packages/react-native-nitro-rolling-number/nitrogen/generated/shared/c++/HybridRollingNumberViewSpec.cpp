@@ -60,6 +60,10 @@ namespace margelo::nitro::nitrorollingnumber {
       prototype.registerHybridSetter("adjustsFontSizeToFit", &HybridRollingNumberViewSpec::setAdjustsFontSizeToFit);
       prototype.registerHybridGetter("minimumFontScale", &HybridRollingNumberViewSpec::getMinimumFontScale);
       prototype.registerHybridSetter("minimumFontScale", &HybridRollingNumberViewSpec::setMinimumFontScale);
+      prototype.registerHybridGetter("allowFontScaling", &HybridRollingNumberViewSpec::getAllowFontScaling);
+      prototype.registerHybridSetter("allowFontScaling", &HybridRollingNumberViewSpec::setAllowFontScaling);
+      prototype.registerHybridGetter("maxFontSizeMultiplier", &HybridRollingNumberViewSpec::getMaxFontSizeMultiplier);
+      prototype.registerHybridSetter("maxFontSizeMultiplier", &HybridRollingNumberViewSpec::setMaxFontSizeMultiplier);
       prototype.registerHybridGetter("fontWeight", &HybridRollingNumberViewSpec::getFontWeight);
       prototype.registerHybridSetter("fontWeight", &HybridRollingNumberViewSpec::setFontWeight);
       prototype.registerHybridGetter("fontFamily", &HybridRollingNumberViewSpec::getFontFamily);

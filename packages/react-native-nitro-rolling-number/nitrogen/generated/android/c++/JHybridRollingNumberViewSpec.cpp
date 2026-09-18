@@ -267,6 +267,24 @@ namespace margelo::nitro::nitrorollingnumber {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* minimumFontScale */)>("setMinimumFontScale");
     method(_javaPart, minimumFontScale.has_value() ? jni::JDouble::valueOf(minimumFontScale.value()) : nullptr);
   }
+  std::optional<bool> JHybridRollingNumberViewSpec::getAllowFontScaling() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JBoolean>()>("getAllowFontScaling");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(static_cast<bool>(__result->value())) : std::nullopt;
+  }
+  void JHybridRollingNumberViewSpec::setAllowFontScaling(std::optional<bool> allowFontScaling) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JBoolean> /* allowFontScaling */)>("setAllowFontScaling");
+    method(_javaPart, allowFontScaling.has_value() ? jni::JBoolean::valueOf(allowFontScaling.value()) : nullptr);
+  }
+  std::optional<double> JHybridRollingNumberViewSpec::getMaxFontSizeMultiplier() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getMaxFontSizeMultiplier");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridRollingNumberViewSpec::setMaxFontSizeMultiplier(std::optional<double> maxFontSizeMultiplier) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* maxFontSizeMultiplier */)>("setMaxFontSizeMultiplier");
+    method(_javaPart, maxFontSizeMultiplier.has_value() ? jni::JDouble::valueOf(maxFontSizeMultiplier.value()) : nullptr);
+  }
   std::optional<double> JHybridRollingNumberViewSpec::getFontWeight() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getFontWeight");
     auto __result = method(_javaPart);

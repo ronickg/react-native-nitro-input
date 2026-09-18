@@ -97,6 +97,13 @@ export interface RollingNumberProps extends HybridViewProps {
   adjustsFontSizeToFit?: boolean
   /** Smallest scale `adjustsFontSizeToFit` may apply, `0`–`1`. Default: `0.5`. */
   minimumFontScale?: number
+  /**
+   * Scale the fonts with the user's system text size (Dynamic Type / Android
+   * font scale), like `Text`. Off by default so amounts keep their design size.
+   */
+  allowFontScaling?: boolean
+  /** Upper bound for `allowFontScaling`, e.g. `1.3`. `0` means no cap. Default: `0`. */
+  maxFontSizeMultiplier?: number
   /** Numeric font weight, `100`–`900`. Default: `400`. */
   fontWeight?: number
   /** Font family name. Defaults to the system font. */

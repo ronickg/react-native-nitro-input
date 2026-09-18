@@ -96,6 +96,10 @@ namespace margelo::nitro::nitrorollingnumber {
     void setAdjustsFontSizeToFit(std::optional<bool> adjustsFontSizeToFit) override;
     std::optional<double> getMinimumFontScale() override;
     void setMinimumFontScale(std::optional<double> minimumFontScale) override;
+    std::optional<bool> getAllowFontScaling() override;
+    void setAllowFontScaling(std::optional<bool> allowFontScaling) override;
+    std::optional<double> getMaxFontSizeMultiplier() override;
+    void setMaxFontSizeMultiplier(std::optional<double> maxFontSizeMultiplier) override;
     std::optional<double> getFontWeight() override;
     void setFontWeight(std::optional<double> fontWeight) override;
     std::optional<std::string> getFontFamily() override;
