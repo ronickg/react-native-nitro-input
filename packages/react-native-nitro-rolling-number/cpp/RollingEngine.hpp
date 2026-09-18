@@ -109,6 +109,10 @@ private:
     double signFrom = 0;
     double signTo = 0;
     std::vector<Wheel> finals;
+    /// True when this roll re-targeted wheels that were already moving. Such a
+    /// roll skips the ease-in half of the curve so rapid updates keep flowing
+    /// instead of restarting from rest on every call.
+    bool fromMotion = false;
   };
 
   Target makeTarget(double value) const;
@@ -117,6 +121,9 @@ private:
   void apply(double elapsed);
   void finish();
   double ease(double t) const;
+  /// The curve used when re-targeting mid-roll: the ease-in curves collapse to
+  /// their ease-out / linear counterparts so a wheel in motion never stalls.
+  double easeFromMotion(double t) const;
   static double spring(double t, double bounce);
   static double wrap(double x);
   static int digitCount(uint64_t n);

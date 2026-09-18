@@ -125,6 +125,36 @@ static void staggerDoesNotStarveOnRetarget() {
   CHECK(near(e.wheelAt(2).position, 8));
 }
 
+static void rapidRetargetsKeepRolling() {
+  // A new target every frame with the default easeInOut curve: restarting the
+  // curve from rest each time would leave the wheel visually frozen. A roll
+  // that re-targets a moving wheel must keep it moving.
+  RollingEngine e;
+  e.setFormat(0, 1);
+  e.setTiming(0.5, /* easeInOut */ 3, 0.15, 0, 0);
+  e.animateTo(0, 0);
+  e.animateTo(5, 0);
+  double now = 0;
+  double travelled = 0;
+  double last = e.wheelAt(0).position;
+  for (int frame = 1; frame <= 30; frame++) {
+    now = frame / 60.0;
+    e.tick(now);
+    travelled += std::fabs(e.wheelAt(0).position - last);
+    last = e.wheelAt(0).position;
+    e.animateTo(5 + (frame % 2), now);  // 5 → 6 → 5 → 6 … every frame
+  }
+  CHECK(travelled > 1.0);              // it visibly rolled during half a second
+  // A single, uninterrupted roll still uses the full ease-in-out curve.
+  RollingEngine f;
+  f.setFormat(0, 1);
+  f.setTiming(0.5, 3, 0.15, 0, 0);
+  f.animateTo(0, 0);
+  f.animateTo(5, 0);
+  f.tick(0.05);
+  CHECK(f.wheelAt(0).position < 0.1);  // barely moved at 10 % of an ease-in start
+}
+
 static void loadingFadeAndReduceMotion() {
   RollingEngine e;
   e.setFormat(0, 1);
@@ -171,6 +201,7 @@ int main() {
   tickerRollsShortestPathInDirection();
   wheelsAppearAndDisappear();
   staggerDoesNotStarveOnRetarget();
+  rapidRetargetsKeepRolling();
   loadingFadeAndReduceMotion();
   settledTargetForAccessibility();
   if (failures == 0) {

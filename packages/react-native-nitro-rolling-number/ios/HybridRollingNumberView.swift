@@ -69,18 +69,48 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
   // MARK: - Methods
 
   func jumpTo(value: Double) throws {
-    onMain {
-      self.pendingValue = nil
-      self.flushConfigIfNeeded()
-      self.rollingView.setValue(value)
-    }
+    enqueue(.jump(value))
   }
 
   func animateTo(value: Double) throws {
-    onMain {
-      self.pendingValue = nil
-      self.flushConfigIfNeeded()
-      self.rollingView.animate(to: value)
+    enqueue(.animate(value))
+  }
+
+  private enum Command {
+    case jump(Double)
+    case animate(Double)
+  }
+
+  private let commandLock = NSLock()
+  private var pendingCommand: Command?
+  private var commandScheduled = false
+
+  /// Coalesces calls from the JS thread: only the latest value is applied per
+  /// main-thread turn, so a caller pushing a value every frame (scrubbing, live
+  /// meters, many views at once) can never pile up a backlog of dispatches
+  /// that stalls the main thread. A frame only ever shows the newest value anyway.
+  private func enqueue(_ command: Command) {
+    commandLock.lock()
+    pendingCommand = command
+    let schedule = !commandScheduled
+    commandScheduled = true
+    commandLock.unlock()
+    guard schedule else { return }
+    onMain { [weak self] in self?.drainCommand() }
+  }
+
+  private func drainCommand() {
+    commandLock.lock()
+    let command = pendingCommand
+    pendingCommand = nil
+    commandScheduled = false
+    commandLock.unlock()
+    guard let command else { return }
+    pendingValue = nil
+    flushConfigIfNeeded()
+    switch command {
+    case .jump(let value): rollingView.setValue(value)
+    case .animate(let value): rollingView.animate(to: value)
     }
   }
 

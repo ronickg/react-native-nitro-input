@@ -189,6 +189,7 @@ void RollingEngine::animateTo(double value, double now) {
   next.active = true;
   next.start = now;
   next.duration = duration_;
+  next.fromMotion = transition_.active;
   next.wheels.reserve(static_cast<size_t>(count));
   next.finals.reserve(static_cast<size_t>(target.powerCount));
   next.delays.reserve(static_cast<size_t>(count));
@@ -283,7 +284,7 @@ void RollingEngine::apply(double elapsed) {
     const WheelTransition& wt = tr.wheels[i];
     const double delay = i < tr.delays.size() ? tr.delays[i] : 0;
     const double raw = tr.duration > 0 ? clamp01((elapsed - delay) / tr.duration) : 1.0;
-    const double t = ease(raw);
+    const double t = tr.fromMotion ? easeFromMotion(raw) : ease(raw);
     Wheel& w = wheels_[i];
     w.position = wt.from.position + (wt.to.position - wt.from.position) * t;
     w.width = clamp01(wt.from.width + (wt.to.width - wt.from.width) * t);
@@ -291,7 +292,8 @@ void RollingEngine::apply(double elapsed) {
     w.blankZero = wt.from.blankZero;
   }
   const double signRaw = tr.duration > 0 ? clamp01(elapsed / tr.duration) : 1.0;
-  signFactor_ = clamp01(tr.signFrom + (tr.signTo - tr.signFrom) * ease(signRaw));
+  const double signT = tr.fromMotion ? easeFromMotion(signRaw) : ease(signRaw);
+  signFactor_ = clamp01(tr.signFrom + (tr.signTo - tr.signFrom) * signT);
 }
 
 void RollingEngine::finish() {
@@ -350,6 +352,18 @@ double RollingEngine::ease(double t) const {
       return spring(t, bounce_);
     default:
       return t < 0.5 ? 4 * t * t * t : 1 - std::pow(-2 * t + 2, 3) / 2;
+  }
+}
+
+double RollingEngine::easeFromMotion(double t) const {
+  switch (easing_) {
+    case 0:
+    case 1:
+      return t;                      // linear / easeIn: keep the wheel moving at a steady pace
+    case 4:
+      return spring(t, bounce_);     // the spring already starts with velocity
+    default:
+      return 1 - std::pow(1 - t, 3); // easeOut / easeInOut: decelerate into the new target
   }
 }
 

@@ -110,7 +110,7 @@ scroll or drag handler drives the number.
 | `decimalSeparator` | `string` | `'.'` | Between integer and fraction digits. |
 | `prefix` / `suffix` | `string` | `''` | Static text around the number. |
 | `duration` | `number` | `500` | Roll duration in ms; `0` snaps. |
-| `easing` | `'linear' \| 'easeIn' \| 'easeOut' \| 'easeInOut' \| 'spring'` | `'easeInOut'` | Roll timing curve. |
+| `easing` | `'linear' \| 'easeIn' \| 'easeOut' \| 'easeInOut' \| 'spring'` | `'easeInOut'` | Roll timing curve. A value that arrives while the wheels are still rolling continues with the ease-out half of the curve, so rapid updates never stall. |
 | `bounce` | `number` | `0.15` | Overshoot of the `spring` easing (0–1). |
 | `stagger` | `number` | `0` | ms between the start of each digit's roll (least significant first), a cascading carry. |
 | `direction` | `'auto' \| 'up' \| 'down'` | `'auto'` | Roll direction; `auto` follows the sign of the change. |
@@ -155,8 +155,13 @@ to reflow while digits appear (e.g. a counter that grows past `999`).
   natively (`CADisplayLink` on the main run loop, `ValueAnimator` on the UI
   thread). A busy JS thread delays the *next* value, never the animation in
   flight, the shimmer, or the shrink-to-fit scaling.
-- Per frame the view draws about a dozen glyphs with cached fonts and widths;
-  scaling is a canvas transform, so no fonts are rebuilt while fitting.
+- Per frame the view draws about a dozen glyphs: on iOS they are pre-rasterized
+  once per font/color and blitted (Core Text never runs per frame), on Android
+  they go through `Canvas.drawText` and HWUI's glyph cache. Scaling is a canvas
+  transform, so no fonts are rebuilt while fitting.
+- `jumpTo` / `animateTo` coalesce: only the newest value per main-thread turn
+  is applied, so pushing a value every frame into many views never builds a
+  backlog of main-thread dispatches.
 - The only JS round trip is auto-sizing: when the digit count changes the view
   reports its new intrinsic size and React applies it. Give the view a fixed
   `width` (recommended for amounts anyway) and nothing depends on JS at all;

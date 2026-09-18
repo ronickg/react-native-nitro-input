@@ -105,19 +105,48 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
 
   // region Methods
 
-  override fun jumpTo(value: Double) {
-    onMain {
-      pendingValue = null
-      flushConfigIfNeeded()
-      rollingView.setValue(value)
-    }
+  override fun jumpTo(value: Double) = enqueue(Command.Jump(value))
+
+  override fun animateTo(value: Double) = enqueue(Command.Animate(value))
+
+  private sealed class Command {
+    class Jump(val value: Double) : Command()
+    class Animate(val value: Double) : Command()
   }
 
-  override fun animateTo(value: Double) {
-    onMain {
-      pendingValue = null
-      flushConfigIfNeeded()
-      rollingView.animateTo(value)
+  private val commandLock = Any()
+  private var pendingCommand: Command? = null
+  private var commandScheduled = false
+
+  /**
+   * Coalesces calls from the JS thread: only the latest value is applied per
+   * main-thread turn, so a caller pushing a value every frame (scrubbing, live
+   * meters, many views at once) can never pile up a backlog of posts that
+   * stalls the main thread. A frame only ever shows the newest value anyway.
+   */
+  private fun enqueue(command: Command) {
+    val schedule: Boolean
+    synchronized(commandLock) {
+      pendingCommand = command
+      schedule = !commandScheduled
+      commandScheduled = true
+    }
+    if (schedule) onMain { drainCommand() }
+  }
+
+  private fun drainCommand() {
+    val command: Command?
+    synchronized(commandLock) {
+      command = pendingCommand
+      pendingCommand = null
+      commandScheduled = false
+    }
+    command ?: return
+    pendingValue = null
+    flushConfigIfNeeded()
+    when (command) {
+      is Command.Jump -> rollingView.setValue(command.value)
+      is Command.Animate -> rollingView.animateTo(command.value)
     }
   }
 

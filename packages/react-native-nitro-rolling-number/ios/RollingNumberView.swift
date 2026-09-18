@@ -155,8 +155,12 @@ final class RollingNumberView: UIView {
     private(set) var digitWidth: CGFloat = 0
     private var glyphCache: [String: NSAttributedString] = [:]
     private var widthCache: [String: CGFloat] = [:]
+    private var imageCache: [String: UIImage] = [:]
+    /// Pixel density the glyph images are rendered at.
+    private let renderScale: CGFloat
 
     init(_ t: Typography) {
+      renderScale = max(1, UIScreen.main.scale)
       let scale = RollingNumberView.systemFontMultiplier(t)
       digit = RollingNumberView.makeFont(size: t.fontSize * scale, weight: t.fontWeight, family: t.fontFamily)
       prefix = RollingNumberView.makeFont(size: (t.prefixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily)
@@ -193,6 +197,27 @@ final class RollingNumberView: UIView {
       let width = attributed(text, role: role).size().width
       widthCache[key] = width
       return width
+    }
+
+    /// The glyph rasterized once (text color baked in, at screen density) so a
+    /// frame is a handful of image blits instead of a Core Text layout and
+    /// rasterization pass per glyph. Profiling 24 rolling views showed the
+    /// per-glyph `NSAttributedString.draw` dominating the main thread.
+    func image(_ text: String, role: GlyphRole) -> UIImage? {
+      let key = cacheKey(text, role)
+      if let cached = imageCache[key] { return cached }
+      let string = attributed(text, role: role)
+      let size = string.size()
+      guard size.width > 0, size.height > 0 else { return nil }
+      let format = UIGraphicsImageRendererFormat()
+      format.scale = renderScale
+      format.opaque = false
+      let bounds = CGSize(width: ceil(size.width), height: ceil(size.height))
+      let image = UIGraphicsImageRenderer(size: bounds, format: format).image { _ in
+        string.draw(at: .zero)
+      }
+      imageCache[key] = image
+      return image
     }
 
     /// Top of the glyph's line box for `role`, given the top of the digit line box.
@@ -592,7 +617,7 @@ final class RollingNumberView: UIView {
     ctx.saveGState()
     ctx.clip(to: CGRect(x: x, y: 0, width: width, height: fonts.lineHeight))
     ctx.setAlpha(CGFloat(alpha))
-    fonts.attributed(text, role: role).draw(at: CGPoint(x: x + width - fullWidth, y: fonts.top(for: role, lineTop: 0)))
+    fonts.image(text, role: role)?.draw(at: CGPoint(x: x + width - fullWidth, y: fonts.top(for: role, lineTop: 0)))
     ctx.restoreGState()
   }
 
@@ -606,19 +631,20 @@ final class RollingNumberView: UIView {
     let fraction = CGFloat(wheel.position - base)
     let index = Int(base)
     let columnLeft = x + width - fonts.digitWidth
-    if let glyph = glyph(at: index, in: wheel, fonts: fonts) {
-      glyph.draw(at: CGPoint(x: columnLeft + (fonts.digitWidth - glyph.size().width) / 2, y: -fraction * lineHeight))
+    if let text = digitText(at: index, in: wheel), let image = fonts.image(text, role: .digit) {
+      image.draw(at: CGPoint(x: columnLeft + (fonts.digitWidth - fonts.width(of: text, role: .digit)) / 2, y: -fraction * lineHeight))
     }
-    if fraction > 0.0001, let glyph = glyph(at: index + 1, in: wheel, fonts: fonts) {
-      glyph.draw(at: CGPoint(x: columnLeft + (fonts.digitWidth - glyph.size().width) / 2, y: (1 - fraction) * lineHeight))
+    if fraction > 0.0001, let text = digitText(at: index + 1, in: wheel), let image = fonts.image(text, role: .digit) {
+      image.draw(at: CGPoint(x: columnLeft + (fonts.digitWidth - fonts.width(of: text, role: .digit)) / 2, y: (1 - fraction) * lineHeight))
     }
     ctx.restoreGState()
   }
 
-  private func glyph(at index: Int, in wheel: Engine.Wheel, fonts: FontSet) -> NSAttributedString? {
+  private static let digitStrings = (0...9).map { String($0) }
+
+  private func digitText(at index: Int, in wheel: Engine.Wheel) -> String? {
     if wheel.linear && index < 0 { return nil }
     if wheel.blankZero && index == 0 { return nil }
-    let digit = ((index % 10) + 10) % 10
-    return fonts.attributed(String(digit), role: .digit)
+    return Self.digitStrings[((index % 10) + 10) % 10]
   }
 }
