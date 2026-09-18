@@ -106,7 +106,7 @@ export default function Home(): ReactNode {
             <p className={clsx(styles.center, styles.muted)}>
               The example app, recorded on an iPhone 17 Pro simulator and a Pixel 9 Pro emulator. Same JavaScript, same engine.
             </p>
-            <Phones ios="/video/ios-rolling.mp4" android="/video/android-rolling.mp4" caption="Value changes roll natively: shortest path per digit, columns appearing and disappearing, currency layouts, shrink-to-fit and the loading shimmer." />
+            <Phones ios="/video/ios-rolling.mp4" android="/video/android-rolling.mp4" caption="A live market screen: fourteen coins with price and 24 h change, a handful of them ticking every 200 ms, and a total balance derived from the holdings. Around thirty rolling numbers on screen, every one of them native." />
           </div>
         </section>
 

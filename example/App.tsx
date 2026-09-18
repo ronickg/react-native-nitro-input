@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  FlatList,
   Pressable,
   ScrollView,
   StatusBar,
@@ -680,79 +681,99 @@ type Showcase = 'balance' | 'reveal' | null
 
 const round = (v: number, places: number) => Math.round(v * 10 ** places) / 10 ** places
 
-function AssetRow({ name, ticker, tint, amount, price }: { name: string; ticker: string; tint: string; amount: number; price: number }) {
+/** The market list of the balance showcase: fixed holdings, prices that tick like a live feed. */
+const COINS = [
+  { name: 'Bitcoin', ticker: 'BTC', tint: '#F7931A', price: 64_210.9, holding: 0.4821 },
+  { name: 'Ethereum', ticker: 'ETH', tint: '#627EEA', price: 3_412.75, holding: 3.2041 },
+  { name: 'Solana', ticker: 'SOL', tint: '#9945FF', price: 148.32, holding: 41.5 },
+  { name: 'XRP', ticker: 'XRP', tint: '#00AAE4', price: 0.6123, holding: 5_200 },
+  { name: 'Cardano', ticker: 'ADA', tint: '#0033AD', price: 0.4521, holding: 8_400 },
+  { name: 'Avalanche', ticker: 'AVAX', tint: '#E84142', price: 36.8, holding: 72 },
+  { name: 'Dogecoin', ticker: 'DOGE', tint: '#C2A633', price: 0.1587, holding: 21_000 },
+  { name: 'Polkadot', ticker: 'DOT', tint: '#E6007A', price: 7.12, holding: 310 },
+  { name: 'Chainlink', ticker: 'LINK', tint: '#2A5ADA', price: 14.55, holding: 180 },
+  { name: 'Polygon', ticker: 'MATIC', tint: '#8247E5', price: 0.7241, holding: 3_900 },
+  { name: 'Litecoin', ticker: 'LTC', tint: '#345D9D', price: 84.1, holding: 24 },
+  { name: 'Uniswap', ticker: 'UNI', tint: '#FF007A', price: 9.87, holding: 260 },
+  { name: 'Cosmos', ticker: 'ATOM', tint: '#5C6CFF', price: 8.34, holding: 300 },
+  { name: 'NEAR', ticker: 'NEAR', tint: '#00C08B', price: 5.42, holding: 450 },
+]
+type Coin = (typeof COINS)[number]
+type Quote = { price: number; change: number }
+
+const CoinRow = React.memo(function CoinRow({ coin, quote }: { coin: Coin; quote: Quote }) {
+  const up = quote.change >= 0
   return (
     <View style={showcase.card}>
-      <View style={[showcase.coin, { backgroundColor: tint }]}>
-        <Text style={showcase.coinText}>{ticker[0]}</Text>
+      <View style={[showcase.coin, { backgroundColor: coin.tint }]}>
+        <Text style={showcase.coinText}>{coin.ticker[0]}</Text>
       </View>
       <View>
-        <Text style={showcase.cardName}>{name}</Text>
-        <Text style={showcase.cardSub}>{ticker}</Text>
+        <Text style={showcase.cardName}>{coin.name}</Text>
+        <Text style={showcase.cardSub}>{coin.ticker}</Text>
       </View>
       <View style={showcase.cardRight}>
         <RollingNumber
-          value={amount}
-          fractionDigits={4}
-          suffix={' ' + ticker}
-          suffixFontSize={12}
-          suffixAlign="bottom"
-          fontSize={20}
+          value={quote.price}
+          prefix="$"
+          fractionDigits={quote.price < 1 ? 4 : 2}
+          groupingSeparator=","
+          fontSize={17}
           fontWeight="700"
           color="#fff"
           textAlign="right"
-          duration={600}
+          duration={450}
           easing="easeOut"
           style={showcase.cardAmount}
         />
         <RollingNumber
-          value={price}
-          prefix="$"
+          value={Math.abs(quote.change)}
+          prefix={up ? '+' : '−'}
+          suffix="%"
           fractionDigits={2}
-          groupingSeparator=","
           fontSize={13}
-          fontWeight="500"
-          color="rgba(255,255,255,0.55)"
+          fontWeight="600"
+          color={up ? '#34D399' : '#F87171'}
           textAlign="right"
-          duration={600}
+          duration={450}
           easing="easeOut"
           style={showcase.cardAmount}
         />
       </View>
     </View>
   )
-}
+})
 
 function BalanceShowcase({ onExit }: { onExit: () => void }) {
-  const [balance, setBalance] = useState(128_430.55)
-  const [today, setToday] = useState(1_284.12)
-  const [btc, setBtc] = useState(0.4821)
-  const [eth, setEth] = useState(3.2041)
-  const [btcPrice, setBtcPrice] = useState(64_210.9)
-  const [ethPrice, setEthPrice] = useState(3_412.75)
+  const [quotes, setQuotes] = useState<Record<string, Quote>>(() =>
+    Object.fromEntries(COINS.map((c, i) => [c.ticker, { price: c.price, change: round(((i * 7) % 11) - 4.3, 2) }]))
+  )
+  const opening = useRef(COINS.reduce((sum, c) => sum + c.price * c.holding, 0)).current
   useEffect(() => {
-    const balanceTimer = setInterval(() => {
-      const delta = (Math.random() - 0.42) * 1900
-      setBalance((b) => Math.max(0, round(b + delta, 2)))
-      setToday((t) => round(t + delta, 2))
-    }, 1300)
-    const priceTimer = setInterval(() => {
-      setBtcPrice((p) => round(p + (Math.random() - 0.5) * 700, 2))
-      setEthPrice((p) => round(p + (Math.random() - 0.5) * 40, 2))
-    }, 900)
-    const holdingsTimer = setInterval(() => {
-      setBtc((v) => round(v + (Math.random() - 0.45) * 0.05, 4))
-      setEth((v) => round(v + (Math.random() - 0.45) * 0.3, 4))
-    }, 2600)
-    return () => {
-      clearInterval(balanceTimer)
-      clearInterval(priceTimer)
-      clearInterval(holdingsTimer)
-    }
+    // A live feed: a few coins tick every 200 ms, so at any moment about a
+    // third of the list, plus the balance derived from it, is rolling.
+    const feed = setInterval(() => {
+      setQuotes((previous) => {
+        const next = { ...previous }
+        for (let n = 0; n < 5; n++) {
+          const coin = COINS[Math.floor(Math.random() * COINS.length)]
+          const q = previous[coin.ticker]
+          const drift = (Math.random() - 0.5) * 0.006
+          next[coin.ticker] = {
+            price: round(q.price * (1 + drift), q.price < 1 ? 4 : 2),
+            change: round(q.change + drift * 60, 2),
+          }
+        }
+        return next
+      })
+    }, 200)
+    return () => clearInterval(feed)
   }, [])
+  const balance = round(COINS.reduce((sum, c) => sum + quotes[c.ticker].price * c.holding, 0), 2)
+  const today = round(balance - opening, 2)
   const up = today >= 0
   return (
-    <View style={showcase.root}>
+    <View style={[showcase.root, showcase.rootTop]}>
       <StatusBar hidden />
       <View style={showcase.glowA} />
       <View style={showcase.glowB} />
@@ -789,10 +810,16 @@ function BalanceShowcase({ onExit }: { onExit: () => void }) {
         />
         <Text style={showcase.pillText}>today</Text>
       </View>
-      <View style={showcase.cards}>
-        <AssetRow name="Bitcoin" ticker="BTC" tint="#F7931A" amount={btc} price={btcPrice} />
-        <AssetRow name="Ethereum" ticker="ETH" tint="#627EEA" amount={eth} price={ethPrice} />
-      </View>
+      <Text style={[showcase.eyebrow, showcase.listLabel]}>Markets</Text>
+      <FlatList
+        data={COINS}
+        keyExtractor={(c) => c.ticker}
+        renderItem={({ item }) => <CoinRow coin={item} quote={quotes[item.ticker]} />}
+        style={showcase.list}
+        contentContainerStyle={showcase.listContent}
+        showsVerticalScrollIndicator={false}
+        initialNumToRender={COINS.length}
+      />
     </View>
   )
 }
@@ -859,6 +886,10 @@ function RevealShowcase({ onExit }: { onExit: () => void }) {
 const showcase = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0B0F19', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, overflow: 'hidden' },
   rootBrand: { backgroundColor: '#1D4ED8' },
+  rootTop: { justifyContent: 'flex-start', paddingTop: 84, paddingHorizontal: 0 },
+  listLabel: { marginTop: 28, marginBottom: 8, alignSelf: 'flex-start', marginLeft: 28 },
+  list: { alignSelf: 'stretch' },
+  listContent: { paddingHorizontal: 20, paddingBottom: 40, gap: 10 },
   glowA: { position: 'absolute', width: 460, height: 460, borderRadius: 230, backgroundColor: '#2563EB', opacity: 0.3, top: -160, left: -140 },
   glowB: { position: 'absolute', width: 380, height: 380, borderRadius: 190, backgroundColor: '#0EA5E9', opacity: 0.18, bottom: -140, right: -120 },
   glowBrand: { backgroundColor: '#60A5FA', opacity: 0.35 },
@@ -867,7 +898,6 @@ const showcase = StyleSheet.create({
   hero: { width: '100%' },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, marginTop: 14 },
   pillText: { color: 'rgba(255,255,255,0.7)', fontSize: 14 },
-  cards: { width: '100%', marginTop: 40, gap: 12 },
   card: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 18, padding: 16, gap: 14 },
   coin: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   coinText: { color: '#fff', fontWeight: '800', fontSize: 16 },
