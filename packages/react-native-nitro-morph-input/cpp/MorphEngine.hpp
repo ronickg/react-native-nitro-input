@@ -143,6 +143,12 @@ private:
     double groupCentre = 0;
   };
 
+  /// Scratch for finding wholly-replaced runs, kept between commits so a
+  /// keystroke allocates nothing once the buffers have grown.
+  std::vector<size_t> runBuf_;
+  std::vector<unsigned char> groupFlag_;
+  std::vector<double> groupCentre_;
+
 
   double ease(double t) const;
   bool slides(int kind) const;

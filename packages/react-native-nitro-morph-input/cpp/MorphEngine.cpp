@@ -277,55 +277,37 @@ void MorphEngine::commitText(int caretIndex, double now) {
   // A run of adjacent glyphs that are wholly replaced — no survivor inside it —
   // recedes as one shape instead of each glyph sliding a line box on its own. A
   // survivor breaks the run: it is right there to animate against.
-  const auto runsOf = [](size_t count, const auto& replaced, const auto& extent,
-                         std::vector<bool>& flag, std::vector<double>& centre) {
-    size_t start = 0;
-    while (start < count) {
-      if (!replaced(start)) { ++start; continue; }
-      size_t end = start;
-      while (end < count && replaced(end)) ++end;
-      if (end - start >= static_cast<size_t>(kGroupMin)) {
-        double lo = 0, hi = 0;
-        for (size_t i = start; i < end; ++i) {
-          const auto [left, right] = extent(i);
-          if (i == start) { lo = left; hi = right; }
-          else { lo = std::min(lo, left); hi = std::max(hi, right); }
-        }
-        const double mid = (lo + hi) / 2;
-        for (size_t i = start; i < end; ++i) { flag[i] = true; centre[i] = mid; }
+  // A run of adjacent glyphs that are wholly replaced — no survivor inside it —
+  // recedes as one shape instead of each glyph sliding a line box on its own. A
+  // survivor breaks the run: it is right there to animate against.
+  const auto closeRun = [&](const auto& extent) {
+    if (runBuf_.size() >= static_cast<size_t>(kGroupMin)) {
+      double lo = 0, hi = 0;
+      for (size_t k = 0; k < runBuf_.size(); ++k) {
+        const auto [left, right] = extent(runBuf_[k]);
+        if (k == 0) { lo = left; hi = right; }
+        else { lo = std::min(lo, left); hi = std::max(hi, right); }
       }
-      start = end;
+      const double mid = (lo + hi) / 2;
+      for (size_t i : runBuf_) { groupFlag_[i] = 1; groupCentre_[i] = mid; }
     }
+    runBuf_.clear();
   };
 
   // Old glyphs still on stage, in order; a run is measured where they sit now.
-  std::vector<int> live;
+  // One already leaving is not on stage at all, so it neither joins nor breaks.
+  groupFlag_.assign(slots_.size(), 0);
+  groupCentre_.assign(slots_.size(), 0.0);
+  runBuf_.clear();
+  const auto oldExtent = [&](size_t i) {
+    return std::pair<double, double>{slots_[i].g.x, slots_[i].g.x + slots_[i].g.width};
+  };
   for (size_t i = 0; i < slots_.size(); ++i) {
-    if (!slots_[i].g.exiting) live.push_back(static_cast<int>(i));
+    if (slots_[i].g.exiting) continue;
+    if (used[i]) { closeRun(oldExtent); continue; }
+    runBuf_.push_back(i);
   }
-  std::vector<bool> liveGrouped(live.size(), false);
-  std::vector<double> liveCentre(live.size(), 0);
-  runsOf(live.size(),
-         [&](size_t p) { return !used[static_cast<size_t>(live[p])]; },
-         [&](size_t p) {
-           const Slot& sl = slots_[static_cast<size_t>(live[p])];
-           return std::pair<double, double>{sl.g.x, sl.g.x + sl.g.width};
-         },
-         liveGrouped, liveCentre);
-  std::vector<bool> exitGrouped(slots_.size(), false);
-  std::vector<double> exitCentre(slots_.size(), 0);
-  for (size_t p = 0; p < live.size(); ++p) {
-    exitGrouped[static_cast<size_t>(live[p])] = liveGrouped[p];
-    exitCentre[static_cast<size_t>(live[p])] = liveCentre[p];
-  }
-
-  // Arriving glyphs, measured where the new layout puts them.
-  std::vector<bool> enterGrouped(inputs.size(), false);
-  std::vector<double> enterCentre(inputs.size(), 0);
-  runsOf(inputs.size(),
-         [&](size_t i) { return matchOfNew[i] < 0; },
-         [&](size_t i) { return std::pair<double, double>{targetX[i], targetX[i] + inputs[i].width}; },
-         enterGrouped, enterCentre);
+  closeRun(oldExtent);
 
   std::vector<Slot> next;
   next.reserve(slots_.size() + inputs.size());
@@ -360,10 +342,10 @@ void MorphEngine::commitText(int caretIndex, double now) {
     s.fadeTo = s.slide ? kSlideExitFadeTo : kTextExitFadeTo;
     s.fromScale = s.g.scale;
     s.toScale = s.slide ? 1 : kFadeScale;
-    if (exitGrouped[i]) {
+    if (groupFlag_[i]) {
       // The whole run recedes into itself: no slide, no anchor to ride.
       s.grouped = true;
-      s.groupCentre = exitCentre[i];
+      s.groupCentre = groupCentre_[i];
       s.toY = s.fromY;
       s.fromScale = s.g.scale;
       s.toScale = kGroupScale;
@@ -377,6 +359,20 @@ void MorphEngine::commitText(int caretIndex, double now) {
     s.anchorBaseX = a >= 0 ? slots_[static_cast<size_t>(a)].g.x : 0;
     next.push_back(s);
   }
+
+  // Arriving glyphs, measured where the new layout puts them. The exit pass is
+  // done with the buffers by now, so they are reused rather than grown again.
+  groupFlag_.assign(inputs.size(), 0);
+  groupCentre_.assign(inputs.size(), 0.0);
+  runBuf_.clear();
+  const auto newExtent = [&](size_t i) {
+    return std::pair<double, double>{targetX[i], targetX[i] + inputs[i].width};
+  };
+  for (size_t i = 0; i < inputs.size(); ++i) {
+    if (matchOfNew[i] >= 0) { closeRun(newExtent); continue; }
+    runBuf_.push_back(i);
+  }
+  closeRun(newExtent);
 
   for (size_t i = 0; i < inputs.size(); ++i) {
     const Input& in = inputs[i];
@@ -414,11 +410,11 @@ void MorphEngine::commitText(int caretIndex, double now) {
       s.fadeTo = slide ? kSlideEnterFadeTo : kTextEnterFadeTo;
       s.fromScale = slide ? 1 : kFadeScale;
       s.toScale = 1;
-      if (enterGrouped[i]) {
+      if (groupFlag_[i]) {
         // The same gesture in reverse: the run comes forward out of its centre.
         // Nothing to ride — the run is the whole event.
         s.grouped = true;
-        s.groupCentre = enterCentre[i];
+        s.groupCentre = groupCentre_[i];
         s.fromY = s.toY = 0;
         s.fromScale = kGroupScale;
         s.fadeTo = kGroupEnterFadeTo;
