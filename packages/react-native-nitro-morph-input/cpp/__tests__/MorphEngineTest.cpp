@@ -409,16 +409,34 @@ static void numericTextSlidesLikeAnAmount() {
   CHECK(three && three->kind == MorphEngine::Text && near(three->y, 0) && near(three->scale, 0.95));
 }
 
-static void placeholderNeverPersists() {
+/// A placeholder is what the field shows *instead of* a value, so trading it
+/// for one is a change of state and not a morph: nothing rolls, nothing leaves.
+static void replacingThePlaceholderDoesNotAnimate() {
   MorphEngine e;
   e.setTiming(0.4, 3, 0.15);
   feed(e, "$", "0", 1, 0, 10, 4, true);
-  const auto ids = liveIds(e);
-  feed(e, "$", "0", 1, 1, 10, 4, false); // the user typed a real 0
-  const auto after = liveIds(e);
-  CHECK(after[0] == ids[0]);   // the prefix stays
-  CHECK(after[1] != ids[1]);   // the placeholder zero leaves, a real one enters
-  CHECK(countExiting(e) == 1);
+  feed(e, "$", "0", 1, 1, 10, 4, false);   // the user typed a real 0
+  CHECK(countExiting(e) == 0);             // the placeholder zero does not drop out
+  CHECK(!e.needsFrames());                 // and the real one does not roll in
+  const auto* zero = liveGlyph(e, '0');
+  CHECK(zero && !zero->placeholder && near(zero->y, 0) && near(zero->opacity, 1));
+
+  // The same for a placeholder traded for a different digit.
+  MorphEngine d;
+  d.setTiming(0.4, 3, 0.15);
+  feed(d, "$", "0", 1, 0, 10, 4, true);
+  feed(d, "$", "7", 1, 1, 10, 4, false);
+  CHECK(countExiting(d) == 0 && !d.needsFrames());
+
+  // Going the other way is a real change — the value leaves — but the
+  // placeholder taking its place fades in rather than dropping from above.
+  MorphEngine c;
+  c.setTiming(0.4, 3, 0.15);
+  feed(c, "$", "1234", 4, 0);
+  feed(c, "$", "0", 1, 1, 10, 4, true);
+  CHECK(countExiting(c) > 0);
+  const auto* ph = liveGlyph(c, '0');
+  CHECK(ph && ph->placeholder && near(ph->y, 0));
 }
 
 static void snapsWithoutMotion() {
@@ -545,7 +563,7 @@ int main() {
   placeMatchingSwapsChangedColumns();
   textMatchesBySubsequence();
   numericTextSlidesLikeAnAmount();
-  placeholderNeverPersists();
+  replacingThePlaceholderDoesNotAnimate();
   snapsWithoutMotion();
   interruptedEntryLeavesFromWhereItIs();
   exitingGlyphRidesWithItsNeighbour();

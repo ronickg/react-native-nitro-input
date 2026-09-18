@@ -112,6 +112,13 @@ Without `react-native-worklets` the props are ignored with a single warning and 
 
 A character that persists eases to its new x. A new digit drops in from above (a separator rises from below) through the clipped line box, fading in over the first quarter of the morph; a leaving digit drops out the same way. Text characters fade and scale (0.95×). Characters that enter or leave ride along with their nearest persisting neighbour, so a word that grows or shrinks stays one shape. Reduce Motion snaps.
 
+A placeholder is not a value — it is what the field shows *instead* of one — so
+trading it for a value is a change of state rather than a morph, and it snaps.
+The zero standing in for an empty field does not roll into the digit that lands
+on it, and it is drawn in `placeholderTextColor`, which keeps its own
+transparency. Going the other way the value still leaves as it would normally,
+and the placeholder fades in where it belongs rather than dropping from above.
+
 Six or more adjacent characters replaced with nothing surviving between them stop being characters that moved. There is no neighbour left to travel against, and sliding each one only smears the run, so it recedes as one shape instead: no slide, and a scale to 0.8× about the run's own centre rather than each character's. The arriving run comes forward out of that same centre. This is what a three-column jump looks like — `100,000 → 100,000,000` swaps one quantity for another rather than dropping seven characters through the line box, and the commas recede with the block instead of falling like digits.
 
 ## Props
@@ -124,7 +131,7 @@ The full table is in the package [README](https://github.com/ronickg/react-nativ
 | `fractionDigits`, `maxIntegerDigits` | `2`, `15` | Limits; digits past them are rejected. |
 | `groupingSeparator`, `decimalSeparator` | `','`, `'.'` | |
 | `prefix`, `suffix`, `affixAlign` | `''`, `''`, `'baseline'` | As on the rolling number. |
-| `placeholder` | `''` | Morphed away by the first character. |
+| `placeholder` | `''` | Swapped for the first character, not morphed into it — see below. |
 | `duration`, `easing`, `effect` | `400`, `'expo'`, `'auto'` | The morph. |
 | `keyboardType`, `returnKeyType`, `autoCapitalize`, `autoCorrect`, `maxLength`, `editable`, `autoFocus` | | Input traits. |
 | `transform` | | A worklet mask, run synchronously on the UI thread. |

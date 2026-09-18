@@ -173,7 +173,7 @@ void MorphEngine::snapTo(const std::vector<Input>& inputs) {
     Slot s;
     s.g = Glyph{nextId_++, in.character, in.role, in.kind, in.width, in.placeholder, x, 0, 1, 1, false};
     s.fromX = s.toX = x;
-    s.slide = slides(in.kind);
+    s.slide = slides(in.kind) && !in.placeholder;
     slots_.push_back(s);
     x += in.width;
   }
@@ -213,7 +213,12 @@ void MorphEngine::commitText(int caretIndex, double now) {
   inputs.swap(pending_);
   classifyNumericBody(inputs);
 
-  if (!committed_ || duration_ <= 0 || reduceMotion_) {
+  // A placeholder is not a value: it is what the field shows instead of one.
+  // Replacing it is a change of state rather than a morph, so the zero standing
+  // in for an empty field does not roll into the digit that lands on it.
+  const bool fromPlaceholder =
+      std::any_of(slots_.begin(), slots_.end(), [](const Slot& s) { return !s.g.exiting && s.g.placeholder; });
+  if (!committed_ || duration_ <= 0 || reduceMotion_ || fromPlaceholder) {
     snapTo(inputs);
     committed_ = true;
     return;
@@ -381,7 +386,7 @@ void MorphEngine::commitText(int caretIndex, double now) {
       Slot s = slots_[static_cast<size_t>(m)];
       s.g.width = in.width;
       s.entering = false;
-      s.slide = slides(in.kind);
+      s.slide = slides(in.kind) && !in.placeholder;
       s.start = now;
       s.fromX = s.g.x;
       s.toX = targetX[i];
@@ -397,7 +402,7 @@ void MorphEngine::commitText(int caretIndex, double now) {
       next.push_back(s);
     } else {
       Slot s;
-      const bool slide = slides(in.kind);
+      const bool slide = slides(in.kind) && !in.placeholder;
       s.slide = slide;
       s.entering = true;
       s.start = now;

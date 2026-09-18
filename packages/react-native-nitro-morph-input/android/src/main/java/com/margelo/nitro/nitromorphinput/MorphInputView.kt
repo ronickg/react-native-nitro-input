@@ -1004,11 +1004,16 @@ class MorphInputView(context: Context) : FrameLayout(context) {
     canvas.scale(layout.fit, layout.fit)
 
     for (g in glyphs) {
-      val alpha = (g.opacity * 255f).roundToInt().coerceIn(0, 255)
-      if (alpha == 0) continue
+      if (g.opacity <= 0f) continue
       val role = ROLES[g.role.coerceIn(0, 2)]
       val paint = f.paint(role)
-      paint.color = if (g.placeholder) placeholderColor else textColor
+      val base = if (g.placeholder) placeholderColor else textColor
+      paint.color = base
+      // The hint colour carries its own alpha — the platform's is translucent
+      // black, not grey. Multiply the morph's opacity into it rather than
+      // replacing it, or the placeholder is drawn solid.
+      val alpha = (Color.alpha(base) * g.opacity).roundToInt().coerceIn(0, 255)
+      if (alpha == 0) continue
       paint.alpha = alpha
       val str = charString(g.character)
       val slides = effect == Effect.SLIDE || (effect == Effect.AUTO && g.kind != 0)
