@@ -7,7 +7,6 @@ import Heading from '@theme/Heading';
 import CodeBlock from '@theme/CodeBlock';
 import HeroNumber from '@site/src/components/Hero/HeroNumber';
 import Phones from '@site/src/components/Phones/Phones';
-import {Frame, RevealDemo} from '@site/src/components/Demo/Demo';
 
 import styles from './index.module.css';
 
@@ -135,9 +134,6 @@ export default function Home(): ReactNode {
             <p className={clsx(styles.center, styles.muted)}>
               The casino win presentation: a count that opens at zero and rolls itself up tier by tier, or reels that spin and lock from the left, landing with a pop. All native.
             </p>
-            <Frame>
-              <RevealDemo milestones />
-            </Frame>
             <Phones ios="/video/ios-reveal.mp4" android="/video/android-reveal.mp4" caption="The count and spin styles on both platforms." />
           </div>
         </section>

@@ -20,7 +20,7 @@
 set -euo pipefail
 
 TRIM_ios_rolling="10.4 12.0"
-TRIM_ios_reveal="11.3 15.0"
+TRIM_ios_reveal="4.95 13.8"
 TRIM_android_rolling="2.0 12.0"
 TRIM_android_reveal="2.2 15.0"
 # The morph showcase types, backspaces, reshapes and clears on an 8.8 s loop;
@@ -33,8 +33,8 @@ TRIM_android_morph="2.35 8.8"
 # count -> spin cycle to make sense.
 README_ios_rolling="10.4 8.0"
 README_android_rolling="2.0 8.0"
-README_ios_reveal="11.3 15.0"
-README_android_reveal="2.2 15.0"
+README_ios_reveal="4.95 13.8"
+README_android_reveal="2.2 13.8"
 
 RAW=${RAW:-raw}
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
@@ -46,12 +46,12 @@ trap 'rm -rf "$TMP"' EXIT
 trim_for() { eval "echo \"\$TRIM_$1\""; }
 
 # The docs render each clip in a 9:19.5 phone frame with object-fit: cover at
-# 250 CSS px, so 540 wide is 2x for that frame.
+# 320 CSS px, so 640 wide is exactly 2x for that frame.
 encode_video() {
   local key=$1 src=$2 out=$3
   read -r ss t <<<"$(trim_for "$key")"
   ffmpeg -y -v error -ss "$ss" -t "$t" -i "$src" \
-    -vf "fps=60,scale=540:-2:flags=lanczos" \
+    -vf "fps=60,scale=640:-2:flags=lanczos" \
     -c:v libx264 -crf 20 -preset slow -pix_fmt yuv420p \
     -movflags +faststart -an "$out"
   echo "  $(basename "$out")  $(du -h "$out" | cut -f1)"

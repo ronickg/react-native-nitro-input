@@ -21,7 +21,7 @@
 }
 
 .screen {
-  width: 250px;
+  width: 320px;
   aspect-ratio: 9 / 19.5;
   overflow: hidden;
   background: #000;
@@ -51,8 +51,8 @@
   max-width: 560px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 720px) {
   .screen {
-    width: 200px;
+    width: 240px;
   }
 }
