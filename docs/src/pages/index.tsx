@@ -145,6 +145,21 @@ export default function Home(): ReactNode {
         <section className={styles.section}>
           <div className="container">
             <Heading as="h2" className={styles.center}>
+              A field that morphs as you type
+            </Heading>
+            <p className={clsx(styles.center, styles.muted)}>
+              The second package: a native single-line input. The amount is formatted in C++ before the field shows a frame — grouping, decimals, caret and all — so a digit you type and the comma it displaces move in the same frame, with no JavaScript in between.
+            </p>
+            <Phones ios="/video/ios-morph.mp4" android="/video/android-morph.mp4" caption="Typing, backspacing, a value set from code, and a figure replaced wholesale. The same engine on both platforms." />
+            <p className={clsx(styles.center, styles.muted)}>
+              <Link to="/docs/morph-input">How the morph decides what moves</Link>
+            </p>
+          </div>
+        </section>
+
+        <section className={clsx(styles.section, styles.alt)}>
+          <div className="container">
+            <Heading as="h2" className={styles.center}>
               Twenty-four numbers, every frame, still 60 fps
             </Heading>
             <p className={clsx(styles.center, styles.muted)}>

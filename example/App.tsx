@@ -801,7 +801,7 @@ function RevealDemo() {
 // invisible top-right corner to leave.
 // ---------------------------------------------------------------------------
 
-type Showcase = 'balance' | 'reveal' | null
+type Showcase = 'balance' | 'reveal' | 'morph' | null
 
 const round = (v: number, places: number) => Math.round(v * 10 ** places) / 10 ** places
 
@@ -1007,9 +1007,89 @@ function RevealShowcase({ onExit }: { onExit: () => void }) {
   )
 }
 
+/** The morph input, typed for you: digits arrive, commas reflow, the figure is swapped. */
+function MorphShowcase({ onExit }: { onExit: () => void }) {
+  const field = useRef<MorphInputHandle>(null)
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+  const [caption, setCaption] = useState('Type an amount')
+
+  useEffect(() => {
+    const at = (ms: number, fn: () => void) => {
+      timers.current.push(setTimeout(fn, ms))
+    }
+    const run = () => {
+      let t = 0
+      const type = (text: string, step = 230) => {
+        at(t, () => field.current?.setText(text))
+        t += step
+      }
+      // Digits arrive from above; every comma that has to move a group drops
+      // out and a new one rises, rather than sliding through the digits.
+      at(0, () => setCaption('Type an amount'))
+      for (const text of ['1', '12', '123', '1234', '12345', '123456', '1234567']) type(text)
+      t += 900
+      // ...and back down again.
+      at(t, () => setCaption('Backspace'))
+      for (const text of ['123456', '12345', '1234']) type(text)
+      t += 900
+      // A value set from code: the columns reshape.
+      at(t, () => { setCaption('Set from code'); field.current?.setValue(9876543) })
+      t += 1600
+      // Nothing survives a swap this size, so the whole run recedes as one shape.
+      at(t, () => { setCaption('Replaced'); field.current?.setValue(42) })
+      t += 1600
+      at(t, () => { setCaption('Cleared'); field.current?.clear() })
+      t += 1500
+      at(t, run)
+    }
+    run()
+    const pending = timers.current
+    return () => pending.forEach(clearTimeout)
+  }, [])
+
+  return (
+    <View style={[showcase.root, showcase.rootMorph]}>
+      <StatusBar hidden />
+      <View style={[showcase.glowA, showcase.glowMorphA]} />
+      <View style={[showcase.glowB, showcase.glowMorphB]} />
+      <Pressable style={showcase.exit} onPress={onExit} testID="showcase-exit" />
+      <Text style={showcase.eyebrow}>Send money</Text>
+      <MorphInput
+        ref={field}
+        mode="number"
+        prefix="$"
+        prefixFontSize={30}
+        affixAlign="top"
+        placeholder="0"
+        fontSize={62}
+        fontWeight="800"
+        color="#fff"
+        placeholderTextColor="rgba(255,255,255,0.35)"
+        textAlign="center"
+        editable={false}
+        adjustsFontSizeToFit
+        minimumFontScale={0.4}
+        style={showcase.morphField}
+      />
+      <View style={showcase.pill}>
+        <Text style={showcase.pillText}>{caption}</Text>
+      </View>
+      <View style={[showcase.cta, showcase.ctaMorph]}>
+        <Text style={showcase.ctaTextMorph}>Continue</Text>
+      </View>
+    </View>
+  )
+}
+
 const showcase = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0B0F19', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, overflow: 'hidden' },
   rootBrand: { backgroundColor: '#1D4ED8' },
+  rootMorph: { backgroundColor: '#140A24' },
+  glowMorphA: { backgroundColor: '#7C3AED', opacity: 0.38 },
+  glowMorphB: { backgroundColor: '#DB2777', opacity: 0.24 },
+  morphField: { width: '100%', marginTop: 6 },
+  ctaMorph: { backgroundColor: 'rgba(255,255,255,0.14)' },
+  ctaTextMorph: { color: '#fff', fontWeight: '700', fontSize: 16 },
   rootTop: { justifyContent: 'flex-start', paddingTop: 84, paddingHorizontal: 0 },
   listLabel: { marginTop: 28, marginBottom: 8, alignSelf: 'flex-start', marginLeft: 28 },
   list: { alignSelf: 'stretch' },
@@ -1042,6 +1122,7 @@ function App() {
   const [showing, setShowing] = useState<Showcase>(null)
   if (showing === 'balance') return <BalanceShowcase onExit={() => setShowing(null)} />
   if (showing === 'reveal') return <RevealShowcase onExit={() => setShowing(null)} />
+  if (showing === 'morph') return <MorphShowcase onExit={() => setShowing(null)} />
   return (
     <SafeAreaProvider>
       <SafeAreaView style={[styles.root, dark && styles.rootDark]}>
@@ -1050,6 +1131,7 @@ function App() {
           <View style={styles.row}>
             <Button title="Showcase: Balance" testID="showcase-balance" onPress={() => setShowing('balance')} />
             <Button title="Showcase: Reveal" testID="showcase-reveal" onPress={() => setShowing('reveal')} />
+            <Button title="Showcase: Morph" testID="showcase-morph" onPress={() => setShowing('morph')} />
           </View>
           <MorphInputDemo />
           <MorphWorkletDemo />

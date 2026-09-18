@@ -438,6 +438,11 @@ export const MorphInputCanvas = forwardRef<MorphInputCanvasHandle, MorphInputCan
       engine.setTiming(duration / 1000, EASINGS[easing], bounce);
       engine.setEffect(EFFECTS[effect]);
       engine.setReduceMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+      // The field stores its text already formatted, so read the value out with
+      // the old separators before swapping them: under the new ones "1,234.56"
+      // would parse as 1.23, the comma having become the decimal point.
+      const carried =
+        mode === 'number' && engine.hasText() ? formatter.value(state.current.text) : NaN;
       formatter.setFormat(fractionDigits, maxIntegerDigits, groupingSeparator, decimalSeparator);
       const input = inputRef.current;
       if (input) {
@@ -448,6 +453,9 @@ export const MorphInputCanvas = forwardRef<MorphInputCanvasHandle, MorphInputCan
       }
       if (!engine.hasText()) {
         replaceText(defaultValue, false);
+      } else if (Number.isFinite(carried)) {
+        // The text changed even though the value did not, so this one notifies.
+        replaceText(String(formatter.format(carried)), true);
       } else {
         feed(-1);
       }
