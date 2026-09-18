@@ -1,0 +1,89 @@
+{
+  "name": "react-native-nitro-rolling-number",
+  "version": "0.1.0",
+  "description": "Native rolling number (odometer / ticker) view for React Native, built with Nitro. Digits roll natively when the value changes; supports currency prefix/suffix, shrink-to-fit and a loading shimmer.",
+  "main": "lib/index.js",
+  "module": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "react-native": "src/index.ts",
+  "source": "src/index.ts",
+  "files": [
+    "src",
+    "react-native.config.js",
+    "lib",
+    "nitrogen",
+    "android/build.gradle",
+    "android/gradle.properties",
+    "android/fix-prefab.gradle",
+    "android/CMakeLists.txt",
+    "android/src",
+    "cpp",
+    "ios/**/*.h",
+    "ios/**/*.m",
+    "ios/**/*.mm",
+    "ios/**/*.cpp",
+    "ios/**/*.swift",
+    "app.plugin.js",
+    "nitro.json",
+    "*.podspec",
+    "README.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit false",
+    "clean": "rm -rf android/build lib",
+    "specs": "nitrogen --logLevel=\"debug\""
+  },
+  "keywords": [
+    "react-native",
+    "nitro",
+    "nitro-modules",
+    "rolling-number",
+    "odometer",
+    "ticker",
+    "animated-number",
+    "counter"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ronickg/react-native-nitro-rolling-number.git"
+  },
+  "author": "Ronald Goedeke",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ronickg/react-native-nitro-rolling-number/issues"
+  },
+  "homepage": "https://github.com/ronickg/react-native-nitro-rolling-number#readme",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "nitrogen": "0.37.1",
+    "react": "19.2.3",
+    "react-native": "0.87.1",
+    "react-native-nitro-modules": "0.37.1",
+    "typescript": "^6.0.3"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": ">=0.78.0",
+    "react-native-nitro-modules": ">=0.37.0"
+  },
+  "prettier": {
+    "quoteProps": "consistent",
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "useTabs": false,
+    "semi": false
+  },
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "react-native": "./src/index.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  }
+}

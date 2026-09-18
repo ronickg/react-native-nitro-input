@@ -1,0 +1,14 @@
+{
+  "name": "react-native-nitro-rolling-number-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "example"
+  ],
+  "scripts": {
+    "specs": "bun --cwd packages/react-native-nitro-rolling-number run specs",
+    "build": "bun --cwd packages/react-native-nitro-rolling-number run build",
+    "typecheck": "bun --cwd packages/react-native-nitro-rolling-number run typecheck",
+    "example": "bun --cwd example"
+  }
+}
