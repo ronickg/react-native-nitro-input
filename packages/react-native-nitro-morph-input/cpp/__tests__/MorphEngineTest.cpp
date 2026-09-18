@@ -467,6 +467,68 @@ static void exitingGlyphRidesWithItsNeighbour() {
   CHECK(one && near(one->x, -5)); // the leaving 1 moves with it
 }
 
+/// A run of six or more adjacent glyphs with no survivor inside it stops being
+/// characters that moved: it recedes as one shape, about the run's centre.
+static void whollyReplacedRunRecedesTogether() {
+  MorphEngine e;
+  e.setTiming(0.4, 3, 0);                 // linear, so the half-way scale is exact
+  feed(e, "", "1,234.56", -1, 0);
+  feed(e, "", "0.00", -1, 1);             // a three-digit jump carries nothing across
+  CHECK(countExiting(e) == 8);
+
+  double lo = 0, hi = 0, centre = 0;
+  bool first = true;
+  for (const auto& g : e.glyphs()) {
+    if (!g.exiting) continue;
+    CHECK(near(g.y, 0) && near(g.scale, 1));   // it does not fall, and starts full size
+    if (first) { lo = g.x; hi = g.x + g.width; first = false; }
+    if (g.x < lo) lo = g.x;
+    if (g.x + g.width > hi) hi = g.x + g.width;
+  }
+  const double restSpan = hi - lo;
+  centre = (lo + hi) / 2;
+
+  // The arriving four are too few to group, so they still slide in.
+  const auto* zero = liveGlyph(e, '0');
+  CHECK(zero && !near(zero->y, 0));
+
+  e.tick(1.2);                             // half way
+  first = true;
+  for (const auto& g : e.glyphs()) {
+    if (!g.exiting) continue;
+    CHECK(near(g.y, 0));                   // still no slide
+    CHECK(near(g.scale, 0.9));             // half way to the group scale
+    if (first) { lo = g.x; hi = g.x + g.width; first = false; }
+    if (g.x < lo) lo = g.x;
+    if (g.x + g.width > hi) hi = g.x + g.width;
+  }
+  CHECK(hi - lo < restSpan);               // drawn in towards itself
+  CHECK(near((lo + hi) / 2, centre));      // about the run's own centre
+
+  // Both sides replaced wholesale: the new run comes forward out of its centre.
+  MorphEngine g2;
+  g2.setTiming(0.4, 3, 0);
+  feed(g2, "", "100,000", -1, 0);
+  feed(g2, "", "100,000,000", -1, 1);
+  CHECK(countExiting(g2) == 7);
+  for (const auto& g : g2.glyphs()) {
+    CHECK(near(g.y, 0));                   // nothing slides, either way
+    if (!g.exiting) CHECK(near(g.scale, 0.8));
+  }
+}
+
+/// A survivor inside the run is an anchor to move against, so the glyphs around
+/// it keep sliding as characters.
+static void aSurvivorKeepsTheRunSliding() {
+  MorphEngine e;
+  e.setTiming(0.4, 3, 0);
+  feed(e, "", "100", -1, 0);
+  feed(e, "", "101", -1, 1);
+  for (const auto& g : e.glyphs()) CHECK(near(g.scale, 1));   // no group scale
+  const auto* one = liveGlyph(e, '1');
+  CHECK(one && near(one->scale, 1));
+}
+
 int main() {
   formatterGroupsAsYouType();
   formatterDecimals();
@@ -482,6 +544,8 @@ int main() {
   snapsWithoutMotion();
   interruptedEntryLeavesFromWhereItIs();
   exitingGlyphRidesWithItsNeighbour();
+  whollyReplacedRunRecedesTogether();
+  aSurvivorKeepsTheRunSliding();
   if (failures == 0) {
     std::printf("MorphEngine: all checks passed\n");
     return 0;

@@ -25,6 +25,14 @@ constexpr double kSlideEnterFadeTo = 0.25;
 constexpr double kSlideExitFadeTo = 0.45;
 /// A glyph interrupted on its way in regains full opacity within this share.
 constexpr double kPersistFadeTo = 0.25;
+/// Where characters moving becomes one thing swapped for another (Torph's
+/// `GROUP_MIN`). A run this long with no survivor inside it has nothing near
+/// enough to animate from, and sliding each glyph only smears it.
+constexpr int kGroupMin = 6;
+/// Deeper than a character's 0.95, so the run reads as receding, not settling.
+constexpr double kGroupScale = 0.8;
+constexpr double kGroupExitFadeTo = 0.45;
+constexpr double kGroupEnterFadeTo = 0.35;
 
 double clamp01(double v) {
   return v < 0 ? 0 : (v > 1 ? 1 : v);
@@ -266,6 +274,59 @@ void MorphEngine::commitText(int caretIndex, double now) {
     return -1;
   };
 
+  // A run of adjacent glyphs that are wholly replaced — no survivor inside it —
+  // recedes as one shape instead of each glyph sliding a line box on its own. A
+  // survivor breaks the run: it is right there to animate against.
+  const auto runsOf = [](size_t count, const auto& replaced, const auto& extent,
+                         std::vector<bool>& flag, std::vector<double>& centre) {
+    size_t start = 0;
+    while (start < count) {
+      if (!replaced(start)) { ++start; continue; }
+      size_t end = start;
+      while (end < count && replaced(end)) ++end;
+      if (end - start >= static_cast<size_t>(kGroupMin)) {
+        double lo = 0, hi = 0;
+        for (size_t i = start; i < end; ++i) {
+          const auto [left, right] = extent(i);
+          if (i == start) { lo = left; hi = right; }
+          else { lo = std::min(lo, left); hi = std::max(hi, right); }
+        }
+        const double mid = (lo + hi) / 2;
+        for (size_t i = start; i < end; ++i) { flag[i] = true; centre[i] = mid; }
+      }
+      start = end;
+    }
+  };
+
+  // Old glyphs still on stage, in order; a run is measured where they sit now.
+  std::vector<int> live;
+  for (size_t i = 0; i < slots_.size(); ++i) {
+    if (!slots_[i].g.exiting) live.push_back(static_cast<int>(i));
+  }
+  std::vector<bool> liveGrouped(live.size(), false);
+  std::vector<double> liveCentre(live.size(), 0);
+  runsOf(live.size(),
+         [&](size_t p) { return !used[static_cast<size_t>(live[p])]; },
+         [&](size_t p) {
+           const Slot& sl = slots_[static_cast<size_t>(live[p])];
+           return std::pair<double, double>{sl.g.x, sl.g.x + sl.g.width};
+         },
+         liveGrouped, liveCentre);
+  std::vector<bool> exitGrouped(slots_.size(), false);
+  std::vector<double> exitCentre(slots_.size(), 0);
+  for (size_t p = 0; p < live.size(); ++p) {
+    exitGrouped[static_cast<size_t>(live[p])] = liveGrouped[p];
+    exitCentre[static_cast<size_t>(live[p])] = liveCentre[p];
+  }
+
+  // Arriving glyphs, measured where the new layout puts them.
+  std::vector<bool> enterGrouped(inputs.size(), false);
+  std::vector<double> enterCentre(inputs.size(), 0);
+  runsOf(inputs.size(),
+         [&](size_t i) { return matchOfNew[i] < 0; },
+         [&](size_t i) { return std::pair<double, double>{targetX[i], targetX[i] + inputs[i].width}; },
+         enterGrouped, enterCentre);
+
   std::vector<Slot> next;
   next.reserve(slots_.size() + inputs.size());
 
@@ -299,6 +360,18 @@ void MorphEngine::commitText(int caretIndex, double now) {
     s.fadeTo = s.slide ? kSlideExitFadeTo : kTextExitFadeTo;
     s.fromScale = s.g.scale;
     s.toScale = s.slide ? 1 : kFadeScale;
+    if (exitGrouped[i]) {
+      // The whole run recedes into itself: no slide, no anchor to ride.
+      s.grouped = true;
+      s.groupCentre = exitCentre[i];
+      s.toY = s.fromY;
+      s.fromScale = s.g.scale;
+      s.toScale = kGroupScale;
+      s.fadeTo = kGroupExitFadeTo;
+      s.anchorId = -1;
+      next.push_back(s);
+      continue;
+    }
     const int a = anchorForOld(static_cast<int>(i));
     s.anchorId = a >= 0 ? slots_[static_cast<size_t>(a)].g.id : -1;
     s.anchorBaseX = a >= 0 ? slots_[static_cast<size_t>(a)].g.x : 0;
@@ -341,15 +414,25 @@ void MorphEngine::commitText(int caretIndex, double now) {
       s.fadeTo = slide ? kSlideEnterFadeTo : kTextEnterFadeTo;
       s.fromScale = slide ? 1 : kFadeScale;
       s.toScale = 1;
-      const int a = anchorForNew(i);
-      s.anchorId = a >= 0 ? slots_[static_cast<size_t>(a)].g.id : -1;
-      // Rides along with the anchor's remaining travel: x = target + (anchor.x - anchor.target).
-      s.anchorBaseX = 0;
-      if (a >= 0) {
-        for (size_t j = 0; j < inputs.size(); ++j) {
-          if (matchOfNew[j] == a) {
-            s.anchorBaseX = targetX[j];
-            break;
+      if (enterGrouped[i]) {
+        // The same gesture in reverse: the run comes forward out of its centre.
+        // Nothing to ride — the run is the whole event.
+        s.grouped = true;
+        s.groupCentre = enterCentre[i];
+        s.fromY = s.toY = 0;
+        s.fromScale = kGroupScale;
+        s.fadeTo = kGroupEnterFadeTo;
+      } else {
+        const int a = anchorForNew(i);
+        s.anchorId = a >= 0 ? slots_[static_cast<size_t>(a)].g.id : -1;
+        // Rides along with the anchor's remaining travel: x = target + (anchor.x - anchor.target).
+        s.anchorBaseX = 0;
+        if (a >= 0) {
+          for (size_t j = 0; j < inputs.size(); ++j) {
+            if (matchOfNew[j] == a) {
+              s.anchorBaseX = targetX[j];
+              break;
+            }
           }
         }
       }
@@ -570,6 +653,13 @@ bool MorphEngine::tick(double now) {
           s.fromX = s.toX = base;
           s.g.x = base;
         }
+      } else if (s.grouped) {
+        // One shared scale, expressed per glyph: `scale` is about a glyph's own
+        // centre, so put that centre where scaling the run about `groupCentre`
+        // would have carried it.
+        const double sc = s.fromScale + (s.toScale - s.fromScale) * e;
+        const double rest = s.toX + s.g.width / 2;
+        s.g.x = s.groupCentre + sc * (rest - s.groupCentre) - s.g.width / 2;
       } else {
         s.g.x = s.fromX + (s.toX - s.fromX) * e;
       }

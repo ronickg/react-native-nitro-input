@@ -137,6 +137,10 @@ private:
     double anchorBaseX = 0;
     bool entering = false;
     bool slide = false;
+    /// Part of a wholly-replaced run: scales about `groupCentre` instead of sliding.
+    bool grouped = false;
+    /// The run's centre, in layout units, shared by every member.
+    double groupCentre = 0;
   };
 
 

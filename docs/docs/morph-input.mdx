@@ -112,6 +112,8 @@ Without `react-native-worklets` the props are ignored with a single warning and 
 
 A character that persists eases to its new x. A new digit drops in from above (a separator rises from below) through the clipped line box, fading in over the first quarter of the morph; a leaving digit drops out the same way. Text characters fade and scale (0.95×). Characters that enter or leave ride along with their nearest persisting neighbour, so a word that grows or shrinks stays one shape. Reduce Motion snaps.
 
+Six or more adjacent characters replaced with nothing surviving between them stop being characters that moved. There is no neighbour left to travel against, and sliding each one only smears the run, so it recedes as one shape instead: no slide, and a scale to 0.8× about the run's own centre rather than each character's. The arriving run comes forward out of that same centre. This is what a three-column jump looks like — `100,000 → 100,000,000` swaps one quantity for another rather than dropping seven characters through the line box, and the commas recede with the block instead of falling like digits.
+
 ## Props
 
 The full table is in the package [README](https://github.com/ronickg/react-native-nitro-rolling-number/tree/main/packages/react-native-nitro-morph-input#props). The ones you will reach for first:
