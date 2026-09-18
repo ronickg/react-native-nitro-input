@@ -103,7 +103,7 @@ abstract class HybridRollingNumberViewSpec: HybridView() {
   @get:Keep
   @set:DoNotStrip
   @set:Keep
-  abstract var reveal: Boolean?
+  abstract var revealState: Double?
   
   @get:DoNotStrip
   @get:Keep

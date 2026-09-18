@@ -174,14 +174,14 @@ namespace margelo::nitro::nitrorollingnumber {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JRollingNumberDirection> /* direction */)>("setDirection");
     method(_javaPart, direction.has_value() ? JRollingNumberDirection::fromCpp(direction.value()) : nullptr);
   }
-  std::optional<bool> JHybridRollingNumberViewSpec::getReveal() {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JBoolean>()>("getReveal");
+  std::optional<double> JHybridRollingNumberViewSpec::getRevealState() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getRevealState");
     auto __result = method(_javaPart);
-    return __result != nullptr ? std::make_optional(static_cast<bool>(__result->value())) : std::nullopt;
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
   }
-  void JHybridRollingNumberViewSpec::setReveal(std::optional<bool> reveal) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JBoolean> /* reveal */)>("setReveal");
-    method(_javaPart, reveal.has_value() ? jni::JBoolean::valueOf(reveal.value()) : nullptr);
+  void JHybridRollingNumberViewSpec::setRevealState(std::optional<double> revealState) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* revealState */)>("setRevealState");
+    method(_javaPart, revealState.has_value() ? jni::JDouble::valueOf(revealState.value()) : nullptr);
   }
   std::optional<RollingNumberRevealStyle> JHybridRollingNumberViewSpec::getRevealStyle() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JRollingNumberRevealStyle>()>("getRevealStyle");

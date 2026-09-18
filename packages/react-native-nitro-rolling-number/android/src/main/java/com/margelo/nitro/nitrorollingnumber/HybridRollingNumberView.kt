@@ -68,8 +68,19 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
     set(v) { field = v; markConfigDirty() }
   override var direction: RollingNumberDirection? = null
     set(v) { field = v; markConfigDirty() }
-  override var reveal: Boolean? = null
+  override var revealState: Double? = null
     set(v) { field = v; commitIfNeeded() }
+  /** The tri-state `reveal` prop: null = normal rolling, false = hold, true = play. */
+  private val reveal: Boolean?
+    get() {
+      val state = revealState ?: return null
+      if (!state.isFinite()) return null
+      return when {
+        state >= 2 -> true
+        state >= 1 -> false
+        else -> null
+      }
+    }
   override var revealStyle: RollingNumberRevealStyle? = null
     set(v) { field = v; markConfigDirty() }
   override var revealDuration: Double? = null
@@ -217,7 +228,7 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
     bounce = null
     stagger = null
     direction = null
-    reveal = null
+    revealState = null
     revealStyle = null
     revealDuration = null
     revealBounce = null

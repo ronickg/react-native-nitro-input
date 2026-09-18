@@ -382,12 +382,12 @@ open class HybridRollingNumberViewSpec_cxx {
     }
   }
   
-  public final var reveal: bridge.std__optional_bool_ {
+  public final var revealState: bridge.std__optional_double_ {
     @inline(__always)
     get {
-      return { () -> bridge.std__optional_bool_ in
-        if let __unwrappedValue = self.__implementation.reveal {
-          return bridge.create_std__optional_bool_(__unwrappedValue)
+      return { () -> bridge.std__optional_double_ in
+        if let __unwrappedValue = self.__implementation.revealState {
+          return bridge.create_std__optional_double_(__unwrappedValue)
         } else {
           return .init()
         }
@@ -395,9 +395,9 @@ open class HybridRollingNumberViewSpec_cxx {
     }
     @inline(__always)
     set {
-      self.__implementation.reveal = { () -> Bool? in
-        if bridge.has_value_std__optional_bool_(newValue) {
-          let __unwrapped = bridge.get_std__optional_bool_(newValue)
+      self.__implementation.revealState = { () -> Double? in
+        if bridge.has_value_std__optional_double_(newValue) {
+          let __unwrapped = bridge.get_std__optional_double_(newValue)
           return __unwrapped
         } else {
           return nil

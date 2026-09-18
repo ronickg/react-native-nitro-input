@@ -74,8 +74,8 @@ namespace margelo::nitro::nitrorollingnumber {
     void setStagger(std::optional<double> stagger) override;
     std::optional<RollingNumberDirection> getDirection() override;
     void setDirection(std::optional<RollingNumberDirection> direction) override;
-    std::optional<bool> getReveal() override;
-    void setReveal(std::optional<bool> reveal) override;
+    std::optional<double> getRevealState() override;
+    void setRevealState(std::optional<double> revealState) override;
     std::optional<RollingNumberRevealStyle> getRevealStyle() override;
     void setRevealStyle(std::optional<RollingNumberRevealStyle> revealStyle) override;
     std::optional<double> getRevealDuration() override;

@@ -46,7 +46,30 @@ describe('RollingNumber', () => {
     expect(nativeProps(render(<RollingNumber value={1} fontWeight="600" />)).fontWeight).toBe(600)
     expect(nativeProps(render(<RollingNumber value={1} fontWeight={300} />)).fontWeight).toBe(300)
     expect(nativeProps(render(<RollingNumber value={1} fontWeight="semibold" />)).fontWeight).toBe(600)
-    expect(nativeProps(render(<RollingNumber value={1} />)).fontWeight).toBeUndefined()
+    expect(nativeProps(render(<RollingNumber value={1} />)).fontWeight).toBe(400)
+  })
+
+  it('never sends undefined for a native prop (a removed prop reaches native as null, which Nitro rejects)', () => {
+    const renderer = render(
+      <RollingNumber value={1} prefix="$" suffix=" USD" color="#ff0000" fontFamily="Menlo" prefixFontSize={20} loading reveal />
+    )
+    act(() => {
+      renderer.update(<RollingNumber value={1} />)
+    })
+    const props = nativeProps(renderer)
+    for (const [key, val] of Object.entries(props)) {
+      if (key === 'style' || key === 'children') continue
+      expect([key, val === undefined]).toEqual([key, false])
+    }
+    expect(props.prefix).toBe('')
+    expect(props.suffix).toBe('')
+    expect(props.fontFamily).toBe('')
+    expect(Number.isNaN(props.color)).toBe(true)
+    expect(Number.isNaN(props.shimmerColor)).toBe(true)
+    expect(props.prefixFontSize).toBe(32)
+    expect(props.loading).toBe(false)
+    expect(props.revealState).toBe(0)
+    expect(props.revealMilestones).toEqual([])
   })
 
   it('wraps hybridRef and onSizeChange as Nitro callbacks that stay referentially stable', () => {
@@ -113,7 +136,7 @@ describe('RollingNumber', () => {
       />
     )
     const first = nativeProps(renderer)
-    expect(first.reveal).toBe(false)
+    expect(first.revealState).toBe(1) // reveal={false}: hold the opening frame
     expect(first.revealStyle).toBe('spin')
     expect(first.revealDuration).toBe(1800)
     expect(first.revealBounce).toBe(0.1)
@@ -138,7 +161,7 @@ describe('RollingNumber', () => {
       )
     })
     const second = nativeProps(renderer)
-    expect(second.reveal).toBe(true)
+    expect(second.revealState).toBe(2) // reveal: play
     expect(second.onRevealEnd).toBe(first.onRevealEnd)
     expect(second.revealMilestones).toBe(first.revealMilestones)
     second.onRevealEnd.f()
@@ -147,14 +170,18 @@ describe('RollingNumber', () => {
     second.onRevealMilestone.f(1, 10000)
     expect(onRevealMilestone).toHaveBeenCalledWith(1, 10000)
 
-    // Without handlers the native callback props stay undefined.
+    // Without handlers the stable native callbacks stay in place and no-op.
     act(() => {
       renderer.update(<RollingNumber value={50000} />)
     })
     const third = nativeProps(renderer)
-    expect(third.onRevealEnd).toBeUndefined()
-    expect(third.onRevealMilestone).toBeUndefined()
-    expect(third.reveal).toBeUndefined()
+    expect(third.onRevealEnd).toBe(first.onRevealEnd)
+    expect(() => third.onRevealEnd.f()).not.toThrow()
+    expect(laterEnd).toHaveBeenCalledTimes(1)
+    expect(third.revealState).toBe(0)
+    // Never undefined: removing the array would reach native as null, which Nitro rejects.
+    expect(third.revealMilestones).toEqual([])
+    expect(nativeProps(render(<RollingNumber value={1} />)).revealMilestones).toEqual([])
   })
 
   it('exposes revealTo on the handle', () => {

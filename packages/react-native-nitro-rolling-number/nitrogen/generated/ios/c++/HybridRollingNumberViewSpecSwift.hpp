@@ -162,12 +162,12 @@ namespace margelo::nitro::nitrorollingnumber {
     inline void setDirection(std::optional<RollingNumberDirection> direction) noexcept override {
       _swiftPart.setDirection(direction);
     }
-    inline std::optional<bool> getReveal() noexcept override {
-      auto __result = _swiftPart.getReveal();
+    inline std::optional<double> getRevealState() noexcept override {
+      auto __result = _swiftPart.getRevealState();
       return __result;
     }
-    inline void setReveal(std::optional<bool> reveal) noexcept override {
-      _swiftPart.setReveal(reveal);
+    inline void setRevealState(std::optional<double> revealState) noexcept override {
+      _swiftPart.setRevealState(revealState);
     }
     inline std::optional<RollingNumberRevealStyle> getRevealStyle() noexcept override {
       auto __result = _swiftPart.getRevealStyle();

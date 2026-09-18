@@ -328,10 +328,12 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
         }),
       []
     )
-    // A new array literal each render must not re-set the native prop.
-    const milestonesKey = revealMilestones?.join(',')
+    // A new array literal each render must not re-set the native prop. Always an
+    // array (empty = no tiers): removing the prop would reach native as `null`,
+    // which Nitro's array parser rejects ("Value is null, expected an Object").
+    const milestonesKey = revealMilestones?.join(',') ?? ''
     const stableMilestones = useMemo(
-      () => (revealMilestones ? [...revealMilestones] : undefined),
+      () => (revealMilestones ? [...revealMilestones] : []),
       // eslint-disable-next-line react-hooks/exhaustive-deps
       [milestonesKey]
     )
@@ -350,12 +352,18 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
       [value]
     )
 
-    const processedColor = useMemo(() => toProcessedColor(color), [color])
+    // Every native prop is sent with an explicit value: an optional prop that
+    // is *removed* reaches native as `null`, which Nitro's parser rejects and
+    // React Native turns into a fatal error. `NaN` stands for "platform default"
+    // where there is no value to express it (colors), `''` for fonts.
+    const processedColor = useMemo(() => toProcessedColor(color) ?? NaN, [color])
     const processedShimmerColor = useMemo(
-      () => toProcessedColor(shimmerColor),
+      () => toProcessedColor(shimmerColor) ?? NaN,
       [shimmerColor]
     )
-    const numericWeight = toNumericWeight(fontWeight)
+    const numericWeight = toNumericWeight(fontWeight) ?? 400
+    const resolvedFontSize = fontSize ?? 32
+    const resolvedAffixAlign = affixAlign ?? 'baseline'
 
     const autoSize = useMemo(
       () =>
@@ -371,43 +379,43 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
         style={[autoSize, style]}
         hybridRef={hybridRef}
         value={value}
-        fractionDigits={fractionDigits}
-        minimumIntegerDigits={minimumIntegerDigits}
-        groupingSeparator={groupingSeparator}
-        decimalSeparator={decimalSeparator}
-        prefix={prefix}
-        suffix={suffix}
-        duration={duration}
-        easing={easing}
-        bounce={bounce}
-        stagger={stagger}
-        direction={direction}
-        reveal={reveal}
-        revealStyle={revealStyle}
-        revealDuration={revealDuration}
-        revealBounce={revealBounce}
-        revealStagger={revealStagger}
+        fractionDigits={fractionDigits ?? 0}
+        minimumIntegerDigits={minimumIntegerDigits ?? 1}
+        groupingSeparator={groupingSeparator ?? ''}
+        decimalSeparator={decimalSeparator ?? '.'}
+        prefix={prefix ?? ''}
+        suffix={suffix ?? ''}
+        duration={duration ?? 500}
+        easing={easing ?? 'easeInOut'}
+        bounce={bounce ?? 0.15}
+        stagger={stagger ?? 0}
+        direction={direction ?? 'auto'}
+        revealState={reveal === undefined ? 0 : reveal ? 2 : 1}
+        revealStyle={revealStyle ?? 'count'}
+        revealDuration={revealDuration ?? 2200}
+        revealBounce={revealBounce ?? 0.07}
+        revealStagger={revealStagger ?? 200}
         revealMilestones={stableMilestones}
-        revealMilestoneHold={revealMilestoneHold}
-        onRevealEnd={onRevealEnd === undefined ? undefined : onRevealEndCallback}
-        onRevealMilestone={onRevealMilestone === undefined ? undefined : onRevealMilestoneCallback}
-        loading={loading}
+        revealMilestoneHold={revealMilestoneHold ?? 0}
+        onRevealEnd={onRevealEndCallback}
+        onRevealMilestone={onRevealMilestoneCallback}
+        loading={loading ?? false}
         shimmerColor={processedShimmerColor}
-        shimmerDuration={shimmerDuration}
-        fontSize={fontSize}
-        prefixFontSize={prefixFontSize}
-        suffixFontSize={suffixFontSize}
-        affixAlign={affixAlign}
-        prefixAlign={prefixAlign}
-        suffixAlign={suffixAlign}
-        adjustsFontSizeToFit={adjustsFontSizeToFit}
-        minimumFontScale={minimumFontScale}
-        allowFontScaling={allowFontScaling}
-        maxFontSizeMultiplier={maxFontSizeMultiplier}
+        shimmerDuration={shimmerDuration ?? 950}
+        fontSize={resolvedFontSize}
+        prefixFontSize={prefixFontSize ?? resolvedFontSize}
+        suffixFontSize={suffixFontSize ?? resolvedFontSize}
+        affixAlign={resolvedAffixAlign}
+        prefixAlign={prefixAlign ?? resolvedAffixAlign}
+        suffixAlign={suffixAlign ?? resolvedAffixAlign}
+        adjustsFontSizeToFit={adjustsFontSizeToFit ?? false}
+        minimumFontScale={minimumFontScale ?? 0.5}
+        allowFontScaling={allowFontScaling ?? false}
+        maxFontSizeMultiplier={maxFontSizeMultiplier ?? 0}
         fontWeight={numericWeight}
-        fontFamily={fontFamily}
+        fontFamily={fontFamily ?? ''}
         color={processedColor}
-        textAlign={textAlign}
+        textAlign={textAlign ?? 'left'}
         onSizeChange={onSizeChange}
       />
     )

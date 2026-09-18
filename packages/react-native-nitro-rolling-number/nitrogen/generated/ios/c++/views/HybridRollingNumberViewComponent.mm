@@ -170,11 +170,11 @@ using namespace margelo::nitro::nitrorollingnumber::views;
           : !newViewProps.direction.hasSameValue(oldViewProps->direction)) {
       swiftPart.setDirection(newViewProps.direction.get());
     }
-    // reveal: optional
+    // revealState: optional
     if (oldViewProps == nullptr
-          ? newViewProps.reveal.isProvided()
-          : !newViewProps.reveal.hasSameValue(oldViewProps->reveal)) {
-      swiftPart.setReveal(newViewProps.reveal.get());
+          ? newViewProps.revealState.isProvided()
+          : !newViewProps.revealState.hasSameValue(oldViewProps->revealState)) {
+      swiftPart.setRevealState(newViewProps.revealState.get());
     }
     // revealStyle: optional
     if (oldViewProps == nullptr

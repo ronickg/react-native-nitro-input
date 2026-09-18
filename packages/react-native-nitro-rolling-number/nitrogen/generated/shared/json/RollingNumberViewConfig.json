@@ -16,7 +16,7 @@
     "bounce": true,
     "stagger": true,
     "direction": true,
-    "reveal": true,
+    "revealState": true,
     "revealStyle": true,
     "revealDuration": true,
     "revealBounce": true,

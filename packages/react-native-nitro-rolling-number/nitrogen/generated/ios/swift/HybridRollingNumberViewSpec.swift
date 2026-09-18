@@ -22,7 +22,7 @@ public protocol HybridRollingNumberViewSpec_protocol: HybridObject, HybridView {
   var bounce: Double? { get set }
   var stagger: Double? { get set }
   var direction: RollingNumberDirection? { get set }
-  var reveal: Bool? { get set }
+  var revealState: Double? { get set }
   var revealStyle: RollingNumberRevealStyle? { get set }
   var revealDuration: Double? { get set }
   var revealBounce: Double? { get set }

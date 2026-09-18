@@ -54,8 +54,15 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
   var bounce: Double? { didSet { markConfigDirty() } }
   var stagger: Double? { didSet { markConfigDirty() } }
   var direction: RollingNumberDirection? { didSet { markConfigDirty() } }
-  var reveal: Bool? { didSet { commitIfNeeded() } }
+  var revealState: Double? { didSet { commitIfNeeded() } }
   var revealStyle: RollingNumberRevealStyle? { didSet { markConfigDirty() } }
+  /// The tri-state `reveal` prop: nil = normal rolling, false = hold, true = play.
+  private var reveal: Bool? {
+    guard let revealState, revealState.isFinite else { return nil }
+    if revealState >= 2 { return true }
+    if revealState >= 1 { return false }
+    return nil
+  }
   var revealDuration: Double? { didSet { markConfigDirty() } }
   var revealBounce: Double? { didSet { markConfigDirty() } }
   var revealStagger: Double? { didSet { markConfigDirty() } }
@@ -173,7 +180,7 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
     bounce = nil
     stagger = nil
     direction = nil
-    reveal = nil
+    revealState = nil
     revealStyle = nil
     revealDuration = nil
     revealBounce = nil

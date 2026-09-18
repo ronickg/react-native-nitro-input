@@ -74,13 +74,15 @@ export interface RollingNumberProps extends HybridViewProps {
   /** Which way the digits roll. Default: `'auto'`. */
   direction?: RollingNumberDirection
   /**
-   * Jackpot reveal. While `false` the view shows the opening frame of `value`:
-   * its layout with every digit blank except the mandatory ones ("$0.00").
-   * When it turns `true` the figure plays its `revealStyle` (counts up from 0,
-   * or spins its reels) to `value` and lands with a pop. `undefined` (the
-   * default) disables the reveal: `value` changes roll.
+   * Jackpot reveal state. `0` (default): a normal rolling number, `value`
+   * changes roll. `1`: the view shows the opening frame of `value`, its layout
+   * with every digit blank except the mandatory ones ("$0.00"). `2`: the
+   * figure plays its `revealStyle` (counts up from 0, or spins its reels) to
+   * `value` and lands with a pop. The JS wrapper maps its `reveal` boolean to
+   * this; it is a number so the wrapper can always pass it (an optional prop
+   * that is removed reaches native as `null`, which Nitro's parser rejects).
    */
-  reveal?: boolean
+  revealState?: number
   /** How the reveal plays. Default: `'count'`. */
   revealStyle?: RollingNumberRevealStyle
   /** Duration of the reveal in ms (the count, or the time until the last reel locks). Default: `2200`. */
