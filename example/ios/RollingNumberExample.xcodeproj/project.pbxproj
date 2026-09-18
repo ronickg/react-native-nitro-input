@@ -7,16 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		094A8F489E6041BEBF2ACAF9 /* OpenRunde-Semibold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 4280F7654ADE41FBA9EAF771 /* OpenRunde-Semibold.otf */; };
 		0C80B921A6F3F58F76C31292 /* libPods-RollingNumberExample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-RollingNumberExample.a */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		59B11C468B434FFEB1939E02 /* OpenRunde-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 476EF1C449F9495EB598D000 /* OpenRunde-Regular.otf */; };
+		6EB35D220C0E44A28ADB6656 /* OpenRunde-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 1E0843932E6B472B8D03C2C9 /* OpenRunde-LICENSE.txt */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
-		FE34C60F35A65AF1DD2F2196 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
-		59B11C468B434FFEB1939E02 /* OpenRunde-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 476EF1C449F9495EB598D000 /* OpenRunde-Regular.otf */; };
-		094A8F489E6041BEBF2ACAF9 /* OpenRunde-Semibold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 4280F7654ADE41FBA9EAF771 /* OpenRunde-Semibold.otf */; };
 		A6664C09CE07457E8F56FD42 /* OpenRunde-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 641C922AA36547D99F589DFB /* OpenRunde-Bold.otf */; };
 		EA053A07C76D4E20BE22A662 /* OpenRunde-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = E3EEBA87DFCB48E0BECEFF91 /* OpenRunde-Medium.otf */; };
-		6EB35D220C0E44A28ADB6656 /* OpenRunde-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 1E0843932E6B472B8D03C2C9 /* OpenRunde-LICENSE.txt */; };
+		FE34C60F35A65AF1DD2F2196 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,17 +24,17 @@
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = RollingNumberExample/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = RollingNumberExample/Info.plist; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = RollingNumberExample/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		1E0843932E6B472B8D03C2C9 /* OpenRunde-LICENSE.txt */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenRunde-LICENSE.txt"; path = "../assets/fonts/OpenRunde-LICENSE.txt"; sourceTree = "<group>"; };
 		3B4392A12AC88292D35C810B /* Pods-RollingNumberExample.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RollingNumberExample.debug.xcconfig"; path = "Target Support Files/Pods-RollingNumberExample/Pods-RollingNumberExample.debug.xcconfig"; sourceTree = "<group>"; };
+		4280F7654ADE41FBA9EAF771 /* OpenRunde-Semibold.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenRunde-Semibold.otf"; path = "../assets/fonts/OpenRunde-Semibold.otf"; sourceTree = "<group>"; };
+		476EF1C449F9495EB598D000 /* OpenRunde-Regular.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenRunde-Regular.otf"; path = "../assets/fonts/OpenRunde-Regular.otf"; sourceTree = "<group>"; };
 		5709B34CF0A7D63546082F79 /* Pods-RollingNumberExample.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RollingNumberExample.release.xcconfig"; path = "Target Support Files/Pods-RollingNumberExample/Pods-RollingNumberExample.release.xcconfig"; sourceTree = "<group>"; };
 		5DCACB8F33CDC322A6C60F78 /* libPods-RollingNumberExample.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-RollingNumberExample.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		641C922AA36547D99F589DFB /* OpenRunde-Bold.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenRunde-Bold.otf"; path = "../assets/fonts/OpenRunde-Bold.otf"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = RollingNumberExample/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = RollingNumberExample/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		E3EEBA87DFCB48E0BECEFF91 /* OpenRunde-Medium.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenRunde-Medium.otf"; path = "../assets/fonts/OpenRunde-Medium.otf"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		476EF1C449F9495EB598D000 /* OpenRunde-Regular.otf */ = {isa = PBXFileReference; name = "OpenRunde-Regular.otf"; path = "../assets/fonts/OpenRunde-Regular.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		4280F7654ADE41FBA9EAF771 /* OpenRunde-Semibold.otf */ = {isa = PBXFileReference; name = "OpenRunde-Semibold.otf"; path = "../assets/fonts/OpenRunde-Semibold.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		641C922AA36547D99F589DFB /* OpenRunde-Bold.otf */ = {isa = PBXFileReference; name = "OpenRunde-Bold.otf"; path = "../assets/fonts/OpenRunde-Bold.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		E3EEBA87DFCB48E0BECEFF91 /* OpenRunde-Medium.otf */ = {isa = PBXFileReference; name = "OpenRunde-Medium.otf"; path = "../assets/fonts/OpenRunde-Medium.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		1E0843932E6B472B8D03C2C9 /* OpenRunde-LICENSE.txt */ = {isa = PBXFileReference; name = "OpenRunde-LICENSE.txt"; path = "../assets/fonts/OpenRunde-LICENSE.txt"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -100,17 +100,8 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				3B4392A12AC88292D35C810B /* Pods-RollingNumberExample.debug.xcconfig */,
-				5709B34CF0A7D63546082F79 /* Pods-RollingNumberExample.release.xcconfig */,
-			);
-			path = Pods;
-			sourceTree = "<group>";
-		};
 		972DFEB3B4AA49F0838F43A1 /* Resources */ = {
-			isa = "PBXGroup";
+			isa = PBXGroup;
 			children = (
 				476EF1C449F9495EB598D000 /* OpenRunde-Regular.otf */,
 				4280F7654ADE41FBA9EAF771 /* OpenRunde-Semibold.otf */,
@@ -119,8 +110,17 @@
 				1E0843932E6B472B8D03C2C9 /* OpenRunde-LICENSE.txt */,
 			);
 			name = Resources;
-			sourceTree = "<group>";
 			path = "";
+			sourceTree = "<group>";
+		};
+		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				3B4392A12AC88292D35C810B /* Pods-RollingNumberExample.debug.xcconfig */,
+				5709B34CF0A7D63546082F79 /* Pods-RollingNumberExample.release.xcconfig */,
+			);
+			path = Pods;
+			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 

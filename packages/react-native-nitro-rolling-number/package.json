@@ -36,7 +36,8 @@
     "clean": "rm -rf android/build lib",
     "specs": "nitrogen --logLevel=\"debug\"",
     "prepack": "bun run build",
-    "test": "jest"
+    "test": "jest",
+    "test:cpp": "mkdir -p .cache && clang++ -std=c++20 -O1 -Wall -Wextra -Icpp cpp/RollingEngine.cpp cpp/__tests__/RollingEngineTest.cpp -o .cache/rolling-engine-test && .cache/rolling-engine-test"
   },
   "keywords": [
     "react-native",

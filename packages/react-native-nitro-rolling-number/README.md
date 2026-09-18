@@ -165,15 +165,16 @@ to reflow while digits appear (e.g. a counter that grows past `999`).
 
 ## How it works
 
-- Each digit is a column with a continuous position on a `0–9` strip. The view
-  draws the two visible glyphs of every column with Core Graphics / `Canvas`,
-  so a frame costs about a dozen text draws.
-- **`animateTo` / the `value` prop** compute per-column targets (shortest roll
-  in the direction of the change, blank↔digit for appearing/disappearing
-  columns) and animate them with a `CADisplayLink` / `ValueAnimator`.
-- **`jumpTo`** derives the column positions directly from the number using the
-  mechanical odometer rule (a wheel turns only while every lower wheel travels
-  from `9` to `0`).
+- All behaviour lives in one shared C++ engine (`cpp/RollingEngine.hpp`): each
+  digit is a wheel with a continuous position on a `0–9` strip; the engine
+  computes rolls (shortest path in the roll direction, blank↔digit for
+  appearing/disappearing wheels), stagger, easing/spring curves, the odometer
+  carry rule for `jumpTo`, the loading fade and the shimmer phase.
+- The Swift view calls the engine directly through Swift/C++ interop; the
+  Kotlin view through a 60-line fbjni handle (the only hand-written JNI). Each
+  platform only owns fonts, layout, fit-to-width and text drawing, and drives
+  the engine from a `CADisplayLink` / `Choreographer` loop.
+- A frame is about a dozen cached glyph draws with Core Graphics / `Canvas`.
 - Props are parsed by Nitro from JSI (no Fabric codegen); the view is a Fabric
   component, so `style`, `opacity`, `transform` and friends work as usual.
 
