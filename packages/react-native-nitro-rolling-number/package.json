@@ -26,13 +26,16 @@
     "app.plugin.js",
     "nitro.json",
     "*.podspec",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit false",
     "clean": "rm -rf android/build lib",
-    "specs": "nitrogen --logLevel=\"debug\""
+    "specs": "nitrogen --logLevel=\"debug\"",
+    "prepack": "bun run build"
   },
   "keywords": [
     "react-native",

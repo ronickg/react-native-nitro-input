@@ -134,6 +134,17 @@ The view reports its intrinsic size from native and sizes itself. Give it an
 explicit `width` in `style` plus `textAlign="right"` if you don't want the layout
 to reflow while digits appear (e.g. a counter that grows past `999`).
 
+## Accessibility
+
+- VoiceOver / TalkBack read the formatted amount (prefix, sign, grouped digits,
+  suffix, e.g. `$1,234.50 USD`), updated whenever the value changes; while
+  `loading` the element is announced as loading.
+- Reduce Motion (iOS) and "Remove animations" / animator scale 0 (Android)
+  snap to the new value instead of rolling, and freeze the loading glint.
+- Custom fonts resolve like `Text`: on iOS by PostScript or family name from
+  `UIAppFonts`, on Android through React Native's font manager (`assets/fonts`,
+  `res/font`, or fonts registered by expo-font).
+
 ## Performance and threading
 
 - A `value` change is delivered by React once; from there the roll runs

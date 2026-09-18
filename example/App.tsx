@@ -65,6 +65,7 @@ function ReactDrivenDemo() {
         <Button title="−1" onPress={() => setValue((v) => v - 1)} />
         <Button title="÷10" onPress={() => setValue((v) => v / 10)} />
         <Button title="Random" onPress={() => setValue(Math.round(Math.random() * 1_000_000_00) / 100)} />
+        <Button title="Negate" onPress={() => setValue((v) => -v)} />
         <Button title="Reset" onPress={() => setValue(1234.5)} />
       </View>
     </Section>
@@ -85,7 +86,7 @@ function CurrencyDemo() {
           prefixFontSize={22}
           affixAlign="top"
           fontSize={44}
-          fontWeight="600"
+          fontFamily="OpenRunde-Semibold"
           loading={loading}
           testID="currency-prefix"
         />
@@ -134,7 +135,7 @@ function CurrencyDemo() {
 function CenteredDemo() {
   const [value, setValue] = useState(875.4)
   return (
-    <Section title="Centered in a fixed box" hint={'textAlign="center" with a top-pinned prefix and bottom-pinned suffix; watch them slide as digits appear.'}>
+    <Section title="Centered in a fixed box" hint={'OpenRunde-Bold (bundled font), textAlign="center", top-pinned prefix and bottom-pinned suffix; watch them slide as digits appear.'}>
       <View style={styles.centerBox}>
         <RollingNumber
           value={value}
@@ -147,7 +148,7 @@ function CenteredDemo() {
           suffixFontSize={14}
           suffixAlign="bottom"
           fontSize={40}
-          fontWeight="700"
+          fontFamily="OpenRunde-Bold"
           textAlign="center"
           stagger={30}
           style={styles.centerNumber}

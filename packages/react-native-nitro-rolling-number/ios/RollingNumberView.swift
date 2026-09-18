@@ -112,6 +112,7 @@ final class RollingNumberView: UIView {
       loadingAnimFrom = loadingProgress
       loadingAnimStart = CACurrentMediaTime()
       if loading { shimmerStart = CACurrentMediaTime() }
+      updateAccessibility()
       updateDisplayLinkNeed()
       setNeedsDisplay()
     }
@@ -291,6 +292,8 @@ final class RollingNumberView: UIView {
     isOpaque = false
     backgroundColor = .clear
     contentMode = .redraw
+    isAccessibilityElement = true
+    accessibilityTraits = .staticText
     // Not clipped: in auto-size mode a new leading digit can draw past the old
     // frame for the one render it takes JS to apply the reported size, instead
     // of being cut off. Nothing else about the roll touches the JS thread.
@@ -366,7 +369,7 @@ final class RollingNumberView: UIView {
     let previous = targetValue
     targetValue = value
     let target = makeTarget(value)
-    guard hasShownValue, timing.duration > 0 else {
+    guard hasShownValue, timing.duration > 0, !UIAccessibility.isReduceMotionEnabled else {
       snap(to: target)
       return
     }
@@ -554,7 +557,8 @@ final class RollingNumberView: UIView {
 
   /// Keeps the display link alive only while something is moving.
   private func updateDisplayLinkNeed() {
-    let needed = transition != nil || loadingAnimStart != nil || loadingProgress > 0
+    let sweeping = loadingProgress > 0 && !UIAccessibility.isReduceMotionEnabled
+    let needed = transition != nil || loadingAnimStart != nil || sweeping
     if needed {
       startDisplayLink()
     } else {
@@ -695,8 +699,9 @@ final class RollingNumberView: UIView {
       elements.append(Element(kind: .glyph(text, role), width: width * CGFloat(factor), fullWidth: width, factor: factor))
     }
 
-    addGlyph(format.prefix, role: .prefix, factor: 1)
+    // Sign first, then the currency prefix: "-$1,234.50".
     addGlyph("-", role: .digit, factor: signFactor)
+    addGlyph(format.prefix, role: .prefix, factor: 1)
     var power = columns.count - 1
     while power >= 0 {
       let column = columns[power]
@@ -720,9 +725,31 @@ final class RollingNumberView: UIView {
     return buildElements(using: fonts, columns: settled, signFactor: negative ? 1 : 0).reduce(CGFloat(0)) { $0 + $1.width }
   }
 
+  /// Formats `targetValue` the way it is displayed, for VoiceOver.
+  private func accessibleText() -> String {
+    let target = makeTarget(targetValue)
+    var digits = ""
+    for power in stride(from: target.powerCount - 1, through: 0, by: -1) {
+      digits += String(target.digit(at: power))
+      if power > format.fractionDigits, (power - format.fractionDigits) % 3 == 0 {
+        digits += format.groupingSeparator
+      }
+      if format.fractionDigits > 0, power == format.fractionDigits {
+        digits += format.decimalSeparator
+      }
+    }
+    return (target.negative ? "-" : "") + format.prefix + digits + format.suffix
+  }
+
+  private func updateAccessibility() {
+    accessibilityLabel = accessibleText()
+    accessibilityValue = loading ? "Loading" : nil
+  }
+
   private func reportIntrinsicSize(powerCount: Int, negative: Bool) {
     settledPowerCount = powerCount
     settledNegative = negative
+    updateAccessibility()
     let width = settledWidth(using: fonts, powerCount: powerCount, negative: negative)
     // The reported size is always the full-size one: with shrink-to-fit the view
     // keeps its height and the scaled number is centred inside it when drawing.
@@ -792,7 +819,9 @@ final class RollingNumberView: UIView {
     let colors = [base, CGColor(red: hr, green: hg, blue: hb, alpha: ha), base] as CFArray
     guard let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0.1, 0.5, 0.9]) else { return }
     let period = max(0.2, shimmer.duration)
-    let phase = CGFloat(((CACurrentMediaTime() - shimmerStart) / period).truncatingRemainder(dividingBy: 1))
+    let phase = UIAccessibility.isReduceMotionEnabled
+      ? 0
+      : CGFloat(((CACurrentMediaTime() - shimmerStart) / period).truncatingRemainder(dividingBy: 1))
     let progress = Self.shimmerSeed + (1 - Self.shimmerSeed) * phase
     // Core at contentLeft + width * (2p - 0.5): enters at the left edge, exits past the right.
     let startX = contentLeft + contentWidth * (2 * progress - 1)

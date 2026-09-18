@@ -12,6 +12,11 @@
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		FE34C60F35A65AF1DD2F2196 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
+		59B11C468B434FFEB1939E02 /* OpenRunde-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 476EF1C449F9495EB598D000 /* OpenRunde-Regular.otf */; };
+		094A8F489E6041BEBF2ACAF9 /* OpenRunde-Semibold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 4280F7654ADE41FBA9EAF771 /* OpenRunde-Semibold.otf */; };
+		A6664C09CE07457E8F56FD42 /* OpenRunde-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 641C922AA36547D99F589DFB /* OpenRunde-Bold.otf */; };
+		EA053A07C76D4E20BE22A662 /* OpenRunde-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = E3EEBA87DFCB48E0BECEFF91 /* OpenRunde-Medium.otf */; };
+		6EB35D220C0E44A28ADB6656 /* OpenRunde-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 1E0843932E6B472B8D03C2C9 /* OpenRunde-LICENSE.txt */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -25,6 +30,11 @@
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = RollingNumberExample/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = RollingNumberExample/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		476EF1C449F9495EB598D000 /* OpenRunde-Regular.otf */ = {isa = PBXFileReference; name = "OpenRunde-Regular.otf"; path = "../assets/fonts/OpenRunde-Regular.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		4280F7654ADE41FBA9EAF771 /* OpenRunde-Semibold.otf */ = {isa = PBXFileReference; name = "OpenRunde-Semibold.otf"; path = "../assets/fonts/OpenRunde-Semibold.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		641C922AA36547D99F589DFB /* OpenRunde-Bold.otf */ = {isa = PBXFileReference; name = "OpenRunde-Bold.otf"; path = "../assets/fonts/OpenRunde-Bold.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		E3EEBA87DFCB48E0BECEFF91 /* OpenRunde-Medium.otf */ = {isa = PBXFileReference; name = "OpenRunde-Medium.otf"; path = "../assets/fonts/OpenRunde-Medium.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		1E0843932E6B472B8D03C2C9 /* OpenRunde-LICENSE.txt */ = {isa = PBXFileReference; name = "OpenRunde-LICENSE.txt"; path = "../assets/fonts/OpenRunde-LICENSE.txt"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -75,6 +85,7 @@
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
+				972DFEB3B4AA49F0838F43A1 /* Resources */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -97,6 +108,19 @@
 			);
 			path = Pods;
 			sourceTree = "<group>";
+		};
+		972DFEB3B4AA49F0838F43A1 /* Resources */ = {
+			isa = "PBXGroup";
+			children = (
+				476EF1C449F9495EB598D000 /* OpenRunde-Regular.otf */,
+				4280F7654ADE41FBA9EAF771 /* OpenRunde-Semibold.otf */,
+				641C922AA36547D99F589DFB /* OpenRunde-Bold.otf */,
+				E3EEBA87DFCB48E0BECEFF91 /* OpenRunde-Medium.otf */,
+				1E0843932E6B472B8D03C2C9 /* OpenRunde-LICENSE.txt */,
+			);
+			name = Resources;
+			sourceTree = "<group>";
+			path = "";
 		};
 /* End PBXGroup section */
 
@@ -161,6 +185,11 @@
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				FE34C60F35A65AF1DD2F2196 /* PrivacyInfo.xcprivacy in Resources */,
+				59B11C468B434FFEB1939E02 /* OpenRunde-Regular.otf in Resources */,
+				094A8F489E6041BEBF2ACAF9 /* OpenRunde-Semibold.otf in Resources */,
+				A6664C09CE07457E8F56FD42 /* OpenRunde-Bold.otf in Resources */,
+				EA053A07C76D4E20BE22A662 /* OpenRunde-Medium.otf in Resources */,
+				6EB35D220C0E44A28ADB6656 /* OpenRunde-LICENSE.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

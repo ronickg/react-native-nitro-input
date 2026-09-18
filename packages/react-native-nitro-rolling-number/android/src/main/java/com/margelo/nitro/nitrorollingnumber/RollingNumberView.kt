@@ -121,6 +121,7 @@ class RollingNumberView(context: Context) : View(context) {
       field = value
       startLoadingFade(if (value) 1f else 0f)
       if (value) restartShimmerAnimator()
+      updateAccessibility()
       invalidate()
     }
 
@@ -263,6 +264,10 @@ class RollingNumberView(context: Context) : View(context) {
   private var fonts: FontSet = FontSet(Typography(), 1f)
   private var fontScale = 1f
 
+  init {
+    importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+  }
+
   // endregion
 
   // region Public API
@@ -319,7 +324,7 @@ class RollingNumberView(context: Context) : View(context) {
     val previous = targetValue
     targetValue = value
     val target = makeTarget(value)
-    if (!hasShownValue || timing.durationMs <= 0L) {
+    if (!hasShownValue || timing.durationMs <= 0L || animationsDisabled()) {
       snap(target)
       return
     }
@@ -617,8 +622,9 @@ class RollingNumberView(context: Context) : View(context) {
       elements.add(Element(-1, text, role, (width * factor).toFloat(), width, factor))
     }
 
-    addGlyph(format.prefix, GlyphRole.PREFIX, 1.0)
+    // Sign first, then the currency prefix: "-$1,234.50".
     addGlyph("-", GlyphRole.DIGIT, signFactor)
+    addGlyph(format.prefix, GlyphRole.PREFIX, 1.0)
     for (power in columns.indices.reversed()) {
       val column = columns[power]
       if (column.width > 0.0) {
@@ -638,9 +644,32 @@ class RollingNumberView(context: Context) : View(context) {
     return width
   }
 
+  /** Formats [targetValue] the way it is displayed, for TalkBack. */
+  private fun accessibleText(): String {
+    val target = makeTarget(targetValue)
+    val sb = StringBuilder()
+    if (target.negative) sb.append('-')
+    sb.append(format.prefix)
+    for (power in target.powerCount - 1 downTo 0) {
+      sb.append(target.digit(power))
+      if (power > format.fractionDigits && (power - format.fractionDigits) % 3 == 0) sb.append(format.groupingSeparator)
+      if (format.fractionDigits > 0 && power == format.fractionDigits) sb.append(format.decimalSeparator)
+    }
+    sb.append(format.suffix)
+    return sb.toString()
+  }
+
+  private fun updateAccessibility() {
+    contentDescription = if (loading) accessibleText() + ", loading" else accessibleText()
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      stateDescription = if (loading) "Loading" else null
+    }
+  }
+
   private fun reportIntrinsicSize(powerCount: Int, negative: Boolean) {
     settledPowerCount = powerCount
     settledNegative = negative
+    updateAccessibility()
     val widthDp = ceil(settledWidth(fonts, powerCount, negative) / density)
     // The reported size is always the full-size one: with shrink-to-fit the view
     // keeps its height and the scaled number is centred inside it when drawing.
@@ -716,6 +745,16 @@ class RollingNumberView(context: Context) : View(context) {
     )
     shimmerPaint.alpha = (dim * 255f).toInt().coerceIn(0, 255)
     canvas.drawRect(-1f, -1f, contentWidth + 1f, fonts.lineHeight + 1f, shimmerPaint)
+  }
+
+  /** True when the user removed animations (Android's animator scale is 0), the equivalent of Reduce Motion. */
+  private fun animationsDisabled(): Boolean {
+    val scale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      ValueAnimator.getDurationScale()
+    } else {
+      android.provider.Settings.Global.getFloat(context.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+    }
+    return scale <= 0f
   }
 
   /** Default glint color: a near-background neutral so the ink "lights up". */
