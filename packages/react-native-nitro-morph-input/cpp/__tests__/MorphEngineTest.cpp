@@ -363,6 +363,34 @@ static void textMatchesBySubsequence() {
   CHECK(near(f->scale, 1) && near(f->opacity, 1));
 }
 
+static void numericTextSlidesLikeAnAmount() {
+  MorphEngine e;
+  e.setTiming(0.4, 3, 0.15);
+  // A phone mask in text mode: every character arrives as Text.
+  e.beginText();
+  for (char c : std::string("(555) 123")) e.addGlyph(static_cast<uint32_t>(c), MorphEngine::Body, MorphEngine::Text, 10, false);
+  e.commitText(9, 0);
+  e.beginText();
+  for (char c : std::string("(555) 123-4")) e.addGlyph(static_cast<uint32_t>(c), MorphEngine::Body, MorphEngine::Text, 10, false);
+  e.commitText(11, 1);
+  const auto* four = liveGlyph(e, '4');
+  const auto* dash = liveGlyph(e, '-');
+  CHECK(four && four->kind == MorphEngine::Digit && near(four->y, -1));   // digits drop in from above
+  CHECK(dash && dash->kind == MorphEngine::Separator && near(dash->y, 1)); // punctuation rises from below
+  CHECK(countExiting(e) == 0);                                              // "(", ")" and the space all persisted
+  // Real text keeps fading.
+  MorphEngine t;
+  t.setTiming(0.4, 3, 0.15);
+  t.beginText();
+  for (char c : std::string("Room 12")) t.addGlyph(static_cast<uint32_t>(c), MorphEngine::Body, MorphEngine::Text, 10, false);
+  t.commitText(7, 0);
+  t.beginText();
+  for (char c : std::string("Room 123")) t.addGlyph(static_cast<uint32_t>(c), MorphEngine::Body, MorphEngine::Text, 10, false);
+  t.commitText(8, 1);
+  const auto* three = liveGlyph(t, '3');
+  CHECK(three && three->kind == MorphEngine::Text && near(three->y, 0) && near(three->scale, 0.95));
+}
+
 static void placeholderNeverPersists() {
   MorphEngine e;
   e.setTiming(0.4, 3, 0.15);
@@ -436,6 +464,7 @@ int main() {
   insertInTheMiddleKeepsBothSides();
   placeMatchingSwapsChangedColumns();
   textMatchesBySubsequence();
+  numericTextSlidesLikeAnAmount();
   placeholderNeverPersists();
   snapsWithoutMotion();
   interruptedEntryLeavesFromWhereItIs();

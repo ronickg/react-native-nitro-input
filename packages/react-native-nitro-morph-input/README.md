@@ -164,6 +164,33 @@ const progress = useSharedValue(0)
 - Everything degrades cleanly: without `react-native-worklets` the props are
   ignored with one console warning, and the native code compiles without it.
 
+A worklet can only reach what it closes over, unless worklets run in
+[Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/),
+which gives them the whole bundle. That is what lets a `transform` use a real
+library, here libphonenumber-js formatting a number as it is typed:
+
+```tsx
+import { AsYouType } from 'libphonenumber-js/min'
+
+const phoneTransform: MorphTransform = ({ text }) => {
+  'worklet'
+  return { text: new AsYouType('US').input(text) }
+}
+
+<MorphInput placeholder="(555) 555-5555" keyboardType="phone-pad" transform={phoneTransform} />
+```
+
+Bundle Mode is `['react-native-worklets/plugin', { bundleMode: true,
+importForwarding: { moduleNames: ['libphonenumber-js/min'] } }]` in
+`babel.config.js` (every library a worklet imports has to be listed by its
+exact module name, or it is captured as a remote function the UI thread
+cannot call), `getBundleModeMetroConfig(config)` from
+`react-native-worklets/bundleMode` in `metro.config.js`, and the small Metro
+patch Software Mansion publishes next to it (the Babel plugin writes worklet
+modules while bundling, and unpatched Metro fails with "Failed to get the
+SHA-1"). The example app in this repo has all three (`example/babel.config.js`,
+`example/metro.config.js`, `patches/`).
+
 This is the same mechanism as [react-native-transformer-text-input](https://github.com/AppAndFlow/react-native-transformer-text-input):
 the worklets UI runtime is handed to native once, the worklet is called with
 `runSync` inside the edit, so there is no bridge hop and no caret flicker.

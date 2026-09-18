@@ -175,10 +175,35 @@ void MorphEngine::snapTo(const std::vector<Input>& inputs) {
   for (const auto& s : slots_) glyphs_.push_back(s.g);
 }
 
+/// Text mode hands every character in as `Text`. A body that is a number in
+/// disguise (a phone number, a date, an amount typed into a plain field: digits
+/// and punctuation, no letters) gets the number treatment instead, so its
+/// digits slide and its separators reflow like a formatted amount's.
+static void classifyNumericBody(std::vector<MorphEngine::Input>& inputs) {
+  bool digits = false;
+  for (const auto& in : inputs) {
+    if (in.role != MorphEngine::Body) continue;
+    if (in.kind != MorphEngine::Text) return;   // already classified (number mode)
+    const uint32_t c = in.character;
+    if (c >= '0' && c <= '9') {
+      digits = true;
+    } else if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c > 0x7f) {
+      return;                                    // real text
+    }
+  }
+  if (!digits) return;
+  for (auto& in : inputs) {
+    if (in.role != MorphEngine::Body) continue;
+    const uint32_t c = in.character;
+    in.kind = (c >= '0' && c <= '9') ? MorphEngine::Digit : MorphEngine::Separator;
+  }
+}
+
 void MorphEngine::commitText(int caretIndex, double now) {
   now_ = now;
   std::vector<Input> inputs;
   inputs.swap(pending_);
+  classifyNumericBody(inputs);
 
   if (!committed_ || duration_ <= 0 || reduceMotion_) {
     snapTo(inputs);
@@ -409,8 +434,29 @@ void MorphEngine::matchByCaret(const std::vector<Input>& inputs, const std::vect
     for (int i = 0; i < static_cast<int>(keptNew.size()); ++i) pairKept(i, i);
   }
 
-  for (size_t k = 1; k <= sepOld.size() && k <= sepNew.size(); ++k) {
-    pairPositions(sepNew[sepNew.size() - k], sepOld[sepOld.size() - k]);
+  // Identical separators (grouping commas) pair from the units end so the
+  // thousands comma stays the thousands comma; a mask's mixed punctuation
+  // ("(555) 123-4567") pairs in order, as a subsequence.
+  bool uniform = true;
+  const auto sepChar = [&](const std::vector<int>& positions, const std::vector<int>& body, size_t i, bool old) {
+    const int index = body[static_cast<size_t>(positions[i])];
+    return old ? slots_[static_cast<size_t>(index)].g.character : inputs[static_cast<size_t>(index)].character;
+  };
+  for (size_t i = 1; i < sepOld.size() && uniform; ++i) uniform = sepChar(sepOld, oldBody, i, true) == sepChar(sepOld, oldBody, 0, true);
+  for (size_t i = 0; i < sepNew.size() && uniform; ++i) uniform = sepOld.empty() || sepChar(sepNew, newBody, i, false) == sepChar(sepOld, oldBody, 0, true);
+  if (uniform) {
+    for (size_t k = 1; k <= sepOld.size() && k <= sepNew.size(); ++k) {
+      pairPositions(sepNew[sepNew.size() - k], sepOld[sepOld.size() - k]);
+    }
+  } else {
+    std::vector<std::pair<int, int>> pairs;
+    lcsPairs(static_cast<int>(sepOld.size()), static_cast<int>(sepNew.size()),
+             [&](int i, int j) {
+               return same(inputs[static_cast<size_t>(newBody[static_cast<size_t>(sepNew[static_cast<size_t>(j)])])],
+                           slots_[static_cast<size_t>(oldBody[static_cast<size_t>(sepOld[static_cast<size_t>(i)])])]);
+             },
+             pairs);
+    for (const auto& [i, j] : pairs) pairPositions(sepNew[static_cast<size_t>(j)], sepOld[static_cast<size_t>(i)]);
   }
 }
 

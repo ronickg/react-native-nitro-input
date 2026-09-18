@@ -20,6 +20,7 @@ import { SkiaNumberFlow } from 'number-flow-react-native/skia'
 import { Canvas, matchFont } from '@shopify/react-native-skia'
 import AnimatedNumbers from 'react-native-animated-numbers'
 import Animated, { useAnimatedStyle, useFrameCallback, useSharedValue } from 'react-native-reanimated'
+import { AsYouType } from 'libphonenumber-js/min'
 
 // React Native exposes performance.now() at runtime; the RN types omit the DOM lib.
 declare const performance: { now(): number }
@@ -424,8 +425,18 @@ const usernameTransform: MorphTransform = ({ text }) => {
   return { text: cleaned ? '@' + cleaned : '' }
 }
 
+// A real library inside the worklet (worklets Bundle Mode): libphonenumber-js
+// formats the number as it is typed, on the UI thread, before a frame is drawn.
+const phoneTransform: MorphTransform = ({ text }) => {
+  'worklet'
+  const formatter = new AsYouType('US')
+  const formatted = formatter.input(text)
+  return { text: formatted }
+}
+
 /** Worklets: a shared value fed from the UI thread on every keystroke, and a JS mask applied before a frame is drawn. */
 function MorphWorkletDemo() {
+  const [phone, setPhone] = useState('')
   const progress = useSharedValue(0)
   const barStyle = useAnimatedStyle(() => ({ width: `${Math.min(100, progress.value)}%` }))
   const onChangeValue = (value: number) => {
@@ -433,7 +444,7 @@ function MorphWorkletDemo() {
     progress.value = Number.isNaN(value) ? 0 : value / 10
   }
   return (
-    <Section title="Worklets" hint="onChangeValue is a worklet: it writes a shared value on the UI thread, no JS in between. The username field's transform worklet masks the text before it is drawn.">
+    <Section title="Worklets" hint="onChangeValue is a worklet: it writes a shared value on the UI thread, no JS in between. The username field's transform worklet masks the text before it is drawn; the phone field's transform runs libphonenumber-js inside the worklet (Bundle Mode).">
       <MorphInput
         testID="morph-worklet-amount"
         mode="number"
@@ -459,6 +470,18 @@ function MorphWorkletDemo() {
           transform={usernameTransform}
         />
       </View>
+      <View style={styles.morphTextBox}>
+        <MorphInput
+          testID="morph-worklet-phone"
+          placeholder="(555) 555-5555"
+          fontSize={22}
+          style={styles.morphText}
+          keyboardType="phone-pad"
+          transform={phoneTransform}
+          onChangeText={setPhone}
+        />
+      </View>
+      <Text style={styles.morphReadout} testID="morph-worklet-phone-readout">phone "{phone}"</Text>
     </Section>
   )
 }

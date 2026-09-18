@@ -12,6 +12,7 @@
   "dependencies": {
     "@react-native/new-app-screen": "0.87.1",
     "@shopify/react-native-skia": "2.12.0",
+    "libphonenumber-js": "^1.13.13",
     "number-flow-react-native": "0.5.1",
     "react": "19.2.3",
     "react-native": "0.87.1",

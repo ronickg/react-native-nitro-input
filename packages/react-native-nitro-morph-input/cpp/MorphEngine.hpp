@@ -67,6 +67,15 @@ public:
     bool exiting;
   };
 
+  /// One glyph of a pending text (see `addGlyph`).
+  struct Input {
+    uint32_t character;
+    int role;
+    int kind;
+    double width;
+    bool placeholder;
+  };
+
   MorphEngine();
 
   // MARK: Configuration
@@ -130,13 +139,6 @@ private:
     bool slide = false;
   };
 
-  struct Input {
-    uint32_t character;
-    int role;
-    int kind;
-    double width;
-    bool placeholder;
-  };
 
   double ease(double t) const;
   bool slides(int kind) const;

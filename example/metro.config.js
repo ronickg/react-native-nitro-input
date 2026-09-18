@@ -1,4 +1,5 @@
 const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
+const { getBundleModeMetroConfig } = require('react-native-worklets/bundleMode');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
@@ -19,4 +20,5 @@ const config = {
   },
 };
 
-module.exports = mergeConfig(getDefaultConfig(__dirname), config);
+// Worklets Bundle Mode wraps the final config (module ids, resolver shims, inline requires).
+module.exports = getBundleModeMetroConfig(mergeConfig(getDefaultConfig(__dirname), config));
