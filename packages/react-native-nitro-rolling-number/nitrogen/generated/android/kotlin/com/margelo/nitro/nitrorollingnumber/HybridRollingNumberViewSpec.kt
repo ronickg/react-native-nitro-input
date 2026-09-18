@@ -103,6 +103,48 @@ abstract class HybridRollingNumberViewSpec: HybridView() {
   @get:Keep
   @set:DoNotStrip
   @set:Keep
+  abstract var reveal: Boolean?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var revealStyle: RollingNumberRevealStyle?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var revealDuration: Double?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var revealBounce: Double?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var revealStagger: Double?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var revealMilestones: DoubleArray?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var revealMilestoneHold: Double?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
   abstract var loading: Boolean?
   
   @get:DoNotStrip
@@ -214,6 +256,34 @@ abstract class HybridRollingNumberViewSpec: HybridView() {
     set(value) {
       onSizeChange = value?.let { it }
     }
+  
+  abstract var onRevealEnd: (() -> Unit)?
+  
+  private var onRevealEnd_cxx: Func_void?
+    @Keep
+    @DoNotStrip
+    get() {
+      return onRevealEnd?.let { Func_void_java(it) }
+    }
+    @Keep
+    @DoNotStrip
+    set(value) {
+      onRevealEnd = value?.let { it }
+    }
+  
+  abstract var onRevealMilestone: ((index: Double, value: Double) -> Unit)?
+  
+  private var onRevealMilestone_cxx: Func_void_double_double?
+    @Keep
+    @DoNotStrip
+    get() {
+      return onRevealMilestone?.let { Func_void_double_double_java(it) }
+    }
+    @Keep
+    @DoNotStrip
+    set(value) {
+      onRevealMilestone = value?.let { it }
+    }
 
   // Methods
   @DoNotStrip
@@ -223,6 +293,10 @@ abstract class HybridRollingNumberViewSpec: HybridView() {
   @DoNotStrip
   @Keep
   abstract fun animateTo(value: Double): Unit
+  
+  @DoNotStrip
+  @Keep
+  abstract fun revealTo(value: Double): Unit
 
   // Default implementation of `HybridObject.toString()`
   override fun toString(): String {

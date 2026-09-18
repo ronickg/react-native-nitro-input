@@ -1,0 +1,136 @@
+.hero {
+  padding: 4rem 0 3rem;
+  text-align: center;
+  background: var(--rn-hero-bg);
+}
+
+.title {
+  font-size: 3rem;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+}
+
+.tagline {
+  font-size: 1.15rem;
+  opacity: 0.8;
+  max-width: 640px;
+  margin: 0 auto 1.5rem;
+}
+
+.heroNote {
+  font-size: 0.85rem;
+  opacity: 0.6;
+  margin: 1rem 0 1.5rem;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.section {
+  padding: 3.5rem 0;
+}
+
+.alt {
+  background: var(--ifm-background-surface-color);
+}
+
+.center {
+  text-align: center;
+}
+
+.muted {
+  opacity: 0.8;
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.feature {
+  background: var(--rn-card-bg);
+  border: 1px solid var(--rn-card-border);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.feature h3 {
+  font-size: 1.05rem;
+  margin-bottom: 0.4rem;
+}
+
+.feature p {
+  margin: 0;
+  font-size: 0.95rem;
+  opacity: 0.85;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+  .title {
+    font-size: 2.2rem;
+  }
+}
+
+.benchGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin: 1.5rem 0;
+}
+
+.bench {
+  background: var(--rn-card-bg);
+  border: 1px solid var(--rn-card-border);
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
+}
+
+.benchHighlight {
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 0 0 1px var(--ifm-color-primary) inset;
+}
+
+.benchName {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.benchNumbers {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  font-size: 1.4rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.benchNumbers small {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.benchNote {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  margin-top: 8px;
+}

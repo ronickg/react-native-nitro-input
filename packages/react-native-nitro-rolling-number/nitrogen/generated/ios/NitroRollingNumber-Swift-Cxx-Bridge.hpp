@@ -16,6 +16,8 @@ namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberAffixAlig
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberDirection; }
 // Forward declaration of `RollingNumberEasing` to properly resolve imports.
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberEasing; }
+// Forward declaration of `RollingNumberRevealStyle` to properly resolve imports.
+namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberRevealStyle; }
 // Forward declaration of `RollingNumberTextAlign` to properly resolve imports.
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberTextAlign; }
 
@@ -28,6 +30,7 @@ namespace NitroRollingNumber { class HybridRollingNumberViewSpec_cxx; }
 #include "RollingNumberAffixAlign.hpp"
 #include "RollingNumberDirection.hpp"
 #include "RollingNumberEasing.hpp"
+#include "RollingNumberRevealStyle.hpp"
 #include "RollingNumberTextAlign.hpp"
 #include <NitroModules/Result.hpp>
 #include <exception>
@@ -35,6 +38,7 @@ namespace NitroRollingNumber { class HybridRollingNumberViewSpec_cxx; }
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 /**
  * Contains specialized versions of C++ templated types so they can be accessed from Swift,
@@ -117,6 +121,47 @@ namespace margelo::nitro::nitrorollingnumber::bridge::swift {
     return optional.value();
   }
   
+  // pragma MARK: std::optional<RollingNumberRevealStyle>
+  /**
+   * Specialized version of `std::optional<RollingNumberRevealStyle>`.
+   */
+  using std__optional_RollingNumberRevealStyle_ = std::optional<RollingNumberRevealStyle>;
+  inline std::optional<RollingNumberRevealStyle> create_std__optional_RollingNumberRevealStyle_(const RollingNumberRevealStyle& value) noexcept {
+    return std::optional<RollingNumberRevealStyle>(value);
+  }
+  inline bool has_value_std__optional_RollingNumberRevealStyle_(const std::optional<RollingNumberRevealStyle>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline RollingNumberRevealStyle get_std__optional_RollingNumberRevealStyle_(const std::optional<RollingNumberRevealStyle>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::vector<double>
+  /**
+   * Specialized version of `std::vector<double>`.
+   */
+  using std__vector_double_ = std::vector<double>;
+  inline std::vector<double> create_std__vector_double_(size_t size) noexcept {
+    std::vector<double> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::optional<std::vector<double>>
+  /**
+   * Specialized version of `std::optional<std::vector<double>>`.
+   */
+  using std__optional_std__vector_double__ = std::optional<std::vector<double>>;
+  inline std::optional<std::vector<double>> create_std__optional_std__vector_double__(const std::vector<double>& value) noexcept {
+    return std::optional<std::vector<double>>(value);
+  }
+  inline bool has_value_std__optional_std__vector_double__(const std::optional<std::vector<double>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::vector<double> get_std__optional_std__vector_double__(const std::optional<std::vector<double>>& optional) noexcept {
+    return optional.value();
+  }
+  
   // pragma MARK: std::optional<RollingNumberAffixAlign>
   /**
    * Specialized version of `std::optional<RollingNumberAffixAlign>`.
@@ -181,6 +226,58 @@ namespace margelo::nitro::nitrorollingnumber::bridge::swift {
     return optional.has_value();
   }
   inline std::function<void(double /* width */, double /* height */)> get_std__optional_std__function_void_double____width_____double____height______(const std::optional<std::function<void(double /* width */, double /* height */)>>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::function<void()>
+  /**
+   * Specialized version of `std::function<void()>`.
+   */
+  using Func_void = std::function<void()>;
+  /**
+   * Wrapper class for a `std::function<void()>`, this can be used from Swift.
+   */
+  class Func_void_Wrapper final {
+  public:
+    explicit Func_void_Wrapper(std::function<void()>&& func): _function(std::make_unique<std::function<void()>>(std::move(func))) {}
+    inline void call() const noexcept {
+      _function->operator()();
+    }
+  private:
+    std::unique_ptr<std::function<void()>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void create_Func_void(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_Wrapper wrap_Func_void(Func_void value) noexcept {
+    return Func_void_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::optional<std::function<void()>>
+  /**
+   * Specialized version of `std::optional<std::function<void()>>`.
+   */
+  using std__optional_std__function_void____ = std::optional<std::function<void()>>;
+  inline std::optional<std::function<void()>> create_std__optional_std__function_void____(const std::function<void()>& value) noexcept {
+    return std::optional<std::function<void()>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void____(const std::optional<std::function<void()>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void()> get_std__optional_std__function_void____(const std::optional<std::function<void()>>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::optional<std::function<void(double /* index */, double /* value */)>>
+  /**
+   * Specialized version of `std::optional<std::function<void(double / * index * /, double / * value * /)>>`.
+   */
+  using std__optional_std__function_void_double____index_____double____value______ = std::optional<std::function<void(double /* index */, double /* value */)>>;
+  inline std::optional<std::function<void(double /* index */, double /* value */)>> create_std__optional_std__function_void_double____index_____double____value______(const std::function<void(double /* index */, double /* value */)>& value) noexcept {
+    return std::optional<std::function<void(double /* index */, double /* value */)>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void_double____index_____double____value______(const std::optional<std::function<void(double /* index */, double /* value */)>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void(double /* index */, double /* value */)> get_std__optional_std__function_void_double____index_____double____value______(const std::optional<std::function<void(double /* index */, double /* value */)>>& optional) noexcept {
     return optional.value();
   }
   

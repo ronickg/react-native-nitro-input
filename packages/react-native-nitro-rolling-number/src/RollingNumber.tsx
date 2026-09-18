@@ -23,6 +23,7 @@ import type {
   RollingNumberEasing,
   RollingNumberMethods,
   RollingNumberProps as NativeRollingNumberProps,
+  RollingNumberRevealStyle,
   RollingNumberTextAlign,
 } from './specs/RollingNumber.nitro'
 
@@ -72,6 +73,44 @@ export interface RollingNumberProps extends Omit<ViewProps, 'children'> {
   stagger?: number
   /** Which way the digits roll. `'auto'` follows the sign of the change. Default: `'auto'`. */
   direction?: RollingNumberDirection
+  /**
+   * Jackpot reveal, the casino "you won" presentation. While `false` the view
+   * holds the opening frame of `value` ("$0.00": its layout, every digit blank
+   * except the mandatory ones); when it turns `true` the figure plays its
+   * `revealStyle` to `value` and lands with a pop. Pair it with
+   * `textAlign="center"` for a centred hero figure. Leave it `undefined` for
+   * a normal rolling number. To let the user skip the reveal, call `jumpTo(value)`.
+   */
+  reveal?: boolean
+  /**
+   * `'count'` (default) is the win-meter rollup: the figure counts up from 0
+   * in one decelerating sweep, exponential in value so tens, hundreds and
+   * thousands each get the same screen time, digits swapping in place and
+   * leading digits appearing as the count reaches them. `'spin'` is the
+   * jackpot reels: every digit spins like a slot reel, then the reels brake
+   * and lock one at a time from the left, each with a mechanical bounce.
+   */
+  revealStyle?: RollingNumberRevealStyle
+  /** Duration of the reveal in ms (the count, or the time until the last reel locks). Default: `2200`. */
+  revealDuration?: number
+  /** Peak overshoot of the reveal's landing pop, `0` (none) to `1`. Default: `0.07`. */
+  revealBounce?: number
+  /** `'spin'` style: ms between one reel locking and the next, shortened to fit `revealDuration`. Default: `200`. */
+  revealStagger?: number
+  /**
+   * `'count'` style: the win tiers of a casino rollup ("Big win" → "Mega win"
+   * → "Epic win"), in the figure's units. When the count reaches one, the
+   * figure punches, pauses on it for `revealMilestoneHold` and
+   * `onRevealMilestone` fires, so the app can slam its banner in, fire the
+   * confetti and play the sting on that beat. Values at or above `value` are ignored.
+   */
+  revealMilestones?: number[]
+  /** `'count'` style: ms the count pauses on each milestone (the banner's moment). Default: `0`. */
+  revealMilestoneHold?: number
+  /** Called once a reveal has landed (count finished or last reel locked, and the pop rung out). */
+  onRevealEnd?: () => void
+  /** Called when the count reaches a milestone: its index among the usable milestones and its value. */
+  onRevealMilestone?: (index: number, value: number) => void
   /**
    * Loading glint: the ink keeps its color while a slanted, text-wide band of
    * `shimmerColor` sweeps through the glyphs (a "shine" skeleton). Toggling
@@ -141,6 +180,8 @@ export interface RollingNumberHandle {
   jumpTo(value: number): void
   /** Rolls to `value` natively, exactly like changing the `value` prop. */
   animateTo(value: number): void
+  /** Plays a jackpot reveal to `value` (counts up from 0), whatever the `reveal` prop says. */
+  revealTo(value: number): void
   /** The value currently shown or being rolled towards. */
   getValue(): number
   /** The native Nitro object, or `null` before mount. */
@@ -205,6 +246,15 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
       bounce,
       stagger,
       direction,
+      reveal,
+      revealStyle,
+      revealDuration,
+      revealBounce,
+      revealStagger,
+      revealMilestones,
+      revealMilestoneHold,
+      onRevealEnd,
+      onRevealMilestone,
       loading,
       shimmerColor,
       shimmerDuration,
@@ -231,6 +281,10 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
     const nativeRef = useRef<RollingNumberRef | null>(null)
     const latestOnNativeRef = useRef(onNativeRef)
     latestOnNativeRef.current = onNativeRef
+    const latestOnRevealEnd = useRef(onRevealEnd)
+    latestOnRevealEnd.current = onRevealEnd
+    const latestOnRevealMilestone = useRef(onRevealMilestone)
+    latestOnRevealMilestone.current = onRevealMilestone
 
     const [size, setSize] = useState<Size | null>(null)
 
@@ -258,11 +312,36 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
       []
     )
 
+    // Stable like the others; the latest handler is read through a ref so a
+    // caller passing an inline arrow doesn't re-set the native prop each render.
+    const onRevealEndCallback = useMemo(
+      () =>
+        callback(() => {
+          latestOnRevealEnd.current?.()
+        }),
+      []
+    )
+    const onRevealMilestoneCallback = useMemo(
+      () =>
+        callback((index: number, milestone: number) => {
+          latestOnRevealMilestone.current?.(index, milestone)
+        }),
+      []
+    )
+    // A new array literal each render must not re-set the native prop.
+    const milestonesKey = revealMilestones?.join(',')
+    const stableMilestones = useMemo(
+      () => (revealMilestones ? [...revealMilestones] : undefined),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [milestonesKey]
+    )
+
     useImperativeHandle(
       ref,
       () => ({
         jumpTo: (next) => nativeRef.current?.jumpTo(next),
         animateTo: (next) => nativeRef.current?.animateTo(next),
+        revealTo: (next) => nativeRef.current?.revealTo(next),
         getValue: () => nativeRef.current?.value ?? value,
         get native() {
           return nativeRef.current
@@ -303,6 +382,15 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
         bounce={bounce}
         stagger={stagger}
         direction={direction}
+        reveal={reveal}
+        revealStyle={revealStyle}
+        revealDuration={revealDuration}
+        revealBounce={revealBounce}
+        revealStagger={revealStagger}
+        revealMilestones={stableMilestones}
+        revealMilestoneHold={revealMilestoneHold}
+        onRevealEnd={onRevealEnd === undefined ? undefined : onRevealEndCallback}
+        onRevealMilestone={onRevealMilestone === undefined ? undefined : onRevealMilestoneCallback}
         loading={loading}
         shimmerColor={processedShimmerColor}
         shimmerDuration={shimmerDuration}

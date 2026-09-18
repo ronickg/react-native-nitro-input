@@ -24,11 +24,18 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
   private var isBatching = false
   private var pendingValue: Double? = null
   private var configDirty = true
+  /**
+   * The `reveal` prop as last applied: null = normal rolling, false = held at
+   * the opening frame, true = the count has been fired.
+   */
+  private var appliedReveal: Boolean? = null
 
   init {
     rollingView.onIntrinsicSizeChange = { width, height ->
       onSizeChange?.invoke(width.toDouble(), height.toDouble())
     }
+    rollingView.onRevealEnd = { onRevealEnd?.invoke() }
+    rollingView.onRevealMilestone = { index, milestone -> onRevealMilestone?.invoke(index.toDouble(), milestone) }
   }
 
   // region Props
@@ -61,6 +68,22 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
     set(v) { field = v; markConfigDirty() }
   override var direction: RollingNumberDirection? = null
     set(v) { field = v; markConfigDirty() }
+  override var reveal: Boolean? = null
+    set(v) { field = v; commitIfNeeded() }
+  override var revealStyle: RollingNumberRevealStyle? = null
+    set(v) { field = v; markConfigDirty() }
+  override var revealDuration: Double? = null
+    set(v) { field = v; markConfigDirty() }
+  override var revealBounce: Double? = null
+    set(v) { field = v; markConfigDirty() }
+  override var revealStagger: Double? = null
+    set(v) { field = v; markConfigDirty() }
+  override var revealMilestones: DoubleArray? = null
+    set(v) { field = v; markConfigDirty() }
+  override var revealMilestoneHold: Double? = null
+    set(v) { field = v; markConfigDirty() }
+  override var onRevealEnd: (() -> Unit)? = null
+  override var onRevealMilestone: ((index: Double, value: Double) -> Unit)? = null
   override var loading: Boolean? = null
     set(v) { field = v; markConfigDirty() }
   override var shimmerColor: Double? = null
@@ -109,9 +132,12 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
 
   override fun animateTo(value: Double) = enqueue(Command.Animate(value))
 
+  override fun revealTo(value: Double) = enqueue(Command.Reveal(value))
+
   private sealed class Command {
     class Jump(val value: Double) : Command()
     class Animate(val value: Double) : Command()
+    class Reveal(val value: Double) : Command()
   }
 
   private val commandLock = Any()
@@ -147,6 +173,11 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
     when (command) {
       is Command.Jump -> rollingView.setValue(command.value)
       is Command.Animate -> rollingView.animateTo(command.value)
+      is Command.Reveal -> {
+        rollingView.reveal(command.value)
+        // The prop machine treats the count as fired, so a later `reveal={true}` doesn't replay it.
+        if (reveal != null) appliedReveal = true
+      }
     }
   }
 
@@ -186,6 +217,16 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
     bounce = null
     stagger = null
     direction = null
+    reveal = null
+    revealStyle = null
+    revealDuration = null
+    revealBounce = null
+    revealStagger = null
+    revealMilestones = null
+    revealMilestoneHold = null
+    onRevealEnd = null
+    onRevealMilestone = null
+    appliedReveal = null
     loading = null
     shimmerColor = null
     shimmerDuration = null
@@ -225,11 +266,27 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
   private fun commit() {
     onMain {
       flushConfigIfNeeded()
-      val value = pendingValue
-      if (value != null) {
-        pendingValue = null
-        rollingView.animateTo(value)
+      val changed = pendingValue
+      pendingValue = null
+      val value = changed ?: rollingView.targetValue
+      val reveal = this.reveal
+      if (reveal == null) {
+        // Normal rolling number (also when leaving reveal mode).
+        appliedReveal = null
+        if (changed != null) rollingView.animateTo(changed)
+        return@onMain
       }
+      if (!reveal) {
+        // Hold the opening frame; re-hold when the figure or the mode changed.
+        if (changed != null || appliedReveal != false) rollingView.holdReveal(value)
+      } else if (appliedReveal != true) {
+        // `reveal` just turned true (or the view mounted with it true): fire the count.
+        rollingView.reveal(value)
+      } else if (changed != null) {
+        // A new figure after the count was fired: re-target a running count, roll a landed one.
+        if (rollingView.isRevealing) rollingView.reveal(changed) else rollingView.animateTo(changed)
+      }
+      appliedReveal = reveal
     }
   }
 
@@ -275,7 +332,16 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
         RollingNumberDirection.DOWN -> RollingNumberView.Direction.DOWN
         RollingNumberDirection.AUTO, null -> RollingNumberView.Direction.AUTO
       },
+      revealDurationMs = Math.max(0.0, revealDuration ?: 2200.0).toLong(),
+      revealBounce = (revealBounce ?: 0.07).coerceIn(0.0, 1.0),
+      revealStyle = when (revealStyle) {
+        RollingNumberRevealStyle.SPIN -> RollingNumberView.RevealStyle.SPIN
+        RollingNumberRevealStyle.COUNT, null -> RollingNumberView.RevealStyle.COUNT
+      },
+      revealStaggerMs = Math.max(0.0, revealStagger ?: 200.0).toLong(),
+      revealMilestoneHoldMs = Math.max(0.0, revealMilestoneHold ?: 0.0).toLong(),
     )
+    rollingView.revealMilestones = revealMilestones ?: DoubleArray(0)
     rollingView.shimmer = RollingNumberView.Shimmer(
       color = shimmerColor?.let { colorFromARGB(it) },
       durationMs = Math.max(200.0, shimmerDuration ?: 950.0).toLong(),

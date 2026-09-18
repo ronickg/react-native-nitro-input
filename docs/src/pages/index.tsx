@@ -1,0 +1,184 @@
+import type {ReactNode} from 'react';
+import clsx from 'clsx';
+import Link from '@docusaurus/Link';
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
+import Layout from '@theme/Layout';
+import Heading from '@theme/Heading';
+import CodeBlock from '@theme/CodeBlock';
+import HeroNumber from '@site/src/components/Hero/HeroNumber';
+import Phones from '@site/src/components/Phones/Phones';
+import {Frame, RevealDemo} from '@site/src/components/Demo/Demo';
+
+import styles from './index.module.css';
+
+const USAGE = `import { RollingNumber } from 'react-native-nitro-rolling-number'
+
+<RollingNumber
+  value={balance}
+  fractionDigits={2}
+  groupingSeparator=","
+  prefix="$"
+  fontSize={48}
+  fontWeight="800"
+  easing="spring"
+  stagger={30}
+/>`;
+
+const FEATURES: {title: string; body: ReactNode}[] = [
+  {
+    title: 'Native on both platforms',
+    body: 'One C++ engine drives a CALayer renderer on iOS and a Canvas renderer on Android. The JS thread sends a value once; the roll never waits for it.',
+  },
+  {
+    title: 'Every digit is a wheel',
+    body: 'Digits roll the short way in the direction of the change, columns slide in and out as the number grows, with easing, spring or a cascading stagger.',
+  },
+  {
+    title: 'Money-ready formatting',
+    body: 'Fraction digits, grouping and decimal separators, a currency symbol or code at its own size pinned to the top or bottom of the digits, zero padding, negatives.',
+  },
+  {
+    title: 'Fits the box it is given',
+    body: 'Auto-sizes to its content, or shrinks continuously to fit a fixed width without ever squeezing digits that are still rolling.',
+  },
+  {
+    title: 'Jackpot reveal',
+    body: 'The casino win-meter rollup and the slot-reel reveal, with tiers that punch and hold, all native. Built for “you won” moments.',
+  },
+  {
+    title: 'Loading, accessible, recyclable',
+    body: 'A text-shaped shimmer while the value loads, VoiceOver and TalkBack read the formatted amount, Reduce Motion snaps, and Fabric can recycle it in long lists.',
+  },
+];
+
+function Hero() {
+  const {siteConfig} = useDocusaurusContext();
+  return (
+    <header className={clsx('hero', styles.hero)}>
+      <div className="container">
+        <Heading as="h1" className={styles.title}>
+          Nitro Rolling Number
+        </Heading>
+        <p className={styles.tagline}>{siteConfig.tagline}</p>
+        <HeroNumber />
+        <p className={styles.heroNote}>
+          Live: the same C++ engine that runs on your phone, compiled to WebAssembly.
+        </p>
+        <div className={styles.buttons}>
+          <Link className="button button--primary button--lg" to="/docs/getting-started">
+            Get started
+          </Link>
+          <Link className="button button--secondary button--lg" to="/docs/reveal">
+            Jackpot reveal
+          </Link>
+          <Link className="button button--secondary button--lg" to="/docs/benchmarks">
+            Benchmarks
+          </Link>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+export default function Home(): ReactNode {
+  return (
+    <Layout title="Native rolling numbers for React Native" description="A native rolling number (odometer / ticker) view for React Native, built with Nitro Modules. One C++ engine, iOS and Android.">
+      <Hero />
+      <main>
+        <section className={styles.section}>
+          <div className="container">
+            <div className={styles.features}>
+              {FEATURES.map((f) => (
+                <div key={f.title} className={styles.feature}>
+                  <Heading as="h3">{f.title}</Heading>
+                  <p>{f.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className={clsx(styles.section, styles.alt)}>
+          <div className="container">
+            <Heading as="h2" className={styles.center}>
+              Running on iOS and Android
+            </Heading>
+            <p className={clsx(styles.center, styles.muted)}>
+              The example app, recorded on an iPhone 17 Pro simulator and a Pixel 9 Pro emulator. Same JavaScript, same engine.
+            </p>
+            <Phones ios="/video/ios-rolling.mp4" android="/video/android-rolling.mp4" caption="Value changes roll natively: shortest path per digit, columns appearing and disappearing, currency layouts, shrink-to-fit and the loading shimmer." />
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <div className="container">
+            <div className={styles.split}>
+              <div>
+                <Heading as="h2">One prop, one JSI call</Heading>
+                <p className={styles.muted}>
+                  Change <code>value</code> and the digits roll. The value crosses the bridge once as a plain number; everything from there is native, so a busy JS thread never delays the animation in flight, the shimmer or the shrink-to-fit scaling.
+                </p>
+                <p className={styles.muted}>
+                  Need to drive it every frame? <code>jumpTo</code> positions the wheels continuously and coalesces to the newest value per frame.
+                </p>
+              </div>
+              <CodeBlock language="tsx">{USAGE}</CodeBlock>
+            </div>
+          </div>
+        </section>
+
+        <section className={clsx(styles.section, styles.alt)}>
+          <div className="container">
+            <Heading as="h2" className={styles.center}>
+              The jackpot reveal
+            </Heading>
+            <p className={clsx(styles.center, styles.muted)}>
+              The casino win presentation: a count that opens at zero and rolls itself up tier by tier, or reels that spin and lock from the left, landing with a pop. All native.
+            </p>
+            <Frame>
+              <RevealDemo milestones />
+            </Frame>
+            <Phones ios="/video/ios-reveal.mp4" android="/video/android-reveal.mp4" caption="The count and spin styles on both platforms." />
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <div className="container">
+            <Heading as="h2" className={styles.center}>
+              Twenty-four numbers, every frame, still 60 fps
+            </Heading>
+            <p className={clsx(styles.center, styles.muted)}>
+              Release builds, 24 copies fed a new value on every frame. UI-thread frame rate from a Reanimated frame callback.
+            </p>
+            <div className={styles.benchGrid}>
+              <Bench name="Nitro Rolling Number" ios="120 fps" android="60 fps" note="0 dropped frames on both" highlight />
+              <Bench name="NumberFlow (View)" ios="35 fps" android="33 fps" note="JS thread at 2–6 fps" />
+              <Bench name="NumberFlow (Skia)" ios="95 fps" android="59 fps" note="JS thread at 1–28 fps" />
+              <Bench name="AnimatedNumbers" ios="114 fps" android="56 fps" note="JS thread at 12–14 fps" />
+            </div>
+            <p className={clsx(styles.center, styles.muted)}>
+              iPhone 13 Pro Max (120 Hz) and Pixel 10. <Link to="/docs/benchmarks">Method and full tables</Link>.
+            </p>
+          </div>
+        </section>
+      </main>
+    </Layout>
+  );
+}
+
+function Bench({name, ios, android, note, highlight}: {name: string; ios: string; android: string; note: string; highlight?: boolean}) {
+  return (
+    <div className={clsx(styles.bench, highlight && styles.benchHighlight)}>
+      <div className={styles.benchName}>{name}</div>
+      <div className={styles.benchNumbers}>
+        <span>
+          <small>iOS</small> {ios}
+        </span>
+        <span>
+          <small>Android</small> {android}
+        </span>
+      </div>
+      <div className={styles.benchNote}>{note}</div>
+    </div>
+  );
+}

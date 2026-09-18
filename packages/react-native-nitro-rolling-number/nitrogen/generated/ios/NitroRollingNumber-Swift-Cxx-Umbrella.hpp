@@ -16,6 +16,8 @@ namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberAffixAlig
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberDirection; }
 // Forward declaration of `RollingNumberEasing` to properly resolve imports.
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberEasing; }
+// Forward declaration of `RollingNumberRevealStyle` to properly resolve imports.
+namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberRevealStyle; }
 // Forward declaration of `RollingNumberTextAlign` to properly resolve imports.
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberTextAlign; }
 
@@ -24,6 +26,7 @@ namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberTextAlign
 #include "RollingNumberAffixAlign.hpp"
 #include "RollingNumberDirection.hpp"
 #include "RollingNumberEasing.hpp"
+#include "RollingNumberRevealStyle.hpp"
 #include "RollingNumberTextAlign.hpp"
 #include <NitroModules/Result.hpp>
 #include <exception>
@@ -31,6 +34,7 @@ namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberTextAlign
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 // C++ helpers for Swift
 #include "NitroRollingNumber-Swift-Cxx-Bridge.hpp"

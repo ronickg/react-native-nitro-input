@@ -19,6 +19,14 @@ export type RollingNumberEasing =
 export type RollingNumberDirection = 'auto' | 'up' | 'down'
 
 /**
+ * How a jackpot reveal plays: `'count'` is the casino win-meter rollup (the
+ * figure counts up from 0, digits swapping in place); `'spin'` is the jackpot
+ * reels (every digit spins like a slot reel, then the reels lock one at a
+ * time from the left).
+ */
+export type RollingNumberRevealStyle = 'count' | 'spin'
+
+/**
  * How a prefix/suffix drawn at a different size lines up with the digits:
  * `top` pins glyph tops (cap height), `bottom` pins the bottom of the line
  * boxes, `baseline` shares the digits' baseline, `center` centres the boxes.
@@ -65,6 +73,33 @@ export interface RollingNumberProps extends HybridViewProps {
   stagger?: number
   /** Which way the digits roll. Default: `'auto'`. */
   direction?: RollingNumberDirection
+  /**
+   * Jackpot reveal. While `false` the view shows the opening frame of `value`:
+   * its layout with every digit blank except the mandatory ones ("$0.00").
+   * When it turns `true` the figure plays its `revealStyle` (counts up from 0,
+   * or spins its reels) to `value` and lands with a pop. `undefined` (the
+   * default) disables the reveal: `value` changes roll.
+   */
+  reveal?: boolean
+  /** How the reveal plays. Default: `'count'`. */
+  revealStyle?: RollingNumberRevealStyle
+  /** Duration of the reveal in ms (the count, or the time until the last reel locks). Default: `2200`. */
+  revealDuration?: number
+  /** Peak overshoot of the reveal's landing pop, `0` (none) to `1`. Default: `0.07`. */
+  revealBounce?: number
+  /**
+   * `'spin'` style: delay in ms between one reel locking and the next, from
+   * the left. Shortened automatically when the reels wouldn't fit `revealDuration`. Default: `200`.
+   */
+  revealStagger?: number
+  /**
+   * `'count'` style: win tiers, in the figure's units. When the count reaches
+   * one the figure punches, pauses on it for `revealMilestoneHold` and
+   * `onRevealMilestone` fires. Values at or above `value` are ignored.
+   */
+  revealMilestones?: number[]
+  /** `'count'` style: ms the count pauses on each milestone. Default: `0`. */
+  revealMilestoneHold?: number
   /**
    * Shows a "shine" glint over the number: the ink keeps its color while a
    * slanted, text-wide band of `shimmerColor` sweeps through the glyphs.
@@ -118,6 +153,18 @@ export interface RollingNumberProps extends HybridViewProps {
    * when the font changes. `RollingNumber` uses this to size itself.
    */
   onSizeChange?: (width: number, height: number) => void
+  /**
+   * Called when a reveal has landed: the count reached `value` and the landing
+   * pop has rung out. Sequence whatever follows the figure (a haptic, the next
+   * block of copy) from here.
+   */
+  onRevealEnd?: () => void
+  /**
+   * Called when a count-style reveal reaches a milestone, with its index in
+   * the sorted usable milestones and its value: the moment to swap the win
+   * banner, fire the confetti and play the sting.
+   */
+  onRevealMilestone?: (index: number, value: number) => void
 }
 
 export interface RollingNumberMethods extends HybridViewMethods {
@@ -130,6 +177,11 @@ export interface RollingNumberMethods extends HybridViewMethods {
   jumpTo(value: number): void
   /** Rolls to `value` natively, exactly like changing the `value` prop. Safe to call from any thread. */
   animateTo(value: number): void
+  /**
+   * Plays a jackpot reveal to `value` in the current `revealStyle` (see the
+   * `reveal` prop) regardless of the prop's state. Safe to call from any thread.
+   */
+  revealTo(value: number): void
 }
 
 export type RollingNumberView = HybridView<

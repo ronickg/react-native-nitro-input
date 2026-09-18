@@ -9,6 +9,7 @@ export type {
   RollingNumberAffixAlign,
   RollingNumberDirection,
   RollingNumberEasing,
+  RollingNumberRevealStyle,
   RollingNumberTextAlign,
   RollingNumberMethods,
   RollingNumberProps as NativeRollingNumberProps,

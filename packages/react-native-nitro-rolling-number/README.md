@@ -13,7 +13,11 @@ same look on iOS **and** Android.
   the layout widens), and the view auto-sizes to its content.
 - `adjustsFontSizeToFit` keeps a fixed box and scales the amount to fit.
 - `loading` shows a text-shaped shimmer skeleton that cross-fades to the value.
+- `reveal` plays the casino "you won" presentation natively: the win-meter
+  rollup (with tiers that punch and hold) or slot reels that lock from the left.
 - Fabric only (new architecture), React Native ≥ 0.78, Nitro Modules ≥ 0.37.
+
+Docs, live demos and benchmarks: **https://ronickg.github.io/react-native-nitro-rolling-number/**
 
 ## Install
 
@@ -83,6 +87,34 @@ text-shaped, so the layout is exactly what the real number will occupy. When
 the value arrives, flip `loading` off and set `value` in the same render: the
 glint fades out while the digits roll to the amount.
 
+### Jackpot reveal
+
+```tsx
+const [reveal, setReveal] = useState(false)
+
+<RollingNumber
+  value={50000}
+  reveal={reveal}                      // false: hold "$0.00" in the final layout; true: play
+  revealStyle="count"                  // the win-meter rollup, or "spin" for slot reels
+  revealMilestones={[1000, 10000, 25000]}
+  revealMilestoneHold={350}
+  onRevealMilestone={(index, at) => haptics.impact()}
+  onRevealEnd={() => setShowNextStep(true)}
+  prefix="$" fractionDigits={2} groupingSeparator="," textAlign="center" style={{ width: '100%' }}
+/>
+```
+
+`count` opens at 0 and counts itself up in one decelerating sweep, exponential
+in value so tens, hundreds and thousands each get the same screen time; digits
+swap in place and leading digits appear as the count reaches them. With
+`revealMilestones` (the "big win → mega win" tiers, numbers in the figure's
+units) the count runs tier by tier: equal time per tier, decelerating into each
+milestone, a punch, a pause of `revealMilestoneHold` ms, then accelerating
+again. `spin` spins every digit like a slot reel and locks the reels one at a
+time from the left. Both land with a pop. `jumpTo(value)` skips a running
+reveal (tap to slam). Banners, confetti and sounds are the app's: the callbacks
+give you the beats.
+
 ### Imperative
 
 ```tsx
@@ -92,6 +124,7 @@ const ref = useRef<RollingNumberHandle>(null)
 
 ref.current?.animateTo(42)      // rolls, like changing the prop
 ref.current?.jumpTo(41.75)      // positions the wheels continuously, no roll (scrubbing)
+ref.current?.revealTo(1234.5)   // plays a jackpot reveal
 ref.current?.getValue()         // value shown or being rolled towards
 ```
 
@@ -114,12 +147,21 @@ scroll or drag handler drives the number.
 | `bounce` | `number` | `0.15` | Overshoot of the `spring` easing (0–1). |
 | `stagger` | `number` | `0` | ms between the start of each digit's roll (least significant first), a cascading carry. |
 | `direction` | `'auto' \| 'up' \| 'down'` | `'auto'` | Roll direction; `auto` follows the sign of the change. |
+| `reveal` | `boolean` | – | `false` holds the opening frame (`$0.00` in the final layout); `true` plays the reveal to `value`. Unset = a normal rolling number. |
+| `revealStyle` | `'count' \| 'spin'` | `'count'` | The win-meter rollup, or slot reels locking from the left. |
+| `revealDuration` | `number` | `2200` | ms of the count, or until the last reel locks (holds and the pop come on top). |
+| `revealBounce` | `number` | `0.07` | Peak overshoot of the landing pop; `0` = none. |
+| `revealStagger` | `number` | `200` | `spin`: ms between reel stops, shortened to fit the duration. |
+| `revealMilestones` | `number[]` | – | `count`: tiers in the figure's units; the count lands on each, punches, holds, then accelerates again. |
+| `revealMilestoneHold` | `number` | `0` | `count`: ms the count pauses on each milestone. |
+| `onRevealMilestone` | `(index, value) => void` | – | The count reached a milestone. |
+| `onRevealEnd` | `() => void` | – | The reveal landed (pop rung out). |
 | `loading` | `boolean` | `false` | "Shine" glint: a slanted, text-wide band sweeps through the ink; cross-fades on toggle. |
 | `shimmerColor` | `ColorValue` | light neutral | Color of the glint's core (`#D6D9E1`, `#2B2E37` in dark mode). |
 | `shimmerDuration` | `number` | `950` | ms per sweep (linear, repeating). |
 | `fontSize` | `number` | `32` | Font size of the digits in points. |
 | `prefixFontSize` / `suffixFontSize` | `number` | `fontSize` | Smaller (or larger) prefix/suffix, e.g. a currency symbol or code. |
-| `affixAlign` | `'baseline' \| 'center' \| 'top' \| 'bottom'` | `'baseline'` | How prefix/suffix line up with the digits: `top` pins glyph tops, `bottom` the bottom of the line boxes. |
+| `affixAlign` | `'baseline' \| 'center' \| 'top' \| 'bottom'` | `'baseline'` | How prefix/suffix line up with the digits: `top` pins the glyph tops (cap height), `bottom` the bottom of the glyphs' ink (a currency code sits on the digits' baseline, not down where a comma's tail reaches). |
 | `prefixAlign` / `suffixAlign` | same | `affixAlign` | Per-affix override, e.g. `$` pinned top and `USD` pinned bottom. |
 | `adjustsFontSizeToFit` | `boolean` | `false` | Shrink the whole number to fit the view's fixed `width`; the view keeps its full height. |
 | `minimumFontScale` | `number` | `0.5` | Lower bound for `adjustsFontSizeToFit`. |
@@ -179,7 +221,8 @@ to reflow while digits appear (e.g. a counter that grows past `999`).
   digit is a wheel with a continuous position on a `0–9` strip; the engine
   computes rolls (shortest path in the roll direction, blank↔digit for
   appearing/disappearing wheels), stagger, easing/spring curves, the odometer
-  carry rule for `jumpTo`, the loading fade and the shimmer phase.
+  carry rule for `jumpTo`, the loading fade, the shimmer phase and the jackpot
+  reveals (count curve, tiers, reels, landing pop).
 - The Swift view calls the engine directly through Swift/C++ interop; the
   Kotlin view through a 60-line fbjni handle (the only hand-written JNI). Each
   platform only owns fonts, layout, fit-to-width and text drawing, and drives

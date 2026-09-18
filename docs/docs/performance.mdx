@@ -1,0 +1,34 @@
+---
+sidebar_position: 10
+title: Performance
+description: What a frame costs, what touches the JS thread, and how to drive many numbers at once.
+---
+
+# Performance
+
+## What runs where
+
+A `value` change is delivered by React once, as a plain number over JSI. From there the roll runs natively: a `CADisplayLink` on iOS, a `Choreographer` callback on Android, each ticking the shared C++ engine and drawing its output. A busy JS thread delays the *next* value, never the animation in flight, the shimmer, the shrink-to-fit scaling or a jackpot reveal.
+
+The only JS round trip is auto-sizing: when the digit count changes the view reports its new intrinsic size and React applies it. Give the view a fixed `width` (recommended for amounts anyway) and nothing depends on JS at all.
+
+## What a frame costs
+
+**iOS.** A frame never redraws a bitmap. Each glyph and each wheel is a `CALayer` with a pre-rasterized image; a wheel is a clipped strip of the digits `0–9` whose position moves per frame, so the render server composites the roll and the main thread only sets layer frames. Profiling 24 rolling views had shown two thirds of the main thread inside Core Animation's backing-store work for `draw(_:)` views (allocate, clear, convert, upload a bitmap per view per frame), which no drawing optimization can remove; layers remove it. The Core Graphics path is used only while the loading glint shows.
+
+**Android.** A frame is about a dozen `Canvas.drawText` calls through HWUI's glyph cache, recorded on the main thread and rasterized by the RenderThread. The per-frame engine bridge fills a reused array instead of allocating.
+
+Scaling (fit-to-width, the reveal's pop) is a layer / canvas transform, so no fonts are rebuilt while animating.
+
+## Many numbers, every frame
+
+`jumpTo` / `animateTo` coalesce: only the newest value per main-thread turn is applied, so pushing a value every frame into many views never builds a backlog of dispatches. With 24 copies fed a new value on every frame, the UI thread stays at the display's refresh rate on an iPhone 13 Pro Max (120 Hz) and a Pixel 10 (60 Hz) with zero dropped frames. See [Benchmarks](/docs/benchmarks).
+
+If you drive a number from a Reanimated worklet, call `jumpTo` on the Nitro object (`onNativeRef`) directly from the UI runtime.
+
+## Tips
+
+- **Fix the width.** A fixed `width` with `textAlign="right"` removes the one JS round trip and keeps the layout around the number still.
+- **Prefer `jumpTo` for continuous sources** (scroll, drag, live meters): it positions the wheels without starting a roll per update.
+- **Stagger costs nothing.** Every wheel is already its own layer; a stagger only changes when each starts.
+- **Lists.** The view is recyclable; Fabric reuses instances and the engine resets between rows.

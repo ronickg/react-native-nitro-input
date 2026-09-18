@@ -17,6 +17,7 @@
 
 #include "JHybridRollingNumberViewSpec.hpp"
 #include "JFunc_void_double_double.hpp"
+#include "JFunc_void.hpp"
 #include "views/JHybridRollingNumberViewStateUpdater.hpp"
 #include <NitroModules/DefaultConstructableObject.hpp>
 
@@ -44,6 +45,7 @@ void registerAllNatives() {
   // Register native JNI methods
   margelo::nitro::nitrorollingnumber::JHybridRollingNumberViewSpec::CxxPart::registerNatives();
   margelo::nitro::nitrorollingnumber::JFunc_void_double_double_cxx::registerNatives();
+  margelo::nitro::nitrorollingnumber::JFunc_void_cxx::registerNatives();
   margelo::nitro::nitrorollingnumber::views::JHybridRollingNumberViewStateUpdater::registerNatives();
 
   // Register Nitro Hybrid Objects

@@ -114,6 +114,41 @@ void JHybridRollingNumberViewStateUpdater::updateViewProps(jni::alias_ref<jni::J
     hybridView->setDirection(newProps->direction.get());
   }
   if (oldProps == nullptr
+        ? newProps->reveal.isProvided()
+        : !newProps->reveal.hasSameValue(oldProps->reveal)) {
+    hybridView->setReveal(newProps->reveal.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->revealStyle.isProvided()
+        : !newProps->revealStyle.hasSameValue(oldProps->revealStyle)) {
+    hybridView->setRevealStyle(newProps->revealStyle.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->revealDuration.isProvided()
+        : !newProps->revealDuration.hasSameValue(oldProps->revealDuration)) {
+    hybridView->setRevealDuration(newProps->revealDuration.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->revealBounce.isProvided()
+        : !newProps->revealBounce.hasSameValue(oldProps->revealBounce)) {
+    hybridView->setRevealBounce(newProps->revealBounce.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->revealStagger.isProvided()
+        : !newProps->revealStagger.hasSameValue(oldProps->revealStagger)) {
+    hybridView->setRevealStagger(newProps->revealStagger.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->revealMilestones.isProvided()
+        : !newProps->revealMilestones.hasSameValue(oldProps->revealMilestones)) {
+    hybridView->setRevealMilestones(newProps->revealMilestones.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->revealMilestoneHold.isProvided()
+        : !newProps->revealMilestoneHold.hasSameValue(oldProps->revealMilestoneHold)) {
+    hybridView->setRevealMilestoneHold(newProps->revealMilestoneHold.get());
+  }
+  if (oldProps == nullptr
         ? newProps->loading.isProvided()
         : !newProps->loading.hasSameValue(oldProps->loading)) {
     hybridView->setLoading(newProps->loading.get());
@@ -202,6 +237,16 @@ void JHybridRollingNumberViewStateUpdater::updateViewProps(jni::alias_ref<jni::J
         ? newProps->onSizeChange.isProvided()
         : !newProps->onSizeChange.hasSameValue(oldProps->onSizeChange)) {
     hybridView->setOnSizeChange(newProps->onSizeChange.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->onRevealEnd.isProvided()
+        : !newProps->onRevealEnd.hasSameValue(oldProps->onRevealEnd)) {
+    hybridView->setOnRevealEnd(newProps->onRevealEnd.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->onRevealMilestone.isProvided()
+        : !newProps->onRevealMilestone.hasSameValue(oldProps->onRevealMilestone)) {
+    hybridView->setOnRevealMilestone(newProps->onRevealMilestone.get());
   }
 
   // Update hybridRef if it changed

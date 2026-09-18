@@ -16,3 +16,4 @@ example/android/local.properties
 example/ios/build/
 *.log
 example/ios/build-device/
+.claude/

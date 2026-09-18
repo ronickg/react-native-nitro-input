@@ -1,0 +1,31 @@
+---
+sidebar_position: 12
+title: Comparison
+description: How this library differs from NumberFlow and react-native-animated-numbers.
+---
+
+# Comparison
+
+Three good libraries animate numbers in React Native today. They differ in *where the animation runs*.
+
+| | Nitro Rolling Number | NumberFlow (View / Skia) | react-native-animated-numbers |
+| --- | --- | --- | --- |
+| Where the roll runs | Native (C++ engine, CALayer / Canvas) | JS thread (React re-render per change) + Reanimated | JS (Animated API, native driver transforms) |
+| Cost of a value change | One JSI call | A React render, formatting, per-digit animation setup | A React render, per-digit `Animated.timing` |
+| Digits appearing / disappearing | Slide in and out, layout animated natively | Animated | Snap |
+| Currency affixes at their own size, pinned top / bottom | Yes | Partial | No |
+| Shrink-to-fit inside a fixed box | Continuous, native | No | No |
+| Loading shimmer | Text-shaped glint | No | No |
+| Jackpot reveal (count with tiers, reels) | Yes | No | No |
+| `jumpTo` (continuous positioning from a gesture) | Yes | Skia renderer via `sharedValue` | No |
+| Decimals | Yes | Yes | Integers only (feed cents) |
+| Accessibility label | Formatted amount, updated | Formatted | Digits |
+| Reduce Motion | Snaps | – | – |
+| Architecture | Fabric only | Both | Both |
+
+## When to use what
+
+- **One number that changes now and then** (a price in a card): any of the three looks fine. Pick on API and bundle size.
+- **A number that updates every frame, or dozens of numbers at once** (a live ticker board, a portfolio list): the JS thread is the bottleneck for the JS-driven libraries at 24 copies, falling to 2–14 fps while the UI thread drops to 33–56 fps. The native engine keeps both at the refresh rate. See [Benchmarks](/docs/benchmarks).
+- **A reveal moment** (credit granted, cashback claimed): the jackpot reveal is built for it and runs natively, with the tiers and callbacks the surrounding celebration needs.
+- **Web**: NumberFlow's web original is excellent; this library is native only (the docs demos run the C++ engine through WebAssembly, but that is not a shipped web target).

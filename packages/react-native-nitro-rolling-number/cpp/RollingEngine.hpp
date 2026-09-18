@@ -59,10 +59,60 @@ public:
   void animateTo(double value, double now);
   /// Toggles the loading glint with a 250 ms cross-fade.
   void setLoading(bool loading, double now);
-  /// Advances the roll and the loading fade to `now`. Returns `needsFrames()`.
+  /// Advances the roll, the reveal and the loading fade to `now`. Returns `needsFrames()`.
   bool tick(double now);
   /// Back to the pristine state (view recycling).
   void reset();
+
+  // MARK: Jackpot reveal
+  //
+  // Two casino "you won" presentations, both landing with a pop (a velocity
+  // kick on `revealScale()` rung out by a damped spring):
+  //
+  // - Style 0, count (the win-meter rollup): the figure opens at 0 and counts
+  //   itself up to the target in one decelerating sweep, exponential in value
+  //   so tens, hundreds and thousands each get the same screen time. Digits
+  //   swap in place (the count's own speed is the animation, there is no
+  //   roll) and leading digits appear as the count reaches their place; the
+  //   layout is the target's from the first frame, so nothing reflows.
+  // - Style 1, spin (the jackpot reels): every digit spins like a slot reel,
+  //   then the reels brake and lock one at a time from the left, each with a
+  //   small mechanical bounce, the last one landing at the duration.
+
+  /// Timing of a reveal: the total duration, the landing pop's peak overshoot
+  /// (`0` = no pop), the style (0 count, 1 spin) and, for the spin style, the
+  /// delay between reel stops (shortened when the reels don't fit the
+  /// duration). Defaults: 2.2 s, 0.07, count, 0.2 s.
+  void setRevealTiming(double durationSeconds, double bounce, int style, double staggerSeconds);
+  /// Shows the opening frame of a reveal for `value`: its layout with the
+  /// mandatory digits at 0 and every other digit blank ("$0", "$0.00").
+  /// Cancels any roll.
+  void holdReveal(double value);
+  /// Counts from 0 up to `value`. Snaps when the duration is 0 or Reduce
+  /// Motion is on. Called while a reveal is running it re-targets the count.
+  void reveal(double value, double now);
+  /// True while a reveal counts or its landing pop rings out.
+  bool isRevealing() const { return reveal_.active; }
+  /// Scale of the landing pop, about the figure's centre; 1 when idle.
+  double revealScale() const { return revealScale_; }
+  /// Wall-clock length of a whole reveal (count, milestone holds, landing pop).
+  double revealTotalSeconds() const;
+
+  // Milestones of a count-style reveal: the win tiers of a casino rollup
+  // ("Big win" → "Mega win" → "Epic win"). When the count reaches one it
+  // punches (a smaller landing pop) and pauses on it for the hold while
+  // `revealMilestonesReached()` advances, so the app can slam its banner in
+  // on the beat. Values are in the figure's units, ascending; ones at or
+  // above the target are ignored. The spin style has no count and ignores them.
+
+  void clearRevealMilestones();
+  void addRevealMilestone(double value);
+  /// Pause on each milestone, in seconds (0 = punch without stopping).
+  void setRevealMilestoneHold(double holdSeconds);
+  /// How many milestones the running (or finished) reveal has reached.
+  int revealMilestonesReached() const { return reveal_.milestonesReached; }
+  /// The value (in the figure's units) of the reveal's `index`-th usable milestone.
+  double revealMilestoneValue(int index) const;
 
   // MARK: Render state
 
@@ -77,7 +127,8 @@ public:
   double shimmerPhase(double now, double periodSeconds) const;
   /// Whether anything is still moving (roll, fade, or an active glint).
   bool needsFrames() const;
-  /// True while a roll (`animateTo`) is in progress; false for the loading fade alone.
+  /// True while a roll (`animateTo`) or a reveal's count is in progress; false
+  /// for the loading fade or a reveal's landing pop alone.
   bool isRolling() const;
 
   // MARK: Settled target (intrinsic size, accessibility)
@@ -117,11 +168,49 @@ private:
     bool fromMotion = false;
   };
 
+  /// One slot reel of a spin-style reveal (index 0 is the leftmost digit).
+  struct Reel {
+    /// Strip position while free-spinning is `phase + speed * elapsed`.
+    double phase;
+    /// When the brake engages and when the reel has locked.
+    double brakeStart;
+    double stop;
+    /// Position at `brakeStart` and the distance braked over, ending on the digit.
+    double from;
+    double travel;
+  };
+  struct Reveal {
+    bool active = false;
+    /// True while the count / the reels are still moving (not during the landing pop).
+    bool counting = false;
+    /// True while the opening frame is held (`holdReveal`), so a format change
+    /// re-holds it instead of snapping to the full target.
+    bool holding = false;
+    double start = 0;
+    Target target{0, false, 1};
+    std::vector<Reel> reels; // spin style only, leftmost first
+    /// Count style: for each usable milestone, its magnitude and the curve
+    /// time (seconds into the count) at which the count reaches it.
+    std::vector<double> milestoneMagnitudes;
+    std::vector<double> milestoneTimes;
+    int milestonesReached = 0;
+  };
+
   Target makeTarget(double value) const;
   void snap(const Target& target);
   void settle(const Target& target);
   void apply(double elapsed);
   void finish();
+  void cancelReveal();
+  void planReels();
+  void planMilestones();
+  void applyReveal(double elapsed);
+  void applyRevealCount(double elapsed);
+  void applyRevealSpin(double elapsed);
+  /// The spring impulse of a punch `tau` seconds after it was kicked, scaled to peak at `overshoot`.
+  static double punch(double tau, double overshoot);
+  /// The reveal's count as a fraction of the target at clock fraction `t`.
+  static double revealFraction(double t, double magnitude);
   double ease(double t) const;
   /// The curve used when re-targeting mid-roll: the ease-in curves collapse to
   /// their ease-out / linear counterparts so a wheel in motion never stalls.
@@ -139,6 +228,12 @@ private:
   double stagger_ = 0;
   int direction_ = 0;
   bool reduceMotion_ = false;
+  double revealDuration_ = 2.2;
+  double revealBounce_ = 0.07;
+  int revealStyle_ = 0;
+  double revealStagger_ = 0.2;
+  std::vector<double> revealMilestones_;
+  double revealMilestoneHold_ = 0;
 
   // state
   std::vector<Wheel> wheels_;
@@ -149,6 +244,8 @@ private:
   int settledPowerCount_ = 1;
   bool settledNegative_ = false;
   Transition transition_;
+  Reveal reveal_;
+  double revealScale_ = 1;
 
   bool loading_ = false;
   double loadingProgress_ = 0;

@@ -27,7 +27,16 @@ class RollingEngine {
   external fun needsFrames(): Boolean
   external fun isRolling(): Boolean
   external fun reset()
-  /** `[signFactor, loadingProgress, wheelCount, (position, width, linear, blankZero)…]` */
+  external fun setRevealTiming(durationSeconds: Double, bounce: Double, style: Int, staggerSeconds: Double)
+  external fun holdReveal(value: Double)
+  external fun reveal(value: Double, now: Double)
+  external fun isRevealing(): Boolean
+  external fun clearRevealMilestones()
+  external fun addRevealMilestone(value: Double)
+  external fun setRevealMilestoneHold(holdSeconds: Double)
+  external fun revealMilestonesReached(): Int
+  external fun revealMilestoneValue(index: Int): Double
+  /** `[signFactor, loadingProgress, revealScale, wheelCount, (position, width, linear, blankZero)…]` */
   external fun frame(): DoubleArray
   /** Allocation-free [frame]: fills [out] and returns the number of doubles written, or -1 if it is too small. */
   external fun frameInto(out: DoubleArray): Int

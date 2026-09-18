@@ -22,6 +22,14 @@ namespace margelo::nitro::nitrorollingnumber::bridge::swift {
     };
   }
   
+  // pragma MARK: std::function<void()>
+  Func_void create_Func_void(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroRollingNumber::Func_void::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)]() mutable -> void {
+      swiftClosure.call();
+    };
+  }
+  
   // pragma MARK: std::shared_ptr<HybridRollingNumberViewSpec>
   std::shared_ptr<HybridRollingNumberViewSpec> create_std__shared_ptr_HybridRollingNumberViewSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
     NitroRollingNumber::HybridRollingNumberViewSpec_cxx swiftPart = NitroRollingNumber::HybridRollingNumberViewSpec_cxx::fromUnsafe(swiftUnsafePointer);

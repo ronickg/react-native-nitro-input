@@ -70,6 +70,20 @@ final class RollingNumberView: UIView {
     /// Delay between the start of each wheel's roll, least significant first.
     var stagger: TimeInterval = 0
     var direction: Direction = .auto
+    /// Length of a jackpot reveal (the count, or until the last reel locks).
+    var revealDuration: TimeInterval = 2.2
+    /// Peak overshoot of the reveal's landing pop (0 = none).
+    var revealBounce: Double = 0.07
+    /// The reveal's presentation.
+    var revealStyle: RevealStyle = .count
+    /// Spin style: delay between reel stops, from the left.
+    var revealStagger: TimeInterval = 0.2
+    /// Count style: how long the count pauses on each milestone.
+    var revealMilestoneHold: TimeInterval = 0
+  }
+
+  enum RevealStyle: Int32 {
+    case count = 0, spin = 1
   }
 
   struct Shimmer: Equatable {
@@ -104,6 +118,19 @@ final class RollingNumberView: UIView {
   var timing = Timing() {
     didSet {
       engine.setTiming(timing.duration, timing.easing.rawValue, timing.bounce, timing.stagger, timing.direction.rawValue)
+      engine.setRevealTiming(timing.revealDuration, timing.revealBounce, timing.revealStyle.rawValue, timing.revealStagger)
+      engine.setRevealMilestoneHold(timing.revealMilestoneHold)
+    }
+  }
+
+  /// Win tiers of a count-style reveal, in the figure's units.
+  var revealMilestones: [Double] = [] {
+    didSet {
+      guard revealMilestones != oldValue else { return }
+      engine.clearRevealMilestones()
+      for milestone in revealMilestones {
+        engine.addRevealMilestone(milestone)
+      }
     }
   }
 
@@ -129,9 +156,15 @@ final class RollingNumberView: UIView {
 
   /// Called with the settled (target) intrinsic size whenever it changes.
   var onIntrinsicSizeChange: ((CGSize) -> Void)?
+  /// Called once a jackpot reveal has landed (count finished, pop rung out).
+  var onRevealEnd: (() -> Void)?
+  /// Called when a count-style reveal reaches a milestone (its index and value).
+  var onRevealMilestone: ((Int, Double) -> Void)?
 
   /// The value currently shown or being rolled towards.
   var targetValue: Double { engine.targetValue() }
+  /// True while a jackpot reveal counts or its landing pop rings out.
+  var isRevealing: Bool { engine.isRevealing() }
 
   // MARK: - Shimmer geometry (matches the Uno "shine" variant)
 
@@ -166,6 +199,7 @@ final class RollingNumberView: UIView {
     private var glyphCache: [String: NSAttributedString] = [:]
     private var widthCache: [String: CGFloat] = [:]
     private var imageCache: [String: UIImage] = [:]
+    private var inkDescentCache: [String: CGFloat] = [:]
     /// Pixel density the glyph images are rendered at.
     let renderScale: CGFloat
     /// Slots in a wheel strip: index -1 (blank) through 10 (the 0 after 9).
@@ -257,8 +291,19 @@ final class RollingNumberView: UIView {
       return image
     }
 
-    /// Top of the glyph's line box for `role`, given the top of the digit line box.
-    func top(for role: GlyphRole, lineTop: CGFloat) -> CGFloat {
+    /// How far `text`'s ink hangs below the baseline (0 for digits and capitals).
+    func inkDescent(_ text: String, role: GlyphRole) -> CGFloat {
+      let key = "ink|" + cacheKey(text, role)
+      if let cached = inkDescentCache[key] { return cached }
+      let line = CTLineCreateWithAttributedString(attributed(text, role: role))
+      let bounds = CTLineGetImageBounds(line, nil)
+      let descent = bounds.isNull ? 0 : max(0, -bounds.minY)
+      inkDescentCache[key] = descent
+      return descent
+    }
+
+    /// Top of the glyph's line box for `role` drawing `text`, given the top of the digit line box.
+    func top(for role: GlyphRole, text: String, lineTop: CGFloat) -> CGFloat {
       guard role != .digit else { return lineTop }
       let f = font(for: role)
       switch role == .prefix ? prefixAlign : suffixAlign {
@@ -269,7 +314,11 @@ final class RollingNumberView: UIView {
       case .top:
         return lineTop + (digit.ascender - digit.capHeight) - (f.ascender - f.capHeight)
       case .bottom:
-        return lineTop + (digit.lineHeight - f.lineHeight)
+        // Pin the bottom of the ink, not of the line boxes: the digits' ink ends
+        // on the baseline, so "USD" sits on it too instead of hanging down to
+        // where a comma's tail reaches.
+        let affixBaseline = lineTop + digit.ascender + inkDescent("0123456789", role: .digit) - inkDescent(text, role: role)
+        return affixBaseline - f.ascender
       }
     }
 
@@ -370,6 +419,9 @@ final class RollingNumberView: UIView {
     timing = Timing()
     shimmer = Shimmer()
     alignment = .left
+    revealMilestones = []
+    onRevealEnd = nil
+    onRevealMilestone = nil
     accessibilityLabel = nil
     accessibilityValue = nil
     clearSlots()
@@ -398,6 +450,38 @@ final class RollingNumberView: UIView {
     render()
   }
 
+  /// Shows the opening frame of a jackpot reveal for `value` ("$0.00" in the
+  /// target's layout), waiting for `reveal(to:)`.
+  func holdReveal(_ value: Double) {
+    engine.holdReveal(value)
+    reportIntrinsicSize()
+    updateDisplayLinkNeed()
+    render()
+  }
+
+  /// Counts up from 0 to `value` and lands with a pop (snaps under Reduce Motion).
+  func reveal(to value: Double) {
+    engine.setReduceMotion(UIAccessibility.isReduceMotionEnabled)
+    engine.reveal(value, CACurrentMediaTime())
+    reportIntrinsicSize()
+    updateDisplayLinkNeed()
+    render()
+    reportMilestones(reachedBefore: 0)
+    if !engine.isRevealing() {
+      // Snapped (Reduce Motion / duration 0): the reveal is over before it began.
+      onRevealEnd?()
+    }
+  }
+
+  /// Fires `onRevealMilestone` for every milestone reached since `reachedBefore`.
+  private func reportMilestones(reachedBefore: Int) {
+    let reached = Int(engine.revealMilestonesReached())
+    guard reached > reachedBefore, let onRevealMilestone else { return }
+    for index in reachedBefore..<reached {
+      onRevealMilestone(index, engine.revealMilestoneValue(Int32(index)))
+    }
+  }
+
   /// Re-sends the last reported intrinsic size (e.g. after a listener was attached).
   func resendIntrinsicSize() {
     guard lastReportedSize != .zero else { return }
@@ -407,12 +491,20 @@ final class RollingNumberView: UIView {
   // MARK: - Display link
 
   fileprivate func step(_ link: CADisplayLink) {
+    let wasRevealing = engine.isRevealing()
+    let reachedBefore = Int(engine.revealMilestonesReached())
     _ = engine.tick(CACurrentMediaTime())
     if pendingSizeReport, !engine.isRolling() {
       reportIntrinsicSize()
     }
     updateDisplayLinkNeed()
     render()
+    if wasRevealing {
+      reportMilestones(reachedBefore: reachedBefore)
+      if !engine.isRevealing() {
+        onRevealEnd?()
+      }
+    }
   }
 
   /// Keeps the display link alive only while the engine says something moves.
@@ -659,23 +751,15 @@ final class RollingNumberView: UIView {
     let elements = buildElements(wheels: wheels, signFactor: engine.signFactor())
     let total = elements.reduce(CGFloat(0)) { $0 + $1.width }
     updateFontScale(contentWidth: total)
-    let scale = fontScale
-
-    let originX: CGFloat
-    switch alignment {
-    case .left: originX = 0
-    case .center: originX = (bounds.width - total * scale) / 2
-    case .right: originX = bounds.width - total * scale
-    }
-    let originY = (bounds.height - fonts.lineHeight * scale) / 2
+    let placement = contentPlacement(total: total, lineHeight: fonts.lineHeight)
 
     CATransaction.begin()
     CATransaction.setDisableActions(true)
     defer { CATransaction.commit() }
 
     contentLayer.bounds = CGRect(x: 0, y: 0, width: max(total, 1), height: fonts.lineHeight)
-    contentLayer.position = CGPoint(x: originX, y: originY)
-    contentLayer.transform = scale == 1 ? CATransform3DIdentity : CATransform3DMakeScale(scale, scale, 1)
+    contentLayer.position = placement.origin
+    contentLayer.transform = placement.scale == 1 ? CATransform3DIdentity : CATransform3DMakeScale(placement.scale, placement.scale, 1)
 
     syncSlots(with: elements, wheels: wheels, fonts: fonts)
 
@@ -701,12 +785,12 @@ final class RollingNumberView: UIView {
             height: strip.bounds.height
           )
         }
-      case .glyph(_, let role):
+      case .glyph(let text, let role):
         slot.layer.opacity = Float(element.factor)
         if let image = slot.layer.sublayers?.first {
           image.frame = CGRect(
             x: element.width - element.fullWidth,
-            y: fonts.top(for: role, lineTop: 0),
+            y: fonts.top(for: role, text: text, lineTop: 0),
             width: image.bounds.width,
             height: image.bounds.height
           )
@@ -760,6 +844,26 @@ final class RollingNumberView: UIView {
     return r < 0 ? r + 10 : r
   }
 
+  /// Where the content box (`total` × `lineHeight`, in font space) goes and how
+  /// it is scaled: the shrink-to-fit scale, aligned in the bounds, times the
+  /// reveal's landing pop about the content's centre.
+  private func contentPlacement(total: CGFloat, lineHeight: CGFloat) -> (origin: CGPoint, scale: CGFloat) {
+    let fit = fontScale
+    let originX: CGFloat
+    switch alignment {
+    case .left: originX = 0
+    case .center: originX = (bounds.width - total * fit) / 2
+    case .right: originX = bounds.width - total * fit
+    }
+    let originY = (bounds.height - lineHeight * fit) / 2
+    let pop = CGFloat(engine.revealScale())
+    guard pop != 1 else { return (CGPoint(x: originX, y: originY), fit) }
+    return (
+      CGPoint(x: originX + total * fit * (1 - pop) / 2, y: originY + lineHeight * fit * (1 - pop) / 2),
+      fit * pop
+    )
+  }
+
   // MARK: - Drawing (bitmap, loading glint only)
 
   override func draw(_ rect: CGRect) {
@@ -769,19 +873,12 @@ final class RollingNumberView: UIView {
     let elements = buildElements(wheels: wheels, signFactor: engine.signFactor())
     let total = elements.reduce(CGFloat(0)) { $0 + $1.width }
     updateFontScale(contentWidth: total)
-    let scale = fontScale
+    let placement = contentPlacement(total: total, lineHeight: fonts.lineHeight)
 
     // Position the (scaled) content, then draw everything in unscaled font space.
-    let originX: CGFloat
-    switch alignment {
-    case .left: originX = 0
-    case .center: originX = (bounds.width - total * scale) / 2
-    case .right: originX = bounds.width - total * scale
-    }
-    let originY = (bounds.height - fonts.lineHeight * scale) / 2
     ctx.saveGState()
-    ctx.translateBy(x: originX, y: originY)
-    ctx.scaleBy(x: scale, y: scale)
+    ctx.translateBy(x: placement.origin.x, y: placement.origin.y)
+    ctx.scaleBy(x: placement.scale, y: placement.scale)
 
     let dim = CGFloat(min(1, max(0, engine.loadingProgress())))
     if dim > 0 {
@@ -838,7 +935,7 @@ final class RollingNumberView: UIView {
     ctx.saveGState()
     ctx.clip(to: CGRect(x: x, y: 0, width: width, height: fonts.lineHeight))
     ctx.setAlpha(CGFloat(alpha))
-    fonts.image(text, role: role)?.draw(at: CGPoint(x: x + width - fullWidth, y: fonts.top(for: role, lineTop: 0)))
+    fonts.image(text, role: role)?.draw(at: CGPoint(x: x + width - fullWidth, y: fonts.top(for: role, text: text, lineTop: 0)))
     ctx.restoreGState()
   }
 

@@ -74,7 +74,19 @@ class RollingNumberView(context: Context) : View(context) {
     /** Delay between the start of each wheel's roll, least significant first. */
     val staggerMs: Long = 0,
     val direction: Direction = Direction.AUTO,
+    /** Length of a jackpot reveal (the count, or until the last reel locks). */
+    val revealDurationMs: Long = 2200,
+    /** Peak overshoot of the reveal's landing pop (0 = none). */
+    val revealBounce: Double = 0.07,
+    /** The reveal's presentation. */
+    val revealStyle: RevealStyle = RevealStyle.COUNT,
+    /** Spin style: delay between reel stops, from the left. */
+    val revealStaggerMs: Long = 200,
+    /** Count style: how long the count pauses on each milestone. */
+    val revealMilestoneHoldMs: Long = 0,
   )
+
+  enum class RevealStyle(val raw: Int) { COUNT(0), SPIN(1) }
 
   data class Shimmer(
     /** Color of the glint's core; null uses a light neutral (dark neutral in dark mode). */
@@ -105,6 +117,17 @@ class RollingNumberView(context: Context) : View(context) {
     set(value) {
       field = value
       engine.setTiming(value.durationMs / 1000.0, value.easing.raw, value.bounce, value.staggerMs / 1000.0, value.direction.raw)
+      engine.setRevealTiming(value.revealDurationMs / 1000.0, value.revealBounce, value.revealStyle.raw, value.revealStaggerMs / 1000.0)
+      engine.setRevealMilestoneHold(value.revealMilestoneHoldMs / 1000.0)
+    }
+
+  /** Win tiers of a count-style reveal, in the figure's units. */
+  var revealMilestones: DoubleArray = DoubleArray(0)
+    set(value) {
+      if (field.contentEquals(value)) return
+      field = value
+      engine.clearRevealMilestones()
+      for (milestone in value) engine.addRevealMilestone(milestone)
     }
 
   var shimmer: Shimmer = Shimmer()
@@ -134,10 +157,18 @@ class RollingNumberView(context: Context) : View(context) {
 
   /** Called with the settled (target) intrinsic size, in dp, whenever it changes. */
   var onIntrinsicSizeChange: ((widthDp: Float, heightDp: Float) -> Unit)? = null
+  /** Called once a jackpot reveal has landed (count finished, pop rung out). */
+  var onRevealEnd: (() -> Unit)? = null
+  /** Called when a count-style reveal reaches a milestone (its index and value). */
+  var onRevealMilestone: ((index: Int, value: Double) -> Unit)? = null
 
   /** The value currently shown or being rolled towards. */
   val targetValue: Double
     get() = engine.targetValue()
+
+  /** True while a jackpot reveal counts or its landing pop rings out. */
+  val isRevealing: Boolean
+    get() = engine.isRevealing()
 
   // endregion
 
@@ -160,6 +191,7 @@ class RollingNumberView(context: Context) : View(context) {
     val digitWidth: Float
     private val widthCache = HashMap<String, Float>()
     private val capHeightCache = HashMap<GlyphRole, Float>()
+    private val inkDescentCache = HashMap<String, Float>()
 
     init {
       digitWidth = (0..9).maxOf { width(it.toString(), GlyphRole.DIGIT) }
@@ -174,8 +206,8 @@ class RollingNumberView(context: Context) : View(context) {
     fun width(text: String, role: GlyphRole): Float =
       widthCache.getOrPut(role.name + "|" + text) { paint(role).measureText(text) }
 
-    /** Baseline y for `role`, given the top of the digit line box. */
-    fun baseline(role: GlyphRole, lineTop: Float): Float {
+    /** Baseline y for `role` drawing `text`, given the top of the digit line box. */
+    fun baseline(role: GlyphRole, text: String, lineTop: Float): Float {
       val digitBaseline = lineTop - digitMetrics.ascent
       if (role == GlyphRole.DIGIT) return digitBaseline
       val p = paint(role)
@@ -184,8 +216,18 @@ class RollingNumberView(context: Context) : View(context) {
         AffixAlign.BASELINE -> digitBaseline
         AffixAlign.CENTER -> lineTop + (lineHeight - (m.descent - m.ascent)) / 2f - m.ascent
         AffixAlign.TOP -> lineTop + (-digitMetrics.ascent - capHeight(GlyphRole.DIGIT)) + capHeight(role)
-        AffixAlign.BOTTOM -> lineTop + lineHeight - m.descent
+        // Pin the bottom of the ink, not of the line boxes: the digits' ink ends
+        // on the baseline, so "USD" sits on it too instead of hanging down to
+        // where a comma's tail reaches.
+        AffixAlign.BOTTOM -> digitBaseline + inkDescent(ALL_DIGITS, GlyphRole.DIGIT) - inkDescent(text, role)
       }
+    }
+
+    /** How far `text`'s ink hangs below the baseline (0 for digits and capitals). */
+    private fun inkDescent(text: String, role: GlyphRole): Float = inkDescentCache.getOrPut(role.name + "|" + text) {
+      val bounds = Rect()
+      paint(role).getTextBounds(text, 0, text.length, bounds)
+      max(0, bounds.bottom).toFloat()
     }
 
     private fun capHeight(role: GlyphRole): Float = capHeightCache.getOrPut(role) {
@@ -256,13 +298,27 @@ class RollingNumberView(context: Context) : View(context) {
   private val wheels = ArrayList<Wheel>()
   private var signFactor = 0.0
   private var loadingProgress = 0f
+  private var revealScale = 1f
   private var frameScheduled = false
   private val frameCallback = Choreographer.FrameCallback { frameTimeNanos ->
     frameScheduled = false
+    val wasRevealing = engine.isRevealing()
+    val reachedBefore = engine.revealMilestonesReached()
     engine.tick(frameTimeNanos / 1e9)
     if (pendingSizeReport && !engine.isRolling()) reportIntrinsicSize()
     invalidate()
     scheduleFrameIfNeeded()
+    if (wasRevealing) {
+      reportMilestones(reachedBefore)
+      if (!engine.isRevealing()) onRevealEnd?.invoke()
+    }
+  }
+
+  /** Fires [onRevealMilestone] for every milestone reached since [reachedBefore]. */
+  private fun reportMilestones(reachedBefore: Int) {
+    val reached = engine.revealMilestonesReached()
+    val listener = onRevealMilestone ?: return
+    for (index in reachedBefore until reached) listener(index, engine.revealMilestoneValue(index))
   }
   private val shimmerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
     xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP)
@@ -293,6 +349,7 @@ class RollingNumberView(context: Context) : View(context) {
     wheels.clear()
     signFactor = 0.0
     loadingProgress = 0f
+    revealScale = 1f
     fontScale = 1f
     lastReportedWidth = -1f
     lastReportedHeight = -1f
@@ -301,6 +358,9 @@ class RollingNumberView(context: Context) : View(context) {
     timing = Timing()
     shimmer = Shimmer()
     alignment = Alignment.LEFT
+    revealMilestones = DoubleArray(0)
+    onRevealEnd = null
+    onRevealMilestone = null
     contentDescription = null
     invalidate()
   }
@@ -323,6 +383,29 @@ class RollingNumberView(context: Context) : View(context) {
     reportIntrinsicSize()
     scheduleFrameIfNeeded()
     invalidate()
+  }
+
+  /**
+   * Shows the opening frame of a jackpot reveal for [value] ("$0.00" in the
+   * target's layout), waiting for [reveal].
+   */
+  fun holdReveal(value: Double) {
+    engine.holdReveal(value)
+    reportIntrinsicSize()
+    scheduleFrameIfNeeded()
+    invalidate()
+  }
+
+  /** Counts up from 0 to [value] and lands with a pop (snaps when animations are off). */
+  fun reveal(value: Double) {
+    engine.setReduceMotion(animationsDisabled())
+    engine.reveal(value, now())
+    reportIntrinsicSize()
+    scheduleFrameIfNeeded()
+    invalidate()
+    reportMilestones(0)
+    // Snapped (animations off / duration 0): the reveal is over before it began.
+    if (!engine.isRevealing()) onRevealEnd?.invoke()
   }
 
   /** Re-sends the last reported intrinsic size (e.g. after a listener was attached). */
@@ -371,7 +454,7 @@ class RollingNumberView(context: Context) : View(context) {
   }
 
   /** Reused per frame so the JNI hop never allocates (room for far more wheels than the engine's 18). */
-  private val frameBuffer = DoubleArray(3 + 4 * 32)
+  private val frameBuffer = DoubleArray(4 + 4 * 32)
 
   /** Pulls the engine's render state into reusable [Wheel] objects (no per-frame allocation once warm). */
   private fun syncFromEngine() {
@@ -379,11 +462,12 @@ class RollingNumberView(context: Context) : View(context) {
     if (engine.frameInto(f) < 0) return
     signFactor = f[0]
     loadingProgress = f[1].toFloat()
-    val count = f[2].toInt()
+    revealScale = f[2].toFloat()
+    val count = f[3].toInt()
     while (wheels.size < count) wheels.add(Wheel())
     while (wheels.size > count) wheels.removeAt(wheels.size - 1)
     for (i in 0 until count) {
-      val base = 3 + i * 4
+      val base = 4 + i * 4
       val w = wheels[i]
       w.position = f[base]
       w.width = f[base + 1]
@@ -524,15 +608,22 @@ class RollingNumberView(context: Context) : View(context) {
     var total = 0f
     for (element in elements) total += element.width
     updateFontScale(total)
-    val scale = fontScale
+    val fit = fontScale
 
     // Position the (scaled) content, then draw everything in unscaled font space.
-    val originX = when (alignment) {
+    // The reveal's landing pop scales about the content's centre on top of the fit.
+    var originX = when (alignment) {
       Alignment.LEFT -> 0f
-      Alignment.CENTER -> (width - total * scale) / 2f
-      Alignment.RIGHT -> width - total * scale
+      Alignment.CENTER -> (width - total * fit) / 2f
+      Alignment.RIGHT -> width - total * fit
     }
-    val originY = (height - fonts.lineHeight * scale) / 2f
+    var originY = (height - fonts.lineHeight * fit) / 2f
+    val pop = revealScale
+    if (pop != 1f) {
+      originX += total * fit * (1f - pop) / 2f
+      originY += fonts.lineHeight * fit * (1f - pop) / 2f
+    }
+    val scale = fit * pop
     val outer = canvas.save()
     canvas.translate(originX, originY)
     canvas.scale(scale, scale)
@@ -590,7 +681,7 @@ class RollingNumberView(context: Context) : View(context) {
     canvas.save()
     canvas.clipRect(x, 0f, x + width, fonts.lineHeight)
     paint.alpha = (alpha * 255).toInt().coerceIn(0, 255)
-    canvas.drawText(text, x + width - fullWidth, fonts.baseline(role, 0f), paint)
+    canvas.drawText(text, x + width - fullWidth, fonts.baseline(role, text, 0f), paint)
     canvas.restore()
   }
 
@@ -598,7 +689,7 @@ class RollingNumberView(context: Context) : View(context) {
     if (width <= 0f) return
     val paint = fonts.digit
     val lineHeight = fonts.lineHeight
-    val baseline = fonts.baseline(GlyphRole.DIGIT, 0f)
+    val baseline = fonts.baseline(GlyphRole.DIGIT, "0", 0f)
     canvas.save()
     canvas.clipRect(x, 0f, x + width, lineHeight)
     paint.alpha = (wheel.width * 255).toInt().coerceIn(0, 255)
@@ -628,6 +719,7 @@ class RollingNumberView(context: Context) : View(context) {
 
   companion object {
     private val DIGITS = Array(10) { it.toString() }
+    private const val ALL_DIGITS = "0123456789"
     /** The core starts at the glyphs' left edge instead of parked off-screen. */
     private const val SHIMMER_SEED = 0.25f
     /** How far the top of the band leads the bottom, as a fraction of the height ("/" slant). */

@@ -32,6 +32,13 @@ namespace margelo::nitro::nitrorollingnumber::views {
     bounce(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "bounce", rawProps, sourceProps.bounce)),
     stagger(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "stagger", rawProps, sourceProps.stagger)),
     direction(nitro::ReactProp<std::optional<RollingNumberDirection>>::fromRawValue("RollingNumberView", "direction", rawProps, sourceProps.direction)),
+    reveal(nitro::ReactProp<std::optional<bool>>::fromRawValue("RollingNumberView", "reveal", rawProps, sourceProps.reveal)),
+    revealStyle(nitro::ReactProp<std::optional<RollingNumberRevealStyle>>::fromRawValue("RollingNumberView", "revealStyle", rawProps, sourceProps.revealStyle)),
+    revealDuration(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "revealDuration", rawProps, sourceProps.revealDuration)),
+    revealBounce(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "revealBounce", rawProps, sourceProps.revealBounce)),
+    revealStagger(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "revealStagger", rawProps, sourceProps.revealStagger)),
+    revealMilestones(nitro::ReactProp<std::optional<std::vector<double>>>::fromRawValue("RollingNumberView", "revealMilestones", rawProps, sourceProps.revealMilestones)),
+    revealMilestoneHold(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "revealMilestoneHold", rawProps, sourceProps.revealMilestoneHold)),
     loading(nitro::ReactProp<std::optional<bool>>::fromRawValue("RollingNumberView", "loading", rawProps, sourceProps.loading)),
     shimmerColor(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "shimmerColor", rawProps, sourceProps.shimmerColor)),
     shimmerDuration(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "shimmerDuration", rawProps, sourceProps.shimmerDuration)),
@@ -50,6 +57,8 @@ namespace margelo::nitro::nitrorollingnumber::views {
     color(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "color", rawProps, sourceProps.color)),
     textAlign(nitro::ReactProp<std::optional<RollingNumberTextAlign>>::fromRawValue("RollingNumberView", "textAlign", rawProps, sourceProps.textAlign)),
     onSizeChange(nitro::ReactProp<std::optional<std::function<void(double /* width */, double /* height */)>>>::fromRawValue("RollingNumberView", "onSizeChange", rawProps, sourceProps.onSizeChange)),
+    onRevealEnd(nitro::ReactProp<std::optional<std::function<void()>>>::fromRawValue("RollingNumberView", "onRevealEnd", rawProps, sourceProps.onRevealEnd)),
+    onRevealMilestone(nitro::ReactProp<std::optional<std::function<void(double /* index */, double /* value */)>>>::fromRawValue("RollingNumberView", "onRevealMilestone", rawProps, sourceProps.onRevealMilestone)),
     hybridRef(nitro::ReactProp<std::optional<std::function<void(const std::shared_ptr<HybridRollingNumberViewSpec>& /* ref */)>>>::fromRawValue("RollingNumberView", "hybridRef", rawProps, sourceProps.hybridRef)) { }
 
   bool HybridRollingNumberViewProps::filterObjectKeys(const std::string& propName) {
@@ -66,6 +75,13 @@ namespace margelo::nitro::nitrorollingnumber::views {
       case hashString("bounce"): return true;
       case hashString("stagger"): return true;
       case hashString("direction"): return true;
+      case hashString("reveal"): return true;
+      case hashString("revealStyle"): return true;
+      case hashString("revealDuration"): return true;
+      case hashString("revealBounce"): return true;
+      case hashString("revealStagger"): return true;
+      case hashString("revealMilestones"): return true;
+      case hashString("revealMilestoneHold"): return true;
       case hashString("loading"): return true;
       case hashString("shimmerColor"): return true;
       case hashString("shimmerDuration"): return true;
@@ -84,6 +100,8 @@ namespace margelo::nitro::nitrorollingnumber::views {
       case hashString("color"): return true;
       case hashString("textAlign"): return true;
       case hashString("onSizeChange"): return true;
+      case hashString("onRevealEnd"): return true;
+      case hashString("onRevealMilestone"): return true;
       case hashString("hybridRef"): return true;
       default: return false;
     }

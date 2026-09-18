@@ -1,0 +1,52 @@
+---
+sidebar_position: 13
+title: How it works
+description: One C++ engine, two thin native views, and a Nitro view spec.
+---
+
+# How it works
+
+```
+                 value (JSI, one number)
+                          │
+        ┌─────────────────┴─────────────────┐
+        ▼                                   ▼
+ RollingNumberView.swift            RollingNumberView.kt
+ fonts · layout · CALayers          fonts · layout · Canvas
+ CADisplayLink                      Choreographer
+        │                                   │
+        └────────────►  RollingEngine  ◄────┘
+                        (C++, shared)
+             wheels · rolls · stagger · easing · spring
+             odometer carry · loading fade · shimmer phase
+             jackpot reveal: count, tiers, reels, landing pop
+```
+
+## The engine
+
+All behaviour lives in one platform-independent C++ class, `RollingEngine` (`cpp/RollingEngine.hpp`, ~600 lines, no rendering, no fonts, no threading). Its model:
+
+- **A wheel per digit**, with a continuous *position* on a `0–9` strip (interior wheels wrap modulo 10; appearing and disappearing wheels use a linear strip with a blank at `-1`), a *width* from 0 to 1 (wheels appear and disappear by growing and shrinking) and the *blank-zero* flag for the emerging odometer wheel.
+- **Commands**: `setValue` positions wheels from a continuous number with the odometer carry rule; `animateTo` builds a transition per wheel (shortest roll in the roll direction, blank ↔ digit at the edges, per-wheel stagger delays); `setLoading` starts the cross-fade; `holdReveal` / `reveal` run the jackpot presentations.
+- **`tick(now)`** advances everything to a timestamp and reports whether more frames are needed, so the display link only runs while something moves.
+- **Render state**: the wheels, the sign factor, the loading progress, the shimmer phase, the reveal's pop scale. Plus the *settled* target (digit count, sign, digits) for the intrinsic size and the accessibility label.
+
+Time is seconds on any monotonic clock. The API is plain ints and doubles so it imports straight into Swift through C++ interop and bridges over JNI with a 60-line fbjni handle, the only hand-written JNI in the library. Host-side tests (`bun run test:cpp`) cover the carry rule, roll direction, appearing and disappearing wheels, stagger under re-targeting, rapid updates, the loading fade, Reduce Motion, and every reveal style.
+
+## The views
+
+Each platform view owns what is platform-specific and nothing else: fonts (tabular figures, weights, bundled families), the layout of sign, prefix, wheels, separators and suffix, the fit-to-width scale, drawing, and the frame loop.
+
+**iOS** renders with Core Animation layers. Every glyph and wheel is a `CALayer` whose contents is a pre-rasterized image; a wheel is a clipped 12-slot strip (blank, `0–9`, and the `0` that follows `9` on a wrap) whose position moves per frame. A frame only sets frames and opacities inside one `CATransaction`, so the render server composites the roll. `draw(_:)` is used only while the loading glint shows, because the source-atop sweep needs a transparency layer.
+
+**Android** draws with `Canvas.drawText` through HWUI's glyph cache: each wheel is two clipped glyphs offset by the wheel's fractional position, exactly like the strip on iOS.
+
+## The Nitro view
+
+Props are parsed by Nitro from JSI (no Fabric codegen); the view is a Fabric component, so `style`, `opacity`, `transform` and friends work as usual. The hybrid object batches prop updates (`beforeUpdate` / `afterUpdate`), applies the config once per commit, coalesces imperative calls to the newest value per main-thread turn, and drives the `reveal` prop's state machine (hold, fire, re-target, re-arm).
+
+The JS wrapper adds auto-sizing (the native view reports its settled size), `processColor` for colors, weight names to numbers, stable callback wrappers, and the imperative handle.
+
+## These docs
+
+The live examples on this site run the very same `RollingEngine.cpp`, compiled to WebAssembly with Emscripten (`docs/wasm/bindings.cpp`), behind a `<canvas>` port of the Android view's drawing. The curves, the stagger, the carry, the tiers and the reels you see here are the ones on the phone.

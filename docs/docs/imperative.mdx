@@ -1,0 +1,40 @@
+---
+sidebar_position: 7
+title: Imperative API
+description: animateTo, jumpTo for scrubbing, revealTo, and driving the number every frame.
+---
+
+import {Example, ImperativeDemo} from '@site/src/components/Demo/Demo';
+
+# Imperative API
+
+A ref gives you the same roll as the prop, plus a way to position the wheels continuously.
+
+<Example
+  code={`const ref = useRef<RollingNumberHandle>(null)
+
+<RollingNumber ref={ref} value={42} fractionDigits={1} minimumIntegerDigits={4} />
+
+ref.current?.animateTo(9999)   // rolls, like changing the prop
+ref.current?.jumpTo(999.75)    // positions the wheels continuously, no roll
+ref.current?.revealTo(1234.5)  // plays a jackpot reveal
+ref.current?.getValue()        // the value shown or being rolled towards
+
+// scrubbing from a scroll handler
+<ScrollView onScroll={(e) => ref.current?.jumpTo(e.nativeEvent.contentOffset.x / 4)} scrollEventThrottle={16} />`}>
+  <ImperativeDemo />
+</Example>
+
+## `jumpTo` and the odometer carry
+
+`jumpTo` positions every wheel from a continuous number: `41.75` shows the units wheel three quarters of the way from `1` to `2`, and a wheel only turns while every lower wheel is on its way from `9` to `0`, exactly like a mechanical odometer. `999.5` shows the three nines half way to zero and a new thousands wheel half emerged. That is what you want when a scroll, drag or gesture drives the number.
+
+## Every frame
+
+`jumpTo` and `animateTo` are safe to call from any thread and **coalesce**: only the newest value per main-thread turn is applied, so pushing a value on every frame into many views never builds a backlog of dispatches. A frame only ever shows the newest value anyway.
+
+If you drive the number from a Reanimated worklet, call the method through the Nitro object (`onNativeRef` gives it to you): the call is a plain JSI invocation, no bridge, no serialization.
+
+## Skipping a reveal
+
+Casino counters let the player tap to "slam" the count to its total. `jumpTo(value)` does exactly that: it cancels the running reveal and shows the target. See [Jackpot reveal](/docs/reveal).

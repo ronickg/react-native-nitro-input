@@ -11,6 +11,8 @@
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberEasing; }
 // Forward declaration of `RollingNumberDirection` to properly resolve imports.
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberDirection; }
+// Forward declaration of `RollingNumberRevealStyle` to properly resolve imports.
+namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberRevealStyle; }
 // Forward declaration of `RollingNumberAffixAlign` to properly resolve imports.
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberAffixAlign; }
 // Forward declaration of `RollingNumberTextAlign` to properly resolve imports.
@@ -22,6 +24,9 @@ namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberTextAlign
 #include "JRollingNumberEasing.hpp"
 #include "RollingNumberDirection.hpp"
 #include "JRollingNumberDirection.hpp"
+#include "RollingNumberRevealStyle.hpp"
+#include "JRollingNumberRevealStyle.hpp"
+#include <vector>
 #include "RollingNumberAffixAlign.hpp"
 #include "JRollingNumberAffixAlign.hpp"
 #include "RollingNumberTextAlign.hpp"
@@ -29,6 +34,7 @@ namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberTextAlign
 #include <functional>
 #include "JFunc_void_double_double.hpp"
 #include <NitroModules/JNICallable.hpp>
+#include "JFunc_void.hpp"
 
 namespace margelo::nitro::nitrorollingnumber {
 
@@ -167,6 +173,79 @@ namespace margelo::nitro::nitrorollingnumber {
   void JHybridRollingNumberViewSpec::setDirection(std::optional<RollingNumberDirection> direction) {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JRollingNumberDirection> /* direction */)>("setDirection");
     method(_javaPart, direction.has_value() ? JRollingNumberDirection::fromCpp(direction.value()) : nullptr);
+  }
+  std::optional<bool> JHybridRollingNumberViewSpec::getReveal() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JBoolean>()>("getReveal");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(static_cast<bool>(__result->value())) : std::nullopt;
+  }
+  void JHybridRollingNumberViewSpec::setReveal(std::optional<bool> reveal) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JBoolean> /* reveal */)>("setReveal");
+    method(_javaPart, reveal.has_value() ? jni::JBoolean::valueOf(reveal.value()) : nullptr);
+  }
+  std::optional<RollingNumberRevealStyle> JHybridRollingNumberViewSpec::getRevealStyle() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JRollingNumberRevealStyle>()>("getRevealStyle");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->toCpp()) : std::nullopt;
+  }
+  void JHybridRollingNumberViewSpec::setRevealStyle(std::optional<RollingNumberRevealStyle> revealStyle) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JRollingNumberRevealStyle> /* revealStyle */)>("setRevealStyle");
+    method(_javaPart, revealStyle.has_value() ? JRollingNumberRevealStyle::fromCpp(revealStyle.value()) : nullptr);
+  }
+  std::optional<double> JHybridRollingNumberViewSpec::getRevealDuration() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getRevealDuration");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridRollingNumberViewSpec::setRevealDuration(std::optional<double> revealDuration) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* revealDuration */)>("setRevealDuration");
+    method(_javaPart, revealDuration.has_value() ? jni::JDouble::valueOf(revealDuration.value()) : nullptr);
+  }
+  std::optional<double> JHybridRollingNumberViewSpec::getRevealBounce() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getRevealBounce");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridRollingNumberViewSpec::setRevealBounce(std::optional<double> revealBounce) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* revealBounce */)>("setRevealBounce");
+    method(_javaPart, revealBounce.has_value() ? jni::JDouble::valueOf(revealBounce.value()) : nullptr);
+  }
+  std::optional<double> JHybridRollingNumberViewSpec::getRevealStagger() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getRevealStagger");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridRollingNumberViewSpec::setRevealStagger(std::optional<double> revealStagger) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* revealStagger */)>("setRevealStagger");
+    method(_javaPart, revealStagger.has_value() ? jni::JDouble::valueOf(revealStagger.value()) : nullptr);
+  }
+  std::optional<std::vector<double>> JHybridRollingNumberViewSpec::getRevealMilestones() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JArrayDouble>()>("getRevealMilestones");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional([&]() {
+      size_t __size = __result->size();
+      std::vector<double> __vector(__size);
+      __result->getRegion(0, __size, __vector.data());
+      return __vector;
+    }()) : std::nullopt;
+  }
+  void JHybridRollingNumberViewSpec::setRevealMilestones(const std::optional<std::vector<double>>& revealMilestones) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JArrayDouble> /* revealMilestones */)>("setRevealMilestones");
+    method(_javaPart, revealMilestones.has_value() ? [&]() {
+      size_t __size = revealMilestones.value().size();
+      jni::local_ref<jni::JArrayDouble> __array = jni::JArrayDouble::newArray(__size);
+      __array->setRegion(0, __size, revealMilestones.value().data());
+      return __array;
+    }() : nullptr);
+  }
+  std::optional<double> JHybridRollingNumberViewSpec::getRevealMilestoneHold() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getRevealMilestoneHold");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridRollingNumberViewSpec::setRevealMilestoneHold(std::optional<double> revealMilestoneHold) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* revealMilestoneHold */)>("setRevealMilestoneHold");
+    method(_javaPart, revealMilestoneHold.has_value() ? jni::JDouble::valueOf(revealMilestoneHold.value()) : nullptr);
   }
   std::optional<bool> JHybridRollingNumberViewSpec::getLoading() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JBoolean>()>("getLoading");
@@ -338,6 +417,40 @@ namespace margelo::nitro::nitrorollingnumber {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JFunc_void_double_double::javaobject> /* onSizeChange */)>("setOnSizeChange_cxx");
     method(_javaPart, onSizeChange.has_value() ? JFunc_void_double_double_cxx::fromCpp(onSizeChange.value()) : nullptr);
   }
+  std::optional<std::function<void()>> JHybridRollingNumberViewSpec::getOnRevealEnd() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JFunc_void::javaobject>()>("getOnRevealEnd_cxx");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional([&]() -> std::function<void()> {
+      if (__result->isInstanceOf(JFunc_void_cxx::javaClassStatic())) [[likely]] {
+        auto downcast = jni::static_ref_cast<JFunc_void_cxx::javaobject>(__result);
+        return downcast->cthis()->getFunction();
+      } else {
+        auto __resultRef = jni::make_global(__result);
+        return JNICallable<JFunc_void, void()>(std::move(__resultRef));
+      }
+    }()) : std::nullopt;
+  }
+  void JHybridRollingNumberViewSpec::setOnRevealEnd(const std::optional<std::function<void()>>& onRevealEnd) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JFunc_void::javaobject> /* onRevealEnd */)>("setOnRevealEnd_cxx");
+    method(_javaPart, onRevealEnd.has_value() ? JFunc_void_cxx::fromCpp(onRevealEnd.value()) : nullptr);
+  }
+  std::optional<std::function<void(double /* index */, double /* value */)>> JHybridRollingNumberViewSpec::getOnRevealMilestone() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JFunc_void_double_double::javaobject>()>("getOnRevealMilestone_cxx");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional([&]() -> std::function<void(double /* index */, double /* value */)> {
+      if (__result->isInstanceOf(JFunc_void_double_double_cxx::javaClassStatic())) [[likely]] {
+        auto downcast = jni::static_ref_cast<JFunc_void_double_double_cxx::javaobject>(__result);
+        return downcast->cthis()->getFunction();
+      } else {
+        auto __resultRef = jni::make_global(__result);
+        return JNICallable<JFunc_void_double_double, void(double, double)>(std::move(__resultRef));
+      }
+    }()) : std::nullopt;
+  }
+  void JHybridRollingNumberViewSpec::setOnRevealMilestone(const std::optional<std::function<void(double /* index */, double /* value */)>>& onRevealMilestone) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JFunc_void_double_double::javaobject> /* onRevealMilestone */)>("setOnRevealMilestone_cxx");
+    method(_javaPart, onRevealMilestone.has_value() ? JFunc_void_double_double_cxx::fromCpp(onRevealMilestone.value()) : nullptr);
+  }
 
   // Methods
   void JHybridRollingNumberViewSpec::jumpTo(double value) {
@@ -346,6 +459,10 @@ namespace margelo::nitro::nitrorollingnumber {
   }
   void JHybridRollingNumberViewSpec::animateTo(double value) {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* value */)>("animateTo");
+    method(_javaPart, value);
+  }
+  void JHybridRollingNumberViewSpec::revealTo(double value) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* value */)>("revealTo");
     method(_javaPart, value);
   }
 

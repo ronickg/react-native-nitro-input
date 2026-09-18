@@ -74,6 +74,20 @@ namespace margelo::nitro::nitrorollingnumber {
     void setStagger(std::optional<double> stagger) override;
     std::optional<RollingNumberDirection> getDirection() override;
     void setDirection(std::optional<RollingNumberDirection> direction) override;
+    std::optional<bool> getReveal() override;
+    void setReveal(std::optional<bool> reveal) override;
+    std::optional<RollingNumberRevealStyle> getRevealStyle() override;
+    void setRevealStyle(std::optional<RollingNumberRevealStyle> revealStyle) override;
+    std::optional<double> getRevealDuration() override;
+    void setRevealDuration(std::optional<double> revealDuration) override;
+    std::optional<double> getRevealBounce() override;
+    void setRevealBounce(std::optional<double> revealBounce) override;
+    std::optional<double> getRevealStagger() override;
+    void setRevealStagger(std::optional<double> revealStagger) override;
+    std::optional<std::vector<double>> getRevealMilestones() override;
+    void setRevealMilestones(const std::optional<std::vector<double>>& revealMilestones) override;
+    std::optional<double> getRevealMilestoneHold() override;
+    void setRevealMilestoneHold(std::optional<double> revealMilestoneHold) override;
     std::optional<bool> getLoading() override;
     void setLoading(std::optional<bool> loading) override;
     std::optional<double> getShimmerColor() override;
@@ -110,11 +124,16 @@ namespace margelo::nitro::nitrorollingnumber {
     void setTextAlign(std::optional<RollingNumberTextAlign> textAlign) override;
     std::optional<std::function<void(double /* width */, double /* height */)>> getOnSizeChange() override;
     void setOnSizeChange(const std::optional<std::function<void(double /* width */, double /* height */)>>& onSizeChange) override;
+    std::optional<std::function<void()>> getOnRevealEnd() override;
+    void setOnRevealEnd(const std::optional<std::function<void()>>& onRevealEnd) override;
+    std::optional<std::function<void(double /* index */, double /* value */)>> getOnRevealMilestone() override;
+    void setOnRevealMilestone(const std::optional<std::function<void(double /* index */, double /* value */)>>& onRevealMilestone) override;
 
   public:
     // Methods
     void jumpTo(double value) override;
     void animateTo(double value) override;
+    void revealTo(double value) override;
 
   private:
     jni::global_ref<JHybridRollingNumberViewSpec::JavaPart> _javaPart;

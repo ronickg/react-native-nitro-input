@@ -1,0 +1,149 @@
+/**
+ * Nitro Rolling Number docs theme. Dark by default (like the Margelo sites),
+ * with an electric-blue accent and a tabular figure everywhere a number shows.
+ */
+
+:root {
+  --ifm-color-primary: #2563eb;
+  --ifm-color-primary-dark: #1d4ed8;
+  --ifm-color-primary-darker: #1e40af;
+  --ifm-color-primary-darkest: #1e3a8a;
+  --ifm-color-primary-light: #3b82f6;
+  --ifm-color-primary-lighter: #60a5fa;
+  --ifm-color-primary-lightest: #93c5fd;
+  --ifm-code-font-size: 92%;
+  --ifm-font-family-base: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto,
+    Helvetica, Arial, sans-serif;
+  --ifm-heading-font-weight: 800;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  --rn-hero-bg: radial-gradient(1200px 600px at 20% -10%, rgba(37, 99, 235, 0.35), transparent 60%),
+    radial-gradient(900px 500px at 90% 10%, rgba(14, 165, 233, 0.25), transparent 60%);
+  --rn-card-bg: rgba(255, 255, 255, 0.6);
+  --rn-card-border: rgba(0, 0, 0, 0.08);
+  --rn-demo-bg: #f5f7fb;
+  --rn-demo-ink: #0f172a;
+  --rn-brand: #1d4ed8;
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #60a5fa;
+  --ifm-color-primary-dark: #3b82f6;
+  --ifm-color-primary-darker: #2563eb;
+  --ifm-color-primary-darkest: #1d4ed8;
+  --ifm-color-primary-light: #93c5fd;
+  --ifm-color-primary-lighter: #bfdbfe;
+  --ifm-color-primary-lightest: #dbeafe;
+  --ifm-background-color: #0b0f19;
+  --ifm-background-surface-color: #111827;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  --rn-card-bg: rgba(255, 255, 255, 0.04);
+  --rn-card-border: rgba(255, 255, 255, 0.1);
+  --rn-demo-bg: #0f172a;
+  --rn-demo-ink: #f8fafc;
+  --rn-brand: #2563eb;
+}
+
+.navbar__logo img {
+  border-radius: 6px;
+}
+
+/* Demo frames used by the live examples in the docs. */
+.rn-demo {
+  background: var(--rn-demo-bg);
+  border: 1px solid var(--rn-card-border);
+  border-radius: 14px;
+  padding: 20px;
+  margin: 12px 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rn-demo-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 84px;
+}
+
+.rn-demo-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.rn-demo-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.rn-btn {
+  appearance: none;
+  border: 1px solid var(--rn-card-border);
+  background: var(--ifm-background-surface-color);
+  color: var(--ifm-font-color-base);
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, transform 80ms ease;
+}
+
+.rn-btn:hover {
+  background: var(--ifm-color-emphasis-200);
+}
+
+.rn-btn:active {
+  transform: scale(0.97);
+}
+
+.rn-btn--primary {
+  background: var(--ifm-color-primary);
+  border-color: transparent;
+  color: #fff;
+}
+
+.rn-btn--primary:hover {
+  background: var(--ifm-color-primary-dark);
+}
+
+.rn-btn--selected {
+  background: var(--ifm-color-primary);
+  border-color: transparent;
+  color: #fff;
+}
+
+.rn-demo select,
+.rn-demo input[type='range'] {
+  accent-color: var(--ifm-color-primary);
+}
+
+.rn-demo select {
+  border: 1px solid var(--rn-card-border);
+  background: var(--ifm-background-surface-color);
+  color: var(--ifm-font-color-base);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 0.85rem;
+}
+
+.rn-demo-caption {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  margin: 0;
+}
+
+/* Prop tables read better when the first column doesn't wrap. */
+.rn-props table td:first-child,
+.rn-props table th:first-child {
+  white-space: nowrap;
+}
+
+table {
+  font-size: 0.9rem;
+}

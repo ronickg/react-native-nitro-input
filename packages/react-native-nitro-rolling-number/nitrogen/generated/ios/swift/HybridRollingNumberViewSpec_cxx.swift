@@ -382,6 +382,173 @@ open class HybridRollingNumberViewSpec_cxx {
     }
   }
   
+  public final var reveal: bridge.std__optional_bool_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_bool_ in
+        if let __unwrappedValue = self.__implementation.reveal {
+          return bridge.create_std__optional_bool_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.reveal = { () -> Bool? in
+        if bridge.has_value_std__optional_bool_(newValue) {
+          let __unwrapped = bridge.get_std__optional_bool_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var revealStyle: bridge.std__optional_RollingNumberRevealStyle_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_RollingNumberRevealStyle_ in
+        if let __unwrappedValue = self.__implementation.revealStyle {
+          return bridge.create_std__optional_RollingNumberRevealStyle_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.revealStyle = newValue.value
+    }
+  }
+  
+  public final var revealDuration: bridge.std__optional_double_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_double_ in
+        if let __unwrappedValue = self.__implementation.revealDuration {
+          return bridge.create_std__optional_double_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.revealDuration = { () -> Double? in
+        if bridge.has_value_std__optional_double_(newValue) {
+          let __unwrapped = bridge.get_std__optional_double_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var revealBounce: bridge.std__optional_double_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_double_ in
+        if let __unwrappedValue = self.__implementation.revealBounce {
+          return bridge.create_std__optional_double_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.revealBounce = { () -> Double? in
+        if bridge.has_value_std__optional_double_(newValue) {
+          let __unwrapped = bridge.get_std__optional_double_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var revealStagger: bridge.std__optional_double_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_double_ in
+        if let __unwrappedValue = self.__implementation.revealStagger {
+          return bridge.create_std__optional_double_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.revealStagger = { () -> Double? in
+        if bridge.has_value_std__optional_double_(newValue) {
+          let __unwrapped = bridge.get_std__optional_double_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var revealMilestones: bridge.std__optional_std__vector_double__ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__vector_double__ in
+        if let __unwrappedValue = self.__implementation.revealMilestones {
+          return bridge.create_std__optional_std__vector_double__({ () -> bridge.std__vector_double_ in
+            var __vector = bridge.create_std__vector_double_(__unwrappedValue.count)
+            for __item in __unwrappedValue {
+              __vector.push_back(__item)
+            }
+            return __vector
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.revealMilestones = { () -> [Double]? in
+        if bridge.has_value_std__optional_std__vector_double__(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__vector_double__(newValue)
+          return __unwrapped.map({ __item in __item })
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var revealMilestoneHold: bridge.std__optional_double_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_double_ in
+        if let __unwrappedValue = self.__implementation.revealMilestoneHold {
+          return bridge.create_std__optional_double_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.revealMilestoneHold = { () -> Double? in
+        if bridge.has_value_std__optional_double_(newValue) {
+          let __unwrapped = bridge.get_std__optional_double_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
   public final var loading: bridge.std__optional_bool_ {
     @inline(__always)
     get {
@@ -793,6 +960,70 @@ open class HybridRollingNumberViewSpec_cxx {
       }()
     }
   }
+  
+  public final var onRevealEnd: bridge.std__optional_std__function_void____ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void____ in
+        if let __unwrappedValue = self.__implementation.onRevealEnd {
+          return bridge.create_std__optional_std__function_void____({ () -> bridge.Func_void in
+            let __closureWrapper = Func_void(__unwrappedValue)
+            return bridge.create_Func_void(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onRevealEnd = { () -> (() -> Void)? in
+        if bridge.has_value_std__optional_std__function_void____(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void____(newValue)
+          return { () -> () -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void(__unwrapped)
+            return { () -> Void in
+              __wrappedFunction.call()
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var onRevealMilestone: bridge.std__optional_std__function_void_double____index_____double____value______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_double____index_____double____value______ in
+        if let __unwrappedValue = self.__implementation.onRevealMilestone {
+          return bridge.create_std__optional_std__function_void_double____index_____double____value______({ () -> bridge.Func_void_double_double in
+            let __closureWrapper = Func_void_double_double(__unwrappedValue)
+            return bridge.create_Func_void_double_double(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onRevealMilestone = { () -> ((_ index: Double, _ value: Double) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_double____index_____double____value______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_double____index_____double____value______(newValue)
+          return { () -> (Double, Double) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_double_double(__unwrapped)
+            return { (__index: Double, __value: Double) -> Void in
+              __wrappedFunction.call(__index, __value)
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
 
   // Methods
   @inline(__always)
@@ -810,6 +1041,17 @@ open class HybridRollingNumberViewSpec_cxx {
   public final func animateTo(value: Double) -> bridge.Result_void_ {
     do {
       try self.__implementation.animateTo(value: value)
+      return bridge.create_Result_void_()
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_void_(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func revealTo(value: Double) -> bridge.Result_void_ {
+    do {
+      try self.__implementation.revealTo(value: value)
       return bridge.create_Result_void_()
     } catch (let __error) {
       let __exceptionPtr = __error.toCpp()

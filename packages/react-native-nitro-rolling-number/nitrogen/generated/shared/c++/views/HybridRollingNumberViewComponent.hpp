@@ -21,6 +21,8 @@
 #include <string>
 #include "RollingNumberEasing.hpp"
 #include "RollingNumberDirection.hpp"
+#include "RollingNumberRevealStyle.hpp"
+#include <vector>
 #include "RollingNumberAffixAlign.hpp"
 #include "RollingNumberTextAlign.hpp"
 #include <functional>
@@ -59,6 +61,13 @@ namespace margelo::nitro::nitrorollingnumber::views {
     nitro::ReactProp<std::optional<double>> bounce;
     nitro::ReactProp<std::optional<double>> stagger;
     nitro::ReactProp<std::optional<RollingNumberDirection>> direction;
+    nitro::ReactProp<std::optional<bool>> reveal;
+    nitro::ReactProp<std::optional<RollingNumberRevealStyle>> revealStyle;
+    nitro::ReactProp<std::optional<double>> revealDuration;
+    nitro::ReactProp<std::optional<double>> revealBounce;
+    nitro::ReactProp<std::optional<double>> revealStagger;
+    nitro::ReactProp<std::optional<std::vector<double>>> revealMilestones;
+    nitro::ReactProp<std::optional<double>> revealMilestoneHold;
     nitro::ReactProp<std::optional<bool>> loading;
     nitro::ReactProp<std::optional<double>> shimmerColor;
     nitro::ReactProp<std::optional<double>> shimmerDuration;
@@ -77,6 +86,8 @@ namespace margelo::nitro::nitrorollingnumber::views {
     nitro::ReactProp<std::optional<double>> color;
     nitro::ReactProp<std::optional<RollingNumberTextAlign>> textAlign;
     nitro::ReactProp<std::optional<std::function<void(double /* width */, double /* height */)>>> onSizeChange;
+    nitro::ReactProp<std::optional<std::function<void()>>> onRevealEnd;
+    nitro::ReactProp<std::optional<std::function<void(double /* index */, double /* value */)>>> onRevealMilestone;
     nitro::ReactProp<std::optional<std::function<void(const std::shared_ptr<HybridRollingNumberViewSpec>& /* ref */)>>> hybridRef;
 
     [[nodiscard]]
@@ -93,6 +104,13 @@ namespace margelo::nitro::nitrorollingnumber::views {
              bounce.hasSameValue(other.bounce) &&
              stagger.hasSameValue(other.stagger) &&
              direction.hasSameValue(other.direction) &&
+             reveal.hasSameValue(other.reveal) &&
+             revealStyle.hasSameValue(other.revealStyle) &&
+             revealDuration.hasSameValue(other.revealDuration) &&
+             revealBounce.hasSameValue(other.revealBounce) &&
+             revealStagger.hasSameValue(other.revealStagger) &&
+             revealMilestones.hasSameValue(other.revealMilestones) &&
+             revealMilestoneHold.hasSameValue(other.revealMilestoneHold) &&
              loading.hasSameValue(other.loading) &&
              shimmerColor.hasSameValue(other.shimmerColor) &&
              shimmerDuration.hasSameValue(other.shimmerDuration) &&
@@ -111,6 +129,8 @@ namespace margelo::nitro::nitrorollingnumber::views {
              color.hasSameValue(other.color) &&
              textAlign.hasSameValue(other.textAlign) &&
              onSizeChange.hasSameValue(other.onSizeChange) &&
+             onRevealEnd.hasSameValue(other.onRevealEnd) &&
+             onRevealMilestone.hasSameValue(other.onRevealMilestone) &&
              hybridRef.hasSameValue(other.hybridRef);
     }
 
@@ -128,6 +148,13 @@ namespace margelo::nitro::nitrorollingnumber::views {
              bounce.isProvided() ||
              stagger.isProvided() ||
              direction.isProvided() ||
+             reveal.isProvided() ||
+             revealStyle.isProvided() ||
+             revealDuration.isProvided() ||
+             revealBounce.isProvided() ||
+             revealStagger.isProvided() ||
+             revealMilestones.isProvided() ||
+             revealMilestoneHold.isProvided() ||
              loading.isProvided() ||
              shimmerColor.isProvided() ||
              shimmerDuration.isProvided() ||
@@ -146,6 +173,8 @@ namespace margelo::nitro::nitrorollingnumber::views {
              color.isProvided() ||
              textAlign.isProvided() ||
              onSizeChange.isProvided() ||
+             onRevealEnd.isProvided() ||
+             onRevealMilestone.isProvided() ||
              hybridRef.isProvided();
     }
 

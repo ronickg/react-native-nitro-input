@@ -24,6 +24,15 @@ void JRollingEngine::registerNatives() {
       makeNativeMethod("needsFrames", JRollingEngine::needsFrames),
       makeNativeMethod("isRolling", JRollingEngine::isRolling),
       makeNativeMethod("reset", JRollingEngine::reset),
+      makeNativeMethod("setRevealTiming", JRollingEngine::setRevealTiming),
+      makeNativeMethod("holdReveal", JRollingEngine::holdReveal),
+      makeNativeMethod("reveal", JRollingEngine::reveal),
+      makeNativeMethod("isRevealing", JRollingEngine::isRevealing),
+      makeNativeMethod("clearRevealMilestones", JRollingEngine::clearRevealMilestones),
+      makeNativeMethod("addRevealMilestone", JRollingEngine::addRevealMilestone),
+      makeNativeMethod("setRevealMilestoneHold", JRollingEngine::setRevealMilestoneHold),
+      makeNativeMethod("revealMilestonesReached", JRollingEngine::revealMilestonesReached),
+      makeNativeMethod("revealMilestoneValue", JRollingEngine::revealMilestoneValue),
       makeNativeMethod("frame", JRollingEngine::frame),
       makeNativeMethod("frameInto", JRollingEngine::frameInto),
       makeNativeMethod("shimmerPhase", JRollingEngine::shimmerPhase),
@@ -75,13 +84,50 @@ void JRollingEngine::reset() {
   engine_.reset();
 }
 
+void JRollingEngine::setRevealTiming(double durationSeconds, double bounce, int style, double staggerSeconds) {
+  engine_.setRevealTiming(durationSeconds, bounce, style, staggerSeconds);
+}
+
+void JRollingEngine::holdReveal(double value) {
+  engine_.holdReveal(value);
+}
+
+void JRollingEngine::reveal(double value, double now) {
+  engine_.reveal(value, now);
+}
+
+bool JRollingEngine::isRevealing() {
+  return engine_.isRevealing();
+}
+
+void JRollingEngine::clearRevealMilestones() {
+  engine_.clearRevealMilestones();
+}
+
+void JRollingEngine::addRevealMilestone(double value) {
+  engine_.addRevealMilestone(value);
+}
+
+void JRollingEngine::setRevealMilestoneHold(double holdSeconds) {
+  engine_.setRevealMilestoneHold(holdSeconds);
+}
+
+int JRollingEngine::revealMilestonesReached() {
+  return engine_.revealMilestonesReached();
+}
+
+double JRollingEngine::revealMilestoneValue(int index) {
+  return engine_.revealMilestoneValue(index);
+}
+
 jni::local_ref<jni::JArrayDouble> JRollingEngine::frame() {
   const auto& wheels = engine_.wheels();
   const size_t count = wheels.size();
   std::vector<double> data;
-  data.reserve(3 + count * 4);
+  data.reserve(4 + count * 4);
   data.push_back(engine_.signFactor());
   data.push_back(engine_.loadingProgress());
+  data.push_back(engine_.revealScale());
   data.push_back(static_cast<double>(count));
   for (const auto& w : wheels) {
     data.push_back(w.position);
@@ -98,15 +144,16 @@ int JRollingEngine::frameInto(jni::alias_ref<jni::JArrayDouble> out) {
   const auto& wheels = engine_.wheels();
   const size_t count = wheels.size();
   constexpr size_t kMaxWheels = 32;
-  double data[3 + kMaxWheels * 4];
-  const size_t needed = 3 + count * 4;
+  double data[4 + kMaxWheels * 4];
+  const size_t needed = 4 + count * 4;
   if (count > kMaxWheels || static_cast<size_t>(out->size()) < needed) {
     return -1;
   }
   data[0] = engine_.signFactor();
   data[1] = engine_.loadingProgress();
-  data[2] = static_cast<double>(count);
-  size_t i = 3;
+  data[2] = engine_.revealScale();
+  data[3] = static_cast<double>(count);
+  size_t i = 4;
   for (const auto& w : wheels) {
     data[i++] = w.position;
     data[i++] = w.width;

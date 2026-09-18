@@ -170,6 +170,48 @@ using namespace margelo::nitro::nitrorollingnumber::views;
           : !newViewProps.direction.hasSameValue(oldViewProps->direction)) {
       swiftPart.setDirection(newViewProps.direction.get());
     }
+    // reveal: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.reveal.isProvided()
+          : !newViewProps.reveal.hasSameValue(oldViewProps->reveal)) {
+      swiftPart.setReveal(newViewProps.reveal.get());
+    }
+    // revealStyle: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.revealStyle.isProvided()
+          : !newViewProps.revealStyle.hasSameValue(oldViewProps->revealStyle)) {
+      swiftPart.setRevealStyle(newViewProps.revealStyle.get());
+    }
+    // revealDuration: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.revealDuration.isProvided()
+          : !newViewProps.revealDuration.hasSameValue(oldViewProps->revealDuration)) {
+      swiftPart.setRevealDuration(newViewProps.revealDuration.get());
+    }
+    // revealBounce: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.revealBounce.isProvided()
+          : !newViewProps.revealBounce.hasSameValue(oldViewProps->revealBounce)) {
+      swiftPart.setRevealBounce(newViewProps.revealBounce.get());
+    }
+    // revealStagger: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.revealStagger.isProvided()
+          : !newViewProps.revealStagger.hasSameValue(oldViewProps->revealStagger)) {
+      swiftPart.setRevealStagger(newViewProps.revealStagger.get());
+    }
+    // revealMilestones: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.revealMilestones.isProvided()
+          : !newViewProps.revealMilestones.hasSameValue(oldViewProps->revealMilestones)) {
+      swiftPart.setRevealMilestones(newViewProps.revealMilestones.get());
+    }
+    // revealMilestoneHold: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.revealMilestoneHold.isProvided()
+          : !newViewProps.revealMilestoneHold.hasSameValue(oldViewProps->revealMilestoneHold)) {
+      swiftPart.setRevealMilestoneHold(newViewProps.revealMilestoneHold.get());
+    }
     // loading: optional
     if (oldViewProps == nullptr
           ? newViewProps.loading.isProvided()
@@ -277,6 +319,18 @@ using namespace margelo::nitro::nitrorollingnumber::views;
           ? newViewProps.onSizeChange.isProvided()
           : !newViewProps.onSizeChange.hasSameValue(oldViewProps->onSizeChange)) {
       swiftPart.setOnSizeChange(newViewProps.onSizeChange.get());
+    }
+    // onRevealEnd: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onRevealEnd.isProvided()
+          : !newViewProps.onRevealEnd.hasSameValue(oldViewProps->onRevealEnd)) {
+      swiftPart.setOnRevealEnd(newViewProps.onRevealEnd.get());
+    }
+    // onRevealMilestone: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onRevealMilestone.isProvided()
+          : !newViewProps.onRevealMilestone.hasSameValue(oldViewProps->onRevealMilestone)) {
+      swiftPart.setOnRevealMilestone(newViewProps.onRevealMilestone.get());
     }
 
     // Update hybridRef if it changed

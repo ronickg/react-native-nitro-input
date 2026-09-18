@@ -1,0 +1,41 @@
+---
+sidebar_position: 3
+title: Currency layouts
+description: A smaller currency symbol pinned to the top of the digits, a currency code pinned to the bottom.
+---
+
+import {Example, CurrencyDemo} from '@site/src/components/Demo/Demo';
+
+# Currency layouts
+
+Money is usually set with the currency mark at a different size from the amount: a small `$` riding the top of the digits, or a small `USD` sitting on their baseline. `prefixFontSize` / `suffixFontSize` size the affixes, and `affixAlign` (or `prefixAlign` / `suffixAlign` per side) says how they line up with the digits.
+
+<Example
+  code={`// "$" smaller than the amount, aligned to the top of the digits
+<RollingNumber value={total} prefix="$" prefixFontSize={24} affixAlign="top" fontSize={52} />
+
+// currency code after the amount, smaller and sitting on the digits' baseline
+<RollingNumber value={total} suffix=" USD" suffixFontSize={18} suffixAlign="bottom" fractionDigits={2} />
+
+// both at once: "€" pinned top, "EUR" pinned bottom
+<RollingNumber
+  value={total}
+  prefix="€" suffix=" EUR"
+  prefixFontSize={24} suffixFontSize={16}
+  prefixAlign="top" suffixAlign="bottom"
+/>`}>
+  <CurrencyDemo />
+</Example>
+
+| `affixAlign` | What lines up |
+| --- | --- |
+| `baseline` (default) | The affix shares the digits' baseline. |
+| `top` | The **top of the glyphs**: the affix's cap height meets the digits' cap height. |
+| `bottom` | The **bottom of the glyphs' ink**: digits end on the baseline, so an all-caps code sits on it too, even though a grouping comma's tail hangs lower. |
+| `center` | The affix's line box is centred on the digits' line box. |
+
+The affixes are part of the layout the engine animates: when a leading digit appears, the prefix slides left with it; when the number is centred the whole run re-centres.
+
+:::tip Accessibility
+VoiceOver and TalkBack read the whole formatted amount (`$1,234.50 USD`), not the digits one by one, and it updates when the value changes. See [Accessibility](/docs/accessibility).
+:::

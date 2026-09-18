@@ -16,6 +16,13 @@
     "bounce": true,
     "stagger": true,
     "direction": true,
+    "reveal": true,
+    "revealStyle": true,
+    "revealDuration": true,
+    "revealBounce": true,
+    "revealStagger": true,
+    "revealMilestones": true,
+    "revealMilestoneHold": true,
     "loading": true,
     "shimmerColor": true,
     "shimmerDuration": true,
@@ -34,6 +41,8 @@
     "color": true,
     "textAlign": true,
     "onSizeChange": true,
+    "onRevealEnd": true,
+    "onRevealMilestone": true,
     "hybridRef": true
   }
 }

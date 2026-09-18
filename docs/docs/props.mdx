@@ -1,0 +1,88 @@
+---
+sidebar_position: 9
+title: Props
+description: Every prop and method of RollingNumber.
+---
+
+# Props
+
+<div className="rn-props">
+
+`RollingNumber` accepts every `View` prop (`style`, `testID`, `accessibilityLabel`, …) plus the following. All are optional except `value`.
+
+## Value and formatting
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `value` | `number` | – | The number to display. Every change rolls each digit natively. |
+| `fractionDigits` | `number` | `0` | Digits after the decimal separator (0–9). |
+| `minimumIntegerDigits` | `number` | `1` | Zero-pads the integer part (1–15). |
+| `groupingSeparator` | `string` | `''` | Inserted every three integer digits. |
+| `decimalSeparator` | `string` | `'.'` | Between integer and fraction digits. |
+| `prefix` / `suffix` | `string` | `''` | Static text around the number. |
+
+## Roll timing
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `duration` | `number` | `500` | Roll duration in ms; `0` snaps. |
+| `easing` | `'linear' \| 'easeIn' \| 'easeOut' \| 'easeInOut' \| 'spring'` | `'easeInOut'` | Roll timing curve. A value that arrives mid-roll continues with the ease-out half of the curve, so rapid updates never stall. |
+| `bounce` | `number` | `0.15` | Overshoot of the `spring` easing (0–1). |
+| `stagger` | `number` | `0` | ms between the start of each digit's roll, least significant first (a cascading carry). |
+| `direction` | `'auto' \| 'up' \| 'down'` | `'auto'` | Roll direction; `auto` follows the sign of the change. |
+
+## Jackpot reveal
+
+See [Jackpot reveal](/docs/reveal).
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `reveal` | `boolean` | – | `false` holds the opening frame (`$0.00` in the final layout); `true` plays the reveal to `value`. `undefined` = a normal rolling number. |
+| `revealStyle` | `'count' \| 'spin'` | `'count'` | The win-meter rollup, or the slot reels locking from the left. |
+| `revealDuration` | `number` | `2200` | ms of the count, or until the last reel locks. |
+| `revealBounce` | `number` | `0.07` | Peak overshoot of the landing pop; `0` = none. |
+| `revealStagger` | `number` | `200` | `spin`: ms between reel stops, shortened to fit the duration. |
+| `revealMilestones` | `number[]` | – | `count`: tiers in the figure's units. The count lands on each, punches, holds, then accelerates again. |
+| `revealMilestoneHold` | `number` | `0` | `count`: ms the count pauses on each milestone. |
+| `onRevealMilestone` | `(index, value) => void` | – | The count reached a milestone. |
+| `onRevealEnd` | `() => void` | – | The reveal landed (count or reels done, pop rung out). |
+
+## Loading
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `loading` | `boolean` | `false` | Shine glint: a slanted, text-wide band sweeps through the ink; cross-fades on toggle. |
+| `shimmerColor` | `ColorValue` | light neutral | Color of the glint's core (`#D6D9E1`, `#2B2E37` in dark mode). |
+| `shimmerDuration` | `number` | `950` | ms per sweep (linear, repeating). |
+
+## Typography and layout
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `fontSize` | `number` | `32` | Font size of the digits in points. |
+| `prefixFontSize` / `suffixFontSize` | `number` | `fontSize` | Smaller (or larger) prefix / suffix. |
+| `affixAlign` | `'baseline' \| 'center' \| 'top' \| 'bottom'` | `'baseline'` | How prefix / suffix line up with the digits: `top` pins the glyph tops (cap height), `bottom` the bottom of the glyphs' ink (the digits' baseline). |
+| `prefixAlign` / `suffixAlign` | same | `affixAlign` | Per-affix override. |
+| `adjustsFontSizeToFit` | `boolean` | `false` | Shrink the whole number to fit the view's width; the view keeps its full height. |
+| `minimumFontScale` | `number` | `0.5` | Lower bound for `adjustsFontSizeToFit`. |
+| `allowFontScaling` | `boolean` | `false` | Follow the system text size like `Text`. |
+| `maxFontSizeMultiplier` | `number` | `0` | Cap for `allowFontScaling`; `0` = no cap. |
+| `fontWeight` | `TextStyle['fontWeight']` | `'normal'` | Font weight. |
+| `fontFamily` | `string` | system | Font family, resolved like `Text`. |
+| `color` | `ColorValue` | label color | Text color. |
+| `textAlign` | `'left' \| 'center' \| 'right'` | `'left'` | Alignment inside a wider frame. |
+| `onNativeRef` | `(ref) => void` | – | Receives the Nitro object on mount. |
+
+## Methods (`ref`)
+
+| Method | Description |
+| --- | --- |
+| `animateTo(value)` | Rolls to `value`, like changing the prop. |
+| `jumpTo(value)` | Positions the wheels continuously from `value` (odometer carry rule), no roll. Skips a running reveal. |
+| `revealTo(value)` | Plays a jackpot reveal to `value` in the current `revealStyle`. |
+| `getValue()` | The value shown or being rolled towards. |
+| `native` | The Nitro object, or `null` before mount. |
+
+All methods are safe to call from any thread and coalesce to the newest value per frame.
+
+</div>

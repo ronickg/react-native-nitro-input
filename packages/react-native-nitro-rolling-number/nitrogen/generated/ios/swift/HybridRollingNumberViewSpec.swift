@@ -22,6 +22,13 @@ public protocol HybridRollingNumberViewSpec_protocol: HybridObject, HybridView {
   var bounce: Double? { get set }
   var stagger: Double? { get set }
   var direction: RollingNumberDirection? { get set }
+  var reveal: Bool? { get set }
+  var revealStyle: RollingNumberRevealStyle? { get set }
+  var revealDuration: Double? { get set }
+  var revealBounce: Double? { get set }
+  var revealStagger: Double? { get set }
+  var revealMilestones: [Double]? { get set }
+  var revealMilestoneHold: Double? { get set }
   var loading: Bool? { get set }
   var shimmerColor: Double? { get set }
   var shimmerDuration: Double? { get set }
@@ -40,10 +47,13 @@ public protocol HybridRollingNumberViewSpec_protocol: HybridObject, HybridView {
   var color: Double? { get set }
   var textAlign: RollingNumberTextAlign? { get set }
   var onSizeChange: ((_ width: Double, _ height: Double) -> Void)? { get set }
+  var onRevealEnd: (() -> Void)? { get set }
+  var onRevealMilestone: ((_ index: Double, _ value: Double) -> Void)? { get set }
 
   // Methods
   func jumpTo(value: Double) throws -> Void
   func animateTo(value: Double) throws -> Void
+  func revealTo(value: Double) throws -> Void
 }
 
 public extension HybridRollingNumberViewSpec_protocol {

@@ -596,6 +596,79 @@ function ImperativeDemo() {
   )
 }
 
+/** The win tiers of the demo rollup: the count lands on each, punches, holds, then runs on. */
+const REVEAL_MILESTONES = [1000, 10000, 25000]
+
+function RevealDemo() {
+  const [amount, setAmount] = useState(50000)
+  const [spin, setSpin] = useState(false)
+  const [landed, setLanded] = useState(false)
+  const [style, setStyle] = useState<'count' | 'spin'>('count')
+  const [tiers, setTiers] = useState(true)
+  const ref = useRef<RollingNumberHandle>(null)
+  const status = landed ? 'Credit unlocked' : spin ? (style === 'spin' ? 'Spinning…' : 'Counting…') : 'Ready when you are'
+  const rearm = () => setLanded(false)
+  return (
+    <Section
+      title="Jackpot reveal"
+      hint="`reveal={false}` holds the opening frame; flip it and the figure plays the casino win-meter rollup (count) or the jackpot reels (spin), then lands with a pop. With tiers, the count runs tier by tier: it lands on each milestone, punches, holds, then accelerates again. Tap the number to skip."
+    >
+      <View style={styles.row}>
+        <Button title="Count" selected={style === 'count'} testID="reveal-style-count" onPress={() => { setSpin(false); rearm(); setStyle('count') }} />
+        <Button title="Spin" selected={style === 'spin'} testID="reveal-style-spin" onPress={() => { setSpin(false); rearm(); setStyle('spin') }} />
+        <Button title={tiers ? 'Tiers: 1k / 10k / 25k' : 'Tiers: off'} testID="reveal-tiers" onPress={() => { setSpin(false); rearm(); setTiers((t) => !t) }} />
+      </View>
+      <Pressable style={styles.revealCard} onPress={() => spin && !landed && ref.current?.jumpTo(amount)}>
+        <Text style={styles.revealTitle}>Congrats!</Text>
+        <RollingNumber
+          ref={ref}
+          value={amount}
+          reveal={spin}
+          revealStyle={style}
+          revealMilestones={tiers ? REVEAL_MILESTONES : undefined}
+          revealMilestoneHold={350}
+          onRevealEnd={() => setLanded(true)}
+          prefix="$"
+          fractionDigits={2}
+          groupingSeparator=","
+          fontSize={52}
+          fontWeight="800"
+          color="#fff"
+          textAlign="center"
+          style={styles.revealNumber}
+          testID="reveal"
+        />
+        <Text style={styles.revealSubtitle} testID="reveal-status">{status}</Text>
+      </Pressable>
+      <View style={styles.row}>
+        <Button
+          title={spin ? 'Reset' : 'Reveal'}
+          testID="reveal-toggle"
+          onPress={() => {
+            rearm()
+            setSpin((s) => !s)
+          }}
+        />
+        <Button
+          title="Random amount"
+          onPress={() => {
+            rearm()
+            setSpin(false)
+            setAmount(Math.round(Math.random() * 9_999_999) / 100)
+          }}
+        />
+        <Button
+          title="revealTo(1,234.56)"
+          onPress={() => {
+            rearm()
+            ref.current?.revealTo(1234.56)
+          }}
+        />
+      </View>
+    </Section>
+  )
+}
+
 function App() {
   const dark = useColorScheme() === 'dark'
   return (
@@ -603,11 +676,12 @@ function App() {
       <SafeAreaView style={[styles.root, dark && styles.rootDark]}>
         <ScrollView contentContainerStyle={styles.content}>
           <Text style={[styles.title, dark && styles.titleDark]}>Nitro Rolling Number</Text>
-          <Benchmark />
+          <RevealDemo />
           <ReactDrivenDemo />
           <CurrencyDemo />
           <CenteredDemo />
           <ImperativeDemo />
+          <Benchmark />
         </ScrollView>
       </SafeAreaView>
     </SafeAreaProvider>
@@ -661,6 +735,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   centerNumber: { width: '100%' },
+  revealCard: {
+    backgroundColor: '#1D4ED8',
+    borderRadius: 16,
+    paddingVertical: 28,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    gap: 6,
+  },
+  revealTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  revealNumber: { width: '100%' },
+  revealSubtitle: { color: 'rgba(255,255,255,0.8)', fontSize: 14 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   button: {
     backgroundColor: '#E5E5EA',

@@ -16,6 +16,8 @@ namespace NitroRollingNumber { class HybridRollingNumberViewSpec_cxx; }
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberEasing; }
 // Forward declaration of `RollingNumberDirection` to properly resolve imports.
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberDirection; }
+// Forward declaration of `RollingNumberRevealStyle` to properly resolve imports.
+namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberRevealStyle; }
 // Forward declaration of `RollingNumberAffixAlign` to properly resolve imports.
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberAffixAlign; }
 // Forward declaration of `RollingNumberTextAlign` to properly resolve imports.
@@ -25,6 +27,8 @@ namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberTextAlign
 #include <string>
 #include "RollingNumberEasing.hpp"
 #include "RollingNumberDirection.hpp"
+#include "RollingNumberRevealStyle.hpp"
+#include <vector>
 #include "RollingNumberAffixAlign.hpp"
 #include "RollingNumberTextAlign.hpp"
 #include <functional>
@@ -158,6 +162,55 @@ namespace margelo::nitro::nitrorollingnumber {
     inline void setDirection(std::optional<RollingNumberDirection> direction) noexcept override {
       _swiftPart.setDirection(direction);
     }
+    inline std::optional<bool> getReveal() noexcept override {
+      auto __result = _swiftPart.getReveal();
+      return __result;
+    }
+    inline void setReveal(std::optional<bool> reveal) noexcept override {
+      _swiftPart.setReveal(reveal);
+    }
+    inline std::optional<RollingNumberRevealStyle> getRevealStyle() noexcept override {
+      auto __result = _swiftPart.getRevealStyle();
+      return __result;
+    }
+    inline void setRevealStyle(std::optional<RollingNumberRevealStyle> revealStyle) noexcept override {
+      _swiftPart.setRevealStyle(revealStyle);
+    }
+    inline std::optional<double> getRevealDuration() noexcept override {
+      auto __result = _swiftPart.getRevealDuration();
+      return __result;
+    }
+    inline void setRevealDuration(std::optional<double> revealDuration) noexcept override {
+      _swiftPart.setRevealDuration(revealDuration);
+    }
+    inline std::optional<double> getRevealBounce() noexcept override {
+      auto __result = _swiftPart.getRevealBounce();
+      return __result;
+    }
+    inline void setRevealBounce(std::optional<double> revealBounce) noexcept override {
+      _swiftPart.setRevealBounce(revealBounce);
+    }
+    inline std::optional<double> getRevealStagger() noexcept override {
+      auto __result = _swiftPart.getRevealStagger();
+      return __result;
+    }
+    inline void setRevealStagger(std::optional<double> revealStagger) noexcept override {
+      _swiftPart.setRevealStagger(revealStagger);
+    }
+    inline std::optional<std::vector<double>> getRevealMilestones() noexcept override {
+      auto __result = _swiftPart.getRevealMilestones();
+      return __result;
+    }
+    inline void setRevealMilestones(const std::optional<std::vector<double>>& revealMilestones) noexcept override {
+      _swiftPart.setRevealMilestones(revealMilestones);
+    }
+    inline std::optional<double> getRevealMilestoneHold() noexcept override {
+      auto __result = _swiftPart.getRevealMilestoneHold();
+      return __result;
+    }
+    inline void setRevealMilestoneHold(std::optional<double> revealMilestoneHold) noexcept override {
+      _swiftPart.setRevealMilestoneHold(revealMilestoneHold);
+    }
     inline std::optional<bool> getLoading() noexcept override {
       auto __result = _swiftPart.getLoading();
       return __result;
@@ -284,6 +337,20 @@ namespace margelo::nitro::nitrorollingnumber {
     inline void setOnSizeChange(const std::optional<std::function<void(double /* width */, double /* height */)>>& onSizeChange) noexcept override {
       _swiftPart.setOnSizeChange(onSizeChange);
     }
+    inline std::optional<std::function<void()>> getOnRevealEnd() noexcept override {
+      auto __result = _swiftPart.getOnRevealEnd();
+      return __result;
+    }
+    inline void setOnRevealEnd(const std::optional<std::function<void()>>& onRevealEnd) noexcept override {
+      _swiftPart.setOnRevealEnd(onRevealEnd);
+    }
+    inline std::optional<std::function<void(double /* index */, double /* value */)>> getOnRevealMilestone() noexcept override {
+      auto __result = _swiftPart.getOnRevealMilestone();
+      return __result;
+    }
+    inline void setOnRevealMilestone(const std::optional<std::function<void(double /* index */, double /* value */)>>& onRevealMilestone) noexcept override {
+      _swiftPart.setOnRevealMilestone(onRevealMilestone);
+    }
 
   public:
     // Methods
@@ -295,6 +362,12 @@ namespace margelo::nitro::nitrorollingnumber {
     }
     inline void animateTo(double value) override {
       auto __result = _swiftPart.animateTo(std::forward<decltype(value)>(value));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+    }
+    inline void revealTo(double value) override {
+      auto __result = _swiftPart.revealTo(std::forward<decltype(value)>(value));
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

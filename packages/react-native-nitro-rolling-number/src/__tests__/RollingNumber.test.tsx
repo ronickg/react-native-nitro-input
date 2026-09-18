@@ -94,4 +94,78 @@ describe('RollingNumber', () => {
     expect(native.jumpTo).toHaveBeenCalledWith(3.5)
     expect(ref.current?.getValue()).toBe(42)
   })
+
+  it('passes the jackpot reveal props through with stable callbacks and milestones', () => {
+    const onRevealEnd = jest.fn()
+    const onRevealMilestone = jest.fn()
+    const renderer = render(
+      <RollingNumber
+        value={50000}
+        reveal={false}
+        revealStyle="spin"
+        revealDuration={1800}
+        revealBounce={0.1}
+        revealStagger={150}
+        revealMilestones={[1000, 10000]}
+        revealMilestoneHold={350}
+        onRevealEnd={onRevealEnd}
+        onRevealMilestone={onRevealMilestone}
+      />
+    )
+    const first = nativeProps(renderer)
+    expect(first.reveal).toBe(false)
+    expect(first.revealStyle).toBe('spin')
+    expect(first.revealDuration).toBe(1800)
+    expect(first.revealBounce).toBe(0.1)
+    expect(first.revealStagger).toBe(150)
+    expect(first.revealMilestones).toEqual([1000, 10000])
+    expect(first.revealMilestoneHold).toBe(350)
+    expect(typeof first.onRevealEnd.f).toBe('function')
+    expect(typeof first.onRevealMilestone.f).toBe('function')
+
+    // A new inline handler or a fresh array literal must not re-set the native props.
+    const laterEnd = jest.fn()
+    act(() => {
+      renderer.update(
+        <RollingNumber
+          value={50000}
+          reveal
+          revealStyle="spin"
+          revealMilestones={[1000, 10000]}
+          onRevealEnd={laterEnd}
+          onRevealMilestone={onRevealMilestone}
+        />
+      )
+    })
+    const second = nativeProps(renderer)
+    expect(second.reveal).toBe(true)
+    expect(second.onRevealEnd).toBe(first.onRevealEnd)
+    expect(second.revealMilestones).toBe(first.revealMilestones)
+    second.onRevealEnd.f()
+    expect(laterEnd).toHaveBeenCalledTimes(1)
+    expect(onRevealEnd).not.toHaveBeenCalled()
+    second.onRevealMilestone.f(1, 10000)
+    expect(onRevealMilestone).toHaveBeenCalledWith(1, 10000)
+
+    // Without handlers the native callback props stay undefined.
+    act(() => {
+      renderer.update(<RollingNumber value={50000} />)
+    })
+    const third = nativeProps(renderer)
+    expect(third.onRevealEnd).toBeUndefined()
+    expect(third.onRevealMilestone).toBeUndefined()
+    expect(third.reveal).toBeUndefined()
+  })
+
+  it('exposes revealTo on the handle', () => {
+    const ref = createRef<RollingNumberHandle>()
+    const renderer = render(<RollingNumber ref={ref} value={7} />)
+    ref.current?.revealTo(1234.5) // no-op before mount
+    const native = { animateTo: jest.fn(), jumpTo: jest.fn(), revealTo: jest.fn(), value: 7 }
+    act(() => {
+      nativeProps(renderer).hybridRef.f(native)
+    })
+    ref.current?.revealTo(1234.5)
+    expect(native.revealTo).toHaveBeenCalledWith(1234.5)
+  })
 })

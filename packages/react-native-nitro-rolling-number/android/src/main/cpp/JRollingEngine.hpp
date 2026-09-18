@@ -32,7 +32,16 @@ public:
   bool needsFrames();
   bool isRolling();
   void reset();
-  /// [signFactor, loadingProgress, wheelCount, then (position, width, linear, blankZero) per wheel]
+  void setRevealTiming(double durationSeconds, double bounce, int style, double staggerSeconds);
+  void holdReveal(double value);
+  void reveal(double value, double now);
+  bool isRevealing();
+  void clearRevealMilestones();
+  void addRevealMilestone(double value);
+  void setRevealMilestoneHold(double holdSeconds);
+  int revealMilestonesReached();
+  double revealMilestoneValue(int index);
+  /// [signFactor, loadingProgress, revealScale, wheelCount, then (position, width, linear, blankZero) per wheel]
   jni::local_ref<jni::JArrayDouble> frame();
   /// Writes the render state into `out` (same layout as `frame()`) without
   /// allocating; returns the number of doubles written, or -1 if `out` is too small.

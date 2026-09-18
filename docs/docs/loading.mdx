@@ -1,0 +1,39 @@
+---
+sidebar_position: 5
+title: Loading skeleton
+description: A text-shaped shimmer while the value loads, cross-fading into the real number.
+---
+
+import {Example, LoadingDemo} from '@site/src/components/Demo/Demo';
+
+# Loading skeleton
+
+While a balance is being fetched, show the number's shape instead of a grey block. With `loading` the glyphs keep their color and a slanted, text-wide glint sweeps through them (`[color, shimmerColor, color]` at 10 / 50 / 90 %), seeded with its core at the left edge so it shows immediately.
+
+<Example
+  code={`const { data: balance } = useBalance()
+
+<RollingNumber
+  value={balance ?? 0}
+  loading={balance === undefined}
+  prefix="$"
+  fractionDigits={2}
+  groupingSeparator=","
+  fontSize={56}
+  style={{ width: 260 }}
+/>`}>
+  <LoadingDemo />
+</Example>
+
+It is text-shaped, so the layout is exactly what the real number will occupy: nothing jumps when the value arrives. When it does, flip `loading` off and set `value` in the same render: the glint fades out (250 ms) while the digits roll to the amount.
+
+| Prop | Default | |
+| --- | --- | --- |
+| `shimmerColor` | `#D6D9E1` (`#2B2E37` in dark mode) | Color of the glint's core, typically your lightest neutral. |
+| `shimmerDuration` | `950` | Milliseconds per sweep, linear and repeating. |
+
+Under Reduce Motion (iOS) or "Remove animations" (Android) the glint freezes; the element is announced as loading.
+
+:::note
+On iOS the glint is the one case where the view draws a bitmap (the sweep is composited source-atop through a Core Graphics transparency layer). Every other frame moves Core Animation layers. See [Performance](/docs/performance).
+:::

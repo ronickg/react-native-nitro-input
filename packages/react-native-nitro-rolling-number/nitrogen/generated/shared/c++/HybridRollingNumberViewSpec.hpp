@@ -17,6 +17,8 @@
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberEasing; }
 // Forward declaration of `RollingNumberDirection` to properly resolve imports.
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberDirection; }
+// Forward declaration of `RollingNumberRevealStyle` to properly resolve imports.
+namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberRevealStyle; }
 // Forward declaration of `RollingNumberAffixAlign` to properly resolve imports.
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberAffixAlign; }
 // Forward declaration of `RollingNumberTextAlign` to properly resolve imports.
@@ -26,6 +28,8 @@ namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberTextAlign
 #include <string>
 #include "RollingNumberEasing.hpp"
 #include "RollingNumberDirection.hpp"
+#include "RollingNumberRevealStyle.hpp"
+#include <vector>
 #include "RollingNumberAffixAlign.hpp"
 #include "RollingNumberTextAlign.hpp"
 #include <functional>
@@ -81,6 +85,20 @@ namespace margelo::nitro::nitrorollingnumber {
       virtual void setStagger(std::optional<double> stagger) = 0;
       virtual std::optional<RollingNumberDirection> getDirection() = 0;
       virtual void setDirection(std::optional<RollingNumberDirection> direction) = 0;
+      virtual std::optional<bool> getReveal() = 0;
+      virtual void setReveal(std::optional<bool> reveal) = 0;
+      virtual std::optional<RollingNumberRevealStyle> getRevealStyle() = 0;
+      virtual void setRevealStyle(std::optional<RollingNumberRevealStyle> revealStyle) = 0;
+      virtual std::optional<double> getRevealDuration() = 0;
+      virtual void setRevealDuration(std::optional<double> revealDuration) = 0;
+      virtual std::optional<double> getRevealBounce() = 0;
+      virtual void setRevealBounce(std::optional<double> revealBounce) = 0;
+      virtual std::optional<double> getRevealStagger() = 0;
+      virtual void setRevealStagger(std::optional<double> revealStagger) = 0;
+      virtual std::optional<std::vector<double>> getRevealMilestones() = 0;
+      virtual void setRevealMilestones(const std::optional<std::vector<double>>& revealMilestones) = 0;
+      virtual std::optional<double> getRevealMilestoneHold() = 0;
+      virtual void setRevealMilestoneHold(std::optional<double> revealMilestoneHold) = 0;
       virtual std::optional<bool> getLoading() = 0;
       virtual void setLoading(std::optional<bool> loading) = 0;
       virtual std::optional<double> getShimmerColor() = 0;
@@ -117,11 +135,16 @@ namespace margelo::nitro::nitrorollingnumber {
       virtual void setTextAlign(std::optional<RollingNumberTextAlign> textAlign) = 0;
       virtual std::optional<std::function<void(double /* width */, double /* height */)>> getOnSizeChange() = 0;
       virtual void setOnSizeChange(const std::optional<std::function<void(double /* width */, double /* height */)>>& onSizeChange) = 0;
+      virtual std::optional<std::function<void()>> getOnRevealEnd() = 0;
+      virtual void setOnRevealEnd(const std::optional<std::function<void()>>& onRevealEnd) = 0;
+      virtual std::optional<std::function<void(double /* index */, double /* value */)>> getOnRevealMilestone() = 0;
+      virtual void setOnRevealMilestone(const std::optional<std::function<void(double /* index */, double /* value */)>>& onRevealMilestone) = 0;
 
     public:
       // Methods
       virtual void jumpTo(double value) = 0;
       virtual void animateTo(double value) = 0;
+      virtual void revealTo(double value) = 0;
 
     protected:
       // Hybrid Setup

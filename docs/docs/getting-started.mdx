@@ -1,0 +1,63 @@
+---
+sidebar_position: 1
+title: Getting started
+description: Install react-native-nitro-rolling-number and render your first rolling number.
+---
+
+import {Frame, BasicDemo} from '@site/src/components/Demo/Demo';
+
+# Getting started
+
+`react-native-nitro-rolling-number` is a **native rolling number** (odometer / ticker) view for React Native, built with [Nitro Modules](https://nitro.margelo.com). Every digit is a wheel that rolls to its new glyph, like SwiftUI's `.contentTransition(.numericText())`, with the same look on iOS **and** Android.
+
+<Frame caption="Live, in your browser: the same C++ engine the native views use, compiled to WebAssembly.">
+  <BasicDemo />
+</Frame>
+
+## Requirements
+
+- React Native **0.78+** with the new architecture (Fabric) enabled.
+- `react-native-nitro-modules` **0.37+**.
+- iOS 13+, Android API 24+.
+
+## Install
+
+```bash
+bun add react-native-nitro-rolling-number react-native-nitro-modules
+```
+
+```bash
+cd ios && pod install
+```
+
+With Expo, add both packages, then run `npx expo prebuild` (or a dev client build). Nothing else to configure: the view autolinks through Nitro on both platforms.
+
+## First number
+
+```tsx
+import { RollingNumber } from 'react-native-nitro-rolling-number'
+
+export function Balance({ amount }: { amount: number }) {
+  return (
+    <RollingNumber
+      value={amount}
+      fractionDigits={2}
+      groupingSeparator=","
+      prefix="$"
+      fontSize={48}
+      fontWeight="700"
+      color="#0A84FF"
+    />
+  )
+}
+```
+
+Whenever `value` changes, each digit rolls from its old glyph to its new one in the direction of the change. The first value is shown without an animation. The view sizes itself to its content; give it a fixed `width` in `style` when you don't want the layout to reflow as digits appear.
+
+## Where to next
+
+- [Usage](/docs/usage): timing curves, stagger, direction.
+- [Currency layouts](/docs/currency): a smaller symbol pinned to the top, a currency code pinned to the bottom.
+- [Fit to width](/docs/fit-to-width): shrink-to-fit inside a fixed box.
+- [Jackpot reveal](/docs/reveal): the casino win counter.
+- [Props](/docs/props): the full reference.

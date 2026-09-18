@@ -38,6 +38,20 @@ namespace margelo::nitro::nitrorollingnumber {
       prototype.registerHybridSetter("stagger", &HybridRollingNumberViewSpec::setStagger);
       prototype.registerHybridGetter("direction", &HybridRollingNumberViewSpec::getDirection);
       prototype.registerHybridSetter("direction", &HybridRollingNumberViewSpec::setDirection);
+      prototype.registerHybridGetter("reveal", &HybridRollingNumberViewSpec::getReveal);
+      prototype.registerHybridSetter("reveal", &HybridRollingNumberViewSpec::setReveal);
+      prototype.registerHybridGetter("revealStyle", &HybridRollingNumberViewSpec::getRevealStyle);
+      prototype.registerHybridSetter("revealStyle", &HybridRollingNumberViewSpec::setRevealStyle);
+      prototype.registerHybridGetter("revealDuration", &HybridRollingNumberViewSpec::getRevealDuration);
+      prototype.registerHybridSetter("revealDuration", &HybridRollingNumberViewSpec::setRevealDuration);
+      prototype.registerHybridGetter("revealBounce", &HybridRollingNumberViewSpec::getRevealBounce);
+      prototype.registerHybridSetter("revealBounce", &HybridRollingNumberViewSpec::setRevealBounce);
+      prototype.registerHybridGetter("revealStagger", &HybridRollingNumberViewSpec::getRevealStagger);
+      prototype.registerHybridSetter("revealStagger", &HybridRollingNumberViewSpec::setRevealStagger);
+      prototype.registerHybridGetter("revealMilestones", &HybridRollingNumberViewSpec::getRevealMilestones);
+      prototype.registerHybridSetter("revealMilestones", &HybridRollingNumberViewSpec::setRevealMilestones);
+      prototype.registerHybridGetter("revealMilestoneHold", &HybridRollingNumberViewSpec::getRevealMilestoneHold);
+      prototype.registerHybridSetter("revealMilestoneHold", &HybridRollingNumberViewSpec::setRevealMilestoneHold);
       prototype.registerHybridGetter("loading", &HybridRollingNumberViewSpec::getLoading);
       prototype.registerHybridSetter("loading", &HybridRollingNumberViewSpec::setLoading);
       prototype.registerHybridGetter("shimmerColor", &HybridRollingNumberViewSpec::getShimmerColor);
@@ -74,8 +88,13 @@ namespace margelo::nitro::nitrorollingnumber {
       prototype.registerHybridSetter("textAlign", &HybridRollingNumberViewSpec::setTextAlign);
       prototype.registerHybridGetter("onSizeChange", &HybridRollingNumberViewSpec::getOnSizeChange);
       prototype.registerHybridSetter("onSizeChange", &HybridRollingNumberViewSpec::setOnSizeChange);
+      prototype.registerHybridGetter("onRevealEnd", &HybridRollingNumberViewSpec::getOnRevealEnd);
+      prototype.registerHybridSetter("onRevealEnd", &HybridRollingNumberViewSpec::setOnRevealEnd);
+      prototype.registerHybridGetter("onRevealMilestone", &HybridRollingNumberViewSpec::getOnRevealMilestone);
+      prototype.registerHybridSetter("onRevealMilestone", &HybridRollingNumberViewSpec::setOnRevealMilestone);
       prototype.registerHybridMethod("jumpTo", &HybridRollingNumberViewSpec::jumpTo);
       prototype.registerHybridMethod("animateTo", &HybridRollingNumberViewSpec::animateTo);
+      prototype.registerHybridMethod("revealTo", &HybridRollingNumberViewSpec::revealTo);
     });
   }
 

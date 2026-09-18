@@ -1,0 +1,27 @@
+---
+sidebar_position: 8
+title: Accessibility
+description: Screen readers, Reduce Motion, Dynamic Type and view recycling.
+---
+
+# Accessibility
+
+## Screen readers
+
+VoiceOver and TalkBack read the **formatted amount**, prefix, sign, grouped digits and suffix (`$1,234.50 USD`), never the digits one by one and never a half-rolled state. The label updates whenever the value changes. While `loading` the element is announced as loading.
+
+## Reduce Motion
+
+Reduce Motion (iOS) and "Remove animations" / animator duration scale 0 (Android) turn every animation into a snap: rolls, jackpot reveals (the target is shown at once and `onRevealEnd` still fires) and the loading glint, which freezes in place.
+
+## Dynamic Type / font scale
+
+`allowFontScaling` follows the system text size like `Text`, capped by `maxFontSizeMultiplier`. It is off by default so amounts keep their design size, which is the usual choice for a hero figure; turn it on for numbers that live inside body copy.
+
+## Fonts
+
+Custom fonts resolve like `Text`: on iOS by PostScript or family name from `UIAppFonts`, on Android through React Native's font manager (`assets/fonts`, `res/font`, or fonts registered by `expo-font`). Digits are set with tabular figures so columns line up.
+
+## Lists
+
+The view implements Nitro's `RecyclableView`, so Fabric reuses instances in long lists. A recycled view forgets all props and animation state before the next element's props are applied, so a number never rolls from another row's value.

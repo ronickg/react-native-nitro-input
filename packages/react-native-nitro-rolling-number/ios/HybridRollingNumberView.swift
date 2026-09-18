@@ -17,11 +17,20 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
   private var isBatching = false
   private var pendingValue: Double?
   private var configDirty = true
+  /// The `reveal` prop as last applied: `nil` = normal rolling, `false` = held
+  /// at the opening frame, `true` = the count has been fired.
+  private var appliedReveal: Bool?
 
   override init() {
     super.init()
     rollingView.onIntrinsicSizeChange = { [weak self] size in
       self?.onSizeChange?(Double(size.width), Double(size.height))
+    }
+    rollingView.onRevealEnd = { [weak self] in
+      self?.onRevealEnd?()
+    }
+    rollingView.onRevealMilestone = { [weak self] index, milestone in
+      self?.onRevealMilestone?(Double(index), milestone)
     }
   }
 
@@ -45,6 +54,15 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
   var bounce: Double? { didSet { markConfigDirty() } }
   var stagger: Double? { didSet { markConfigDirty() } }
   var direction: RollingNumberDirection? { didSet { markConfigDirty() } }
+  var reveal: Bool? { didSet { commitIfNeeded() } }
+  var revealStyle: RollingNumberRevealStyle? { didSet { markConfigDirty() } }
+  var revealDuration: Double? { didSet { markConfigDirty() } }
+  var revealBounce: Double? { didSet { markConfigDirty() } }
+  var revealStagger: Double? { didSet { markConfigDirty() } }
+  var revealMilestones: [Double]? { didSet { markConfigDirty() } }
+  var revealMilestoneHold: Double? { didSet { markConfigDirty() } }
+  var onRevealEnd: (() -> Void)?
+  var onRevealMilestone: ((Double, Double) -> Void)?
   var loading: Bool? { didSet { markConfigDirty() } }
   var shimmerColor: Double? { didSet { markConfigDirty() } }
   var shimmerDuration: Double? { didSet { markConfigDirty() } }
@@ -76,9 +94,14 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
     enqueue(.animate(value))
   }
 
+  func revealTo(value: Double) throws {
+    enqueue(.reveal(value))
+  }
+
   private enum Command {
     case jump(Double)
     case animate(Double)
+    case reveal(Double)
   }
 
   private let commandLock = NSLock()
@@ -111,6 +134,10 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
     switch command {
     case .jump(let value): rollingView.setValue(value)
     case .animate(let value): rollingView.animate(to: value)
+    case .reveal(let value):
+      rollingView.reveal(to: value)
+      // The prop machine treats the count as fired, so a later `reveal={true}` doesn't replay it.
+      if reveal != nil { appliedReveal = true }
     }
   }
 
@@ -146,6 +173,16 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
     bounce = nil
     stagger = nil
     direction = nil
+    reveal = nil
+    revealStyle = nil
+    revealDuration = nil
+    revealBounce = nil
+    revealStagger = nil
+    revealMilestones = nil
+    revealMilestoneHold = nil
+    onRevealEnd = nil
+    onRevealMilestone = nil
+    appliedReveal = nil
     loading = nil
     shimmerColor = nil
     shimmerDuration = nil
@@ -183,9 +220,31 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
   private func commit() {
     onMain {
       self.flushConfigIfNeeded()
-      if let value = self.pendingValue {
-        self.pendingValue = nil
-        self.rollingView.animate(to: value)
+      let changed = self.pendingValue
+      self.pendingValue = nil
+      let value = changed ?? self.rollingView.targetValue
+      guard let reveal = self.reveal else {
+        // Normal rolling number (also when leaving reveal mode).
+        self.appliedReveal = nil
+        if let changed { self.rollingView.animate(to: changed) }
+        return
+      }
+      defer { self.appliedReveal = reveal }
+      if !reveal {
+        // Hold the opening frame; re-hold when the figure or the mode changed.
+        if changed != nil || self.appliedReveal != false {
+          self.rollingView.holdReveal(value)
+        }
+      } else if self.appliedReveal != true {
+        // `reveal` just turned true (or the view mounted with it true): fire the count.
+        self.rollingView.reveal(to: value)
+      } else if let changed {
+        // A new figure after the count was fired: re-target a running count, roll a landed one.
+        if self.rollingView.isRevealing {
+          self.rollingView.reveal(to: changed)
+        } else {
+          self.rollingView.animate(to: changed)
+        }
       }
     }
   }
@@ -223,6 +282,11 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
     timing.bounce = bounce ?? 0.15
     timing.stagger = max(0, (stagger ?? 0) / 1000)
     timing.direction = Self.mapDirection(direction)
+    timing.revealDuration = max(0, (revealDuration ?? 2200) / 1000)
+    timing.revealBounce = min(1, max(0, revealBounce ?? 0.07))
+    timing.revealStyle = revealStyle == .spin ? .spin : .count
+    timing.revealStagger = max(0, (revealStagger ?? 200) / 1000)
+    timing.revealMilestoneHold = max(0, (revealMilestoneHold ?? 0) / 1000)
 
     var shimmer = RollingNumberView.Shimmer()
     shimmer.color = shimmerColor.map(Self.color(fromARGB:))
@@ -231,6 +295,7 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
     rollingView.typography = typography
     rollingView.format = format
     rollingView.timing = timing
+    rollingView.revealMilestones = revealMilestones ?? []
     rollingView.shimmer = shimmer
     rollingView.alignment = Self.mapAlignment(textAlign)
     rollingView.loading = loading ?? false
