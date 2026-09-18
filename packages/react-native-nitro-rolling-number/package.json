@@ -119,8 +119,7 @@
         "bun run typecheck",
         "bun run test",
         "bun run test:cpp"
-      ],
-      "after:bump": "cd ../.. && bun install --no-summary && git add bun.lock"
+      ]
     }
   }
 }
