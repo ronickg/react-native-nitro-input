@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/__tests__"
+  ],
+  "compilerOptions": {
+    "composite": false,
+    "incremental": false,
+    "declaration": true,
+    "types": [],
+    "noEmit": false
+  }
+}

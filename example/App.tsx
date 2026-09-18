@@ -14,6 +14,7 @@ import {
   RollingNumber,
   type RollingNumberHandle,
 } from 'react-native-nitro-rolling-number'
+import { MorphInput, type MorphInputHandle } from 'react-native-nitro-morph-input'
 import { NumberFlow } from 'number-flow-react-native'
 import { SkiaNumberFlow } from 'number-flow-react-native/skia'
 import { Canvas, matchFont } from '@shopify/react-native-skia'
@@ -415,6 +416,58 @@ function Benchmark() {
 // ---------------------------------------------------------------------------
 // Feature demos
 // ---------------------------------------------------------------------------
+
+function MorphInputDemo() {
+  const amountRef = useRef<MorphInputHandle>(null)
+  const [amountText, setAmountText] = useState('')
+  const [amountValue, setAmountValue] = useState(NaN)
+  const [note, setNote] = useState('')
+  const [focused, setFocused] = useState(false)
+  return (
+    <Section title="Morph input" hint="A native input whose text morphs as you type. The amount is formatted natively, caret and all, with no JS round trip.">
+      <View style={styles.morphAmountBox}>
+        <MorphInput
+          ref={amountRef}
+          testID="morph-amount"
+          mode="number"
+          prefix="$"
+          prefixFontSize={28}
+          affixAlign="top"
+          placeholder="0"
+          fontSize={44}
+          fontWeight="700"
+          textAlign="center"
+          style={styles.morphAmount}
+          onChangeText={setAmountText}
+          onChangeValue={setAmountValue}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+        />
+      </View>
+      <Text style={styles.morphReadout} testID="morph-amount-readout">
+        text "{amountText}" · value {Number.isNaN(amountValue) ? 'NaN' : amountValue} · {focused ? 'focused' : 'blurred'}
+      </Text>
+      <View style={styles.row}>
+        <Button title="Set 1,234.56" testID="morph-set" onPress={() => amountRef.current?.setValue(1234.56)} />
+        <Button title="Set 98,765" testID="morph-set-2" onPress={() => amountRef.current?.setValue(98765)} />
+        <Button title="Clear" testID="morph-clear" onPress={() => amountRef.current?.clear()} />
+        <Button title="Focus" testID="morph-focus" onPress={() => amountRef.current?.focus()} />
+        <Button title="Blur" testID="morph-blur" onPress={() => amountRef.current?.blur()} />
+      </View>
+      <MorphInput
+        testID="morph-text"
+        placeholder="Type something"
+        fontSize={22}
+        style={styles.morphText}
+        autoCapitalize="none"
+        autoCorrect={false}
+        returnKeyType="done"
+        onChangeText={setNote}
+      />
+      <Text style={styles.morphReadout} testID="morph-text-readout">text "{note}"</Text>
+    </Section>
+  )
+}
 
 function ReactDrivenDemo() {
   const [value, setValue] = useState(1234.5)
@@ -927,6 +980,7 @@ function App() {
             <Button title="Showcase: Balance" testID="showcase-balance" onPress={() => setShowing('balance')} />
             <Button title="Showcase: Reveal" testID="showcase-reveal" onPress={() => setShowing('reveal')} />
           </View>
+          <MorphInputDemo />
           <RevealDemo />
           <ReactDrivenDemo />
           <CurrencyDemo />
@@ -997,6 +1051,10 @@ const styles = StyleSheet.create({
   revealTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
   revealNumber: { width: '100%' },
   revealSubtitle: { color: 'rgba(255,255,255,0.8)', fontSize: 14 },
+  morphAmountBox: { paddingVertical: 12, alignItems: 'center' },
+  morphAmount: { width: '100%' },
+  morphText: { width: '100%', backgroundColor: '#F2F2F7', borderRadius: 10, paddingHorizontal: 12, height: 44 },
+  morphReadout: { fontSize: 12, color: '#666', fontVariant: ['tabular-nums'] },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   button: {
     backgroundColor: '#E5E5EA',

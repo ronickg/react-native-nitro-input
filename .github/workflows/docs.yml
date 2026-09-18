@@ -6,6 +6,7 @@ on:
     paths:
       - 'docs/**'
       - 'packages/react-native-nitro-rolling-number/cpp/**'
+      - 'packages/react-native-nitro-morph-input/cpp/**'
       - 'BENCHMARKS.md'
       - '.github/workflows/docs.yml'
   workflow_dispatch:

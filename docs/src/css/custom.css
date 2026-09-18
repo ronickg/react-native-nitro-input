@@ -147,3 +147,10 @@
 table {
   font-size: 0.9rem;
 }
+
+.rn-demo-readout {
+  margin: 4px 16px 8px;
+  font-size: 0.8rem;
+  color: var(--ifm-color-emphasis-600);
+  font-variant-numeric: tabular-nums;
+}

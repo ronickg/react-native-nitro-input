@@ -25,6 +25,12 @@ const sidebars: SidebarsConfig = {
       items: ['performance', 'benchmarks', 'comparison'],
     },
     'how-it-works',
+    {
+      type: 'category',
+      label: 'More packages',
+      collapsed: false,
+      items: ['morph-input'],
+    },
   ],
 };
 
