@@ -37,7 +37,31 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - NitroRollingNumber (0.1.0):
+  - NitroMorphInput (0.0.0):
+    - hermes-engine
+    - NitroModules
+    - RCTRequired
+    - RCTTypeSafety
+    - React-bridging
+    - React-callinvoker
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - NitroRollingNumber (0.0.0):
     - hermes-engine
     - NitroModules
     - RCTRequired
@@ -1928,6 +1952,7 @@ DEPENDENCIES:
   - glog (from `build/rndeps-facades/glog`)
   - hermes-engine (from `../../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - NitroModules (from `../../node_modules/react-native-nitro-modules`)
+  - NitroMorphInput (from `../../node_modules/react-native-nitro-morph-input`)
   - NitroRollingNumber (from `../../node_modules/react-native-nitro-rolling-number`)
   - RCT-Folly (from `build/rndeps-facades/RCT-Folly`)
   - RCTDeprecation (from `build/rncore-facades/RCTDeprecation`)
@@ -2031,6 +2056,8 @@ EXTERNAL SOURCES:
     :tag: hermes-v250829098.0.17
   NitroModules:
     :path: "../../node_modules/react-native-nitro-modules"
+  NitroMorphInput:
+    :path: "../../node_modules/react-native-nitro-morph-input"
   NitroRollingNumber:
     :path: "../../node_modules/react-native-nitro-rolling-number"
   RCT-Folly:
@@ -2207,7 +2234,8 @@ SPEC CHECKSUMS:
   glog: b4427c3119645da795ff09985ba9da909c940c96
   hermes-engine: 35975068890c71d4609534b47111140882468c3a
   NitroModules: 08aff3b1a45badb71cf10d8f2d9cfb4e87cb468e
-  NitroRollingNumber: a4bd46ee3f6d41bec1128ca104f856d97b37ca48
+  NitroMorphInput: 8c3917cdeb69b9e695351fb685186bbef9be07b6
+  NitroRollingNumber: 89acafe4b3bf56e96de4b2e862bb35c87036103b
   RCT-Folly: d173e541eeb78cad5c81011c1bbf62d5b86b9778
   RCTDeprecation: 1dce662386078170e119b89c1600db1b6e3d42f6
   RCTRequired: b5a9168b680baa2cda4f6b4764d10b6e58368b25

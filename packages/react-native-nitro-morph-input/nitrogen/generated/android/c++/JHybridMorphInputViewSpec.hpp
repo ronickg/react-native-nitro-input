@@ -144,9 +144,9 @@ namespace margelo::nitro::nitromorphinput {
     void focus() override;
     void blur() override;
     void clear() override;
-    void setText(const std::string& text) override;
+    void replaceText(const std::string& text) override;
     void setValue(double value) override;
-    std::string getText() override;
+    std::string currentText() override;
     double getValue() override;
     bool isFocused() override;
 

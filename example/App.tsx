@@ -454,16 +454,18 @@ function MorphInputDemo() {
         <Button title="Focus" testID="morph-focus" onPress={() => amountRef.current?.focus()} />
         <Button title="Blur" testID="morph-blur" onPress={() => amountRef.current?.blur()} />
       </View>
-      <MorphInput
-        testID="morph-text"
-        placeholder="Type something"
-        fontSize={22}
-        style={styles.morphText}
-        autoCapitalize="none"
-        autoCorrect={false}
-        returnKeyType="done"
-        onChangeText={setNote}
-      />
+      <View style={styles.morphTextBox}>
+        <MorphInput
+          testID="morph-text"
+          placeholder="Type something"
+          fontSize={22}
+          style={styles.morphText}
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="done"
+          onChangeText={setNote}
+        />
+      </View>
       <Text style={styles.morphReadout} testID="morph-text-readout">text "{note}"</Text>
     </Section>
   )
@@ -1053,7 +1055,8 @@ const styles = StyleSheet.create({
   revealSubtitle: { color: 'rgba(255,255,255,0.8)', fontSize: 14 },
   morphAmountBox: { paddingVertical: 12, alignItems: 'center' },
   morphAmount: { width: '100%' },
-  morphText: { width: '100%', backgroundColor: '#F2F2F7', borderRadius: 10, paddingHorizontal: 12, height: 44 },
+  morphTextBox: { backgroundColor: '#F2F2F7', borderRadius: 10, paddingHorizontal: 12, height: 44, justifyContent: 'center' },
+  morphText: { width: '100%' },
   morphReadout: { fontSize: 12, color: '#666', fontVariant: ['tabular-nums'] },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   button: {

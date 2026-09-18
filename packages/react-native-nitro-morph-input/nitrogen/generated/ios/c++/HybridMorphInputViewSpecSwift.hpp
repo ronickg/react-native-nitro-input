@@ -394,8 +394,8 @@ namespace margelo::nitro::nitromorphinput {
         std::rethrow_exception(__result.error());
       }
     }
-    inline void setText(const std::string& text) override {
-      auto __result = _swiftPart.setText(text);
+    inline void replaceText(const std::string& text) override {
+      auto __result = _swiftPart.replaceText(text);
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }
@@ -406,8 +406,8 @@ namespace margelo::nitro::nitromorphinput {
         std::rethrow_exception(__result.error());
       }
     }
-    inline std::string getText() override {
-      auto __result = _swiftPart.getText();
+    inline std::string currentText() override {
+      auto __result = _swiftPart.currentText();
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

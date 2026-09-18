@@ -131,22 +131,46 @@ AmountFormatter::Edit AmountFormatter::applyEdit(const std::string& current, int
   const int rawEnd = rawOf(cur, end).caret;
 
   std::vector<uint32_t> accepted;
+  bool typedDecimal = false;
   for (uint32_t c : rep) {
-    if (isDigit(c)) accepted.push_back(c);
-    else if (isTypedDecimal(c)) accepted.push_back(decimal_);
+    if (isDigit(c)) {
+      accepted.push_back(c);
+    } else if (isTypedDecimal(c) && !typedDecimal) {
+      accepted.push_back(decimal_);
+      typedDecimal = true;
+    }
   }
 
   std::vector<uint32_t> raw(full.chars.begin(), full.chars.begin() + rawStart);
-  raw.insert(raw.end(), accepted.begin(), accepted.end());
   std::vector<uint32_t> after(full.chars.begin() + rawEnd, full.chars.end());
-  // A digit typed in front of the synthesised leading zero ("0.5" → "7.5") replaces it.
+  // A decimal typed inside the fraction is ignored; typed in the integer part it
+  // moves the decimal point: the old one goes and the fraction is cut to fit.
+  if (typedDecimal) {
+    for (int i = 0; i < rawStart; ++i) {
+      if (full.chars[static_cast<size_t>(i)] == decimal_) {
+        accepted.erase(std::remove(accepted.begin(), accepted.end(), decimal_), accepted.end());
+        typedDecimal = false;
+        break;
+      }
+    }
+  }
+  if (typedDecimal) {
+    const auto drop = [&](std::vector<uint32_t>& part) {
+      part.erase(std::remove(part.begin(), part.end(), decimal_), part.end());
+    };
+    drop(raw);
+    drop(after);
+  }
+  raw.insert(raw.end(), accepted.begin(), accepted.end());
+  // A digit typed in front of a lone leading zero ("0.5" → "7.5") replaces it.
   if (rawStart == 0 && !accepted.empty() && isDigit(accepted[0]) && !after.empty() && after[0] == '0' &&
       (after.size() == 1 || after[1] == decimal_)) {
     after.erase(after.begin());
   }
+  const int caret = static_cast<int>(raw.size());
   raw.insert(raw.end(), after.begin(), after.end());
 
-  return formatRaw(std::move(raw), rawStart + static_cast<int>(accepted.size()), false, current, end);
+  return formatRaw(std::move(raw), caret, Rules{false, typedDecimal, false}, current, end);
 }
 
 AmountFormatter::Edit AmountFormatter::normalize(const std::string& text) const {
@@ -157,10 +181,10 @@ AmountFormatter::Edit AmountFormatter::normalize(const std::string& text) const 
     else if (!isGrouping(c) && isTypedDecimal(c)) raw.push_back(decimal_);
   }
   const int caret = static_cast<int>(raw.size());
-  return formatRaw(std::move(raw), caret, true, "", 0);
+  return formatRaw(std::move(raw), caret, Rules{true, true, true}, "", 0);
 }
 
-AmountFormatter::Edit AmountFormatter::formatRaw(std::vector<uint32_t> raw, int caret, bool truncate,
+AmountFormatter::Edit AmountFormatter::formatRaw(std::vector<uint32_t> raw, int caret, Rules rules,
                                                  const std::string& fallback, int fallbackCaret) const {
   // Only the first decimal separator counts.
   {
@@ -195,17 +219,17 @@ AmountFormatter::Edit AmountFormatter::formatRaw(std::vector<uint32_t> raw, int 
     integer.erase(integer.begin());
     if (caret > 0) --caret;
   }
-  if (integer.empty() && decimalAt >= 0) {
+  if (rules.leadingZero && integer.empty() && decimalAt >= 0) {
     integer.push_back('0');
     ++caret;
   }
 
   if (static_cast<int>(integer.size()) > maxIntegerDigits_) {
-    if (!truncate) return Edit{fallback, fallbackCaret, false};
+    if (!rules.truncateInteger) return Edit{fallback, fallbackCaret, false};
     integer.resize(static_cast<size_t>(maxIntegerDigits_));
   }
   if (static_cast<int>(fraction.size()) > fractionDigits_) {
-    if (!truncate) return Edit{fallback, fallbackCaret, false};
+    if (!rules.truncateFraction) return Edit{fallback, fallbackCaret, false};
     fraction.resize(static_cast<size_t>(fractionDigits_));
   }
 
@@ -253,7 +277,7 @@ std::string AmountFormatter::format(double value) const {
     else raw.push_back(static_cast<uint32_t>(static_cast<unsigned char>(c)));
   }
   const int caret = static_cast<int>(raw.size());
-  return formatRaw(std::move(raw), caret, true, "", 0).text;
+  return formatRaw(std::move(raw), caret, Rules{true, true, true}, "", 0).text;
 }
 
 double AmountFormatter::value(const std::string& formatted) const {

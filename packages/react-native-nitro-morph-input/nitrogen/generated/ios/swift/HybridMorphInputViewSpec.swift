@@ -59,9 +59,9 @@ public protocol HybridMorphInputViewSpec_protocol: HybridObject, HybridView {
   func focus() throws -> Void
   func blur() throws -> Void
   func clear() throws -> Void
-  func setText(text: String) throws -> Void
+  func replaceText(text: String) throws -> Void
   func setValue(value: Double) throws -> Void
-  func getText() throws -> String
+  func currentText() throws -> String
   func getValue() throws -> Double
   func isFocused() throws -> Bool
 }

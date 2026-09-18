@@ -225,7 +225,7 @@ export const MorphInputCanvas = forwardRef<MorphInputCanvasHandle, MorphInputCan
     const formatterRef = useRef<AmountFormatter | null>(null);
     const fontsRef = useRef<FontSet | null>(null);
     const frameRef = useRef(0);
-    const state = useRef({text: '', caret: 0, focused: false, blinkOn: true, blinkAt: 0, width: 0});
+    const state = useRef({text: '', caret: 0, selStart: 0, selEnd: 0, focused: false, blinkOn: true, blinkAt: 0, width: 0});
     const latest = useRef({onChangeText, onChangeValue, onFocusChange});
     latest.current = {onChangeText, onChangeValue, onFocusChange};
     const [ready, setReady] = useState(false);
@@ -365,6 +365,10 @@ export const MorphInputCanvas = forwardRef<MorphInputCanvasHandle, MorphInputCan
       const input = inputRef.current;
       if (!input) return;
       state.current.caret = cpOf(input.value, input.selectionStart ?? input.value.length);
+      // Remembered so the next edit knows the range it replaced even without `beforeinput`
+      // (selectionchange is dispatched after the input event, so this is still pre-edit).
+      state.current.selStart = state.current.caret;
+      state.current.selEnd = cpOf(input.value, input.selectionEnd ?? input.value.length);
       restartBlink();
       render();
     }, [render]);
@@ -386,6 +390,7 @@ export const MorphInputCanvas = forwardRef<MorphInputCanvasHandle, MorphInputCan
         const end = text.length;
         if (document.activeElement === input) input.setSelectionRange(end, end);
         state.current.caret = cpOf(text, end);
+        state.current.selStart = state.current.selEnd = state.current.caret;
         feed(-1);
         if (notify) {
           latest.current.onChangeText?.(text);
@@ -494,29 +499,80 @@ export const MorphInputCanvas = forwardRef<MorphInputCanvasHandle, MorphInputCan
       if (autoFocus && ready) inputRef.current?.focus();
     }, [autoFocus, ready]);
 
-    const onInput = () => {
+    // The selection and kind of the edit about to happen, so the edit's range is
+    // exact even when the typed character repeats its neighbour ("1" in front of "112").
+    // Listened to natively: React's synthetic onBeforeInput is keypress-based and
+    // never fires for deletions or execCommand edits.
+    const pendingEdit = useRef<{start: number; end: number; type: string} | null>(null);
+    useEffect(() => {
+      const input = inputRef.current;
+      if (!input) return;
+      const handler = (event: Event) => {
+        pendingEdit.current = {
+          start: cpOf(input.value, input.selectionStart ?? input.value.length),
+          end: cpOf(input.value, input.selectionEnd ?? input.value.length),
+          type: (event as InputEvent).inputType ?? '',
+        };
+      };
+      input.addEventListener('beforeinput', handler);
+      return () => input.removeEventListener('beforeinput', handler);
+    }, [ready]);
+
+    const onInput = (event: React.FormEvent<HTMLInputElement>) => {
       const input = inputRef.current;
       const formatter = formatterRef.current;
       if (!input || !formatter) return;
       const prev = state.current.text;
       const next = input.value;
       if (mode === 'number') {
-        // Recover the edit (range replaced, replacement) from the two strings.
         const a = Array.from(prev);
         const b = Array.from(next);
-        let p = 0;
-        while (p < a.length && p < b.length && a[p] === b[p]) p++;
-        let s = 0;
-        while (s < a.length - p && s < b.length - p && a[a.length - 1 - s] === b[b.length - 1 - s]) s++;
-        const replacement = b.slice(p, b.length - s).join('');
-        const edit = formatter.applyEdit(prev, p, a.length - s, replacement);
+        const inputType = (event.nativeEvent as InputEvent).inputType ?? '';
+        const pending = pendingEdit.current ?? {
+          start: state.current.selStart,
+          end: state.current.selEnd,
+          type: inputType,
+        };
+        pendingEdit.current = null;
+        let start: number;
+        let end: number;
+        if (pending.start <= pending.end && pending.end <= a.length) {
+          const removed = Math.max(0, a.length + (pending.end - pending.start) - b.length);
+          if (pending.type.startsWith('deleteContentForward') && pending.start === pending.end) {
+            start = pending.start;
+            end = start + removed;
+          } else if (pending.type.startsWith('delete') && pending.start === pending.end) {
+            end = pending.start;
+            start = end - removed;
+          } else {
+            start = pending.start;
+            end = pending.end;
+          }
+        } else {
+          // No beforeinput (older browsers): recover the range from the two strings.
+          let p = 0;
+          while (p < a.length && p < b.length && a[p] === b[p]) p++;
+          let s = 0;
+          while (s < a.length - p && s < b.length - p && a[a.length - 1 - s] === b[b.length - 1 - s]) s++;
+          start = p;
+          end = a.length - s;
+        }
+        const replacement = b.slice(start, b.length - (a.length - end)).join('');
+        // Forward-deleting a grouping separator takes the digit after it (the
+        // formatter's own rule covers backspace, which takes the digit before).
+        if (replacement === '' && end - start === 1 && pending.type.startsWith('deleteContentForward') &&
+            formatter.kindOf(a[start]!.codePointAt(0)!) === 2 && end < a.length) {
+          end += 1;
+        }
+        const edit = formatter.applyEdit(prev, start, end, replacement);
         const text = edit.accepted ? String(edit.text) : prev;
-        const caret = edit.accepted ? edit.caret : p;
+        const caret = edit.accepted ? edit.caret : start;
         state.current.text = text;
         input.value = text;
         const at = utf16Of(text, caret);
         input.setSelectionRange(at, at);
         state.current.caret = caret;
+        state.current.selStart = state.current.selEnd = caret;
         restartBlink();
         feed(caret);
         if (edit.accepted) {
@@ -532,6 +588,7 @@ export const MorphInputCanvas = forwardRef<MorphInputCanvasHandle, MorphInputCan
         state.current.text = text;
         const caret = cpOf(text, input.selectionStart ?? text.length);
         state.current.caret = caret;
+        state.current.selStart = state.current.selEnd = caret;
         restartBlink();
         feed(caret);
         latest.current.onChangeText?.(text);

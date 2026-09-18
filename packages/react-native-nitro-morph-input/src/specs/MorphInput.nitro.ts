@@ -176,12 +176,16 @@ export interface MorphInputMethods extends HybridViewMethods {
   blur(): void
   /** Empties the field (morphing the characters away). */
   clear(): void
-  /** Replaces the text (formatted in `'number'` mode), caret at the end. */
-  setText(text: string): void
+  /**
+   * Replaces the text (formatted in `'number'` mode), caret at the end.
+   * (Not `setText`: Nitro generates `getText`/`setText` accessors for the
+   * `text` prop, and a method of the same name would collide with them.)
+   */
+  replaceText(text: string): void
   /** `'number'` mode: shows `value` formatted; `NaN` empties the field. */
   setValue(value: number): void
   /** The field's current (formatted) text. */
-  getText(): string
+  currentText(): string
   /** `'number'` mode: the field's numeric value, `NaN` when empty. */
   getValue(): number
   isFocused(): boolean

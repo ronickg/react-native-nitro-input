@@ -105,9 +105,9 @@ namespace margelo::nitro::nitromorphinput {
       prototype.registerHybridMethod("focus", &HybridMorphInputViewSpec::focus);
       prototype.registerHybridMethod("blur", &HybridMorphInputViewSpec::blur);
       prototype.registerHybridMethod("clear", &HybridMorphInputViewSpec::clear);
-      prototype.registerHybridMethod("setText", &HybridMorphInputViewSpec::setText);
+      prototype.registerHybridMethod("replaceText", &HybridMorphInputViewSpec::replaceText);
       prototype.registerHybridMethod("setValue", &HybridMorphInputViewSpec::setValue);
-      prototype.registerHybridMethod("getText", &HybridMorphInputViewSpec::getText);
+      prototype.registerHybridMethod("currentText", &HybridMorphInputViewSpec::currentText);
       prototype.registerHybridMethod("getValue", &HybridMorphInputViewSpec::getValue);
       prototype.registerHybridMethod("isFocused", &HybridMorphInputViewSpec::isFocused);
     });

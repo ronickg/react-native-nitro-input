@@ -63,7 +63,15 @@ private:
   };
   Raw rawOf(const std::vector<uint32_t>& formatted, int caretFormatted) const;
   bool isTypedDecimal(uint32_t c) const;
-  Edit formatRaw(std::vector<uint32_t> raw, int caret, bool truncate, const std::string& fallback, int fallbackCaret) const;
+  struct Rules {
+    /// Drop integer digits past the limit instead of rejecting.
+    bool truncateInteger;
+    /// Drop fraction digits past the limit instead of rejecting.
+    bool truncateFraction;
+    /// ".5" becomes "0.5" (formatted values); while typing it stays ".5".
+    bool leadingZero;
+  };
+  Edit formatRaw(std::vector<uint32_t> raw, int caret, Rules rules, const std::string& fallback, int fallbackCaret) const;
 
   int fractionDigits_ = 2;
   int maxIntegerDigits_ = 15;

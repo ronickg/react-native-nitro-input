@@ -101,20 +101,30 @@ static void formatterDecimals() {
   CHECK(!e.accepted);
   CHECK_EQ_STR(e.text, "1,234.56");
   CHECK(e.caret == 8);
-  // A second decimal separator is ignored.
+  // A second decimal separator typed at the end is dropped.
   e = f.applyEdit("1,234.56", 8, 8, ".");
   CHECK_EQ_STR(e.text, "1,234.56");
+  CHECK(e.caret == 8);
+  // A decimal typed elsewhere moves the decimal point; the fraction is cut to fit.
+  e = f.applyEdit("1,234.5", 2, 2, ".");
+  CHECK_EQ_STR(e.text, "1.23");
+  CHECK(e.caret == 2);
   // A comma typed on a decimal pad counts as the decimal.
   e = f.applyEdit("12", 2, 2, ",");
   CHECK_EQ_STR(e.text, "12.");
-  // Leading decimal gets its zero; deleting that zero's digit keeps the fraction.
+  // A leading decimal stays as typed (no synthesised zero while typing).
   e = type(f, "", 0, ".5");
-  CHECK_EQ_STR(e.text, "0.5");
-  CHECK(e.caret == 3);
-  // A digit typed in front of the synthesised zero replaces it.
+  CHECK_EQ_STR(e.text, ".5");
+  CHECK(e.caret == 2);
+  CHECK(near(f.value(".5"), 0.5));
+  // A digit typed in front of a lone zero replaces it.
   e = f.applyEdit("0.5", 0, 0, "7");
   CHECK_EQ_STR(e.text, "7.5");
   CHECK(e.caret == 1);
+  // Deleting the decimal point merges the fraction into the integer part.
+  e = f.applyEdit("1,234.56", 5, 6, "");
+  CHECK_EQ_STR(e.text, "123,456");
+  CHECK(e.caret == 5);
   // Leading zeros collapse.
   e = type(f, "", 0, "05");
   CHECK_EQ_STR(e.text, "5");
@@ -146,6 +156,8 @@ static void formatterLimitsAndValues() {
   CHECK_EQ_STR(us.format(0.126), "0.13");
   CHECK_EQ_STR(us.format(std::nan("")), "");
   CHECK_EQ_STR(us.normalize("$ 12,345.678 USD").text, "12,345.67");
+  CHECK_EQ_STR(us.normalize(".5").text, "0.5");
+  CHECK_EQ_STR(us.format(0.5), "0.5");
 
   // European separators: '.' groups, ',' is the decimal.
   AmountFormatter eu;

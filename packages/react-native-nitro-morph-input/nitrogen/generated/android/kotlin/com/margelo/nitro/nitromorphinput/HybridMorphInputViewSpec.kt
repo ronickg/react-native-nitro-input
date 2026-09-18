@@ -346,7 +346,7 @@ abstract class HybridMorphInputViewSpec: HybridView() {
   
   @DoNotStrip
   @Keep
-  abstract fun setText(text: String): Unit
+  abstract fun replaceText(text: String): Unit
   
   @DoNotStrip
   @Keep
@@ -354,7 +354,7 @@ abstract class HybridMorphInputViewSpec: HybridView() {
   
   @DoNotStrip
   @Keep
-  abstract fun getText(): String
+  abstract fun currentText(): String
   
   @DoNotStrip
   @Keep

@@ -358,9 +358,9 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
         focus: () => nativeRef.current?.focus(),
         blur: () => nativeRef.current?.blur(),
         clear: () => nativeRef.current?.clear(),
-        setText: (text) => nativeRef.current?.setText(text),
+        setText: (text) => nativeRef.current?.replaceText(text),
         setValue: (next) => nativeRef.current?.setValue(next),
-        getText: () => nativeRef.current?.getText() ?? value ?? initialText,
+        getText: () => nativeRef.current?.currentText() ?? value ?? initialText,
         getValue: () => nativeRef.current?.getValue() ?? NaN,
         isFocused: () => nativeRef.current?.isFocused() ?? false,
         get native() {

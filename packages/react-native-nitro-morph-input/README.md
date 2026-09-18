@@ -99,7 +99,13 @@ and morphs in.
 ```
 
 Whatever the keyboard's decimal key produces (`.` or `,`) counts as the
-decimal separator; nobody types a grouping separator on purpose.
+decimal separator; nobody types a grouping separator on purpose. The rules
+follow what a well-behaved amount field does: a decimal typed in the integer
+part moves the decimal point (`1,234.5` with the caret after the `1` becomes
+`1.23`), one typed inside the fraction is ignored, a leading `.5` stays `.5`
+while typing (`setValue(0.5)` shows `0.5`), a digit typed in front of a lone
+`0` replaces it, and deleting the decimal point merges the fraction into the
+integer part (`1,234.56` → `123,456`).
 
 ### A text field
 

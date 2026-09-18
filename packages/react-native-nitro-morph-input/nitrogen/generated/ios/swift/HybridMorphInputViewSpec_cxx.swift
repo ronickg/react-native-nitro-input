@@ -745,9 +745,9 @@ open class HybridMorphInputViewSpec_cxx {
   }
   
   @inline(__always)
-  public final func setText(text: std.string) -> bridge.Result_void_ {
+  public final func replaceText(text: std.string) -> bridge.Result_void_ {
     do {
-      try self.__implementation.setText(text: String(text))
+      try self.__implementation.replaceText(text: String(text))
       return bridge.create_Result_void_()
     } catch (let __error) {
       let __exceptionPtr = __error.toCpp()
@@ -767,9 +767,9 @@ open class HybridMorphInputViewSpec_cxx {
   }
   
   @inline(__always)
-  public final func getText() -> bridge.Result_std__string_ {
+  public final func currentText() -> bridge.Result_std__string_ {
     do {
-      let __result = try self.__implementation.getText()
+      let __result = try self.__implementation.currentText()
       let __resultCpp = std.string(__result)
       return bridge.create_Result_std__string_(__resultCpp)
     } catch (let __error) {

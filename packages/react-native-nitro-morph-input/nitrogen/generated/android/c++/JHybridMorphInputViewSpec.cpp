@@ -530,16 +530,16 @@ namespace margelo::nitro::nitromorphinput {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void()>("clear");
     method(_javaPart);
   }
-  void JHybridMorphInputViewSpec::setText(const std::string& text) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JString> /* text */)>("setText");
+  void JHybridMorphInputViewSpec::replaceText(const std::string& text) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JString> /* text */)>("replaceText");
     method(_javaPart, jni::make_jstring(text));
   }
   void JHybridMorphInputViewSpec::setValue(double value) {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* value */)>("setValue");
     method(_javaPart, value);
   }
-  std::string JHybridMorphInputViewSpec::getText() {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("getText");
+  std::string JHybridMorphInputViewSpec::currentText() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("currentText");
     auto __result = method(_javaPart);
     return __result->toStdString();
   }

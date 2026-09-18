@@ -163,9 +163,9 @@ namespace margelo::nitro::nitromorphinput {
       virtual void focus() = 0;
       virtual void blur() = 0;
       virtual void clear() = 0;
-      virtual void setText(const std::string& text) = 0;
+      virtual void replaceText(const std::string& text) = 0;
       virtual void setValue(double value) = 0;
-      virtual std::string getText() = 0;
+      virtual std::string currentText() = 0;
       virtual double getValue() = 0;
       virtual bool isFocused() = 0;
 
