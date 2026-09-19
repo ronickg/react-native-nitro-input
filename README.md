@@ -126,7 +126,7 @@ The example's Android Gradle files point at the workspace root `node_modules`, a
 
 ## Credits
 
-The input's morph is modelled on [Torph](https://torph.lochie.me) by [Lochie Axon](https://github.com/lochie) — the pairing rules, the enter and exit ramps, the 0.95× fade scale and the `expo` curve are all its. Torph (MIT, Copyright (c) 2025 Lochie Axon) is the one to reach for on the web; `react-native-nitro-input` is an independent implementation of the same behaviour in C++, Swift and Kotlin rather than a port of its code, and is not affiliated with or endorsed by it.
+The input's morph is based on [Torph](https://torph.lochie.me) by [Lochie Axon](https://github.com/lochie) — the pairing rules, the enter and exit ramps, the 0.95× fade scale and the `expo` curve all come from it. Thanks for building it, and for the MIT licence.
 
 ## License
 

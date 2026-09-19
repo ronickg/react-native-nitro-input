@@ -9,8 +9,7 @@
 //  with a position, vertical slide, opacity and scale, including the glyphs
 //  that are still on their way out. No rendering, no fonts, no threading.
 //
-//  Matching follows Torph (https://torph.lochie.me, MIT, Copyright (c) 2025
-//  Lochie Axon), reimplemented here rather than ported: an edit at a caret pairs
+//  Matching follows Torph (https://torph.lochie.me): an edit at a caret pairs
 //  the characters on either side of the caret by position (grouping separators
 //  aside, which reflow with the magnitude and pair from the units end); a value
 //  set without a caret pairs digits by place value and other characters by
