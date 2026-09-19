@@ -4,9 +4,8 @@ title: Working with React Native
 description: 'The text-input registry, focus commands, keyboard handling and accessibility.'
 ---
 
-`MorphInput` registers itself in React Native's text-input registry and answers
-the `focus` / `blur` view commands, so the things that act on "the focused
-input" work on it as they do on `TextInput`:
+`MorphInput` registers itself in React Native's text-input registry, so the
+things that act on "the focused input" work on it as they do on `TextInput`:
 
 - `Keyboard.dismiss()`, `TextInput.State.currentlyFocusedInput()` and
   `TextInput.State.blurTextInput()`
@@ -14,6 +13,26 @@ input" work on it as they do on `TextInput`:
 - `react-native-keyboard-controller`: the focused-input observer sees it,
   `KeyboardAwareScrollView` scrolls it into view, and `KeyboardToolbar`'s
   next/previous traverses into and out of it
+
+## Focus does not take the usual route
+
+React Native focuses an input by dispatching a codegen `focus` / `blur` **view
+command**. A Nitro view has no such command on Android, so that call would be
+dropped and the keyboard would stay up. `MorphInput` therefore wraps
+`TextInput.State.focusTextInput` / `blurTextInput` once and routes a
+`MorphInput` to its own native focus and blur; every other input is passed
+straight through untouched.
+
+Two consequences worth knowing:
+
+- **It is not an optimisation**, but it is faster. Skipping the view command on
+  the way in and the batched event emitter on the way out removes about a frame
+  of waiting at each end, which is where the focus numbers in
+  [Benchmarks](/input/benchmarks) come from. Tapping a field is unaffected: the
+  OS grants first responder with no JS in the loop.
+- **It leans on a React Native internal.** The registry lives in a private
+  module, imported behind a guard: a React Native version that moves it means
+  `Keyboard.dismiss()` and friends stop reaching the field, rather than a crash.
 
 `testID` and `accessibilityLabel` are forwarded to the hidden system field —
 the element VoiceOver, TalkBack and e2e tools actually interact with — and the
