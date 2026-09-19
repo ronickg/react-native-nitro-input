@@ -17,7 +17,7 @@
         "react-native": "0.87.1",
         "react-native-animated-numbers": "0.6.3",
         "react-native-nitro-modules": "0.37.1",
-        "react-native-nitro-morph-input": "workspace:*",
+        "react-native-nitro-input": "workspace:*",
         "react-native-nitro-rolling-number": "workspace:*",
         "react-native-reanimated": "4.6.0",
         "react-native-safe-area-context": "^5.5.2",
@@ -45,8 +45,8 @@
         "typescript": "^6.0.3",
       },
     },
-    "packages/react-native-nitro-morph-input": {
-      "name": "react-native-nitro-morph-input",
+    "packages/react-native-nitro-input": {
+      "name": "react-native-nitro-input",
       "version": "0.0.0",
       "devDependencies": {
         "@react-native/babel-preset": "0.87.1",
@@ -1546,7 +1546,7 @@
 
     "react-native-nitro-modules": ["react-native-nitro-modules@0.37.1", "", { "peerDependencies": { "react": "*", "react-native": "*" } }, "sha512-KpW6EQVQ/bfegpCGxN9Be+ndvsfj56t4IESEvCASu9gWpJa/NDfHpIeIwCOvZQ3eXmLEj6YD4wCLqcC1FJPr2w=="],
 
-    "react-native-nitro-morph-input": ["react-native-nitro-morph-input@workspace:packages/react-native-nitro-morph-input"],
+    "react-native-nitro-input": ["react-native-nitro-input@workspace:packages/react-native-nitro-input"],
 
     "react-native-nitro-rolling-number": ["react-native-nitro-rolling-number@workspace:packages/react-native-nitro-rolling-number"],
 

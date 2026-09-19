@@ -4,10 +4,10 @@
 # Inputs, in $RAW (default ./raw), as produced by scripts/record-demos.md:
 #   ios-rolling.mov      iPhone, 60 fps, native resolution
 #   ios-reveal.mov
-#   ios-morph.mov
+#   ios-input.mov
 #   android-rolling.mp4  Pixel, 120 fps, native resolution
 #   android-reveal.mp4
-#   android-morph.mp4
+#   android-input.mp4
 #
 # Everything ships at 60 fps. The Android capture is 120 so halving it is a
 # clean 2:1 with no resampling; iPhone screen capture tops out at 60.
@@ -25,8 +25,8 @@ TRIM_android_rolling="2.0 12.0"
 TRIM_android_reveal="2.2 15.0"
 # The morph showcase types, backspaces, reshapes and clears on an 8.8 s loop;
 # the window is one whole turn of it, which the <video loop> repeats.
-TRIM_ios_morph="1.55 8.8"
-TRIM_android_morph="2.35 8.8"
+TRIM_ios_input="1.55 8.8"
+TRIM_android_input="2.35 8.8"
 
 # The README animations are separate windows: the market ticker is a loop, so a
 # shorter one keeps the README light, while the reveal needs a whole
@@ -80,8 +80,8 @@ encode_video ios_rolling     "$RAW/ios-rolling.mov"     "$VIDEO/ios-rolling.mp4"
 encode_video ios_reveal      "$RAW/ios-reveal.mov"      "$VIDEO/ios-reveal.mp4"
 encode_video android_rolling "$RAW/android-rolling.mp4" "$VIDEO/android-rolling.mp4"
 encode_video android_reveal  "$RAW/android-reveal.mp4"  "$VIDEO/android-reveal.mp4"
-encode_video ios_morph       "$RAW/ios-morph.mov"       "$VIDEO/ios-morph.mp4"
-encode_video android_morph   "$RAW/android-morph.mp4"   "$VIDEO/android-morph.mp4"
+encode_video ios_input       "$RAW/ios-input.mov"       "$VIDEO/ios-input.mp4"
+encode_video android_input   "$RAW/android-input.mp4"   "$VIDEO/android-input.mp4"
 
 echo "README animations (50 fps):"
 encode_pair ios_rolling "$RAW/ios-rolling.mov" android_rolling "$RAW/android-rolling.mp4" "$README_IMG/market.webp"

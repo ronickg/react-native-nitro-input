@@ -14,30 +14,7 @@ PODS:
   - hermes-engine (250829098.0.17):
     - hermes-engine/Pre-built (= 250829098.0.17)
   - hermes-engine/Pre-built (250829098.0.17)
-  - NitroModules (0.37.1):
-    - hermes-engine
-    - RCTRequired
-    - RCTTypeSafety
-    - React-bridging
-    - React-callinvoker
-    - React-Core
-    - React-Core-prebuilt
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/core
-    - ReactNativeDependencies
-    - Yoga
-  - NitroMorphInput (0.0.0):
+  - NitroInput (0.0.0):
     - hermes-engine
     - NitroModules
     - RCTRequired
@@ -61,6 +38,29 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - RNWorklets
+    - Yoga
+  - NitroModules (0.37.1):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-bridging
+    - React-callinvoker
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
     - Yoga
   - NitroRollingNumber (0.0.0):
     - hermes-engine
@@ -1952,8 +1952,8 @@ DEPENDENCIES:
   - fmt (from `build/rndeps-facades/fmt`)
   - glog (from `build/rndeps-facades/glog`)
   - hermes-engine (from `../../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
+  - NitroInput (from `../../node_modules/react-native-nitro-input`)
   - NitroModules (from `../../node_modules/react-native-nitro-modules`)
-  - NitroMorphInput (from `../../node_modules/react-native-nitro-morph-input`)
   - NitroRollingNumber (from `../../node_modules/react-native-nitro-rolling-number`)
   - RCT-Folly (from `build/rndeps-facades/RCT-Folly`)
   - RCTDeprecation (from `build/rncore-facades/RCTDeprecation`)
@@ -2055,10 +2055,10 @@ EXTERNAL SOURCES:
   hermes-engine:
     :podspec: "../../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec"
     :tag: hermes-v250829098.0.17
+  NitroInput:
+    :path: "../../node_modules/react-native-nitro-input"
   NitroModules:
     :path: "../../node_modules/react-native-nitro-modules"
-  NitroMorphInput:
-    :path: "../../node_modules/react-native-nitro-morph-input"
   NitroRollingNumber:
     :path: "../../node_modules/react-native-nitro-rolling-number"
   RCT-Folly:
@@ -2234,8 +2234,8 @@ SPEC CHECKSUMS:
   fmt: c7776a2a4b1d7ce88b809a1e4d1f7add0f2369df
   glog: b4427c3119645da795ff09985ba9da909c940c96
   hermes-engine: 35975068890c71d4609534b47111140882468c3a
+  NitroInput: b6c124778a3e5f0ad232308cf16cbf66cd5a9d6c
   NitroModules: 08aff3b1a45badb71cf10d8f2d9cfb4e87cb468e
-  NitroMorphInput: c12f4f95fdc861b27a316f149383b1e3b33a1809
   NitroRollingNumber: 89acafe4b3bf56e96de4b2e862bb35c87036103b
   RCT-Folly: d173e541eeb78cad5c81011c1bbf62d5b86b9778
   RCTDeprecation: 1dce662386078170e119b89c1600db1b6e3d42f6
@@ -2247,7 +2247,7 @@ SPEC CHECKSUMS:
   React-bridging: 36710fbb84391e0c1ca07392e855a73f328058aa
   React-callinvoker: 33c0c2c46a808f55ef5a2927fa373977a334ea3e
   React-Core: a85e5b125475d5d744af9614165ddb0944b1f86d
-  React-Core-prebuilt: cd44efd12c9bfad37c194372a6d3a18a6a6d5c00
+  React-Core-prebuilt: d02240839df49bdfe03148fae0a647aaf7288d53
   React-CoreModules: 6bc28ab7a1b0450fe502b38b1ba6323db9f2a472
   React-cxxreact: cc133718b2f46a384b4ffafda73c87e8de23eab2
   React-cxxstableapi: 1e0ad8a5ecb7f2f5440c012798cf20bec6341c1f

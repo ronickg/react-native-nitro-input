@@ -13,8 +13,8 @@
 #include "MorphEngine.hpp"
 
 using namespace emscripten;
-using margelo::nitro::nitromorphinput::AmountFormatter;
-using margelo::nitro::nitromorphinput::MorphEngine;
+using margelo::nitro::nitroinput::AmountFormatter;
+using margelo::nitro::nitroinput::MorphEngine;
 
 namespace {
 

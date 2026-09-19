@@ -12,7 +12,7 @@
     "clear": "docusaurus clear",
     "serve": "docusaurus serve",
     "typecheck": "tsc",
-    "build:wasm:morph": "emcc -O3 -std=c++20 --bind -sMODULARIZE=1 -sEXPORT_ES6=1 -sSINGLE_FILE=1 -sENVIRONMENT=web -sEXPORT_NAME=createMorphEngine -sFILESYSTEM=0 -sALLOW_MEMORY_GROWTH=1 --emit-tsd morph-engine.d.ts -I ../packages/react-native-nitro-morph-input/cpp ../packages/react-native-nitro-morph-input/cpp/MorphEngine.cpp ../packages/react-native-nitro-morph-input/cpp/AmountFormatter.cpp wasm/morph-bindings.cpp -o src/engine/morph-engine.js"
+    "build:wasm:morph": "emcc -O3 -std=c++20 --bind -sMODULARIZE=1 -sEXPORT_ES6=1 -sSINGLE_FILE=1 -sENVIRONMENT=web -sEXPORT_NAME=createMorphEngine -sFILESYSTEM=0 -sALLOW_MEMORY_GROWTH=1 --emit-tsd morph-engine.d.ts -I ../packages/react-native-nitro-input/cpp ../packages/react-native-nitro-input/cpp/MorphEngine.cpp ../packages/react-native-nitro-input/cpp/AmountFormatter.cpp wasm/morph-bindings.cpp -o src/engine/morph-engine.js"
   },
   "dependencies": {
     "@docusaurus/core": "3.10.2",

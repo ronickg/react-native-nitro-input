@@ -146,9 +146,9 @@ export default function Home(): ReactNode {
             <p className={clsx(styles.center, styles.muted)}>
               The second package: a native single-line input. The amount is formatted in C++ before the field shows a frame — grouping, decimals, caret and all — so a digit you type and the comma it displaces move in the same frame, with no JavaScript in between.
             </p>
-            <Phones ios="/video/ios-morph.mp4" android="/video/android-morph.mp4" caption="Typing, backspacing, a value set from code, and a figure replaced wholesale. The same engine on both platforms." />
+            <Phones ios="/video/ios-input.mp4" android="/video/android-input.mp4" caption="Typing, backspacing, a value set from code, and a figure replaced wholesale. The same engine on both platforms." />
             <p className={clsx(styles.center, styles.muted)}>
-              <Link to="/docs/morph-input">How the morph decides what moves</Link>
+              <Link to="/docs/nitro-input">How the morph decides what moves</Link>
             </p>
           </div>
         </section>

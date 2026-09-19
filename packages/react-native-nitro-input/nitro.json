@@ -1,0 +1,37 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": [
+    "nitroinput"
+  ],
+  "ios": {
+    "iosModuleName": "NitroInput"
+  },
+  "android": {
+    "androidNamespace": [
+      "nitroinput"
+    ],
+    "androidCxxLibName": "NitroInput"
+  },
+  "autolinking": {
+    "NitroInputView": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridNitroInputView"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridNitroInputView"
+      }
+    },
+    "NitroInputWorklets": {
+      "all": {
+        "language": "c++",
+        "implementationClassName": "HybridNitroInputWorklets"
+      }
+    }
+  },
+  "ignorePaths": [
+    "**/node_modules",
+    "**/lib"
+  ]
+}

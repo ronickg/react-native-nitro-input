@@ -3,7 +3,7 @@ import type {AmountFormatter, Glyph, MainModule, MorphEngine} from './morph-engi
 
 /**
  * The shared C++ `MorphEngine` and `AmountFormatter`
- * (packages/react-native-nitro-morph-input/cpp), compiled to WebAssembly with
+ * (packages/react-native-nitro-input/cpp), compiled to WebAssembly with
  * Emscripten (see docs/wasm/morph-bindings.cpp). The live input demo runs the
  * same matching, curves and formatting that the native views do.
  */

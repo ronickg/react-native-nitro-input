@@ -14,7 +14,7 @@ import {
   RollingNumber,
   type RollingNumberHandle,
 } from 'react-native-nitro-rolling-number'
-import { MorphInput, type MorphInputHandle, type MorphTransform } from 'react-native-nitro-morph-input'
+import { NitroInput, type NitroInputHandle, type NitroInputTransform } from 'react-native-nitro-input'
 import { NumberFlow } from 'number-flow-react-native'
 import { SkiaNumberFlow } from 'number-flow-react-native/skia'
 import { Canvas, matchFont } from '@shopify/react-native-skia'
@@ -419,7 +419,7 @@ function Benchmark() {
 // ---------------------------------------------------------------------------
 
 // A username mask: lowercase letters, digits and underscores, always led by "@".
-const usernameTransform: MorphTransform = ({ text }) => {
+const usernameTransform: NitroInputTransform = ({ text }) => {
   'worklet'
   const cleaned = text.replace(/[^0-9a-zA-Z_]/g, '').toLowerCase()
   return { text: cleaned ? '@' + cleaned : '' }
@@ -427,7 +427,7 @@ const usernameTransform: MorphTransform = ({ text }) => {
 
 // A real library inside the worklet (worklets Bundle Mode): libphonenumber-js
 // formats the number as it is typed, on the UI thread, before a frame is drawn.
-const phoneTransform: MorphTransform = ({ text }) => {
+const phoneTransform: NitroInputTransform = ({ text }) => {
   'worklet'
   const formatter = new AsYouType('US')
   const formatted = formatter.input(text)
@@ -435,7 +435,7 @@ const phoneTransform: MorphTransform = ({ text }) => {
 }
 
 /** Worklets: a shared value fed from the UI thread on every keystroke, and a JS mask applied before a frame is drawn. */
-function MorphWorkletDemo() {
+function NitroInputWorkletDemo() {
   const [phone, setPhone] = useState('')
   const progress = useSharedValue(0)
   const barStyle = useAnimatedStyle(() => ({ width: `${Math.min(100, progress.value)}%` }))
@@ -445,7 +445,7 @@ function MorphWorkletDemo() {
   }
   return (
     <Section title="Worklets" hint="onChangeValue is a worklet: it writes a shared value on the UI thread, no JS in between. The username field's transform worklet masks the text before it is drawn; the phone field's transform runs libphonenumber-js inside the worklet (Bundle Mode).">
-      <MorphInput
+      <NitroInput
         testID="morph-worklet-amount"
         mode="number"
         prefix="$"
@@ -460,7 +460,7 @@ function MorphWorkletDemo() {
         <Animated.View style={[styles.morphBar, barStyle]} />
       </View>
       <View style={styles.morphTextBox}>
-        <MorphInput
+        <NitroInput
           testID="morph-worklet-username"
           placeholder="@username"
           fontSize={22}
@@ -471,7 +471,7 @@ function MorphWorkletDemo() {
         />
       </View>
       <View style={styles.morphTextBox}>
-        <MorphInput
+        <NitroInput
           testID="morph-worklet-phone"
           placeholder="(555) 555-5555"
           fontSize={22}
@@ -486,16 +486,16 @@ function MorphWorkletDemo() {
   )
 }
 
-function MorphInputDemo() {
-  const amountRef = useRef<MorphInputHandle>(null)
+function NitroInputDemo() {
+  const amountRef = useRef<NitroInputHandle>(null)
   const [amountText, setAmountText] = useState('')
   const [amountValue, setAmountValue] = useState(NaN)
   const [note, setNote] = useState('')
   const [focused, setFocused] = useState(false)
   return (
-    <Section title="Morph input" hint="A native input whose text morphs as you type. The amount is formatted natively, caret and all, with no JS round trip.">
+    <Section title="Nitro Input" hint="A native input whose text morphs as you type. The amount is formatted natively, caret and all, with no JS round trip.">
       <View style={styles.morphAmountBox}>
-        <MorphInput
+        <NitroInput
           ref={amountRef}
           testID="morph-amount"
           mode="number"
@@ -524,7 +524,7 @@ function MorphInputDemo() {
         <Button title="Blur" testID="morph-blur" onPress={() => amountRef.current?.blur()} />
       </View>
       <View style={styles.morphTextBox}>
-        <MorphInput
+        <NitroInput
           testID="morph-text"
           placeholder="Type something"
           fontSize={22}
@@ -801,7 +801,7 @@ function RevealDemo() {
 // invisible top-right corner to leave.
 // ---------------------------------------------------------------------------
 
-type Showcase = 'balance' | 'reveal' | 'morph' | null
+type Showcase = 'balance' | 'reveal' | 'input' | null
 
 const round = (v: number, places: number) => Math.round(v * 10 ** places) / 10 ** places
 
@@ -1007,9 +1007,9 @@ function RevealShowcase({ onExit }: { onExit: () => void }) {
   )
 }
 
-/** The morph input, typed for you: digits arrive, commas reflow, the figure is swapped. */
-function MorphShowcase({ onExit }: { onExit: () => void }) {
-  const field = useRef<MorphInputHandle>(null)
+/** The input, typed for you: digits arrive, commas reflow, the figure is swapped. */
+function InputShowcase({ onExit }: { onExit: () => void }) {
+  const field = useRef<NitroInputHandle>(null)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
   const [caption, setCaption] = useState('Type an amount')
 
@@ -1048,13 +1048,13 @@ function MorphShowcase({ onExit }: { onExit: () => void }) {
   }, [])
 
   return (
-    <View style={[showcase.root, showcase.rootMorph]}>
+    <View style={[showcase.root, showcase.rootInput]}>
       <StatusBar hidden />
-      <View style={[showcase.glowA, showcase.glowMorphA]} />
-      <View style={[showcase.glowB, showcase.glowMorphB]} />
+      <View style={[showcase.glowA, showcase.glowInputA]} />
+      <View style={[showcase.glowB, showcase.glowInputB]} />
       <Pressable style={showcase.exit} onPress={onExit} testID="showcase-exit" />
       <Text style={showcase.eyebrow}>Send money</Text>
-      <MorphInput
+      <NitroInput
         ref={field}
         mode="number"
         prefix="$"
@@ -1069,13 +1069,13 @@ function MorphShowcase({ onExit }: { onExit: () => void }) {
         editable={false}
         adjustsFontSizeToFit
         minimumFontScale={0.4}
-        style={showcase.morphField}
+        style={showcase.inputField}
       />
       <View style={showcase.pill}>
         <Text style={showcase.pillText}>{caption}</Text>
       </View>
-      <View style={[showcase.cta, showcase.ctaMorph]}>
-        <Text style={showcase.ctaTextMorph}>Continue</Text>
+      <View style={[showcase.cta, showcase.ctaInput]}>
+        <Text style={showcase.ctaTextInput}>Continue</Text>
       </View>
     </View>
   )
@@ -1084,12 +1084,12 @@ function MorphShowcase({ onExit }: { onExit: () => void }) {
 const showcase = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0B0F19', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, overflow: 'hidden' },
   rootBrand: { backgroundColor: '#1D4ED8' },
-  rootMorph: { backgroundColor: '#140A24' },
-  glowMorphA: { backgroundColor: '#7C3AED', opacity: 0.38 },
-  glowMorphB: { backgroundColor: '#DB2777', opacity: 0.24 },
-  morphField: { width: '100%', marginTop: 6 },
-  ctaMorph: { backgroundColor: 'rgba(255,255,255,0.14)' },
-  ctaTextMorph: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  rootInput: { backgroundColor: '#140A24' },
+  glowInputA: { backgroundColor: '#7C3AED', opacity: 0.38 },
+  glowInputB: { backgroundColor: '#DB2777', opacity: 0.24 },
+  inputField: { width: '100%', marginTop: 6 },
+  ctaInput: { backgroundColor: 'rgba(255,255,255,0.14)' },
+  ctaTextInput: { color: '#fff', fontWeight: '700', fontSize: 16 },
   rootTop: { justifyContent: 'flex-start', paddingTop: 84, paddingHorizontal: 0 },
   listLabel: { marginTop: 28, marginBottom: 8, alignSelf: 'flex-start', marginLeft: 28 },
   list: { alignSelf: 'stretch' },
@@ -1122,7 +1122,7 @@ function App() {
   const [showing, setShowing] = useState<Showcase>(null)
   if (showing === 'balance') return <BalanceShowcase onExit={() => setShowing(null)} />
   if (showing === 'reveal') return <RevealShowcase onExit={() => setShowing(null)} />
-  if (showing === 'morph') return <MorphShowcase onExit={() => setShowing(null)} />
+  if (showing === 'input') return <InputShowcase onExit={() => setShowing(null)} />
   return (
     <SafeAreaProvider>
       <SafeAreaView style={[styles.root, dark && styles.rootDark]}>
@@ -1131,10 +1131,10 @@ function App() {
           <View style={styles.row}>
             <Button title="Showcase: Balance" testID="showcase-balance" onPress={() => setShowing('balance')} />
             <Button title="Showcase: Reveal" testID="showcase-reveal" onPress={() => setShowing('reveal')} />
-            <Button title="Showcase: Morph" testID="showcase-morph" onPress={() => setShowing('morph')} />
+            <Button title="Showcase: Input" testID="showcase-input" onPress={() => setShowing('input')} />
           </View>
-          <MorphInputDemo />
-          <MorphWorkletDemo />
+          <NitroInputDemo />
+          <NitroInputWorkletDemo />
           <RevealDemo />
           <ReactDrivenDemo />
           <CurrencyDemo />

@@ -68,7 +68,7 @@ const config: Config = {
         },
         {to: '/docs/reveal', label: 'Jackpot reveal', position: 'left'},
         {to: '/docs/benchmarks', label: 'Benchmarks', position: 'left'},
-        {to: '/docs/morph-input', label: 'Morph input', position: 'left'},
+        {to: '/docs/nitro-input', label: 'Input', position: 'left'},
         {
           href: 'https://www.npmjs.com/package/react-native-nitro-rolling-number',
           label: 'npm',

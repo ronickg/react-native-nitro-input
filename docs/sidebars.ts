@@ -29,7 +29,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'More packages',
       collapsed: false,
-      items: ['morph-input'],
+      items: ['nitro-input'],
     },
   ],
 };
