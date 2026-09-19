@@ -306,6 +306,16 @@ that grows or shrinks stays one shape. All of it is Reduce Motion aware.
   `mostRecentEventCount` (the user typed since) is ignored, like React
   Native's own `TextInput`.
 
+## Credits
+
+The morph is modelled on [Torph](https://torph.lochie.me) by
+[Lochie Axon](https://github.com/lochie) — the pairing rules, the enter and
+exit ramps, the 0.95× fade scale and the `expo` curve are all its. Torph is the
+one to reach for on the web; this package is an independent implementation of
+the same behaviour in C++, Swift and Kotlin rather than a port of its code, and
+is not affiliated with or endorsed by it. Torph is MIT-licensed, Copyright (c)
+2025 Lochie Axon.
+
 ## License
 
 MIT
