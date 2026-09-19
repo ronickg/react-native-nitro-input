@@ -1,0 +1,28 @@
+---
+sidebar_position: 1
+title: Nitro Input
+description: 'A native text and amount input for React Native: the system field keeps the keyboard, the morph layer draws the glyphs.'
+---
+
+`react-native-nitro-input` ships two components over one native field:
+
+- **`NitroInput`** — a plain native input. The system field draws its own text, so it
+  costs no more to mount than a bare `UITextField` / `EditText`. This is the one you
+  reach for by default.
+- **`MorphInput`** — the same field with the morph on, for the screens where the
+  animation is the point (in practice, amounts).
+
+`MorphInput` morphs its text the way [Torph](https://torph.lochie.me) morphs text on the web. Characters that stay glide to their new place, new ones slide or fade in, removed ones leave alongside their neighbours. A comma that reflows travels to where it now belongs instead of blinking into existence.
+
+It is a real input. A system text field (`UITextField` on iOS, `EditText` on Android) owns the keyboard, editing, selection, paste and accessibility; the morph layer on top only draws its glyphs. What makes it different from a `TextInput` that formats in `onChangeText`:
+
+- **Formatting happens natively, before a frame is drawn.** In `mode="number"` every keystroke goes through the same C++ formatter on both platforms: grouping separators, one decimal separator, at most `fractionDigits` decimals, the caret kept where you typed, a digit too many rejected outright. The JS thread only learns about the result, so there is no flicker, no caret jump and no dropped keystroke, however busy React is.
+- **The same formatting model as the rolling number**: `prefix` / `suffix` at their own sizes, pinned to the top, bottom, baseline or centre of the digits; grouping and decimal separators of your choice.
+- **One engine.** The matching (which characters persist, enter and leave), the slide, fade and scale curves and the timing live in `cpp/MorphEngine.cpp`, shared by Swift and Kotlin.
+
+## Install
+
+```sh
+bun add react-native-nitro-input react-native-nitro-modules
+cd ios && pod install
+```

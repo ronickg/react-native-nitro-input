@@ -1,5 +1,6 @@
 import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 
+/** Sidebar for the Rolling Number section (/rolling-number). */
 const sidebars: SidebarsConfig = {
   docs: [
     'getting-started',
@@ -25,12 +26,6 @@ const sidebars: SidebarsConfig = {
       items: ['performance', 'benchmarks', 'comparison'],
     },
     'how-it-works',
-    {
-      type: 'category',
-      label: 'More packages',
-      collapsed: false,
-      items: ['nitro-input'],
-    },
   ],
 };
 

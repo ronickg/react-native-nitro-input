@@ -25,7 +25,7 @@ to where it now belongs instead of blinking into existence.
   and Kotlin only measure glyphs, draw and talk to the keyboard.
 - Fabric only (new architecture), React Native ≥ 0.78, Nitro Modules ≥ 0.37.
 
-Docs: **https://ronickg.github.io/react-native-nitro-rolling-number/docs/nitro-input**
+Docs: **https://ronickg.github.io/react-native-nitro-rolling-number/input**
 
 ## Install
 

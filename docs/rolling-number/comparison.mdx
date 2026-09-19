@@ -26,6 +26,6 @@ Three good libraries animate numbers in React Native today. They differ in *wher
 ## When to use what
 
 - **One number that changes now and then** (a price in a card): any of the three looks fine. Pick on API and bundle size.
-- **A number that updates every frame, or dozens of numbers at once** (a live ticker board, a portfolio list): the JS thread is the bottleneck for the JS-driven libraries at 24 copies, falling to 2–14 fps while the UI thread drops to 33–56 fps. The native engine keeps both at the refresh rate. See [Benchmarks](/docs/benchmarks).
+- **A number that updates every frame, or dozens of numbers at once** (a live ticker board, a portfolio list): the JS thread is the bottleneck for the JS-driven libraries at 24 copies, falling to 2–14 fps while the UI thread drops to 33–56 fps. The native engine keeps both at the refresh rate. See [Benchmarks](/rolling-number/benchmarks).
 - **A reveal moment** (credit granted, cashback claimed): the jackpot reveal is built for it and runs natively, with the tiers and callbacks the surrounding celebration needs.
 - **Web**: NumberFlow's web original is excellent; this library is native only (the docs demos run the C++ engine through WebAssembly, but that is not a shipped web target).

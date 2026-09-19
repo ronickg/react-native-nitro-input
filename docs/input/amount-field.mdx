@@ -1,0 +1,52 @@
+---
+sidebar_position: 2
+title: An amount field
+description: 'mode="number": grouping, decimals and a currency affix applied in C++ before the field draws a frame.'
+---
+
+import {Example} from '@site/src/components/Demo/Demo';
+import {NitroInputAmountDemo, NitroInputEuroDemo} from '@site/src/components/NitroInput/NitroInputDemo';
+
+<Example
+  code={`import { MorphInput } from 'react-native-nitro-input'
+
+const [amount, setAmount] = useState(NaN)
+
+<MorphInput
+  mode="number"
+  prefix="$"
+  prefixFontSize={28}
+  affixAlign="top"
+  placeholder="0"
+  fractionDigits={2}
+  fontSize={48}
+  fontWeight="700"
+  textAlign="center"
+  style={{ width: '100%' }}
+  onChangeValue={setAmount}          // 1234.5, or NaN while empty
+/>`}>
+  <NitroInputAmountDemo />
+</Example>
+
+Type `1234` and the field shows `$1,234`: the `1` slides over to make room as the comma arrives from below, the `4` drops in from above. Type `.5` and the decimal point and the `5` follow. Backspace over the comma and it takes the digit before it with it.
+
+Keep the field uncontrolled and read `onChangeValue` (the number) or `onChangeText` (the formatted string), or pass `value` to drive it. A `value` that merely echoes `onChangeText` back never fights the user, native already shows it; a `value` that differs (a "Max" button, a clamp) is applied and morphs in.
+
+## Other currencies
+
+<Example
+  code={`<MorphInput
+  mode="number"
+  groupingSeparator="."
+  decimalSeparator=","
+  suffix=" EUR"
+  suffixFontSize={20}
+  suffixAlign="bottom"
+  placeholder="0"
+  fontSize={48}
+  fontWeight="700"
+  textAlign="center"
+  style={{ width: '100%' }}
+/>`}>
+  <NitroInputEuroDemo />
+</Example>

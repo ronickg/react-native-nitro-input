@@ -55,6 +55,9 @@ function Hero() {
   return (
     <header className={clsx('hero', styles.hero)}>
       <div className="container">
+        <span className={styles.eyebrow}>
+          <strong>Nitro Modules</strong> · iOS &amp; Android · New architecture
+        </span>
         <Heading as="h1" className={styles.title}>
           Nitro Rolling Number
         </Heading>
@@ -64,14 +67,11 @@ function Hero() {
           Live: the same C++ engine that runs on your phone, compiled to WebAssembly.
         </p>
         <div className={styles.buttons}>
-          <Link className="button button--primary button--lg" to="/docs/getting-started">
+          <Link className="button button--primary button--lg" to="/rolling-number/getting-started">
             Get started
           </Link>
-          <Link className="button button--secondary button--lg" to="/docs/reveal">
-            Jackpot reveal
-          </Link>
-          <Link className="button button--secondary button--lg" to="/docs/benchmarks">
-            Benchmarks
+          <Link className="button button--secondary button--lg" to="/rolling-number/benchmarks">
+            See the benchmarks
           </Link>
         </div>
       </div>
@@ -97,12 +97,49 @@ export default function Home(): ReactNode {
           </div>
         </section>
 
+
+        <section className={styles.section}>
+          <div className="container">
+            <span className={styles.kicker}>Two packages</span>
+            <Heading as="h2" className={styles.sectionTitle}>
+              Numbers that roll, fields that morph
+            </Heading>
+            <p className={styles.sectionLead}>
+              Both are built on Nitro Modules, both share the same formatting model, and
+              each has its own documentation.
+            </p>
+            <div className={styles.products}>
+              <Link className={styles.product} to="/rolling-number/getting-started">
+                <div className={styles.productName}>react-native-nitro-rolling-number</div>
+                <Heading as="h3">Rolling Number</Heading>
+                <p>
+                  An odometer for React Native. Every digit is a wheel driven by one C++
+                  engine, with currency layouts, shrink-to-fit, a loading shimmer and the
+                  jackpot reveal.
+                </p>
+                <span className={styles.productLink}>Get started →</span>
+              </Link>
+              <Link className={styles.product} to="/input">
+                <div className={styles.productName}>react-native-nitro-input</div>
+                <Heading as="h3">Nitro Input</Heading>
+                <p>
+                  A native single-line text and amount field. The system keyboard and
+                  accessibility stay; the glyphs morph as you type, and amounts are
+                  formatted in C++ before a frame is drawn.
+                </p>
+                <span className={styles.productLink}>Get started →</span>
+              </Link>
+            </div>
+          </div>
+        </section>
+
         <section className={clsx(styles.section, styles.alt)}>
           <div className="container">
-            <Heading as="h2" className={styles.center}>
+            <span className={styles.kicker}>On device</span>
+            <Heading as="h2" className={styles.sectionTitle}>
               Running on iOS and Android
             </Heading>
-            <p className={clsx(styles.center, styles.muted)}>
+            <p className={styles.sectionLead}>
               The example app, recorded on an iPhone 13 Pro Max and a Pixel 10. Same JavaScript, same engine.
             </p>
             <Phones ios="/video/ios-rolling.mp4" android="/video/android-rolling.mp4" caption="A live market screen: fourteen coins with price and 24 h change, a handful of them ticking every 200 ms, and a total balance derived from the holdings. Around thirty rolling numbers on screen, every one of them native." />
@@ -128,10 +165,11 @@ export default function Home(): ReactNode {
 
         <section className={clsx(styles.section, styles.alt)}>
           <div className="container">
-            <Heading as="h2" className={styles.center}>
+            <span className={styles.kicker}>Reveal</span>
+            <Heading as="h2" className={styles.sectionTitle}>
               The jackpot reveal
             </Heading>
-            <p className={clsx(styles.center, styles.muted)}>
+            <p className={styles.sectionLead}>
               The casino win presentation: a count that opens at zero and rolls itself up tier by tier, or reels that spin and lock from the left, landing with a pop. All native.
             </p>
             <Phones ios="/video/ios-reveal.mp4" android="/video/android-reveal.mp4" caption="The count and spin styles on both platforms." />
@@ -140,25 +178,27 @@ export default function Home(): ReactNode {
 
         <section className={styles.section}>
           <div className="container">
-            <Heading as="h2" className={styles.center}>
+            <span className={styles.kicker}>react-native-nitro-input</span>
+            <Heading as="h2" className={styles.sectionTitle}>
               A field that morphs as you type
             </Heading>
-            <p className={clsx(styles.center, styles.muted)}>
+            <p className={styles.sectionLead}>
               The second package: a native single-line input. The amount is formatted in C++ before the field shows a frame — grouping, decimals, caret and all — so a digit you type and the comma it displaces move in the same frame, with no JavaScript in between.
             </p>
             <Phones ios="/video/ios-input.mp4" android="/video/android-input.mp4" caption="Typing, backspacing, a value set from code, and a figure replaced wholesale. The same engine on both platforms." />
             <p className={clsx(styles.center, styles.muted)}>
-              <Link to="/docs/nitro-input">How the morph decides what moves</Link>
+              <Link to="/input">Read the Nitro Input docs →</Link>
             </p>
           </div>
         </section>
 
         <section className={clsx(styles.section, styles.alt)}>
           <div className="container">
-            <Heading as="h2" className={styles.center}>
+            <span className={styles.kicker}>Benchmarks</span>
+            <Heading as="h2" className={styles.sectionTitle}>
               Twenty-four numbers, every frame, still 60 fps
             </Heading>
-            <p className={clsx(styles.center, styles.muted)}>
+            <p className={styles.sectionLead}>
               Release builds, 24 copies fed a new value on every frame. UI-thread frame rate from a Reanimated frame callback.
             </p>
             <div className={styles.benchGrid}>
@@ -168,7 +208,7 @@ export default function Home(): ReactNode {
               <Bench name="AnimatedNumbers" ios="114 fps" android="56 fps" note="JS thread at 12–14 fps" />
             </div>
             <p className={clsx(styles.center, styles.muted)}>
-              iPhone 13 Pro Max (120 Hz) and Pixel 10. <Link to="/docs/benchmarks">Method and full tables</Link>.
+              iPhone 13 Pro Max (120 Hz) and Pixel 10. <Link to="/rolling-number/benchmarks">Method and full tables</Link>.
             </p>
           </div>
         </section>

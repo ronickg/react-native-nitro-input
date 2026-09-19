@@ -1,9 +1,15 @@
 /**
- * Nitro Rolling Number docs theme. Dark by default (like the Margelo sites),
- * with an electric-blue accent and a tabular figure everywhere a number shows.
+ * Nitro docs theme.
+ *
+ * Two products, one site. Dark by default, a single blue accent, and a
+ * neutral ramp that both themes derive from so nothing is hard-coded twice.
+ * Numbers are tabular everywhere, because this is a library about numbers.
  */
 
+/* ---------------------------------------------------------------- tokens */
+
 :root {
+  /* Brand. One hue, used for links, the active nav item and primary buttons. */
   --ifm-color-primary: #2563eb;
   --ifm-color-primary-dark: #1d4ed8;
   --ifm-color-primary-darker: #1e40af;
@@ -11,16 +17,49 @@
   --ifm-color-primary-light: #3b82f6;
   --ifm-color-primary-lighter: #60a5fa;
   --ifm-color-primary-lightest: #93c5fd;
-  --ifm-code-font-size: 92%;
-  --ifm-font-family-base: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto,
-    Helvetica, Arial, sans-serif;
-  --ifm-heading-font-weight: 800;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
-  --rn-hero-bg: radial-gradient(1200px 600px at 20% -10%, rgba(37, 99, 235, 0.35), transparent 60%),
-    radial-gradient(900px 500px at 90% 10%, rgba(14, 165, 233, 0.25), transparent 60%);
-  --rn-card-bg: rgba(255, 255, 255, 0.6);
-  --rn-card-border: rgba(0, 0, 0, 0.08);
-  --rn-demo-bg: #f5f7fb;
+
+  /* Surfaces. `sunken` sits behind the page, `raised` in front of it. */
+  --nitro-bg: #ffffff;
+  --nitro-bg-sunken: #f7f8fa;
+  --nitro-bg-raised: #ffffff;
+  --nitro-border: rgba(15, 23, 42, 0.1);
+  --nitro-border-strong: rgba(15, 23, 42, 0.16);
+  --nitro-ink-muted: rgba(15, 23, 42, 0.62);
+  --nitro-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -12px rgba(15, 23, 42, 0.14);
+
+  /* Type. System stack: it is already installed, already hinted, already fast. */
+  --ifm-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+  --ifm-font-family-monospace: ui-monospace, SFMono-Regular, 'SF Mono', Menlo,
+    Consolas, 'Liberation Mono', monospace;
+  --ifm-font-size-base: 16px;
+  --ifm-line-height-base: 1.7;
+  --ifm-heading-font-weight: 650;
+  --ifm-h1-font-size: 2.25rem;
+  --ifm-h2-font-size: 1.5rem;
+  --ifm-h3-font-size: 1.15rem;
+  --ifm-heading-margin-top: 2.5rem;
+  --ifm-heading-margin-bottom: 0.75rem;
+  --ifm-code-font-size: 88%;
+  --ifm-code-border-radius: 5px;
+  --ifm-code-padding-horizontal: 0.35rem;
+  --ifm-code-padding-vertical: 0.15rem;
+
+  /* Chrome. */
+  --ifm-navbar-height: 60px;
+  --ifm-navbar-shadow: none;
+  --ifm-toc-border-color: transparent;
+  --ifm-global-radius: 10px;
+  --ifm-pre-border-radius: 12px;
+  --ifm-table-border-color: var(--nitro-border);
+  --ifm-table-head-background: transparent;
+  --ifm-table-stripe-background: transparent;
+  --docusaurus-highlighted-code-line-bg: rgba(37, 99, 235, 0.12);
+
+  /* Landing-page bits, still referenced by index.module.css. */
+  --rn-card-bg: var(--nitro-bg-raised);
+  --rn-card-border: var(--nitro-border);
+  --rn-demo-bg: var(--nitro-bg-sunken);
   --rn-demo-ink: #0f172a;
   --rn-brand: #1d4ed8;
 }
@@ -33,30 +72,358 @@
   --ifm-color-primary-light: #93c5fd;
   --ifm-color-primary-lighter: #bfdbfe;
   --ifm-color-primary-lightest: #dbeafe;
-  --ifm-background-color: #0b0f19;
-  --ifm-background-surface-color: #111827;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
-  --rn-card-bg: rgba(255, 255, 255, 0.04);
-  --rn-card-border: rgba(255, 255, 255, 0.1);
-  --rn-demo-bg: #0f172a;
+
+  --ifm-background-color: #0a0d14;
+  --ifm-background-surface-color: #10141d;
+  --nitro-bg: #0a0d14;
+  --nitro-bg-sunken: #0d111a;
+  --nitro-bg-raised: #12161f;
+  --nitro-border: rgba(255, 255, 255, 0.09);
+  --nitro-border-strong: rgba(255, 255, 255, 0.16);
+  --nitro-ink-muted: rgba(226, 232, 240, 0.62);
+  --nitro-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -16px rgba(0, 0, 0, 0.7);
+
+  --docusaurus-highlighted-code-line-bg: rgba(96, 165, 250, 0.14);
+
+  --rn-card-bg: var(--nitro-bg-raised);
+  --rn-card-border: var(--nitro-border);
+  --rn-demo-bg: var(--nitro-bg-sunken);
   --rn-demo-ink: #f8fafc;
   --rn-brand: #2563eb;
+}
+
+/* --------------------------------------------------------------- basics */
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.018em;
+}
+
+h1 {
+  letter-spacing: -0.028em;
+}
+
+/* An h2 opens a new idea; give it a hairline so long pages have a rhythm. */
+.markdown > h2 {
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--nitro-border);
+}
+
+.markdown > h2:first-child {
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+/* Inline code should read as code without shouting. */
+code {
+  border: 1px solid var(--nitro-border);
+  background: var(--nitro-bg-sunken);
+  font-variant-ligatures: none;
+}
+
+a code {
+  color: inherit;
+}
+
+.theme-code-block {
+  box-shadow: var(--nitro-shadow) !important;
+  border: 1px solid var(--nitro-border);
+}
+
+/* Measure. Prose stops being readable somewhere past 80 characters. */
+.theme-doc-markdown {
+  max-width: 78ch;
+}
+
+/* --------------------------------------------------------------- navbar */
+
+.navbar {
+  border-bottom: 1px solid var(--nitro-border);
+  backdrop-filter: saturate(180%) blur(12px);
+  background: color-mix(in srgb, var(--ifm-background-color) 82%, transparent);
+}
+
+.navbar__title {
+  font-weight: 650;
+  letter-spacing: -0.015em;
 }
 
 .navbar__logo img {
   border-radius: 6px;
 }
 
-/* Demo frames used by the live examples in the docs. */
+.navbar__link {
+  font-weight: 500;
+}
+
+/* The two products double as the section switcher: the one you are reading
+   gets a pill, so "where am I" is answered without a dropdown. */
+.navbar__item--product {
+  border-radius: 7px;
+  padding: 5px 10px;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.navbar__item--product:hover {
+  background: var(--nitro-bg-sunken);
+}
+
+.navbar__item--product.navbar__link--active {
+  background: color-mix(in srgb, var(--ifm-color-primary) 14%, transparent);
+  color: var(--ifm-color-primary);
+}
+
+/* GitHub and npm as marks rather than words. The navbar's own horizontal
+   padding would otherwise eat the whole 32px box, leaving an 8px glyph. */
+.navbar__icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 120ms ease;
+}
+
+.navbar__icon:hover {
+  background: var(--nitro-bg-sunken);
+}
+
+.navbar__icon::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 19px;
+  height: 19px;
+  background-color: var(--ifm-navbar-link-color);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+.navbar__icon:hover::before {
+  background-color: var(--ifm-navbar-link-hover-color);
+}
+
+.navbar__icon--github::before {
+  -webkit-mask-image: var(--icon-github);
+  mask-image: var(--icon-github);
+}
+
+.navbar__icon--npm::before {
+  width: 21px;
+  height: 21px;
+  -webkit-mask-image: var(--icon-npm);
+  mask-image: var(--icon-npm);
+}
+
+:root {
+  --icon-github: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.9 1.2 1.9 1.2 1 1.8 2.8 1.3 3.5 1 0-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2 0-.3-.5-1.5.2-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.4 5.5 18.4 5.8 18.4 5.8c.7 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3Z'/%3E%3C/svg%3E");
+  --icon-npm: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 27.23 27.23'%3E%3Cpath d='M0 0h27.23v27.23H0z' fill='none'/%3E%3Cpath d='M5.8 21.75h7.61v-4.54h4.54v4.54h3.48V5.48H5.8Zm3.48-12.8h3.48v4.8h1.06v-4.8h3.48v8.26h-8.02Z'/%3E%3C/svg%3E");
+}
+
+/* -------------------------------------------------------------- sidebar */
+
+.theme-doc-sidebar-container {
+  border-right: 1px solid var(--nitro-border) !important;
+}
+
+.menu {
+  padding: 1rem 0.75rem !important;
+  font-size: 0.875rem;
+}
+
+.menu__link {
+  border-radius: 7px;
+  padding: 0.3rem 0.65rem;
+  line-height: 1.45;
+  color: var(--nitro-ink-muted);
+  font-weight: 450;
+}
+
+.menu__link:hover {
+  background: var(--nitro-bg-sunken);
+  color: var(--ifm-font-color-base);
+}
+
+.menu__link--active:not(.menu__link--sublist) {
+  background: color-mix(in srgb, var(--ifm-color-primary) 13%, transparent);
+  color: var(--ifm-color-primary);
+  font-weight: 550;
+}
+
+/* Category headers are labels, not links. Make them read that way. */
+.menu__list-item-collapsible > .menu__link--sublist {
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--nitro-ink-muted);
+  margin-top: 1.1rem;
+}
+
+.menu__list-item-collapsible:hover {
+  background: transparent;
+}
+
+.menu__list .menu__list {
+  margin-left: 0;
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--nitro-border);
+}
+
+/* ------------------------------------------------------------------ toc */
+
+.table-of-contents {
+  font-size: 0.8rem;
+  border-left: 1px solid var(--nitro-border);
+}
+
+.table-of-contents__link {
+  color: var(--nitro-ink-muted);
+}
+
+.table-of-contents__link--active {
+  color: var(--ifm-color-primary);
+  font-weight: 550;
+}
+
+/* --------------------------------------------------------------- tables */
+
+/* API tables: no cell grid, one hairline per row, the prop name in code. */
+.markdown table {
+  display: table;
+  width: 100%;
+  font-size: 0.875rem;
+  border-collapse: collapse;
+  border: 0;
+  box-shadow: none;
+}
+
+.markdown table thead {
+  border-bottom: 1px solid var(--nitro-border-strong);
+}
+
+.markdown table thead tr {
+  background: transparent;
+  border: 0;
+}
+
+.markdown table th {
+  border: 0;
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--nitro-ink-muted);
+  padding: 0.5rem 0.9rem 0.5rem 0;
+}
+
+.markdown table td {
+  border: 0;
+  border-top: 1px solid var(--nitro-border);
+  padding: 0.65rem 0.9rem 0.65rem 0;
+  vertical-align: top;
+}
+
+.markdown table tr {
+  background: transparent !important;
+  border: 0;
+}
+
+/* First column is the prop: keep it on one line and let it read as code. */
+.markdown table td:first-child {
+  white-space: nowrap;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.9em;
+  font-weight: 500;
+}
+
+/* Second column is the type: present, but quieter than the name. */
+.markdown table td:nth-child(2) {
+  color: var(--nitro-ink-muted);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.85em;
+}
+
+.markdown table code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 1em;
+}
+
+/* ---------------------------------------------------------- admonitions */
+
+.theme-admonition {
+  border: 1px solid var(--nitro-border);
+  border-left-width: 3px;
+  border-radius: 8px;
+  box-shadow: none;
+  font-size: 0.925rem;
+}
+
+/* ----------------------------------------------- pagination, breadcrumbs */
+
+.pagination-nav__link {
+  border: 1px solid var(--nitro-border);
+  border-radius: 10px;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.pagination-nav__link:hover {
+  border-color: var(--ifm-color-primary);
+  background: var(--nitro-bg-sunken);
+}
+
+.pagination-nav__sublabel {
+  font-size: 0.75rem;
+  color: var(--nitro-ink-muted);
+}
+
+.breadcrumbs__item--active .breadcrumbs__link {
+  background: var(--nitro-bg-sunken);
+}
+
+/* --------------------------------------------------------------- search */
+
+.DocSearch-Button,
+[class*='searchBar'] .navbar__search-input {
+  border-radius: 8px;
+}
+
+/* --------------------------------------------------------- live demos */
+
 .rn-demo {
   background: var(--rn-demo-bg);
-  border: 1px solid var(--rn-card-border);
-  border-radius: 14px;
+  border: 1px solid var(--nitro-border);
+  border-radius: 12px;
   padding: 20px;
-  margin: 12px 0 20px;
+  margin: 1.25rem 0 1.75rem;
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+/* An <Example> frame wrapping a demo that draws its own frame: only the
+   outer one is a frame. Otherwise every demo reads as a box inside a box. */
+.rn-demo .rn-demo {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  border-radius: 0;
 }
 
 .rn-demo-stage {
@@ -77,45 +444,43 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.85rem;
-  opacity: 0.85;
+  font-size: 0.8rem;
+  color: var(--nitro-ink-muted);
 }
 
 .rn-btn {
   appearance: none;
-  border: 1px solid var(--rn-card-border);
-  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--nitro-border-strong);
+  background: var(--nitro-bg-raised);
   color: var(--ifm-font-color-base);
-  border-radius: 10px;
-  padding: 7px 12px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  border-radius: 8px;
+  padding: 6px 11px;
+  font-size: 0.8rem;
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
-  transition: background 120ms ease, transform 80ms ease;
+  transition: background-color 120ms ease, border-color 120ms ease, transform 80ms ease;
 }
 
 .rn-btn:hover {
-  background: var(--ifm-color-emphasis-200);
+  border-color: var(--ifm-color-primary);
 }
 
 .rn-btn:active {
   transform: scale(0.97);
 }
 
-.rn-btn--primary {
-  background: var(--ifm-color-primary);
-  border-color: transparent;
-  color: #fff;
-}
-
-.rn-btn--primary:hover {
-  background: var(--ifm-color-primary-dark);
-}
-
+.rn-btn--primary,
 .rn-btn--selected {
   background: var(--ifm-color-primary);
   border-color: transparent;
   color: #fff;
+}
+
+.rn-btn--primary:hover,
+.rn-btn--selected:hover {
+  background: var(--ifm-color-primary-dark);
+  border-color: transparent;
 }
 
 .rn-demo select,
@@ -124,33 +489,30 @@
 }
 
 .rn-demo select {
-  border: 1px solid var(--rn-card-border);
-  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--nitro-border-strong);
+  background: var(--nitro-bg-raised);
   color: var(--ifm-font-color-base);
   border-radius: 8px;
   padding: 5px 8px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 
 .rn-demo-caption {
   font-size: 0.8rem;
-  opacity: 0.7;
+  color: var(--nitro-ink-muted);
   margin: 0;
-}
-
-/* Prop tables read better when the first column doesn't wrap. */
-.rn-props table td:first-child,
-.rn-props table th:first-child {
-  white-space: nowrap;
-}
-
-table {
-  font-size: 0.9rem;
 }
 
 .rn-demo-readout {
   margin: 4px 16px 8px;
-  font-size: 0.8rem;
-  color: var(--ifm-color-emphasis-600);
+  font-size: 0.78rem;
+  color: var(--nitro-ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Every number on this site is tabular. It is that kind of site. */
+.rn-demo,
+.markdown table td,
+.rn-demo-readout {
   font-variant-numeric: tabular-nums;
 }

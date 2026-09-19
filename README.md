@@ -7,8 +7,8 @@
 
 <p align="center">
   <a href="https://ronickg.github.io/react-native-nitro-rolling-number/"><b>Docs &amp; live demos</b></a> ·
-  <a href="https://ronickg.github.io/react-native-nitro-rolling-number/docs/reveal">Jackpot reveal</a> ·
-  <a href="https://ronickg.github.io/react-native-nitro-rolling-number/docs/benchmarks">Benchmarks</a> ·
+  <a href="https://ronickg.github.io/react-native-nitro-rolling-number/rolling-number/reveal">Jackpot reveal</a> ·
+  <a href="https://ronickg.github.io/react-native-nitro-rolling-number/rolling-number/benchmarks">Benchmarks</a> ·
   <a href="packages/react-native-nitro-rolling-number/README.md">Package README</a>
 </p>
 
@@ -77,7 +77,7 @@ Change `value` and the digits roll. `ref.current.jumpTo(v)` positions the wheels
 />
 ```
 
-The count follows how slot machines present a win: a constant-rate tally per tier that winds up out of each milestone and crawls into the next, a figure that opens smaller and grows as it climbs, and punches that settle without dipping under the resting size. `jumpTo(value)` skips (tap to slam). Banners, confetti and sounds stay in the app: the callbacks give you the beats. [Guide →](https://ronickg.github.io/react-native-nitro-rolling-number/docs/reveal)
+The count follows how slot machines present a win: a constant-rate tally per tier that winds up out of each milestone and crawls into the next, a figure that opens smaller and grows as it climbs, and punches that settle without dipping under the resting size. `jumpTo(value)` skips (tap to slam). Banners, confetti and sounds stay in the app: the callbacks give you the beats. [Guide →](https://ronickg.github.io/react-native-nitro-rolling-number/rolling-number/reveal)
 
 ## Performance
 
@@ -102,7 +102,7 @@ import { NitroInput } from 'react-native-nitro-input'
 <NitroInput mode="number" prefix="$" prefixFontSize={28} affixAlign="top" placeholder="0" fontSize={48} fontWeight="700" textAlign="center" style={{ width: '100%' }} onChangeValue={setAmount} />
 ```
 
-[Guide and live demo →](https://ronickg.github.io/react-native-nitro-rolling-number/docs/nitro-input) · [Package README](packages/react-native-nitro-input/README.md)
+[Guide and live demo →](https://ronickg.github.io/react-native-nitro-rolling-number/input) · [Package README](packages/react-native-nitro-input/README.md)
 
 ## Repository
 

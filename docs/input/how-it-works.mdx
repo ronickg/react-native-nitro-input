@@ -1,0 +1,28 @@
+---
+sidebar_position: 7
+title: How the morph works
+description: 'How each update pairs the old characters with the new ones, and what moves as a result.'
+---
+
+Each update pairs the old characters with the new ones, and that pairing is
+what decides what moves. The rules live in `cpp/MorphEngine.cpp`, shared by
+Swift and Kotlin.
+
+- **Typing** (a caret is known): everything before the caret pairs by position from the left, everything after it from the right, so the edit is exactly the characters that entered or left. Grouping separators are kept out of that walk, because a comma reflows with the magnitude rather than with the keystroke; they pair from the units end instead, so the thousands comma stays the thousands comma and glides. Unless the integer gained or lost a column — then every comma belongs a group further along, past the digits that just carried the other way, so it drops out and a new one rises rather than sliding through them. Typing in the fraction leaves the integer columns alone, and the commas simply glide.
+- **A value set from code** (`setValue`, `setText`, `clear`, the `value` prop): digits pair by their column from the decimal point, so `1,204 → 1,318` swaps the three low columns in place. When the integer part gained or lost columns the digits pair by subsequence from the units end and the separators leave. Plain text pairs by longest common subsequence (`Continue → Confirm` keeps `Con`).
+
+A character that persists eases to its new x. A new digit drops in from above (a separator rises from below) through the clipped line box, fading in over the first quarter of the morph; a leaving digit drops out the same way. Text characters fade and scale (0.95×). Characters that enter or leave ride along with their nearest persisting neighbour, so a word that grows or shrinks stays one shape. Reduce Motion snaps.
+
+A placeholder is not a value — it is what the field shows *instead* of one — so
+trading it for a value is a change of state rather than a morph, and it snaps.
+The zero standing in for an empty field does not roll into the digit that lands
+on it, and it is drawn in `placeholderTextColor`, which keeps its own
+transparency. Going the other way the value still leaves as it would normally,
+and the placeholder fades in where it belongs rather than dropping from above.
+
+Six or more adjacent characters replaced with nothing surviving between them stop being characters that moved. There is no neighbour left to travel against, and sliding each one only smears the run, so it recedes as one shape instead: no slide, and a scale to 0.8× about the run's own centre rather than each character's. The arriving run comes forward out of that same centre. This is what a three-column jump looks like — `100,000 → 100,000,000` swaps one quantity for another rather than dropping seven characters through the line box, and the commas recede with the block instead of falling like digits.
+
+## Credits
+
+The morph is based on [Torph](https://torph.lochie.me) by
+[Lochie Axon](https://github.com/lochie). Thanks for building it.

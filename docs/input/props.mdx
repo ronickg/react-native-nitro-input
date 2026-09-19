@@ -1,0 +1,28 @@
+---
+sidebar_position: 6
+title: Props
+description: 'Every prop of NitroInput and MorphInput.'
+---
+
+The full table is in the package [README](https://github.com/ronickg/react-native-nitro-rolling-number/tree/main/packages/react-native-nitro-input#props). The ones you will reach for first:
+
+| Prop | Default | |
+| --- | --- | --- |
+| `mode` | `'text'` | `'number'` formats as you type. |
+| `fractionDigits`, `maxIntegerDigits` | `2`, `15` | Limits; digits past them are rejected. |
+| `groupingSeparator`, `decimalSeparator` | `','`, `'.'` | |
+| `prefix`, `suffix`, `affixAlign` | `''`, `''`, `'baseline'` | As on the rolling number. |
+| `placeholder` | `''` | Swapped for the first character, not morphed into it — see below. |
+| `duration`, `easing`, `effect` | `400`, `'expo'`, `'auto'` | The morph. |
+| `keyboardType`, `returnKeyType`, `autoCapitalize`, `autoCorrect`, `maxLength`, `editable`, `autoFocus` | | Input traits. |
+| `transform` | | A worklet mask, run synchronously on the UI thread. |
+| `onChangeText`, `onChangeValue`, `onFocus`, `onBlur`, `onSubmitEditing` | | The change handlers may be worklets. |
+| `submitBehavior` | `'blurAndSubmit'` | `'submit'` keeps focus so a form can move to the next field itself. |
+| `secureTextEntry` | `false` | Draws bullets; the field keeps the real text for autofill. |
+| `textContentType` / `autoComplete` | `''` | Autofill: `'username'`, `'password'`, `'oneTimeCode'`, … |
+| `keyboardAppearance`, `enablesReturnKeyAutomatically`, `showSoftInputOnFocus` | | Keyboard behaviour. |
+| `selectTextOnFocus`, `clearTextOnFocus`, `contextMenuHidden`, `spellCheck`, `readOnly` | | As on `TextInput`. |
+| `selection` | | `{ start, end? }` in code points, controlled. |
+| `onEndEditing`, `onSelectionChange`, `onKeyPress` | | The rest of `TextInput`'s edit callbacks. |
+
+Imperative handle: `focus()`, `blur()`, `clear()`, `setText()`, `setValue()`, `getText()`, `getValue()`, `isFocused()`.

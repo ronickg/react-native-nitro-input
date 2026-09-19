@@ -22,7 +22,7 @@ Scaling (fit-to-width, the reveal's pop) is a layer / canvas transform, so no fo
 
 ## Many numbers, every frame
 
-`jumpTo` / `animateTo` coalesce: only the newest value per main-thread turn is applied, so pushing a value every frame into many views never builds a backlog of dispatches. With 24 copies fed a new value on every frame, the UI thread stays at the display's refresh rate on an iPhone 13 Pro Max (120 Hz) and a Pixel 10 (60 Hz) with zero dropped frames. See [Benchmarks](/docs/benchmarks).
+`jumpTo` / `animateTo` coalesce: only the newest value per main-thread turn is applied, so pushing a value every frame into many views never builds a backlog of dispatches. With 24 copies fed a new value on every frame, the UI thread stays at the display's refresh rate on an iPhone 13 Pro Max (120 Hz) and a Pixel 10 (60 Hz) with zero dropped frames. See [Benchmarks](/rolling-number/benchmarks).
 
 If you drive a number from a Reanimated worklet, call `jumpTo` on the Nitro object (`onNativeRef`) directly from the UI runtime.
 

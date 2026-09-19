@@ -1,0 +1,26 @@
+---
+sidebar_position: 9
+title: Working with React Native
+description: 'The text-input registry, focus commands, keyboard handling and accessibility.'
+---
+
+`MorphInput` registers itself in React Native's text-input registry and answers
+the `focus` / `blur` view commands, so the things that act on "the focused
+input" work on it as they do on `TextInput`:
+
+- `Keyboard.dismiss()`, `TextInput.State.currentlyFocusedInput()` and
+  `TextInput.State.blurTextInput()`
+- a `ScrollView`'s `keyboardShouldPersistTaps` / auto-blur
+- `react-native-keyboard-controller`: the focused-input observer sees it,
+  `KeyboardAwareScrollView` scrolls it into view, and `KeyboardToolbar`'s
+  next/previous traverses into and out of it
+
+`testID` and `accessibilityLabel` are forwarded to the hidden system field —
+the element VoiceOver, TalkBack and e2e tools actually interact with — and the
+`placeholder` is exposed as its accessibility value while the field is empty.
+
+:::note Layout
+Unlike `TextInput`, `MorphInput` sizes itself to its content. Give it a
+`width` (or `flex`) in `style` to make it fill its parent the way a `TextInput`
+does; without one it hugs the text and grows as you type.
+:::

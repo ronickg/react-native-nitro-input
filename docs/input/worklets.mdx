@@ -1,0 +1,22 @@
+---
+sidebar_position: 5
+title: Worklets
+description: 'A transform worklet and change handlers that run on the UI thread, for masks written in JS.'
+---
+
+With `react-native-worklets` installed (it ships with Reanimated 4), a `transform` worklet and worklet-marked `onChangeText` / `onChangeValue` handlers run on the UI thread *inside* the native edit, before a frame is drawn: a mask written in JS applies with no flicker, and a shared value is updated with no JS thread in between. This is the mechanism of Expo UI's worklet callbacks and react-native-transformer-text-input, with the native formatter still running first in `mode="number"`.
+
+```tsx
+const usernameTransform: NitroInputTransform = ({ text }) => {
+  'worklet'
+  const cleaned = text.replace(/[^0-9a-zA-Z_]/g, '').toLowerCase()
+  return { text: cleaned ? '@' + cleaned : '' }
+}
+
+<MorphInput placeholder="@username" transform={usernameTransform} />
+
+const progress = useSharedValue(0)
+<MorphInput mode="number" onChangeValue={(value) => { 'worklet'; progress.value = value / 10 }} />
+```
+
+Without `react-native-worklets` the props are ignored with a single warning and everything else keeps working.
