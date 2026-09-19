@@ -73,7 +73,7 @@ function Hero() {
             Rolling Number →
           </Link>
           <Link className="button button--primary button--lg" to="/input">
-            Nitro Input →
+            Text Input →
           </Link>
         </div>
       </div>
@@ -123,7 +123,7 @@ export default function Home(): ReactNode {
               </Link>
               <Link className={styles.product} to="/input">
                 <div className={styles.productName}>react-native-nitro-input</div>
-                <Heading as="h3">Nitro Input</Heading>
+                <Heading as="h3">Text Input</Heading>
                 <p>
                   A native single-line text and amount field. The system keyboard and
                   accessibility stay; the glyphs morph as you type, and amounts are
@@ -189,7 +189,7 @@ export default function Home(): ReactNode {
             </p>
             <Phones ios="/video/ios-input.mp4" android="/video/android-input.mp4" caption="Typing, backspacing, a value set from code, and a figure replaced wholesale. The same engine on both platforms." />
             <p className={clsx(styles.center, styles.muted)}>
-              <Link to="/input">Read the Nitro Input docs →</Link>
+              <Link to="/input">Read the Text Input docs →</Link>
             </p>
           </div>
         </section>

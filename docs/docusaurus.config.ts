@@ -79,7 +79,7 @@ const config: Config = {
   ],
 
   plugins: [
-    // The Nitro Input section: its own content root, its own sidebar.
+    // The Text Input section: its own content root, its own sidebar.
     [
       '@docusaurus/plugin-content-docs',
       {
@@ -159,7 +159,7 @@ const config: Config = {
           docsPluginId: 'input',
           sidebarId: 'input',
           position: 'left',
-          label: 'Nitro Input',
+          label: 'Text Input',
           className: 'navbar__item--product',
         },
         {
@@ -189,7 +189,7 @@ const config: Config = {
           ],
         },
         {
-          title: 'Nitro Input',
+          title: 'Text Input',
           items: [
             {label: 'Overview', to: '/input'},
             {label: 'An amount field', to: '/input/amount-field'},
