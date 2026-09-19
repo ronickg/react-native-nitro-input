@@ -1,0 +1,72 @@
+---
+sidebar_position: 2
+title: Getting started
+description: Install react-native-nitro-input and render your first morphing field.
+---
+
+import {Frame} from '@site/src/components/Demo/Demo';
+import {NitroInputTextDemo} from '@site/src/components/NitroInput/NitroInputDemo';
+
+# Getting started
+
+`react-native-nitro-input` is a **native single-line text and amount input** for React Native, built with [Nitro Modules](https://nitro.margelo.com). A system text field owns the keyboard, editing, selection and accessibility; a morph layer on top draws its glyphs, so characters glide to their new place instead of being redrawn where they land.
+
+<Frame caption="Live, in your browser: the same C++ engine the native views use, compiled to WebAssembly.">
+  <NitroInputTextDemo />
+</Frame>
+
+## Requirements
+
+- React Native **0.78+** with the new architecture (Fabric) enabled.
+- `react-native-nitro-modules` **0.37+**.
+- The iOS and Android minimums are React Native's own; the package adds none.
+- `react-native-worklets` is optional, and only for the [worklet props](/input/worklets).
+
+## Install
+
+```bash
+bun add react-native-nitro-input react-native-nitro-modules
+```
+
+```bash
+cd ios && pod install
+```
+
+With Expo, add both packages, then run `npx expo prebuild` (or a dev client build). Nothing else to configure: the view autolinks through Nitro on both platforms.
+
+## First field
+
+```tsx
+import { MorphInput } from 'react-native-nitro-input'
+
+export function AmountField({ onChange }: { onChange: (value: number) => void }) {
+  return (
+    <MorphInput
+      mode="number"
+      prefix="$"
+      fractionDigits={2}
+      groupingSeparator=","
+      placeholder="0"
+      fontSize={48}
+      fontWeight="700"
+      textAlign="center"
+      style={{ width: '100%' }}
+      onChangeValue={onChange}
+    />
+  )
+}
+```
+
+Type `1234` and the field shows `$1,234`: the formatter runs in C++ on the keystroke, before the field draws, so the comma arrives in the same frame as the digit that displaced it. `onChangeValue` hands you the number (`NaN` while the field is empty), `onChangeText` the formatted string.
+
+Unlike `TextInput`, the field sizes itself to its content. Give it a `width` (or `flex`) in `style` to make it fill its parent; without one it hugs the text and grows as you type.
+
+Reach for [`NitroInput`](/input/plain-field) instead when you want the same native field without the morph — an email or a name, where the animation would be noise.
+
+## Where to next
+
+- [An amount field](/input/amount-field): grouping, decimals, currency affixes and other locales.
+- [Text](/input/text): the morph on plain strings.
+- [A plain field](/input/plain-field): the same input with the morph off.
+- [Worklets](/input/worklets): masks and shared values on the UI thread.
+- [Props](/input/props): the full reference.
