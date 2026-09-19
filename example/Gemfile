@@ -9,6 +9,11 @@ gem 'activesupport', '>= 6.1.7.5', '!= 7.1.0'
 gem 'xcodeproj', '< 1.26.0'
 gem 'concurrent-ruby', '< 1.3.4'
 
+# json 3 removed the `quirks_mode` option that activesupport 7.2 still passes
+# to JSON.generate, which breaks `pod install` as soon as anything calls
+# `to_json` (Expo's autolinking does, in sandbox.rb).
+gem 'json', '< 3'
+
 # Ruby 3.4.0 has removed some libraries from the standard library.
 gem 'bigdecimal'
 gem 'logger'

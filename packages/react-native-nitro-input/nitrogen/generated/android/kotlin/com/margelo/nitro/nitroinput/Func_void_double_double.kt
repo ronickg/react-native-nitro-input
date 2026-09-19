@@ -13,7 +13,7 @@ import com.facebook.proguard.annotations.DoNotStrip
 
 
 /**
- * Represents the JavaScript callback `(width: number, height: number) => void`.
+ * Represents the JavaScript callback `(start: number, end: number) => void`.
  * This can be either implemented in C++ (in which case it might be a callback coming from JS),
  * or in Kotlin/Java (in which case it is a native callback).
  */
@@ -27,11 +27,11 @@ fun interface Func_void_double_double: (Double, Double) -> Unit {
    */
   @DoNotStrip
   @Keep
-  override fun invoke(width: Double, height: Double): Unit
+  override fun invoke(start: Double, end: Double): Unit
 }
 
 /**
- * Represents the JavaScript callback `(width: number, height: number) => void`.
+ * Represents the JavaScript callback `(start: number, end: number) => void`.
  * This is implemented in C++, via a `std::function<...>`.
  * The callback might be coming from JS.
  */
@@ -55,14 +55,14 @@ class Func_void_double_double_cxx: Func_void_double_double {
 
   @DoNotStrip
   @Keep
-  override fun invoke(width: Double, height: Double): Unit
-    = invoke_cxx(width,height)
+  override fun invoke(start: Double, end: Double): Unit
+    = invoke_cxx(start,end)
 
-  private external fun invoke_cxx(width: Double, height: Double): Unit
+  private external fun invoke_cxx(start: Double, end: Double): Unit
 }
 
 /**
- * Represents the JavaScript callback `(width: number, height: number) => void`.
+ * Represents the JavaScript callback `(start: number, end: number) => void`.
  * This is implemented in Java/Kotlin, via a `(Double, Double) -> Unit`.
  * The callback is always coming from native.
  */
@@ -72,7 +72,7 @@ class Func_void_double_double_cxx: Func_void_double_double {
 class Func_void_double_double_java(private val function: (Double, Double) -> Unit): Func_void_double_double {
   @DoNotStrip
   @Keep
-  override fun invoke(width: Double, height: Double): Unit {
-    return this.function(width, height)
+  override fun invoke(start: Double, end: Double): Unit {
+    return this.function(start, end)
   }
 }

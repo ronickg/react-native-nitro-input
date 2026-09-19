@@ -13,6 +13,7 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   var text: String { get set }
   var mostRecentEventCount: Double { get set }
   var mode: NitroInputMode { get set }
+  var plain: Bool { get set }
   var fractionDigits: Double { get set }
   var maxIntegerDigits: Double { get set }
   var groupingSeparator: String { get set }
@@ -48,6 +49,20 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   var autoCorrect: Bool { get set }
   var editable: Bool { get set }
   var autoFocus: Bool { get set }
+  var fieldTestID: String { get set }
+  var fieldAccessibilityLabel: String { get set }
+  var submitBehavior: NitroInputSubmitBehavior { get set }
+  var secureTextEntry: Bool { get set }
+  var keyboardAppearance: NitroInputKeyboardAppearance { get set }
+  var textContentType: String { get set }
+  var enablesReturnKeyAutomatically: Bool { get set }
+  var showSoftInputOnFocus: Bool { get set }
+  var selectTextOnFocus: Bool { get set }
+  var clearTextOnFocus: Bool { get set }
+  var contextMenuHidden: Bool { get set }
+  var spellCheck: Bool { get set }
+  var selectionStart: Double { get set }
+  var selectionEnd: Double { get set }
   var maxLength: Double { get set }
   var transformWorklet: Double { get set }
   var onChangeTextWorklet: Double { get set }
@@ -56,6 +71,9 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   var onChangeValue: ((_ value: Double) -> Void)? { get set }
   var onFocusChange: ((_ focused: Bool) -> Void)? { get set }
   var onSubmitEditing: ((_ text: String) -> Void)? { get set }
+  var onEndEditing: ((_ text: String) -> Void)? { get set }
+  var onSelectionChange: ((_ start: Double, _ end: Double) -> Void)? { get set }
+  var onKeyPress: ((_ key: String) -> Void)? { get set }
   var onSizeChange: ((_ width: Double, _ height: Double) -> Void)? { get set }
 
   // Methods

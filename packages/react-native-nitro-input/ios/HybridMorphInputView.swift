@@ -19,6 +19,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   /// The `text` prop as last applied; nil until the first application.
   private var lastAppliedText: String?
   private var textDirty = true
+  private var selectionDirty = false
 
   /// What `getText()` / `getValue()` / `isFocused()` answer with. Nitro may
   /// call them off the main thread, so the view's state is mirrored here.
@@ -56,6 +57,15 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     inputView.onSubmit = { [weak self] text in
       self?.onSubmitEditing?(text)
     }
+    inputView.onEndEditing = { [weak self] text in
+      self?.onEndEditing?(text)
+    }
+    inputView.onSelectionChange = { [weak self] start, end in
+      self?.onSelectionChange?(Double(start), Double(end))
+    }
+    inputView.onKeyPress = { [weak self] key in
+      self?.onKeyPress?(key)
+    }
     inputView.onIntrinsicSizeChange = { [weak self] size in
       self?.onSizeChange?(Double(size.width), Double(size.height))
     }
@@ -66,6 +76,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var text: String = "" { didSet { markTextDirty() } }
   var mostRecentEventCount: Double = 0 { didSet { markTextDirty() } }
   var mode: NitroInputMode = .text { didSet { markConfigDirty() } }
+  var plain: Bool = false { didSet { markConfigDirty() } }
   var fractionDigits: Double = 2 { didSet { markConfigDirty() } }
   var maxIntegerDigits: Double = 15 { didSet { markConfigDirty() } }
   var groupingSeparator: String = "," { didSet { markConfigDirty() } }
@@ -101,6 +112,20 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var autoCorrect: Bool = true { didSet { markConfigDirty() } }
   var editable: Bool = true { didSet { markConfigDirty() } }
   var autoFocus: Bool = false { didSet { markConfigDirty() } }
+  var fieldTestID: String = "" { didSet { markConfigDirty() } }
+  var fieldAccessibilityLabel: String = "" { didSet { markConfigDirty() } }
+  var submitBehavior: NitroInputSubmitBehavior = .blurandsubmit { didSet { markConfigDirty() } }
+  var secureTextEntry: Bool = false { didSet { markConfigDirty() } }
+  var keyboardAppearance: NitroInputKeyboardAppearance = .default { didSet { markConfigDirty() } }
+  var textContentType: String = "" { didSet { markConfigDirty() } }
+  var enablesReturnKeyAutomatically: Bool = false { didSet { markConfigDirty() } }
+  var showSoftInputOnFocus: Bool = true { didSet { markConfigDirty() } }
+  var selectTextOnFocus: Bool = false { didSet { markConfigDirty() } }
+  var clearTextOnFocus: Bool = false { didSet { markConfigDirty() } }
+  var contextMenuHidden: Bool = false { didSet { markConfigDirty() } }
+  var spellCheck: Bool = true { didSet { markConfigDirty() } }
+  var selectionStart: Double = -1 { didSet { markSelectionDirty() } }
+  var selectionEnd: Double = -1 { didSet { markSelectionDirty() } }
   var maxLength: Double = 0 { didSet { markConfigDirty() } }
   var transformWorklet: Double = 0 { didSet { markConfigDirty() } }
   var onChangeTextWorklet: Double = 0 { didSet { markConfigDirty() } }
@@ -109,6 +134,9 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var onChangeValue: ((Double) -> Void)?
   var onFocusChange: ((Bool) -> Void)?
   var onSubmitEditing: ((String) -> Void)?
+  var onEndEditing: ((String) -> Void)?
+  var onSelectionChange: ((Double, Double) -> Void)?
+  var onKeyPress: ((String) -> Void)?
   var onSizeChange: ((Double, Double) -> Void)? {
     didSet { onMain { self.inputView.resendIntrinsicSize() } }
   }
@@ -187,6 +215,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     text = ""
     mostRecentEventCount = 0
     mode = .text
+    plain = false
     fractionDigits = 2
     maxIntegerDigits = 15
     groupingSeparator = ","
@@ -222,6 +251,20 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     autoCorrect = true
     editable = true
     autoFocus = false
+    fieldTestID = ""
+    fieldAccessibilityLabel = ""
+    submitBehavior = .blurandsubmit
+    secureTextEntry = false
+    keyboardAppearance = .default
+    textContentType = ""
+    enablesReturnKeyAutomatically = false
+    showSoftInputOnFocus = true
+    selectTextOnFocus = false
+    clearTextOnFocus = false
+    contextMenuHidden = false
+    spellCheck = true
+    selectionStart = -1
+    selectionEnd = -1
     maxLength = 0
     transformWorklet = 0
     onChangeTextWorklet = 0
@@ -230,6 +273,9 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     onChangeValue = nil
     onFocusChange = nil
     onSubmitEditing = nil
+    onEndEditing = nil
+    onSelectionChange = nil
+    onKeyPress = nil
     onSizeChange = nil
     lastAppliedText = nil
     configDirty = true
@@ -253,6 +299,11 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     commitIfNeeded()
   }
 
+  private func markSelectionDirty() {
+    selectionDirty = true
+    commitIfNeeded()
+  }
+
   private func commitIfNeeded() {
     if !isBatching { commit() }
   }
@@ -261,7 +312,19 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     onMain {
       self.flushConfigIfNeeded()
       self.applyTextIfNeeded()
+      self.applySelectionIfNeeded()
     }
+  }
+
+  /// A controlled `selection`: `-1` on either end means "leave the caret alone",
+  /// which is what an uncontrolled field sends on every render.
+  private func applySelectionIfNeeded() {
+    guard selectionDirty else { return }
+    selectionDirty = false
+    let start = Self.clampInt(selectionStart, -1, Int(Int32.max), fallback: -1)
+    let end = Self.clampInt(selectionEnd, -1, Int(Int32.max), fallback: -1)
+    guard start >= 0, end >= 0 else { return }
+    inputView.setSelection(start: start, end: end)
   }
 
   /// The `text` prop handshake: apply it when it differs from the last applied
@@ -277,6 +340,49 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     guard mostRecentEventCount.isFinite, Int(mostRecentEventCount) >= nativeCount else { return }
     lastAppliedText = text
     inputView.setText(text, reason: .prop)
+  }
+
+  private static func mapKeyboardAppearance(_ value: NitroInputKeyboardAppearance) -> UIKeyboardAppearance {
+    switch value {
+    case .light: return .light
+    case .dark: return .dark
+    case .default: return .default
+    }
+  }
+
+  /// React Native's `textContentType` / `autoComplete` names mapped to UIKit's.
+  /// An unknown or empty name means "no autofill".
+  private static func mapTextContentType(_ value: String) -> UITextContentType? {
+    switch value {
+    case "name": return .name
+    case "namePrefix": return .namePrefix
+    case "nameSuffix": return .nameSuffix
+    case "givenName": return .givenName
+    case "middleName": return .middleName
+    case "familyName": return .familyName
+    case "nickname": return .nickname
+    case "jobTitle": return .jobTitle
+    case "organizationName": return .organizationName
+    case "location": return .location
+    case "fullStreetAddress": return .fullStreetAddress
+    case "streetAddressLine1": return .streetAddressLine1
+    case "streetAddressLine2": return .streetAddressLine2
+    case "addressCity": return .addressCity
+    case "addressState": return .addressState
+    case "addressCityAndState": return .addressCityAndState
+    case "sublocality": return .sublocality
+    case "countryName": return .countryName
+    case "postalCode": return .postalCode
+    case "telephoneNumber": return .telephoneNumber
+    case "emailAddress": return .emailAddress
+    case "URL": return .URL
+    case "creditCardNumber": return .creditCardNumber
+    case "username": return .username
+    case "password": return .password
+    case "newPassword": return .newPassword
+    case "oneTimeCode": return .oneTimeCode
+    default: return nil
+    }
   }
 
   private func flushConfigIfNeeded() {
@@ -325,6 +431,19 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     traits.caretHidden = caretHidden
     traits.caretColor = Self.color(fromARGB: caretColor)
     traits.selectionColor = Self.color(fromARGB: selectionColor)
+    traits.plain = plain
+    traits.testID = fieldTestID.isEmpty ? nil : fieldTestID
+    traits.accessibilityLabel = fieldAccessibilityLabel.isEmpty ? nil : fieldAccessibilityLabel
+    traits.blurOnSubmit = submitBehavior == .blurandsubmit
+    traits.secureTextEntry = secureTextEntry
+    traits.keyboardAppearance = Self.mapKeyboardAppearance(keyboardAppearance)
+    traits.textContentType = Self.mapTextContentType(textContentType)
+    traits.enablesReturnKeyAutomatically = enablesReturnKeyAutomatically
+    traits.showSoftInputOnFocus = showSoftInputOnFocus
+    traits.selectTextOnFocus = selectTextOnFocus
+    traits.clearTextOnFocus = clearTextOnFocus
+    traits.contextMenuHidden = contextMenuHidden
+    traits.spellCheck = spellCheck && autoCorrect
 
     var worklets = NitroInputView.Worklets()
     worklets.transform = Self.clampInt(transformWorklet, 0, Int(Int32.max), fallback: 0)

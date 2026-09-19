@@ -1,15 +1,21 @@
 export {
   NitroInput,
-  NativeNitroInputView,
   type NitroInputProps,
   type NitroInputHandle,
-  type NitroInputRef,
 } from './NitroInput'
+export {
+  MorphInput,
+  NativeNitroInputView,
+  type MorphInputProps,
+  type MorphInputHandle,
+  type MorphInputRef,
+} from './MorphInput'
 export {
   isWorklet,
   type NitroInputSelection,
   type NitroInputTransform,
 } from './worklets'
+
 export type {
   NitroInputMode,
   NitroInputEasing,
@@ -19,6 +25,8 @@ export type {
   NitroInputKeyboardType,
   NitroInputReturnKeyType,
   NitroInputAutoCapitalize,
+  NitroInputSubmitBehavior,
+  NitroInputKeyboardAppearance,
   NitroInputMethods,
   NitroInputProps as NativeNitroInputProps,
   NitroInputView,

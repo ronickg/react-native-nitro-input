@@ -97,6 +97,24 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val autoFocus: Boolean = false,
     /** Text mode: most characters accepted; 0 = unlimited. */
     val maxLength: Int = 0,
+    /** `submitBehavior`: whether the IME action also dismisses the keyboard. */
+    val blurOnSubmit: Boolean = true,
+    val secureTextEntry: Boolean = false,
+    /** Android autofill hint, or null for no autofill. */
+    val autofillHint: String? = null,
+    val showSoftInputOnFocus: Boolean = true,
+    val selectTextOnFocus: Boolean = false,
+    val clearTextOnFocus: Boolean = false,
+    val contextMenuHidden: Boolean = false,
+    val spellCheck: Boolean = true,
+    /**
+     * `testID` and `accessibilityLabel`, forwarded from JS so the hidden
+     * EditText — the element TalkBack and e2e tools see — carries them.
+     */
+    val testID: String? = null,
+    val accessibilityLabel: String? = null,
+    /** `NitroInput`: the EditText draws its own text and the overlay is off. */
+    val plain: Boolean = false,
   )
 
   data class Caret(
@@ -165,6 +183,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       if (field == value) return
       field = value
       editText.highlightColor = value.selectionColor ?: defaultHighlightColor
+      applyNativeCursor()
       restartBlink()
     }
 
@@ -180,6 +199,11 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   var onTextChange: ((text: String, value: Double) -> Unit)? = null
   var onFocusChange: ((focused: Boolean) -> Unit)? = null
   var onSubmit: ((text: String) -> Unit)? = null
+  var onEndEditing: ((text: String) -> Unit)? = null
+  var onSelectionChange: ((start: Int, end: Int) -> Unit)? = null
+  var onKeyPress: ((key: String) -> Unit)? = null
+  /** Last selection handed to `onSelectionChange`, so it only fires on a move. */
+  private var lastReportedSelection: Pair<Int, Int>? = 0 to 0
   /** Called with the settled intrinsic size, in dp, whenever it changes. */
   var onIntrinsicSizeChange: ((widthDp: Float, heightDp: Float) -> Unit)? = null
 
@@ -208,7 +232,9 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
     override fun onSelectionChanged(selStart: Int, selEnd: Int) {
       super.onSelectionChanged(selStart, selEnd)
-      if (ready) restartBlink()
+      if (!ready) return
+      restartBlink()
+      reportSelection(selStart, selEnd)
     }
 
     override fun clearFocus() {
@@ -218,6 +244,14 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       super.clearFocus()
       isFocusableInTouchMode = wasFocusable
     }
+  }
+
+  /// `contextMenuHidden`: an action-mode callback that never creates a menu.
+  private object NoSelectionActionMode : android.view.ActionMode.Callback {
+    override fun onCreateActionMode(mode: android.view.ActionMode?, menu: android.view.Menu?) = false
+    override fun onPrepareActionMode(mode: android.view.ActionMode?, menu: android.view.Menu?) = false
+    override fun onActionItemClicked(mode: android.view.ActionMode?, item: android.view.MenuItem?) = false
+    override fun onDestroyActionMode(mode: android.view.ActionMode?) {}
   }
 
   private val editText = HiddenEditText(context)
@@ -291,6 +325,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val matchParent = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
     editText.setTextColor(Color.TRANSPARENT)
     editText.setHintTextColor(Color.TRANSPARENT)
+    // `applyPlain()` makes these real again when the overlay is off.
     editText.background = null
     editText.isCursorVisible = false
     editText.includeFontPadding = false
@@ -299,14 +334,24 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     editText.addTextChangedListener(Watcher())
     editText.setOnFocusChangeListener { _, focused ->
       restartBlink()
+      if (focused) {
+        if (keyboard.clearTextOnFocus) {
+          clear()
+        } else if (keyboard.selectTextOnFocus) {
+          editText.post { if (editText.hasFocus()) editText.selectAll() }
+        }
+      }
       onFocusChange?.invoke(focused)
+      if (!focused) onEndEditing?.invoke(text)
     }
     editText.setOnEditorActionListener { _, actionId, event ->
       val isEnter = event != null && event.keyCode == KeyEvent.KEYCODE_ENTER
       if (isEnter && event.action != KeyEvent.ACTION_DOWN) return@setOnEditorActionListener true
       if (actionId == EditorInfo.IME_ACTION_NONE && !isEnter) return@setOnEditorActionListener false
+      onKeyPress?.invoke("Enter")
       onSubmit?.invoke(text)
-      blur()
+      // `submitBehavior: 'submit'` keeps focus so a form can move on itself.
+      if (keyboard.blurOnSubmit) blur()
       true
     }
     addView(editText, matchParent)
@@ -452,7 +497,23 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   }
 
   private fun defaultTextColor(): Int = resolveThemeColor(android.R.attr.textColorPrimary, Color.BLACK)
-  private fun defaultPlaceholderColor(): Int = resolveThemeColor(android.R.attr.textColorHint, 0xFF9E9E9E.toInt())
+  /**
+   * A React Native activity usually runs a bare `AppCompat` theme with no text
+   * appearance, so `android.R.attr.textColorHint` comes back as the *primary*
+   * text colour — which draws the placeholder solid black instead of the muted
+   * grey every other input on the platform shows. Derive it from the text
+   * colour instead, the way iOS's `.placeholderText` is derived from `.label`:
+   * theme-independent, and it still reads correctly on a dark background.
+   */
+  private fun defaultPlaceholderColor(): Int {
+    val text = typography.color ?: defaultTextColor()
+    return Color.argb(
+      (Color.alpha(text) * PLACEHOLDER_ALPHA).toInt(),
+      Color.red(text),
+      Color.green(text),
+      Color.blue(text),
+    )
+  }
   private fun defaultCaretColor(): Int = resolveThemeColor(android.R.attr.colorAccent, 0xFF2196F3.toInt())
 
   private fun charString(codePoint: Int): String = charCache.getOrPut(codePoint) { String(Character.toChars(codePoint)) }
@@ -507,6 +568,13 @@ class NitroInputView(context: Context) : FrameLayout(context) {
         AutoCapitalize.CHARACTERS -> InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
       }
       textType = textType or if (k.autoCorrect) InputType.TYPE_TEXT_FLAG_AUTO_CORRECT else InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+      if (!k.spellCheck) textType = textType or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+    }
+    // A password variation is what keeps the IME from suggesting, learning or
+    // showing the text; the overlay does the masking itself (see `feedEngine`).
+    if (k.secureTextEntry) {
+      textType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+      rawType = null
     }
     editText.inputType = textType
     if (rawType != null) editText.setRawInputType(rawType)
@@ -523,8 +591,80 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     editText.isEnabled = k.editable
     editText.isFocusable = k.editable
     editText.isFocusableInTouchMode = k.editable
+    applyPlain()
+    syncAccessibilityFromHost()
+    editText.showSoftInputOnFocus = k.showSoftInputOnFocus
+    editText.setTextIsSelectable(false)
+    editText.isLongClickable = !k.contextMenuHidden
+    editText.customSelectionActionModeCallback = if (k.contextMenuHidden) NoSelectionActionMode else null
+    if (k.autofillHint != null) {
+      editText.setAutofillHints(k.autofillHint)
+      editText.importantForAutofill = IMPORTANT_FOR_AUTOFILL_YES
+    } else {
+      editText.setAutofillHints(null)
+      editText.importantForAutofill = IMPORTANT_FOR_AUTOFILL_NO
+    }
     if (!k.editable && editText.hasFocus()) blur()
     if (editText.hasFocus()) inputMethodManager()?.restartInput(editText)
+  }
+
+  /**
+   * React Native applies `testID` and `accessibilityLabel` to the *host* view
+   * that contains this one, but the EditText is the element e2e tools and
+   * TalkBack interact with, so they are copied down.
+   */
+  private fun syncAccessibilityFromHost() {
+    // The props carry the identity explicitly; the host view's own tag is the
+    // fallback for a caller that set it natively.
+    val testId = keyboard.testID ?: (parent as? android.view.View)?.tag as? String
+    if (editText.tag != testId) editText.tag = testId
+    // React Native also keys the testID under its own id, which is what e2e
+    // tooling reads; mirror both.
+    runCatching { editText.setTag(com.facebook.react.R.id.react_test_id, testId) }
+    val label: CharSequence? = keyboard.accessibilityLabel
+      ?: (parent as? android.view.View)?.contentDescription
+    if (editText.contentDescription != label) editText.contentDescription = label
+  }
+
+  /** Switches between "hidden EditText + overlay" and "the EditText draws itself". */
+  private fun applyPlain() {
+    if (keyboard.plain) {
+      overlay.visibility = GONE
+      stopAnimation()
+      engine.reset()
+      editText.setTextColor(typography.color ?: defaultTextColor())
+      editText.setHintTextColor(typography.placeholderColor ?: defaultPlaceholderColor())
+      applyNativeCursor()
+      editText.textAlignment = when (alignment) {
+        Alignment.CENTER -> TEXT_ALIGNMENT_CENTER
+        Alignment.RIGHT -> TEXT_ALIGNMENT_VIEW_END
+        Alignment.LEFT -> TEXT_ALIGNMENT_VIEW_START
+      }
+    } else {
+      overlay.visibility = VISIBLE
+      editText.setTextColor(Color.TRANSPARENT)
+      editText.setHintTextColor(Color.TRANSPARENT)
+      applyNativeCursor()
+      editText.textAlignment = TEXT_ALIGNMENT_VIEW_START
+    }
+  }
+
+  /**
+   * The overlay draws its own caret, so the `EditText`'s is switched off for it.
+   * In `plain` mode there is no overlay and the system caret is the caret —
+   * tinted with `cursorColor` where the platform allows it.
+   */
+  private fun applyNativeCursor() {
+    val visible = keyboard.plain && !caret.hidden
+    if (editText.isCursorVisible != visible) editText.isCursorVisible = visible
+    if (!visible) return
+    val color = caret.color ?: return
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+      editText.textCursorDrawable?.let {
+        it.setTint(color)
+        editText.textCursorDrawable = it
+      }
+    }
   }
 
   private fun inputMethodManager(): InputMethodManager? =
@@ -545,6 +685,29 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     editText.isFocusableInTouchMode = true
     if (!editText.hasFocus()) editText.requestFocus()
     inputMethodManager()?.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT)
+  }
+
+  /// Moves the caret/selection to `start`..`end`, in code points.
+  fun setSelection(start: Int, end: Int) {
+    val count = text.codePointCount(0, text.length)
+    val lower = start.coerceIn(0, count)
+    val upper = end.coerceIn(lower, count)
+    val from = text.offsetByCodePoints(0, lower)
+    val to = text.offsetByCodePoints(0, upper)
+    if (editText.selectionStart == from && editText.selectionEnd == to) return
+    editText.setSelection(from, to)
+  }
+
+  /// Reports the caret/selection in code points, and only when it moved.
+  private fun reportSelection(selStart: Int, selEnd: Int) {
+    val handler = onSelectionChange ?: return
+    if (selStart < 0 || selEnd < 0) return
+    val current = text
+    val start = current.codePointCount(0, selStart.coerceIn(0, current.length))
+    val end = current.codePointCount(0, selEnd.coerceIn(0, current.length))
+    if (lastReportedSelection?.first == start && lastReportedSelection?.second == end) return
+    lastReportedSelection = start to end
+    handler(start, end)
   }
 
   fun blur() {
@@ -634,6 +797,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     super.onAttachedToWindow()
     scheduleFrameIfNeeded()
     restartBlink()
+    syncAccessibilityFromHost()
     maybeAutoFocus()
   }
 
@@ -646,6 +810,9 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
     super.onSizeChanged(w, h, oldw, oldh)
     overlay.invalidate()
+    // Props land after the view is attached, so the host's testID is only
+    // reliable once it has been measured.
+    syncAccessibilityFromHost()
   }
 
   // endregion
@@ -710,6 +877,11 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
       if (applying) return
       replacement = s.subSequence(start, min(s.length, start + count)).toString()
+      // Like React Native's `onKeyPress`: the inserted text, or 'Backspace'.
+      // Only for real key events — the watcher also runs for the initial set.
+      if (editText.hasFocus()) {
+        onKeyPress?.invoke(if (replacement.isEmpty()) "Backspace" else replacement)
+      }
     }
 
     override fun afterTextChanged(s: Editable) {
@@ -800,12 +972,16 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
   /** Hands the engine the prefix, body (or placeholder) and suffix as glyphs and commits. */
   private fun feedEngine(caret: Int) {
+    if (keyboard.plain) return
     val f = fonts
     engine.setReduceMotion(animationsDisabled())
     engine.beginText()
     addRun(format.prefix, Role.PREFIX, f, placeholder = false)
     val showPlaceholder = text.isEmpty() && format.placeholder.isNotEmpty()
-    addRun(if (showPlaceholder) format.placeholder else text, Role.BODY, f, placeholder = showPlaceholder)
+    // `secureTextEntry` masks what the overlay draws: the EditText keeps the
+    // real text (the IME and autofill need it), every drawn glyph is a bullet.
+    val body = if (keyboard.secureTextEntry) "\u2022".repeat(text.codePointCount(0, text.length)) else text
+    addRun(if (showPlaceholder) format.placeholder else body, Role.BODY, f, placeholder = showPlaceholder)
     addRun(format.suffix, Role.SUFFIX, f, placeholder = false)
     engine.commitText(caret, now())
     fed = true
@@ -1054,6 +1230,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   // endregion
 
   companion object {
+    /** Matches iOS's `.placeholderText`, which is the label colour at 30-40%. */
+    private const val PLACEHOLDER_ALPHA = 0.38f
     private const val ALL_DIGITS = "0123456789"
     private const val BLINK_MS = 500L
     private const val CARET_WIDTH_DP = 2f

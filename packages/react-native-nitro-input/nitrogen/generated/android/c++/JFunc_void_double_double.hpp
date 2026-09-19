@@ -18,7 +18,7 @@ namespace margelo::nitro::nitroinput {
   using namespace facebook;
 
   /**
-   * Represents the Java/Kotlin callback `(width: Double, height: Double) -> Unit`.
+   * Represents the Java/Kotlin callback `(start: Double, end: Double) -> Unit`.
    * This can be passed around between C++ and Java/Kotlin.
    */
   struct JFunc_void_double_double: public jni::JavaClass<JFunc_void_double_double> {
@@ -29,9 +29,9 @@ namespace margelo::nitro::nitroinput {
     /**
      * Invokes the function this `JFunc_void_double_double` instance holds through JNI.
      */
-    void invoke(double width, double height) const {
-      static const auto method = javaClassStatic()->getMethod<void(double /* width */, double /* height */)>("invoke");
-      method(self(), width, height);
+    void invoke(double start, double end) const {
+      static const auto method = javaClassStatic()->getMethod<void(double /* start */, double /* end */)>("invoke");
+      method(self(), start, end);
     }
   };
 
@@ -40,7 +40,7 @@ namespace margelo::nitro::nitroinput {
    */
   class JFunc_void_double_double_cxx final: public jni::HybridClass<JFunc_void_double_double_cxx, JFunc_void_double_double> {
   public:
-    static jni::local_ref<JFunc_void_double_double::javaobject> fromCpp(const std::function<void(double /* width */, double /* height */)>& func) {
+    static jni::local_ref<JFunc_void_double_double::javaobject> fromCpp(const std::function<void(double /* start */, double /* end */)>& func) {
       return JFunc_void_double_double_cxx::newObjectCxxArgs(func);
     }
 
@@ -48,13 +48,13 @@ namespace margelo::nitro::nitroinput {
     /**
      * Invokes the C++ `std::function<...>` this `JFunc_void_double_double_cxx` instance holds.
      */
-    void invoke_cxx(double width, double height) {
-      _func(width, height);
+    void invoke_cxx(double start, double end) {
+      _func(start, end);
     }
 
   public:
     [[nodiscard]]
-    inline const std::function<void(double /* width */, double /* height */)>& getFunction() const {
+    inline const std::function<void(double /* start */, double /* end */)>& getFunction() const {
       return _func;
     }
 
@@ -65,11 +65,11 @@ namespace margelo::nitro::nitroinput {
     }
 
   private:
-    explicit JFunc_void_double_double_cxx(const std::function<void(double /* width */, double /* height */)>& func): _func(func) { }
+    explicit JFunc_void_double_double_cxx(const std::function<void(double /* start */, double /* end */)>& func): _func(func) { }
 
   private:
     friend HybridBase;
-    std::function<void(double /* width */, double /* height */)> _func;
+    std::function<void(double /* start */, double /* end */)> _func;
   };
 
 } // namespace margelo::nitro::nitroinput

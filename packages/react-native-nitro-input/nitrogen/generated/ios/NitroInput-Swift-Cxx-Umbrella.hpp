@@ -18,12 +18,16 @@ namespace margelo::nitro::nitroinput { enum class NitroInputAutoCapitalize; }
 namespace margelo::nitro::nitroinput { enum class NitroInputEasing; }
 // Forward declaration of `NitroInputEffect` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputEffect; }
+// Forward declaration of `NitroInputKeyboardAppearance` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardAppearance; }
 // Forward declaration of `NitroInputKeyboardType` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardType; }
 // Forward declaration of `NitroInputMode` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputMode; }
 // Forward declaration of `NitroInputReturnKeyType` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputReturnKeyType; }
+// Forward declaration of `NitroInputSubmitBehavior` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputSubmitBehavior; }
 // Forward declaration of `NitroInputTextAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputTextAlign; }
 
@@ -33,9 +37,11 @@ namespace margelo::nitro::nitroinput { enum class NitroInputTextAlign; }
 #include "NitroInputAutoCapitalize.hpp"
 #include "NitroInputEasing.hpp"
 #include "NitroInputEffect.hpp"
+#include "NitroInputKeyboardAppearance.hpp"
 #include "NitroInputKeyboardType.hpp"
 #include "NitroInputMode.hpp"
 #include "NitroInputReturnKeyType.hpp"
+#include "NitroInputSubmitBehavior.hpp"
 #include "NitroInputTextAlign.hpp"
 #include <NitroModules/Result.hpp>
 #include <exception>

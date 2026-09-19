@@ -28,6 +28,10 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardType; }
 namespace margelo::nitro::nitroinput { enum class NitroInputReturnKeyType; }
 // Forward declaration of `NitroInputAutoCapitalize` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputAutoCapitalize; }
+// Forward declaration of `NitroInputSubmitBehavior` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputSubmitBehavior; }
+// Forward declaration of `NitroInputKeyboardAppearance` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardAppearance; }
 
 #include <string>
 #include "NitroInputMode.hpp"
@@ -38,6 +42,8 @@ namespace margelo::nitro::nitroinput { enum class NitroInputAutoCapitalize; }
 #include "NitroInputKeyboardType.hpp"
 #include "NitroInputReturnKeyType.hpp"
 #include "NitroInputAutoCapitalize.hpp"
+#include "NitroInputSubmitBehavior.hpp"
+#include "NitroInputKeyboardAppearance.hpp"
 #include <functional>
 #include <optional>
 
@@ -106,6 +112,12 @@ namespace margelo::nitro::nitroinput {
     }
     inline void setMode(NitroInputMode mode) noexcept override {
       _swiftPart.setMode(static_cast<int>(mode));
+    }
+    inline bool getPlain() noexcept override {
+      return _swiftPart.getPlain();
+    }
+    inline void setPlain(bool plain) noexcept override {
+      _swiftPart.setPlain(std::forward<decltype(plain)>(plain));
     }
     inline double getFractionDigits() noexcept override {
       return _swiftPart.getFractionDigits();
@@ -332,6 +344,95 @@ namespace margelo::nitro::nitroinput {
     inline void setAutoFocus(bool autoFocus) noexcept override {
       _swiftPart.setAutoFocus(std::forward<decltype(autoFocus)>(autoFocus));
     }
+    inline std::string getFieldTestID() noexcept override {
+      auto __result = _swiftPart.getFieldTestID();
+      return __result;
+    }
+    inline void setFieldTestID(const std::string& fieldTestID) noexcept override {
+      _swiftPart.setFieldTestID(fieldTestID);
+    }
+    inline std::string getFieldAccessibilityLabel() noexcept override {
+      auto __result = _swiftPart.getFieldAccessibilityLabel();
+      return __result;
+    }
+    inline void setFieldAccessibilityLabel(const std::string& fieldAccessibilityLabel) noexcept override {
+      _swiftPart.setFieldAccessibilityLabel(fieldAccessibilityLabel);
+    }
+    inline NitroInputSubmitBehavior getSubmitBehavior() noexcept override {
+      auto __result = _swiftPart.getSubmitBehavior();
+      return static_cast<NitroInputSubmitBehavior>(__result);
+    }
+    inline void setSubmitBehavior(NitroInputSubmitBehavior submitBehavior) noexcept override {
+      _swiftPart.setSubmitBehavior(static_cast<int>(submitBehavior));
+    }
+    inline bool getSecureTextEntry() noexcept override {
+      return _swiftPart.getSecureTextEntry();
+    }
+    inline void setSecureTextEntry(bool secureTextEntry) noexcept override {
+      _swiftPart.setSecureTextEntry(std::forward<decltype(secureTextEntry)>(secureTextEntry));
+    }
+    inline NitroInputKeyboardAppearance getKeyboardAppearance() noexcept override {
+      auto __result = _swiftPart.getKeyboardAppearance();
+      return static_cast<NitroInputKeyboardAppearance>(__result);
+    }
+    inline void setKeyboardAppearance(NitroInputKeyboardAppearance keyboardAppearance) noexcept override {
+      _swiftPart.setKeyboardAppearance(static_cast<int>(keyboardAppearance));
+    }
+    inline std::string getTextContentType() noexcept override {
+      auto __result = _swiftPart.getTextContentType();
+      return __result;
+    }
+    inline void setTextContentType(const std::string& textContentType) noexcept override {
+      _swiftPart.setTextContentType(textContentType);
+    }
+    inline bool getEnablesReturnKeyAutomatically() noexcept override {
+      return _swiftPart.getEnablesReturnKeyAutomatically();
+    }
+    inline void setEnablesReturnKeyAutomatically(bool enablesReturnKeyAutomatically) noexcept override {
+      _swiftPart.setEnablesReturnKeyAutomatically(std::forward<decltype(enablesReturnKeyAutomatically)>(enablesReturnKeyAutomatically));
+    }
+    inline bool getShowSoftInputOnFocus() noexcept override {
+      return _swiftPart.getShowSoftInputOnFocus();
+    }
+    inline void setShowSoftInputOnFocus(bool showSoftInputOnFocus) noexcept override {
+      _swiftPart.setShowSoftInputOnFocus(std::forward<decltype(showSoftInputOnFocus)>(showSoftInputOnFocus));
+    }
+    inline bool getSelectTextOnFocus() noexcept override {
+      return _swiftPart.getSelectTextOnFocus();
+    }
+    inline void setSelectTextOnFocus(bool selectTextOnFocus) noexcept override {
+      _swiftPart.setSelectTextOnFocus(std::forward<decltype(selectTextOnFocus)>(selectTextOnFocus));
+    }
+    inline bool getClearTextOnFocus() noexcept override {
+      return _swiftPart.getClearTextOnFocus();
+    }
+    inline void setClearTextOnFocus(bool clearTextOnFocus) noexcept override {
+      _swiftPart.setClearTextOnFocus(std::forward<decltype(clearTextOnFocus)>(clearTextOnFocus));
+    }
+    inline bool getContextMenuHidden() noexcept override {
+      return _swiftPart.getContextMenuHidden();
+    }
+    inline void setContextMenuHidden(bool contextMenuHidden) noexcept override {
+      _swiftPart.setContextMenuHidden(std::forward<decltype(contextMenuHidden)>(contextMenuHidden));
+    }
+    inline bool getSpellCheck() noexcept override {
+      return _swiftPart.getSpellCheck();
+    }
+    inline void setSpellCheck(bool spellCheck) noexcept override {
+      _swiftPart.setSpellCheck(std::forward<decltype(spellCheck)>(spellCheck));
+    }
+    inline double getSelectionStart() noexcept override {
+      return _swiftPart.getSelectionStart();
+    }
+    inline void setSelectionStart(double selectionStart) noexcept override {
+      _swiftPart.setSelectionStart(std::forward<decltype(selectionStart)>(selectionStart));
+    }
+    inline double getSelectionEnd() noexcept override {
+      return _swiftPart.getSelectionEnd();
+    }
+    inline void setSelectionEnd(double selectionEnd) noexcept override {
+      _swiftPart.setSelectionEnd(std::forward<decltype(selectionEnd)>(selectionEnd));
+    }
     inline double getMaxLength() noexcept override {
       return _swiftPart.getMaxLength();
     }
@@ -383,6 +484,27 @@ namespace margelo::nitro::nitroinput {
     }
     inline void setOnSubmitEditing(const std::optional<std::function<void(const std::string& /* text */)>>& onSubmitEditing) noexcept override {
       _swiftPart.setOnSubmitEditing(onSubmitEditing);
+    }
+    inline std::optional<std::function<void(const std::string& /* text */)>> getOnEndEditing() noexcept override {
+      auto __result = _swiftPart.getOnEndEditing();
+      return __result;
+    }
+    inline void setOnEndEditing(const std::optional<std::function<void(const std::string& /* text */)>>& onEndEditing) noexcept override {
+      _swiftPart.setOnEndEditing(onEndEditing);
+    }
+    inline std::optional<std::function<void(double /* start */, double /* end */)>> getOnSelectionChange() noexcept override {
+      auto __result = _swiftPart.getOnSelectionChange();
+      return __result;
+    }
+    inline void setOnSelectionChange(const std::optional<std::function<void(double /* start */, double /* end */)>>& onSelectionChange) noexcept override {
+      _swiftPart.setOnSelectionChange(onSelectionChange);
+    }
+    inline std::optional<std::function<void(const std::string& /* key */)>> getOnKeyPress() noexcept override {
+      auto __result = _swiftPart.getOnKeyPress();
+      return __result;
+    }
+    inline void setOnKeyPress(const std::optional<std::function<void(const std::string& /* key */)>>& onKeyPress) noexcept override {
+      _swiftPart.setOnKeyPress(onKeyPress);
     }
     inline std::optional<std::function<void(double /* width */, double /* height */)>> getOnSizeChange() noexcept override {
       auto __result = _swiftPart.getOnSizeChange();

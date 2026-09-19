@@ -69,6 +69,11 @@ void JHybridNitroInputViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCla
     hybridView->setMode(newProps->mode.get());
   }
   if (oldProps == nullptr
+        ? newProps->plain.isProvided()
+        : !newProps->plain.hasSameValue(oldProps->plain)) {
+    hybridView->setPlain(newProps->plain.get());
+  }
+  if (oldProps == nullptr
         ? newProps->fractionDigits.isProvided()
         : !newProps->fractionDigits.hasSameValue(oldProps->fractionDigits)) {
     hybridView->setFractionDigits(newProps->fractionDigits.get());
@@ -244,6 +249,76 @@ void JHybridNitroInputViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCla
     hybridView->setAutoFocus(newProps->autoFocus.get());
   }
   if (oldProps == nullptr
+        ? newProps->fieldTestID.isProvided()
+        : !newProps->fieldTestID.hasSameValue(oldProps->fieldTestID)) {
+    hybridView->setFieldTestID(newProps->fieldTestID.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->fieldAccessibilityLabel.isProvided()
+        : !newProps->fieldAccessibilityLabel.hasSameValue(oldProps->fieldAccessibilityLabel)) {
+    hybridView->setFieldAccessibilityLabel(newProps->fieldAccessibilityLabel.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->submitBehavior.isProvided()
+        : !newProps->submitBehavior.hasSameValue(oldProps->submitBehavior)) {
+    hybridView->setSubmitBehavior(newProps->submitBehavior.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->secureTextEntry.isProvided()
+        : !newProps->secureTextEntry.hasSameValue(oldProps->secureTextEntry)) {
+    hybridView->setSecureTextEntry(newProps->secureTextEntry.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->keyboardAppearance.isProvided()
+        : !newProps->keyboardAppearance.hasSameValue(oldProps->keyboardAppearance)) {
+    hybridView->setKeyboardAppearance(newProps->keyboardAppearance.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->textContentType.isProvided()
+        : !newProps->textContentType.hasSameValue(oldProps->textContentType)) {
+    hybridView->setTextContentType(newProps->textContentType.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->enablesReturnKeyAutomatically.isProvided()
+        : !newProps->enablesReturnKeyAutomatically.hasSameValue(oldProps->enablesReturnKeyAutomatically)) {
+    hybridView->setEnablesReturnKeyAutomatically(newProps->enablesReturnKeyAutomatically.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->showSoftInputOnFocus.isProvided()
+        : !newProps->showSoftInputOnFocus.hasSameValue(oldProps->showSoftInputOnFocus)) {
+    hybridView->setShowSoftInputOnFocus(newProps->showSoftInputOnFocus.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->selectTextOnFocus.isProvided()
+        : !newProps->selectTextOnFocus.hasSameValue(oldProps->selectTextOnFocus)) {
+    hybridView->setSelectTextOnFocus(newProps->selectTextOnFocus.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->clearTextOnFocus.isProvided()
+        : !newProps->clearTextOnFocus.hasSameValue(oldProps->clearTextOnFocus)) {
+    hybridView->setClearTextOnFocus(newProps->clearTextOnFocus.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->contextMenuHidden.isProvided()
+        : !newProps->contextMenuHidden.hasSameValue(oldProps->contextMenuHidden)) {
+    hybridView->setContextMenuHidden(newProps->contextMenuHidden.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->spellCheck.isProvided()
+        : !newProps->spellCheck.hasSameValue(oldProps->spellCheck)) {
+    hybridView->setSpellCheck(newProps->spellCheck.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->selectionStart.isProvided()
+        : !newProps->selectionStart.hasSameValue(oldProps->selectionStart)) {
+    hybridView->setSelectionStart(newProps->selectionStart.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->selectionEnd.isProvided()
+        : !newProps->selectionEnd.hasSameValue(oldProps->selectionEnd)) {
+    hybridView->setSelectionEnd(newProps->selectionEnd.get());
+  }
+  if (oldProps == nullptr
         ? newProps->maxLength.isProvided()
         : !newProps->maxLength.hasSameValue(oldProps->maxLength)) {
     hybridView->setMaxLength(newProps->maxLength.get());
@@ -282,6 +357,21 @@ void JHybridNitroInputViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCla
         ? newProps->onSubmitEditing.isProvided()
         : !newProps->onSubmitEditing.hasSameValue(oldProps->onSubmitEditing)) {
     hybridView->setOnSubmitEditing(newProps->onSubmitEditing.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->onEndEditing.isProvided()
+        : !newProps->onEndEditing.hasSameValue(oldProps->onEndEditing)) {
+    hybridView->setOnEndEditing(newProps->onEndEditing.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->onSelectionChange.isProvided()
+        : !newProps->onSelectionChange.hasSameValue(oldProps->onSelectionChange)) {
+    hybridView->setOnSelectionChange(newProps->onSelectionChange.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->onKeyPress.isProvided()
+        : !newProps->onKeyPress.hasSameValue(oldProps->onKeyPress)) {
+    hybridView->setOnKeyPress(newProps->onKeyPress.get());
   }
   if (oldProps == nullptr
         ? newProps->onSizeChange.isProvided()

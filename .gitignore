@@ -20,3 +20,4 @@ example/ios/build-device/
 raw/
 scripts/iosrec/IosRec.app/Contents/MacOS/iosrec
 scripts/iosrec/IosRec.app/Contents/_CodeSignature/
+.argent/

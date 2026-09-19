@@ -59,6 +59,17 @@ export type NitroInputAutoCapitalize =
   | 'words'
   | 'characters'
 
+/**
+ * What the return key does. `'blurAndSubmit'` (the default, and what the field
+ * did unconditionally before) fires `onSubmitEditing` and dismisses the
+ * keyboard; `'submit'` fires it and keeps focus, which is what a form that
+ * moves to the next field needs.
+ */
+export type NitroInputSubmitBehavior = 'submit' | 'blurAndSubmit'
+
+/** Light or dark keyboard (iOS). `'default'` follows the system appearance. */
+export type NitroInputKeyboardAppearance = 'default' | 'light' | 'dark'
+
 export interface NitroInputProps extends HybridViewProps {
   /**
    * The text the field should show. Applied natively (formatted in `'number'`
@@ -75,6 +86,15 @@ export interface NitroInputProps extends HybridViewProps {
   mostRecentEventCount: number
   /** `'text'` or `'number'`. Default: `'text'`. */
   mode: NitroInputMode
+  /**
+   * Draw the text with the system field itself and skip the morph overlay
+   * entirely: no glyph engine, no per-glyph layers, no custom caret. This is
+   * what `NitroInput` renders — an ordinary native input that keeps the rest of
+   * the component (native formatting, the focus path, the text-input registry
+   * and keyboard-controller support) but costs no more to mount than a plain
+   * `UITextField` / `EditText`. Default: `false`.
+   */
+  plain: boolean
   /** `'number'`: most digits allowed after the decimal separator (`0` disables the decimal). Default: `2`. */
   fractionDigits: number
   /** `'number'`: most integer digits accepted. Default: `15`. */
@@ -145,6 +165,43 @@ export interface NitroInputProps extends HybridViewProps {
   editable: boolean
   /** Focus the field when it mounts. Default: `false`. */
   autoFocus: boolean
+  /**
+   * The `testID` / accessibility label to put on the *hidden system field*.
+   * React Native applies those to the wrapping host view, but the system field
+   * is the element VoiceOver, TalkBack and e2e tools actually interact with,
+   * so the wrapper forwards them explicitly. Empty leaves them unset.
+   */
+  fieldTestID: string
+  /** Accessibility label for the hidden system field. Empty leaves it unset. */
+  fieldAccessibilityLabel: string
+  /** What the return key does. Default: `'blurAndSubmit'`. */
+  submitBehavior: NitroInputSubmitBehavior
+  /** Masks the text with bullets and opts the field out of autocorrect/autofill. Default: `false`. */
+  secureTextEntry: boolean
+  /** Light or dark keyboard (iOS). Default: `'default'`. */
+  keyboardAppearance: NitroInputKeyboardAppearance
+  /**
+   * iOS `UITextContentType` / Android autofill hint, as its React Native name
+   * (`'username'`, `'password'`, `'oneTimeCode'`, `'telephoneNumber'`, …).
+   * Empty disables autofill. Default: `''`.
+   */
+  textContentType: string
+  /** Disables the return key until the field has text. Default: `false`. */
+  enablesReturnKeyAutomatically: boolean
+  /** Show the soft keyboard when the field is focused. `false` keeps focus and caret without it. Default: `true`. */
+  showSoftInputOnFocus: boolean
+  /** Select all the text when the field gains focus. Default: `false`. */
+  selectTextOnFocus: boolean
+  /** Empty the field when it gains focus. Default: `false`. */
+  clearTextOnFocus: boolean
+  /** Hides the Cut/Copy/Paste menu. Default: `false`. */
+  contextMenuHidden: boolean
+  /** Spell checking (`'text'` mode). Defaults to `autoCorrect`. */
+  spellCheck: boolean
+  /** Caret/selection start to apply, in code points; `-1` leaves the selection alone. Default: `-1`. */
+  selectionStart: number
+  /** Caret/selection end to apply, in code points; `-1` leaves the selection alone. Default: `-1`. */
+  selectionEnd: number
   /** `'text'` mode: most characters accepted; `0` = unlimited. Default: `0`. */
   maxLength: number
   /**
@@ -173,6 +230,12 @@ export interface NitroInputProps extends HybridViewProps {
   onFocusChange?: (focused: boolean) => void
   /** The return key was pressed. */
   onSubmitEditing?: (text: string) => void
+  /** Editing finished (focus lost or the keyboard was dismissed), like React Native's `onEndEditing`. */
+  onEndEditing?: (text: string) => void
+  /** The selection moved: code-point offsets into the (formatted) text. */
+  onSelectionChange?: (start: number, end: number) => void
+  /** A key was pressed: the character, or `'Backspace'`/`'Enter'`. Fires before the text changes. */
+  onKeyPress?: (key: string) => void
   /**
    * Called whenever the settled intrinsic size changes (first layout, text
    * that grew or shrank, font change). `NitroInput` uses this to size itself

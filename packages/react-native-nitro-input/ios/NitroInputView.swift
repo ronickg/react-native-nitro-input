@@ -52,7 +52,7 @@ final class NitroInputView: UIView {
     case baseline, center, top, bottom
   }
 
-  struct Typography: Equatable {
+  struct Typography: Hashable {
     var fontSize: CGFloat = 32
     var prefixFontSize: CGFloat? = nil
     var suffixFontSize: CGFloat? = nil
@@ -88,6 +88,24 @@ final class NitroInputView: UIView {
     var caretHidden: Bool = false
     var caretColor: UIColor? = nil
     var selectionColor: UIColor? = nil
+    /// `submitBehavior`: whether the return key also dismisses the keyboard.
+    var blurOnSubmit: Bool = true
+    var secureTextEntry: Bool = false
+    var keyboardAppearance: UIKeyboardAppearance = .default
+    var textContentType: UITextContentType? = nil
+    var enablesReturnKeyAutomatically: Bool = false
+    var showSoftInputOnFocus: Bool = true
+    var selectTextOnFocus: Bool = false
+    var clearTextOnFocus: Bool = false
+    var contextMenuHidden: Bool = false
+    var spellCheck: Bool = true
+    /// `testID` and `accessibilityLabel`, forwarded from JS so the hidden
+    /// field — the element VoiceOver and e2e tools see — carries them.
+    var testID: String? = nil
+    var accessibilityLabel: String? = nil
+    /// `NitroInput`: let the system field draw its own text and skip the
+    /// overlay, the glyph engine and the custom caret entirely.
+    var plain: Bool = false
   }
 
   enum Alignment {
@@ -156,6 +174,9 @@ final class NitroInputView: UIView {
   var onTextChange: ((String, Double, Int, ChangeReason) -> Void)?
   var onFocusChange: ((Bool) -> Void)?
   var onSubmit: ((String) -> Void)?
+  var onEndEditing: ((String) -> Void)?
+  var onSelectionChange: ((Int, Int) -> Void)?
+  var onKeyPress: ((String) -> Void)?
   /// Called with the settled (target) intrinsic size whenever it changes.
   var onIntrinsicSizeChange: ((CGSize) -> Void)?
 
@@ -193,6 +214,29 @@ final class NitroInputView: UIView {
     private var widthCache: [String: CGFloat] = [:]
     private var imageCache: [String: UIImage] = [:]
     private var inkDescentCache: [String: CGFloat] = [:]
+
+    /// Font sets are immutable for a given `Typography` and their caches are
+    /// pure functions of it, so views that look alike share one. Without this
+    /// every field builds its own three `UIFont`s and re-rasterizes the same
+    /// glyphs: 20 identical fields did the work 20 times, and each field did it
+    /// twice over (once for the defaults in `init`, once when the real
+    /// typography arrived). Main-thread only, like the rest of the view.
+    private static var shared: [Typography: FontSet] = [:]
+    private static var sharedOrder: [Typography] = []
+
+    static func shared(for t: Typography) -> FontSet {
+      if let hit = shared[t] { return hit }
+      let made = FontSet(t)
+      shared[t] = made
+      sharedOrder.append(t)
+      // A screen rarely uses many distinct typographies; keep the newest few
+      // so the caches cannot grow without bound.
+      if sharedOrder.count > 12 {
+        let evicted = sharedOrder.removeFirst()
+        shared.removeValue(forKey: evicted)
+      }
+      return made
+    }
 
     init(_ t: Typography) {
       renderScale = max(1, UIScreen.main.scale)
@@ -327,11 +371,13 @@ final class NitroInputView: UIView {
   private var glyphLayers: [Int64: CALayer] = [:]
   /// Where the content box sits in the bounds, as of the last render.
   private var placement: (origin: CGPoint, scale: CGFloat) = (.zero, 1)
+  /// Last selection handed to `onSelectionChange`, so it only fires on a move.
+  private var lastReportedSelection: (Int, Int)?
 
   // MARK: - Lifecycle
 
   override init(frame: CGRect) {
-    fonts = FontSet(Typography())
+    fonts = FontSet.shared(for: Typography())
     super.init(frame: frame)
     isOpaque = false
     backgroundColor = .clear
@@ -392,21 +438,81 @@ final class NitroInputView: UIView {
     didSet { field.accessibilityIdentifier = accessibilityIdentifier }
   }
 
+  /// Fabric applies `testID`, `accessibilityLabel` and the react tag to the
+  /// *component view* that hosts this one, not to this view, so they are copied
+  /// down to the hidden field — it is the element VoiceOver and e2e tools see.
+  /// The react tag also has to sit on this view: react-native-keyboard-controller
+  /// reports the focused input as `firstResponder.superview.tag`, and this view
+  /// is the field's superview.
+  private func syncAccessibilityFromHost() {
+    guard let host = superview else { return }
+    if tag != host.tag { tag = host.tag }
+    // `traits.testID` is the explicit prop; the host's own identifier is the
+    // fallback for a caller that set it natively.
+    let identifier = traits.testID ?? accessibilityIdentifier ?? host.accessibilityIdentifier
+    if field.accessibilityIdentifier != identifier { field.accessibilityIdentifier = identifier }
+    let label = traits.accessibilityLabel ?? host.accessibilityLabel
+    if field.accessibilityLabel != label { field.accessibilityLabel = label }
+    let hint = host.accessibilityHint
+    if field.accessibilityHint != hint { field.accessibilityHint = hint }
+  }
+
+  /// Gives the field UIKit's own placeholder so an *empty* field still has an
+  /// accessibility value (VoiceOver reads it, e2e tools can find it). It is
+  /// drawn in clear: the overlay already draws the placeholder glyphs itself.
+  private func syncAccessibilityPlaceholder() {
+    let placeholder = format.placeholder
+    // Drawn for real in plain mode; in morph mode the overlay draws it and the
+    // field's own copy exists only so an empty field still has an
+    // accessibility value, hence clear.
+    let color = traits.plain ? typography.placeholderColor : UIColor.clear
+    let unchanged = field.attributedPlaceholder?.string == placeholder
+      && field.attributedPlaceholder?.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? UIColor == color
+    guard !unchanged || placeholder.isEmpty != (field.attributedPlaceholder == nil) else { return }
+    field.attributedPlaceholder = placeholder.isEmpty
+      ? nil
+      : NSAttributedString(string: placeholder, attributes: [.foregroundColor: color])
+  }
+
+  override func didMoveToSuperview() {
+    super.didMoveToSuperview()
+    syncAccessibilityFromHost()
+  }
+
   override func layoutSubviews() {
     super.layoutSubviews()
     field.frame = bounds
+    // Props are applied after the view is mounted, so the host's identifier and
+    // tag are only reliable once it has been laid out.
+    syncAccessibilityFromHost()
     // The shrink-to-fit scale and alignment depend on the bounds.
     render()
   }
 
   override func didMoveToWindow() {
     super.didMoveToWindow()
-    if window != nil, traits.autoFocus, traits.editable, !didAutoFocus {
-      didAutoFocus = true
-      DispatchQueue.main.async { [weak self] in
-        guard let self, self.window != nil else { return }
-        self.field.becomeFirstResponder()
-      }
+    syncAccessibilityFromHost()
+    maybeAutoFocus()
+  }
+
+  /// `autoFocus`, taken **synchronously** as soon as the view has a window and
+  /// the prop has arrived — whichever of the two happens last.
+  ///
+  /// Pushing a screen blurs the field on the screen being covered, and iOS
+  /// starts animating the keyboard away as soon as nothing is first responder.
+  /// Claiming it in the same runloop turn beats that: UIKit swaps the keyboard
+  /// in place, so a different keyboard type appears with no dismiss and
+  /// re-present. That is what React Native's own `TextInput` does. Deferring by
+  /// even one turn loses the race and costs a full hide plus show animation.
+  /// If UIKit declines — the view is in a window but not ready to accept first
+  /// responder yet — retry next turn, which is correct, just not seamless.
+  private func maybeAutoFocus() {
+    guard window != nil, traits.autoFocus, traits.editable, !didAutoFocus else { return }
+    didAutoFocus = true
+    if field.becomeFirstResponder() { return }
+    DispatchQueue.main.async { [weak self] in
+      guard let self, self.window != nil else { return }
+      self.field.becomeFirstResponder()
     }
   }
 
@@ -430,6 +536,7 @@ final class NitroInputView: UIView {
     engine.reset()
     fontScale = 1
     lastReportedSize = .zero
+    lastReportedSelection = nil
     pendingSizeReport = false
     didAutoFocus = false
     eventCount = 0
@@ -457,6 +564,26 @@ final class NitroInputView: UIView {
 
   func blur() {
     field.resignFirstResponder()
+  }
+
+  /// Moves the caret/selection to `start`..`end`, in code points.
+  func setSelection(start: Int, end: Int) {
+    let count = text.unicodeScalars.count
+    let lower = min(max(0, start), count)
+    let upper = min(max(lower, end), count)
+    guard let from = field.position(from: field.beginningOfDocument, offset: utf16Offset(ofCodePoint: lower)),
+          let to = field.position(from: field.beginningOfDocument, offset: utf16Offset(ofCodePoint: upper)),
+          let range = field.textRange(from: from, to: to) else { return }
+    guard field.selectedTextRange != range else { return }
+    field.selectedTextRange = range
+  }
+
+  /// UITextField works in UTF-16; the props and callbacks speak code points.
+  private func utf16Offset(ofCodePoint index: Int) -> Int {
+    guard index > 0 else { return 0 }
+    let scalars = Array(text.unicodeScalars)
+    let slice = scalars.prefix(min(index, scalars.count))
+    return String(String.UnicodeScalarView(slice)).utf16.count
   }
 
   /// Replaces the text (formatted in number mode, truncated to `maxLength` in
@@ -521,6 +648,7 @@ final class NitroInputView: UIView {
                           std.string(format.groupingSeparator), std.string(format.decimalSeparator))
     }
     updateFieldInsets()
+    syncAccessibilityPlaceholder()
     // A changed formatter or mode reformats what is in the field.
     let formatChanged = format.mode != previous.mode || format.fractionDigits != previous.fractionDigits
       || format.maxIntegerDigits != previous.maxIntegerDigits || format.groupingSeparator != previous.groupingSeparator
@@ -540,7 +668,7 @@ final class NitroInputView: UIView {
   }
 
   private func rebuildFonts() {
-    fonts = FontSet(typography)
+    fonts = FontSet.shared(for: typography)
     fontScale = 1
     // Every cached glyph image belongs to the old font set.
     clearGlyphLayers()
@@ -557,15 +685,42 @@ final class NitroInputView: UIView {
     var attributes = field.defaultTextAttributes
     attributes[.kern] = 0
     attributes[.font] = fonts.body
-    attributes[.foregroundColor] = UIColor.clear
+    attributes[.foregroundColor] = traits.plain ? typography.color : UIColor.clear
     field.defaultTextAttributes = attributes
     updateFieldInsets()
   }
 
+  /// In morph mode the overlay draws the prefix and suffix, so the field only
+  /// has to reserve the space. In `plain` mode nothing is drawing them, so the
+  /// field carries them itself as its left/right accessory views — UIKit insets
+  /// the text for those on its own.
   private func updateFieldInsets() {
-    field.leftInset = affixWidth(format.prefix, role: .prefix)
-    field.rightInset = affixWidth(format.suffix, role: .suffix)
+    if traits.plain {
+      field.leftInset = 0
+      field.rightInset = 0
+      field.leftView = affixLabel(format.prefix, role: .prefix, reusing: field.leftView as? UILabel)
+      field.leftViewMode = field.leftView == nil ? .never : .always
+      field.rightView = affixLabel(format.suffix, role: .suffix, reusing: field.rightView as? UILabel)
+      field.rightViewMode = field.rightView == nil ? .never : .always
+    } else {
+      field.leftView = nil
+      field.rightView = nil
+      field.leftViewMode = .never
+      field.rightViewMode = .never
+      field.leftInset = affixWidth(format.prefix, role: .prefix)
+      field.rightInset = affixWidth(format.suffix, role: .suffix)
+    }
     field.setNeedsLayout()
+  }
+
+  private func affixLabel(_ affix: String, role: GlyphRole, reusing existing: UILabel?) -> UILabel? {
+    guard !affix.isEmpty else { return nil }
+    let label = existing ?? UILabel()
+    label.font = fonts.font(for: role)
+    label.textColor = typography.color
+    if label.text != affix { label.text = affix }
+    label.sizeToFit()
+    return label
   }
 
   private func affixWidth(_ affix: String, role: GlyphRole) -> CGFloat {
@@ -577,16 +732,71 @@ final class NitroInputView: UIView {
     field.returnKeyType = traits.returnKeyType
     field.isEnabled = traits.editable
     field.isUserInteractionEnabled = traits.editable
-    field.tintColor = traits.selectionColor
+    // `tintColor` is both the caret and the selection on a UITextField. The
+    // overlay draws its own caret, so only `plain` has a caret colour to honour
+    // here — and `caretColor` wins over `selectionColor` when both are set.
+    field.tintColor = traits.plain ? (traits.caretColor ?? traits.selectionColor) : traits.selectionColor
+    field.keyboardAppearance = traits.keyboardAppearance
+    field.enablesReturnKeyAutomatically = traits.enablesReturnKeyAutomatically
+    field.textContentType = traits.textContentType
+    // UIKit would draw its own bullets; the overlay masks the glyphs instead
+    // (see `glyphs()`), so the field itself only needs the secure *behaviour*
+    // — no autocorrect, no dictation, no screenshot of the text.
+    if field.isSecureTextEntry != traits.secureTextEntry {
+      field.isSecureTextEntry = traits.secureTextEntry
+      // The mask changes what is drawn, not what is stored.
+      if engine.hasText() { feedEngine(caret: -1) }
+    }
+    applyPlain()
+    syncAccessibilityFromHost()
+    field.showSoftInputOnFocus = traits.showSoftInputOnFocus
+    field.contextMenuHidden = traits.contextMenuHidden
     if !traits.editable, field.isFirstResponder {
       field.resignFirstResponder()
     }
     applyKeyboardTraitsForMode()
-    if traits.autoFocus, !didAutoFocus, window != nil, traits.editable {
-      didAutoFocus = true
-      field.becomeFirstResponder()
-    }
+    maybeAutoFocus()
     updateCaret()
+  }
+
+  /// Switches between "hidden field + overlay" and "the field draws itself".
+  private func applyPlain() {
+    let plain = traits.plain
+    defer { syncAccessibilityPlaceholder() }
+    field.hidesNativeCaret = !plain || traits.caretHidden
+    if plain {
+      stopDisplayLink()
+      stopBlink()
+      caretLayer.isHidden = true
+      if contentLayer.superlayer != nil { contentLayer.removeFromSuperlayer() }
+      clearGlyphLayers()
+      engine.reset()
+      field.textColor = typography.color
+      field.textAlignment = Self.textAlignment(for: alignment)
+      field.adjustsFontSizeToFitWidth = typography.adjustsFontSizeToFit
+      field.minimumFontSize = typography.adjustsFontSizeToFit
+        ? typography.fontSize * typography.minimumFontScale
+        : 0
+    } else {
+      if contentLayer.superlayer == nil { layer.addSublayer(contentLayer) }
+      field.textColor = .clear
+      field.textAlignment = .left
+      field.adjustsFontSizeToFitWidth = false
+    }
+    // The overlay used to paint the glyphs in the text colour; the field's own
+    // attributes carry it now, so they have to be re-applied either way.
+    var attributes = field.defaultTextAttributes
+    attributes[.foregroundColor] = plain ? typography.color : UIColor.clear
+    field.defaultTextAttributes = attributes
+    updateFieldInsets()
+  }
+
+  private static func textAlignment(for alignment: Alignment) -> NSTextAlignment {
+    switch alignment {
+    case .left: return .left
+    case .center: return .center
+    case .right: return .right
+    }
   }
 
   private func applyKeyboardTraitsForMode() {
@@ -600,7 +810,7 @@ final class NitroInputView: UIView {
     } else {
       field.autocapitalizationType = traits.autocapitalization
       field.autocorrectionType = traits.autocorrect ? .default : .no
-      field.spellCheckingType = traits.autocorrect ? .default : .no
+      field.spellCheckingType = traits.spellCheck ? .default : .no
       field.smartInsertDeleteType = .default
       field.smartQuotesType = .default
       field.smartDashesType = .default
@@ -641,12 +851,19 @@ final class NitroInputView: UIView {
   /// Hands the engine the current text as glyphs (prefix, body or placeholder,
   /// suffix) with their advance widths and commits it.
   private func feedEngine(caret: Int) {
+    // Plain mode has no overlay to feed: the field draws its own text.
+    guard !traits.plain else { return }
     engine.setReduceMotion(UIAccessibility.isReduceMotionEnabled)
     engine.beginText()
     for scalar in format.prefix.unicodeScalars {
       engine.addGlyph(scalar.value, Role.prefix, Kind.text, Double(fonts.width(of: String(scalar), role: .prefix)), false)
     }
-    let body = text
+    // `secureTextEntry` masks what the overlay draws: the hidden field keeps
+    // the real text (UIKit needs it for editing and autofill), but every glyph
+    // the user sees is a bullet.
+    let body = traits.secureTextEntry
+      ? String(repeating: "\u{2022}", count: text.unicodeScalars.count)
+      : text
     let showPlaceholder = body.isEmpty && !format.placeholder.isEmpty
     let bodyText = showPlaceholder ? format.placeholder : body
     let numberKinds = format.mode == .number
@@ -890,6 +1107,7 @@ final class NitroInputView: UIView {
   }
 
   private func render() {
+    guard !traits.plain else { return }
     let fonts = self.fonts
     let lineHeight = fonts.lineHeight
     let contentWidth = CGFloat(engine.contentWidth())
@@ -986,6 +1204,8 @@ final class NitroInputView: UIView {
   }
 
   fileprivate func updateCaret(restartBlink: Bool = false) {
+    // The system caret is the real one in plain mode.
+    guard !traits.plain else { return }
     let visible = wantsCaret
     CATransaction.begin()
     CATransaction.setDisableActions(true)
@@ -1050,6 +1270,26 @@ final class NitroInputView: UIView {
     weak var owner: NitroInputView?
     var leftInset: CGFloat = 0
     var rightInset: CGFloat = 0
+    /// `showSoftInputOnFocus: false` keeps focus and the caret but shows no
+    /// keyboard, for a field driven by an in-app keypad.
+    var showSoftInputOnFocus: Bool = true {
+      didSet {
+        guard showSoftInputOnFocus != oldValue else { return }
+        // An empty input view is how UIKit is told "no keyboard".
+        inputView = showSoftInputOnFocus ? nil : UIView(frame: .zero)
+        if isFirstResponder { reloadInputViews() }
+      }
+    }
+    /// `contextMenuHidden`: suppresses the Cut/Copy/Paste menu.
+    var contextMenuHidden: Bool = false
+    /// The morph overlay draws its own caret, so the field's is collapsed away.
+    /// In `plain` mode there is no overlay and the system caret is the caret.
+    var hidesNativeCaret: Bool = true
+
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+      if contextMenuHidden { return false }
+      return super.canPerformAction(action, withSender: sender)
+    }
 
     /// UIKit's paste controller puts the selection back where the pasted text
     /// would have ended *if it had inserted it*, which after a declined
@@ -1069,6 +1309,7 @@ final class NitroInputView: UIView {
 
     override func caretRect(for position: UITextPosition) -> CGRect {
       let rect = super.caretRect(for: position)
+      guard hidesNativeCaret else { return rect }
       return CGRect(origin: rect.origin, size: .zero)
     }
 
@@ -1117,6 +1358,11 @@ final class NitroInputView: UIView {
 extension NitroInputView: UITextFieldDelegate {
 
   func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+    // Like React Native's `onKeyPress`: fires before the text changes, with
+    // 'Backspace' for a deletion and the inserted string otherwise.
+    if let onKeyPress {
+      onKeyPress(string.isEmpty ? "Backspace" : string)
+    }
     let current = text
     let start = Self.codePointOffset(in: current, utf16: range.location)
     let end = Self.codePointOffset(in: current, utf16: range.location + range.length)
@@ -1206,6 +1452,15 @@ extension NitroInputView: UITextFieldDelegate {
   }
 
   func textFieldDidBeginEditing(_ textField: UITextField) {
+    if traits.clearTextOnFocus {
+      setText("", reason: .user)
+    } else if traits.selectTextOnFocus {
+      // In the next runloop turn: UIKit sets its own selection as it begins.
+      DispatchQueue.main.async { [weak self] in
+        guard let self, self.field.isFirstResponder else { return }
+        self.field.selectAll(nil)
+      }
+    }
     if contentOverflows { render() }
     updateCaret(restartBlink: true)
     onFocusChange?(true)
@@ -1215,6 +1470,7 @@ extension NitroInputView: UITextFieldDelegate {
     if contentOverflows { render() }
     updateCaret()
     onFocusChange?(false)
+    onEndEditing?(text)
   }
 
   func textFieldDidChangeSelection(_ textField: UITextField) {
@@ -1223,11 +1479,25 @@ extension NitroInputView: UITextFieldDelegate {
     // the view the scroll offset has to follow it.
     if contentOverflows { render() }
     updateCaret(restartBlink: true)
+    reportSelection()
   }
 
   func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+    onKeyPress?("Enter")
     onSubmit?(text)
-    textField.resignFirstResponder()
+    // `submitBehavior: 'submit'` keeps focus so a form can move on itself.
+    if traits.blurOnSubmit {
+      textField.resignFirstResponder()
+    }
     return false
+  }
+
+  /// Reports the caret/selection in code points, and only when it moved.
+  private func reportSelection() {
+    guard let onSelectionChange, field.selectedTextRange != nil else { return }
+    let (start, end) = selectionCodePoints()
+    guard lastReportedSelection == nil || lastReportedSelection! != (start, end) else { return }
+    lastReportedSelection = (start, end)
+    onSelectionChange(start, end)
   }
 }

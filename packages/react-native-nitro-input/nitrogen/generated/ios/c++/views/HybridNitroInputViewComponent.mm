@@ -116,6 +116,12 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.mode.hasSameValue(oldViewProps->mode)) {
       swiftPart.setMode(static_cast<int>(newViewProps.mode.get()));
     }
+    // plain: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.plain.isProvided()
+          : !newViewProps.plain.hasSameValue(oldViewProps->plain)) {
+      swiftPart.setPlain(newViewProps.plain.get());
+    }
     // fractionDigits: number
     if (oldViewProps == nullptr
           ? newViewProps.fractionDigits.isProvided()
@@ -326,6 +332,90 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.autoFocus.hasSameValue(oldViewProps->autoFocus)) {
       swiftPart.setAutoFocus(newViewProps.autoFocus.get());
     }
+    // fieldTestID: string
+    if (oldViewProps == nullptr
+          ? newViewProps.fieldTestID.isProvided()
+          : !newViewProps.fieldTestID.hasSameValue(oldViewProps->fieldTestID)) {
+      swiftPart.setFieldTestID(newViewProps.fieldTestID.get());
+    }
+    // fieldAccessibilityLabel: string
+    if (oldViewProps == nullptr
+          ? newViewProps.fieldAccessibilityLabel.isProvided()
+          : !newViewProps.fieldAccessibilityLabel.hasSameValue(oldViewProps->fieldAccessibilityLabel)) {
+      swiftPart.setFieldAccessibilityLabel(newViewProps.fieldAccessibilityLabel.get());
+    }
+    // submitBehavior: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.submitBehavior.isProvided()
+          : !newViewProps.submitBehavior.hasSameValue(oldViewProps->submitBehavior)) {
+      swiftPart.setSubmitBehavior(static_cast<int>(newViewProps.submitBehavior.get()));
+    }
+    // secureTextEntry: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.secureTextEntry.isProvided()
+          : !newViewProps.secureTextEntry.hasSameValue(oldViewProps->secureTextEntry)) {
+      swiftPart.setSecureTextEntry(newViewProps.secureTextEntry.get());
+    }
+    // keyboardAppearance: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.keyboardAppearance.isProvided()
+          : !newViewProps.keyboardAppearance.hasSameValue(oldViewProps->keyboardAppearance)) {
+      swiftPart.setKeyboardAppearance(static_cast<int>(newViewProps.keyboardAppearance.get()));
+    }
+    // textContentType: string
+    if (oldViewProps == nullptr
+          ? newViewProps.textContentType.isProvided()
+          : !newViewProps.textContentType.hasSameValue(oldViewProps->textContentType)) {
+      swiftPart.setTextContentType(newViewProps.textContentType.get());
+    }
+    // enablesReturnKeyAutomatically: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.enablesReturnKeyAutomatically.isProvided()
+          : !newViewProps.enablesReturnKeyAutomatically.hasSameValue(oldViewProps->enablesReturnKeyAutomatically)) {
+      swiftPart.setEnablesReturnKeyAutomatically(newViewProps.enablesReturnKeyAutomatically.get());
+    }
+    // showSoftInputOnFocus: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.showSoftInputOnFocus.isProvided()
+          : !newViewProps.showSoftInputOnFocus.hasSameValue(oldViewProps->showSoftInputOnFocus)) {
+      swiftPart.setShowSoftInputOnFocus(newViewProps.showSoftInputOnFocus.get());
+    }
+    // selectTextOnFocus: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.selectTextOnFocus.isProvided()
+          : !newViewProps.selectTextOnFocus.hasSameValue(oldViewProps->selectTextOnFocus)) {
+      swiftPart.setSelectTextOnFocus(newViewProps.selectTextOnFocus.get());
+    }
+    // clearTextOnFocus: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.clearTextOnFocus.isProvided()
+          : !newViewProps.clearTextOnFocus.hasSameValue(oldViewProps->clearTextOnFocus)) {
+      swiftPart.setClearTextOnFocus(newViewProps.clearTextOnFocus.get());
+    }
+    // contextMenuHidden: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.contextMenuHidden.isProvided()
+          : !newViewProps.contextMenuHidden.hasSameValue(oldViewProps->contextMenuHidden)) {
+      swiftPart.setContextMenuHidden(newViewProps.contextMenuHidden.get());
+    }
+    // spellCheck: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.spellCheck.isProvided()
+          : !newViewProps.spellCheck.hasSameValue(oldViewProps->spellCheck)) {
+      swiftPart.setSpellCheck(newViewProps.spellCheck.get());
+    }
+    // selectionStart: number
+    if (oldViewProps == nullptr
+          ? newViewProps.selectionStart.isProvided()
+          : !newViewProps.selectionStart.hasSameValue(oldViewProps->selectionStart)) {
+      swiftPart.setSelectionStart(newViewProps.selectionStart.get());
+    }
+    // selectionEnd: number
+    if (oldViewProps == nullptr
+          ? newViewProps.selectionEnd.isProvided()
+          : !newViewProps.selectionEnd.hasSameValue(oldViewProps->selectionEnd)) {
+      swiftPart.setSelectionEnd(newViewProps.selectionEnd.get());
+    }
     // maxLength: number
     if (oldViewProps == nullptr
           ? newViewProps.maxLength.isProvided()
@@ -373,6 +463,24 @@ using namespace margelo::nitro::nitroinput::views;
           ? newViewProps.onSubmitEditing.isProvided()
           : !newViewProps.onSubmitEditing.hasSameValue(oldViewProps->onSubmitEditing)) {
       swiftPart.setOnSubmitEditing(newViewProps.onSubmitEditing.get());
+    }
+    // onEndEditing: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onEndEditing.isProvided()
+          : !newViewProps.onEndEditing.hasSameValue(oldViewProps->onEndEditing)) {
+      swiftPart.setOnEndEditing(newViewProps.onEndEditing.get());
+    }
+    // onSelectionChange: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onSelectionChange.isProvided()
+          : !newViewProps.onSelectionChange.hasSameValue(oldViewProps->onSelectionChange)) {
+      swiftPart.setOnSelectionChange(newViewProps.onSelectionChange.get());
+    }
+    // onKeyPress: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onKeyPress.isProvided()
+          : !newViewProps.onKeyPress.hasSameValue(oldViewProps->onKeyPress)) {
+      swiftPart.setOnKeyPress(newViewProps.onKeyPress.get());
     }
     // onSizeChange: optional
     if (oldViewProps == nullptr

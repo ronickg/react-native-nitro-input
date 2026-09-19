@@ -26,6 +26,8 @@
 #include "NitroInputKeyboardType.hpp"
 #include "NitroInputReturnKeyType.hpp"
 #include "NitroInputAutoCapitalize.hpp"
+#include "NitroInputSubmitBehavior.hpp"
+#include "NitroInputKeyboardAppearance.hpp"
 #include <functional>
 #include <optional>
 #include <memory>
@@ -54,6 +56,7 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<std::string> text;
     nitro::ReactProp<double> mostRecentEventCount;
     nitro::ReactProp<NitroInputMode> mode;
+    nitro::ReactProp<bool> plain;
     nitro::ReactProp<double> fractionDigits;
     nitro::ReactProp<double> maxIntegerDigits;
     nitro::ReactProp<std::string> groupingSeparator;
@@ -89,6 +92,20 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<bool> autoCorrect;
     nitro::ReactProp<bool> editable;
     nitro::ReactProp<bool> autoFocus;
+    nitro::ReactProp<std::string> fieldTestID;
+    nitro::ReactProp<std::string> fieldAccessibilityLabel;
+    nitro::ReactProp<NitroInputSubmitBehavior> submitBehavior;
+    nitro::ReactProp<bool> secureTextEntry;
+    nitro::ReactProp<NitroInputKeyboardAppearance> keyboardAppearance;
+    nitro::ReactProp<std::string> textContentType;
+    nitro::ReactProp<bool> enablesReturnKeyAutomatically;
+    nitro::ReactProp<bool> showSoftInputOnFocus;
+    nitro::ReactProp<bool> selectTextOnFocus;
+    nitro::ReactProp<bool> clearTextOnFocus;
+    nitro::ReactProp<bool> contextMenuHidden;
+    nitro::ReactProp<bool> spellCheck;
+    nitro::ReactProp<double> selectionStart;
+    nitro::ReactProp<double> selectionEnd;
     nitro::ReactProp<double> maxLength;
     nitro::ReactProp<double> transformWorklet;
     nitro::ReactProp<double> onChangeTextWorklet;
@@ -97,6 +114,9 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<std::optional<std::function<void(double /* value */)>>> onChangeValue;
     nitro::ReactProp<std::optional<std::function<void(bool /* focused */)>>> onFocusChange;
     nitro::ReactProp<std::optional<std::function<void(const std::string& /* text */)>>> onSubmitEditing;
+    nitro::ReactProp<std::optional<std::function<void(const std::string& /* text */)>>> onEndEditing;
+    nitro::ReactProp<std::optional<std::function<void(double /* start */, double /* end */)>>> onSelectionChange;
+    nitro::ReactProp<std::optional<std::function<void(const std::string& /* key */)>>> onKeyPress;
     nitro::ReactProp<std::optional<std::function<void(double /* width */, double /* height */)>>> onSizeChange;
     nitro::ReactProp<std::optional<std::function<void(const std::shared_ptr<HybridNitroInputViewSpec>& /* ref */)>>> hybridRef;
 
@@ -105,6 +125,7 @@ namespace margelo::nitro::nitroinput::views {
       return text.hasSameValue(other.text) &&
              mostRecentEventCount.hasSameValue(other.mostRecentEventCount) &&
              mode.hasSameValue(other.mode) &&
+             plain.hasSameValue(other.plain) &&
              fractionDigits.hasSameValue(other.fractionDigits) &&
              maxIntegerDigits.hasSameValue(other.maxIntegerDigits) &&
              groupingSeparator.hasSameValue(other.groupingSeparator) &&
@@ -140,6 +161,20 @@ namespace margelo::nitro::nitroinput::views {
              autoCorrect.hasSameValue(other.autoCorrect) &&
              editable.hasSameValue(other.editable) &&
              autoFocus.hasSameValue(other.autoFocus) &&
+             fieldTestID.hasSameValue(other.fieldTestID) &&
+             fieldAccessibilityLabel.hasSameValue(other.fieldAccessibilityLabel) &&
+             submitBehavior.hasSameValue(other.submitBehavior) &&
+             secureTextEntry.hasSameValue(other.secureTextEntry) &&
+             keyboardAppearance.hasSameValue(other.keyboardAppearance) &&
+             textContentType.hasSameValue(other.textContentType) &&
+             enablesReturnKeyAutomatically.hasSameValue(other.enablesReturnKeyAutomatically) &&
+             showSoftInputOnFocus.hasSameValue(other.showSoftInputOnFocus) &&
+             selectTextOnFocus.hasSameValue(other.selectTextOnFocus) &&
+             clearTextOnFocus.hasSameValue(other.clearTextOnFocus) &&
+             contextMenuHidden.hasSameValue(other.contextMenuHidden) &&
+             spellCheck.hasSameValue(other.spellCheck) &&
+             selectionStart.hasSameValue(other.selectionStart) &&
+             selectionEnd.hasSameValue(other.selectionEnd) &&
              maxLength.hasSameValue(other.maxLength) &&
              transformWorklet.hasSameValue(other.transformWorklet) &&
              onChangeTextWorklet.hasSameValue(other.onChangeTextWorklet) &&
@@ -148,6 +183,9 @@ namespace margelo::nitro::nitroinput::views {
              onChangeValue.hasSameValue(other.onChangeValue) &&
              onFocusChange.hasSameValue(other.onFocusChange) &&
              onSubmitEditing.hasSameValue(other.onSubmitEditing) &&
+             onEndEditing.hasSameValue(other.onEndEditing) &&
+             onSelectionChange.hasSameValue(other.onSelectionChange) &&
+             onKeyPress.hasSameValue(other.onKeyPress) &&
              onSizeChange.hasSameValue(other.onSizeChange) &&
              hybridRef.hasSameValue(other.hybridRef);
     }
@@ -157,6 +195,7 @@ namespace margelo::nitro::nitroinput::views {
       return text.isProvided() ||
              mostRecentEventCount.isProvided() ||
              mode.isProvided() ||
+             plain.isProvided() ||
              fractionDigits.isProvided() ||
              maxIntegerDigits.isProvided() ||
              groupingSeparator.isProvided() ||
@@ -192,6 +231,20 @@ namespace margelo::nitro::nitroinput::views {
              autoCorrect.isProvided() ||
              editable.isProvided() ||
              autoFocus.isProvided() ||
+             fieldTestID.isProvided() ||
+             fieldAccessibilityLabel.isProvided() ||
+             submitBehavior.isProvided() ||
+             secureTextEntry.isProvided() ||
+             keyboardAppearance.isProvided() ||
+             textContentType.isProvided() ||
+             enablesReturnKeyAutomatically.isProvided() ||
+             showSoftInputOnFocus.isProvided() ||
+             selectTextOnFocus.isProvided() ||
+             clearTextOnFocus.isProvided() ||
+             contextMenuHidden.isProvided() ||
+             spellCheck.isProvided() ||
+             selectionStart.isProvided() ||
+             selectionEnd.isProvided() ||
              maxLength.isProvided() ||
              transformWorklet.isProvided() ||
              onChangeTextWorklet.isProvided() ||
@@ -200,6 +253,9 @@ namespace margelo::nitro::nitroinput::views {
              onChangeValue.isProvided() ||
              onFocusChange.isProvided() ||
              onSubmitEditing.isProvided() ||
+             onEndEditing.isProvided() ||
+             onSelectionChange.isProvided() ||
+             onKeyPress.isProvided() ||
              onSizeChange.isProvided() ||
              hybridRef.isProvided();
     }

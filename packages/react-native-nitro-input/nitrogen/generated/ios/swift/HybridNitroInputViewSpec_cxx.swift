@@ -154,6 +154,17 @@ open class HybridNitroInputViewSpec_cxx {
     }
   }
   
+  public final var plain: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.plain
+    }
+    @inline(__always)
+    set {
+      self.__implementation.plain = newValue
+    }
+  }
+  
   public final var fractionDigits: Double {
     @inline(__always)
     get {
@@ -539,6 +550,160 @@ open class HybridNitroInputViewSpec_cxx {
     }
   }
   
+  public final var fieldTestID: std.string {
+    @inline(__always)
+    get {
+      return std.string(self.__implementation.fieldTestID)
+    }
+    @inline(__always)
+    set {
+      self.__implementation.fieldTestID = String(newValue)
+    }
+  }
+  
+  public final var fieldAccessibilityLabel: std.string {
+    @inline(__always)
+    get {
+      return std.string(self.__implementation.fieldAccessibilityLabel)
+    }
+    @inline(__always)
+    set {
+      self.__implementation.fieldAccessibilityLabel = String(newValue)
+    }
+  }
+  
+  public final var submitBehavior: Int32 {
+    @inline(__always)
+    get {
+      return self.__implementation.submitBehavior.rawValue
+    }
+    @inline(__always)
+    set {
+      self.__implementation.submitBehavior = margelo.nitro.nitroinput.NitroInputSubmitBehavior(rawValue: newValue)!
+    }
+  }
+  
+  public final var secureTextEntry: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.secureTextEntry
+    }
+    @inline(__always)
+    set {
+      self.__implementation.secureTextEntry = newValue
+    }
+  }
+  
+  public final var keyboardAppearance: Int32 {
+    @inline(__always)
+    get {
+      return self.__implementation.keyboardAppearance.rawValue
+    }
+    @inline(__always)
+    set {
+      self.__implementation.keyboardAppearance = margelo.nitro.nitroinput.NitroInputKeyboardAppearance(rawValue: newValue)!
+    }
+  }
+  
+  public final var textContentType: std.string {
+    @inline(__always)
+    get {
+      return std.string(self.__implementation.textContentType)
+    }
+    @inline(__always)
+    set {
+      self.__implementation.textContentType = String(newValue)
+    }
+  }
+  
+  public final var enablesReturnKeyAutomatically: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.enablesReturnKeyAutomatically
+    }
+    @inline(__always)
+    set {
+      self.__implementation.enablesReturnKeyAutomatically = newValue
+    }
+  }
+  
+  public final var showSoftInputOnFocus: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.showSoftInputOnFocus
+    }
+    @inline(__always)
+    set {
+      self.__implementation.showSoftInputOnFocus = newValue
+    }
+  }
+  
+  public final var selectTextOnFocus: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.selectTextOnFocus
+    }
+    @inline(__always)
+    set {
+      self.__implementation.selectTextOnFocus = newValue
+    }
+  }
+  
+  public final var clearTextOnFocus: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.clearTextOnFocus
+    }
+    @inline(__always)
+    set {
+      self.__implementation.clearTextOnFocus = newValue
+    }
+  }
+  
+  public final var contextMenuHidden: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.contextMenuHidden
+    }
+    @inline(__always)
+    set {
+      self.__implementation.contextMenuHidden = newValue
+    }
+  }
+  
+  public final var spellCheck: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.spellCheck
+    }
+    @inline(__always)
+    set {
+      self.__implementation.spellCheck = newValue
+    }
+  }
+  
+  public final var selectionStart: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.selectionStart
+    }
+    @inline(__always)
+    set {
+      self.__implementation.selectionStart = newValue
+    }
+  }
+  
+  public final var selectionEnd: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.selectionEnd
+    }
+    @inline(__always)
+    set {
+      self.__implementation.selectionEnd = newValue
+    }
+  }
+  
   public final var maxLength: Double {
     @inline(__always)
     get {
@@ -702,6 +867,102 @@ open class HybridNitroInputViewSpec_cxx {
             let __wrappedFunction = bridge.wrap_Func_void_std__string(__unwrapped)
             return { (__text: String) -> Void in
               __wrappedFunction.call(std.string(__text))
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var onEndEditing: bridge.std__optional_std__function_void_const_std__string_____text______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_const_std__string_____text______ in
+        if let __unwrappedValue = self.__implementation.onEndEditing {
+          return bridge.create_std__optional_std__function_void_const_std__string_____text______({ () -> bridge.Func_void_std__string in
+            let __closureWrapper = Func_void_std__string(__unwrappedValue)
+            return bridge.create_Func_void_std__string(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onEndEditing = { () -> ((_ text: String) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_const_std__string_____text______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_const_std__string_____text______(newValue)
+          return { () -> (String) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_std__string(__unwrapped)
+            return { (__text: String) -> Void in
+              __wrappedFunction.call(std.string(__text))
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var onSelectionChange: bridge.std__optional_std__function_void_double____start_____double____end______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_double____start_____double____end______ in
+        if let __unwrappedValue = self.__implementation.onSelectionChange {
+          return bridge.create_std__optional_std__function_void_double____start_____double____end______({ () -> bridge.Func_void_double_double in
+            let __closureWrapper = Func_void_double_double(__unwrappedValue)
+            return bridge.create_Func_void_double_double(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onSelectionChange = { () -> ((_ start: Double, _ end: Double) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_double____start_____double____end______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_double____start_____double____end______(newValue)
+          return { () -> (Double, Double) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_double_double(__unwrapped)
+            return { (__start: Double, __end: Double) -> Void in
+              __wrappedFunction.call(__start, __end)
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var onKeyPress: bridge.std__optional_std__function_void_const_std__string_____key______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_const_std__string_____key______ in
+        if let __unwrappedValue = self.__implementation.onKeyPress {
+          return bridge.create_std__optional_std__function_void_const_std__string_____key______({ () -> bridge.Func_void_std__string in
+            let __closureWrapper = Func_void_std__string(__unwrappedValue)
+            return bridge.create_Func_void_std__string(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onKeyPress = { () -> ((_ key: String) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_const_std__string_____key______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_const_std__string_____key______(newValue)
+          return { () -> (String) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_std__string(__unwrapped)
+            return { (__key: String) -> Void in
+              __wrappedFunction.call(std.string(__key))
             }
           }()
         } else {

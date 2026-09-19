@@ -29,6 +29,10 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardType; }
 namespace margelo::nitro::nitroinput { enum class NitroInputReturnKeyType; }
 // Forward declaration of `NitroInputAutoCapitalize` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputAutoCapitalize; }
+// Forward declaration of `NitroInputSubmitBehavior` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputSubmitBehavior; }
+// Forward declaration of `NitroInputKeyboardAppearance` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardAppearance; }
 
 #include <string>
 #include "NitroInputMode.hpp"
@@ -39,6 +43,8 @@ namespace margelo::nitro::nitroinput { enum class NitroInputAutoCapitalize; }
 #include "NitroInputKeyboardType.hpp"
 #include "NitroInputReturnKeyType.hpp"
 #include "NitroInputAutoCapitalize.hpp"
+#include "NitroInputSubmitBehavior.hpp"
+#include "NitroInputKeyboardAppearance.hpp"
 #include <functional>
 #include <optional>
 
@@ -75,6 +81,8 @@ namespace margelo::nitro::nitroinput {
       virtual void setMostRecentEventCount(double mostRecentEventCount) = 0;
       virtual NitroInputMode getMode() = 0;
       virtual void setMode(NitroInputMode mode) = 0;
+      virtual bool getPlain() = 0;
+      virtual void setPlain(bool plain) = 0;
       virtual double getFractionDigits() = 0;
       virtual void setFractionDigits(double fractionDigits) = 0;
       virtual double getMaxIntegerDigits() = 0;
@@ -145,6 +153,34 @@ namespace margelo::nitro::nitroinput {
       virtual void setEditable(bool editable) = 0;
       virtual bool getAutoFocus() = 0;
       virtual void setAutoFocus(bool autoFocus) = 0;
+      virtual std::string getFieldTestID() = 0;
+      virtual void setFieldTestID(const std::string& fieldTestID) = 0;
+      virtual std::string getFieldAccessibilityLabel() = 0;
+      virtual void setFieldAccessibilityLabel(const std::string& fieldAccessibilityLabel) = 0;
+      virtual NitroInputSubmitBehavior getSubmitBehavior() = 0;
+      virtual void setSubmitBehavior(NitroInputSubmitBehavior submitBehavior) = 0;
+      virtual bool getSecureTextEntry() = 0;
+      virtual void setSecureTextEntry(bool secureTextEntry) = 0;
+      virtual NitroInputKeyboardAppearance getKeyboardAppearance() = 0;
+      virtual void setKeyboardAppearance(NitroInputKeyboardAppearance keyboardAppearance) = 0;
+      virtual std::string getTextContentType() = 0;
+      virtual void setTextContentType(const std::string& textContentType) = 0;
+      virtual bool getEnablesReturnKeyAutomatically() = 0;
+      virtual void setEnablesReturnKeyAutomatically(bool enablesReturnKeyAutomatically) = 0;
+      virtual bool getShowSoftInputOnFocus() = 0;
+      virtual void setShowSoftInputOnFocus(bool showSoftInputOnFocus) = 0;
+      virtual bool getSelectTextOnFocus() = 0;
+      virtual void setSelectTextOnFocus(bool selectTextOnFocus) = 0;
+      virtual bool getClearTextOnFocus() = 0;
+      virtual void setClearTextOnFocus(bool clearTextOnFocus) = 0;
+      virtual bool getContextMenuHidden() = 0;
+      virtual void setContextMenuHidden(bool contextMenuHidden) = 0;
+      virtual bool getSpellCheck() = 0;
+      virtual void setSpellCheck(bool spellCheck) = 0;
+      virtual double getSelectionStart() = 0;
+      virtual void setSelectionStart(double selectionStart) = 0;
+      virtual double getSelectionEnd() = 0;
+      virtual void setSelectionEnd(double selectionEnd) = 0;
       virtual double getMaxLength() = 0;
       virtual void setMaxLength(double maxLength) = 0;
       virtual double getTransformWorklet() = 0;
@@ -161,6 +197,12 @@ namespace margelo::nitro::nitroinput {
       virtual void setOnFocusChange(const std::optional<std::function<void(bool /* focused */)>>& onFocusChange) = 0;
       virtual std::optional<std::function<void(const std::string& /* text */)>> getOnSubmitEditing() = 0;
       virtual void setOnSubmitEditing(const std::optional<std::function<void(const std::string& /* text */)>>& onSubmitEditing) = 0;
+      virtual std::optional<std::function<void(const std::string& /* text */)>> getOnEndEditing() = 0;
+      virtual void setOnEndEditing(const std::optional<std::function<void(const std::string& /* text */)>>& onEndEditing) = 0;
+      virtual std::optional<std::function<void(double /* start */, double /* end */)>> getOnSelectionChange() = 0;
+      virtual void setOnSelectionChange(const std::optional<std::function<void(double /* start */, double /* end */)>>& onSelectionChange) = 0;
+      virtual std::optional<std::function<void(const std::string& /* key */)>> getOnKeyPress() = 0;
+      virtual void setOnKeyPress(const std::optional<std::function<void(const std::string& /* key */)>>& onKeyPress) = 0;
       virtual std::optional<std::function<void(double /* width */, double /* height */)>> getOnSizeChange() = 0;
       virtual void setOnSizeChange(const std::optional<std::function<void(double /* width */, double /* height */)>>& onSizeChange) = 0;
 

@@ -49,6 +49,12 @@ abstract class HybridNitroInputViewSpec: HybridView() {
   @get:Keep
   @set:DoNotStrip
   @set:Keep
+  abstract var plain: Boolean
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
   abstract var fractionDigits: Double
   
   @get:DoNotStrip
@@ -259,6 +265,90 @@ abstract class HybridNitroInputViewSpec: HybridView() {
   @get:Keep
   @set:DoNotStrip
   @set:Keep
+  abstract var fieldTestID: String
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var fieldAccessibilityLabel: String
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var submitBehavior: NitroInputSubmitBehavior
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var secureTextEntry: Boolean
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var keyboardAppearance: NitroInputKeyboardAppearance
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var textContentType: String
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var enablesReturnKeyAutomatically: Boolean
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var showSoftInputOnFocus: Boolean
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var selectTextOnFocus: Boolean
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var clearTextOnFocus: Boolean
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var contextMenuHidden: Boolean
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var spellCheck: Boolean
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var selectionStart: Double
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var selectionEnd: Double
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
   abstract var maxLength: Double
   
   @get:DoNotStrip
@@ -333,6 +423,48 @@ abstract class HybridNitroInputViewSpec: HybridView() {
     @DoNotStrip
     set(value) {
       onSubmitEditing = value?.let { it }
+    }
+  
+  abstract var onEndEditing: ((text: String) -> Unit)?
+  
+  private var onEndEditing_cxx: Func_void_std__string?
+    @Keep
+    @DoNotStrip
+    get() {
+      return onEndEditing?.let { Func_void_std__string_java(it) }
+    }
+    @Keep
+    @DoNotStrip
+    set(value) {
+      onEndEditing = value?.let { it }
+    }
+  
+  abstract var onSelectionChange: ((start: Double, end: Double) -> Unit)?
+  
+  private var onSelectionChange_cxx: Func_void_double_double?
+    @Keep
+    @DoNotStrip
+    get() {
+      return onSelectionChange?.let { Func_void_double_double_java(it) }
+    }
+    @Keep
+    @DoNotStrip
+    set(value) {
+      onSelectionChange = value?.let { it }
+    }
+  
+  abstract var onKeyPress: ((key: String) -> Unit)?
+  
+  private var onKeyPress_cxx: Func_void_std__string?
+    @Keep
+    @DoNotStrip
+    get() {
+      return onKeyPress?.let { Func_void_std__string_java(it) }
+    }
+    @Keep
+    @DoNotStrip
+    set(value) {
+      onKeyPress = value?.let { it }
     }
   
   abstract var onSizeChange: ((width: Double, height: Double) -> Unit)?

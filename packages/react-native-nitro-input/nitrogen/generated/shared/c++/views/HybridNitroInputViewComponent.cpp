@@ -23,6 +23,7 @@ namespace margelo::nitro::nitroinput::views {
     text(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "text", rawProps, sourceProps.text)),
     mostRecentEventCount(nitro::ReactProp<double>::fromRawValue("NitroInputView", "mostRecentEventCount", rawProps, sourceProps.mostRecentEventCount)),
     mode(nitro::ReactProp<NitroInputMode>::fromRawValue("NitroInputView", "mode", rawProps, sourceProps.mode)),
+    plain(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "plain", rawProps, sourceProps.plain)),
     fractionDigits(nitro::ReactProp<double>::fromRawValue("NitroInputView", "fractionDigits", rawProps, sourceProps.fractionDigits)),
     maxIntegerDigits(nitro::ReactProp<double>::fromRawValue("NitroInputView", "maxIntegerDigits", rawProps, sourceProps.maxIntegerDigits)),
     groupingSeparator(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "groupingSeparator", rawProps, sourceProps.groupingSeparator)),
@@ -58,6 +59,20 @@ namespace margelo::nitro::nitroinput::views {
     autoCorrect(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "autoCorrect", rawProps, sourceProps.autoCorrect)),
     editable(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "editable", rawProps, sourceProps.editable)),
     autoFocus(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "autoFocus", rawProps, sourceProps.autoFocus)),
+    fieldTestID(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "fieldTestID", rawProps, sourceProps.fieldTestID)),
+    fieldAccessibilityLabel(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "fieldAccessibilityLabel", rawProps, sourceProps.fieldAccessibilityLabel)),
+    submitBehavior(nitro::ReactProp<NitroInputSubmitBehavior>::fromRawValue("NitroInputView", "submitBehavior", rawProps, sourceProps.submitBehavior)),
+    secureTextEntry(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "secureTextEntry", rawProps, sourceProps.secureTextEntry)),
+    keyboardAppearance(nitro::ReactProp<NitroInputKeyboardAppearance>::fromRawValue("NitroInputView", "keyboardAppearance", rawProps, sourceProps.keyboardAppearance)),
+    textContentType(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "textContentType", rawProps, sourceProps.textContentType)),
+    enablesReturnKeyAutomatically(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "enablesReturnKeyAutomatically", rawProps, sourceProps.enablesReturnKeyAutomatically)),
+    showSoftInputOnFocus(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "showSoftInputOnFocus", rawProps, sourceProps.showSoftInputOnFocus)),
+    selectTextOnFocus(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "selectTextOnFocus", rawProps, sourceProps.selectTextOnFocus)),
+    clearTextOnFocus(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "clearTextOnFocus", rawProps, sourceProps.clearTextOnFocus)),
+    contextMenuHidden(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "contextMenuHidden", rawProps, sourceProps.contextMenuHidden)),
+    spellCheck(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "spellCheck", rawProps, sourceProps.spellCheck)),
+    selectionStart(nitro::ReactProp<double>::fromRawValue("NitroInputView", "selectionStart", rawProps, sourceProps.selectionStart)),
+    selectionEnd(nitro::ReactProp<double>::fromRawValue("NitroInputView", "selectionEnd", rawProps, sourceProps.selectionEnd)),
     maxLength(nitro::ReactProp<double>::fromRawValue("NitroInputView", "maxLength", rawProps, sourceProps.maxLength)),
     transformWorklet(nitro::ReactProp<double>::fromRawValue("NitroInputView", "transformWorklet", rawProps, sourceProps.transformWorklet)),
     onChangeTextWorklet(nitro::ReactProp<double>::fromRawValue("NitroInputView", "onChangeTextWorklet", rawProps, sourceProps.onChangeTextWorklet)),
@@ -66,6 +81,9 @@ namespace margelo::nitro::nitroinput::views {
     onChangeValue(nitro::ReactProp<std::optional<std::function<void(double /* value */)>>>::fromRawValue("NitroInputView", "onChangeValue", rawProps, sourceProps.onChangeValue)),
     onFocusChange(nitro::ReactProp<std::optional<std::function<void(bool /* focused */)>>>::fromRawValue("NitroInputView", "onFocusChange", rawProps, sourceProps.onFocusChange)),
     onSubmitEditing(nitro::ReactProp<std::optional<std::function<void(const std::string& /* text */)>>>::fromRawValue("NitroInputView", "onSubmitEditing", rawProps, sourceProps.onSubmitEditing)),
+    onEndEditing(nitro::ReactProp<std::optional<std::function<void(const std::string& /* text */)>>>::fromRawValue("NitroInputView", "onEndEditing", rawProps, sourceProps.onEndEditing)),
+    onSelectionChange(nitro::ReactProp<std::optional<std::function<void(double /* start */, double /* end */)>>>::fromRawValue("NitroInputView", "onSelectionChange", rawProps, sourceProps.onSelectionChange)),
+    onKeyPress(nitro::ReactProp<std::optional<std::function<void(const std::string& /* key */)>>>::fromRawValue("NitroInputView", "onKeyPress", rawProps, sourceProps.onKeyPress)),
     onSizeChange(nitro::ReactProp<std::optional<std::function<void(double /* width */, double /* height */)>>>::fromRawValue("NitroInputView", "onSizeChange", rawProps, sourceProps.onSizeChange)),
     hybridRef(nitro::ReactProp<std::optional<std::function<void(const std::shared_ptr<HybridNitroInputViewSpec>& /* ref */)>>>::fromRawValue("NitroInputView", "hybridRef", rawProps, sourceProps.hybridRef)) { }
 
@@ -74,6 +92,7 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("text"): return true;
       case hashString("mostRecentEventCount"): return true;
       case hashString("mode"): return true;
+      case hashString("plain"): return true;
       case hashString("fractionDigits"): return true;
       case hashString("maxIntegerDigits"): return true;
       case hashString("groupingSeparator"): return true;
@@ -109,6 +128,20 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("autoCorrect"): return true;
       case hashString("editable"): return true;
       case hashString("autoFocus"): return true;
+      case hashString("fieldTestID"): return true;
+      case hashString("fieldAccessibilityLabel"): return true;
+      case hashString("submitBehavior"): return true;
+      case hashString("secureTextEntry"): return true;
+      case hashString("keyboardAppearance"): return true;
+      case hashString("textContentType"): return true;
+      case hashString("enablesReturnKeyAutomatically"): return true;
+      case hashString("showSoftInputOnFocus"): return true;
+      case hashString("selectTextOnFocus"): return true;
+      case hashString("clearTextOnFocus"): return true;
+      case hashString("contextMenuHidden"): return true;
+      case hashString("spellCheck"): return true;
+      case hashString("selectionStart"): return true;
+      case hashString("selectionEnd"): return true;
       case hashString("maxLength"): return true;
       case hashString("transformWorklet"): return true;
       case hashString("onChangeTextWorklet"): return true;
@@ -117,6 +150,9 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("onChangeValue"): return true;
       case hashString("onFocusChange"): return true;
       case hashString("onSubmitEditing"): return true;
+      case hashString("onEndEditing"): return true;
+      case hashString("onSelectionChange"): return true;
+      case hashString("onKeyPress"): return true;
       case hashString("onSizeChange"): return true;
       case hashString("hybridRef"): return true;
       default: return false;

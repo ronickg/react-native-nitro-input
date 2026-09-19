@@ -178,26 +178,56 @@ namespace margelo::nitro::nitroinput::bridge::swift {
     return optional.value();
   }
   
-  // pragma MARK: std::function<void(double /* width */, double /* height */)>
+  // pragma MARK: std::function<void(double /* start */, double /* end */)>
   /**
    * Specialized version of `std::function<void(double, double)>`.
    */
-  using Func_void_double_double = std::function<void(double /* width */, double /* height */)>;
+  using Func_void_double_double = std::function<void(double /* start */, double /* end */)>;
   /**
-   * Wrapper class for a `std::function<void(double / * width * /, double / * height * /)>`, this can be used from Swift.
+   * Wrapper class for a `std::function<void(double / * start * /, double / * end * /)>`, this can be used from Swift.
    */
   class Func_void_double_double_Wrapper final {
   public:
-    explicit Func_void_double_double_Wrapper(std::function<void(double /* width */, double /* height */)>&& func): _function(std::make_unique<std::function<void(double /* width */, double /* height */)>>(std::move(func))) {}
-    inline void call(double width, double height) const noexcept {
-      _function->operator()(width, height);
+    explicit Func_void_double_double_Wrapper(std::function<void(double /* start */, double /* end */)>&& func): _function(std::make_unique<std::function<void(double /* start */, double /* end */)>>(std::move(func))) {}
+    inline void call(double start, double end) const noexcept {
+      _function->operator()(start, end);
     }
   private:
-    std::unique_ptr<std::function<void(double /* width */, double /* height */)>> _function;
+    std::unique_ptr<std::function<void(double /* start */, double /* end */)>> _function;
   } SWIFT_NONCOPYABLE;
   Func_void_double_double create_Func_void_double_double(void* NON_NULL swiftClosureWrapper) noexcept;
   inline Func_void_double_double_Wrapper wrap_Func_void_double_double(Func_void_double_double value) noexcept {
     return Func_void_double_double_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::optional<std::function<void(double /* start */, double /* end */)>>
+  /**
+   * Specialized version of `std::optional<std::function<void(double / * start * /, double / * end * /)>>`.
+   */
+  using std__optional_std__function_void_double____start_____double____end______ = std::optional<std::function<void(double /* start */, double /* end */)>>;
+  inline std::optional<std::function<void(double /* start */, double /* end */)>> create_std__optional_std__function_void_double____start_____double____end______(const std::function<void(double /* start */, double /* end */)>& value) noexcept {
+    return std::optional<std::function<void(double /* start */, double /* end */)>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void_double____start_____double____end______(const std::optional<std::function<void(double /* start */, double /* end */)>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void(double /* start */, double /* end */)> get_std__optional_std__function_void_double____start_____double____end______(const std::optional<std::function<void(double /* start */, double /* end */)>>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::optional<std::function<void(const std::string& /* key */)>>
+  /**
+   * Specialized version of `std::optional<std::function<void(const std::string& / * key * /)>>`.
+   */
+  using std__optional_std__function_void_const_std__string_____key______ = std::optional<std::function<void(const std::string& /* key */)>>;
+  inline std::optional<std::function<void(const std::string& /* key */)>> create_std__optional_std__function_void_const_std__string_____key______(const std::function<void(const std::string& /* key */)>& value) noexcept {
+    return std::optional<std::function<void(const std::string& /* key */)>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void_const_std__string_____key______(const std::optional<std::function<void(const std::string& /* key */)>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void(const std::string& /* key */)> get_std__optional_std__function_void_const_std__string_____key______(const std::optional<std::function<void(const std::string& /* key */)>>& optional) noexcept {
+    return optional.value();
   }
   
   // pragma MARK: std::optional<std::function<void(double /* width */, double /* height */)>>

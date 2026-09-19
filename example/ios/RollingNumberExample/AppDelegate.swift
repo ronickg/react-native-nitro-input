@@ -2,6 +2,10 @@ import UIKit
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
+// Expo modules, so @expo/ui's SwiftUI views register. The factory and delegate
+// below are Expo's subclasses of React Native's own.
+internal import ExpoModulesCore
+internal import Expo
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -15,7 +19,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
     let delegate = ReactNativeDelegate()
-    let factory = RCTReactNativeFactory(delegate: delegate)
+    let factory = ExpoReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()
 
     reactNativeDelegate = delegate
@@ -33,7 +37,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
   }
 }
 
-class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
+class ReactNativeDelegate: ExpoReactNativeFactoryDelegate {
   override func sourceURL(for bridge: RCTBridge) -> URL? {
     self.bundleURL()
   }

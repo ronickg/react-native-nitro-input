@@ -24,6 +24,7 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
   private var isBatching = false
   private var configDirty = true
   private var textDirty = true
+  private var selectionDirty = false
   /** The `text` prop value last applied to the field (null = none yet). */
   private var lastAppliedText: String? = null
   /** Native edits so far; JS echoes it back through `mostRecentEventCount`. */
@@ -47,6 +48,11 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
       onFocusChange?.invoke(focused)
     }
     inputView.onSubmit = { text -> onSubmitEditing?.invoke(text) }
+    inputView.onEndEditing = { text -> onEndEditing?.invoke(text) }
+    inputView.onSelectionChange = { start, end ->
+      onSelectionChange?.invoke(start.toDouble(), end.toDouble())
+    }
+    inputView.onKeyPress = { key -> onKeyPress?.invoke(key) }
     inputView.onIntrinsicSizeChange = { width, height ->
       onSizeChange?.invoke(width.toDouble(), height.toDouble())
     }
@@ -130,6 +136,36 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     set(v) { field = v; markConfigDirty() }
   override var autoFocus: Boolean = false
     set(v) { field = v; markConfigDirty() }
+  override var plain: Boolean = false
+    set(v) { field = v; markConfigDirty() }
+  override var fieldTestID: String = ""
+    set(v) { field = v; markConfigDirty() }
+  override var fieldAccessibilityLabel: String = ""
+    set(v) { field = v; markConfigDirty() }
+  override var submitBehavior: NitroInputSubmitBehavior = NitroInputSubmitBehavior.BLURANDSUBMIT
+    set(v) { field = v; markConfigDirty() }
+  override var secureTextEntry: Boolean = false
+    set(v) { field = v; markConfigDirty() }
+  override var keyboardAppearance: NitroInputKeyboardAppearance = NitroInputKeyboardAppearance.DEFAULT
+    set(v) { field = v; markConfigDirty() }
+  override var textContentType: String = ""
+    set(v) { field = v; markConfigDirty() }
+  override var enablesReturnKeyAutomatically: Boolean = false
+    set(v) { field = v; markConfigDirty() }
+  override var showSoftInputOnFocus: Boolean = true
+    set(v) { field = v; markConfigDirty() }
+  override var selectTextOnFocus: Boolean = false
+    set(v) { field = v; markConfigDirty() }
+  override var clearTextOnFocus: Boolean = false
+    set(v) { field = v; markConfigDirty() }
+  override var contextMenuHidden: Boolean = false
+    set(v) { field = v; markConfigDirty() }
+  override var spellCheck: Boolean = true
+    set(v) { field = v; markConfigDirty() }
+  override var selectionStart: Double = -1.0
+    set(v) { field = v; markSelectionDirty() }
+  override var selectionEnd: Double = -1.0
+    set(v) { field = v; markSelectionDirty() }
   override var maxLength: Double = 0.0
     set(v) { field = v; markConfigDirty() }
   override var transformWorklet: Double = 0.0
@@ -142,6 +178,9 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
   override var onChangeValue: ((value: Double) -> Unit)? = null
   override var onFocusChange: ((focused: Boolean) -> Unit)? = null
   override var onSubmitEditing: ((text: String) -> Unit)? = null
+  override var onEndEditing: ((text: String) -> Unit)? = null
+  override var onSelectionChange: ((start: Double, end: Double) -> Unit)? = null
+  override var onKeyPress: ((key: String) -> Unit)? = null
   override var onSizeChange: ((width: Double, height: Double) -> Unit)? = null
     set(v) {
       field = v
@@ -238,6 +277,21 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     autoCorrect = true
     editable = true
     autoFocus = false
+    plain = false
+    fieldTestID = ""
+    fieldAccessibilityLabel = ""
+    submitBehavior = NitroInputSubmitBehavior.BLURANDSUBMIT
+    secureTextEntry = false
+    keyboardAppearance = NitroInputKeyboardAppearance.DEFAULT
+    textContentType = ""
+    enablesReturnKeyAutomatically = false
+    showSoftInputOnFocus = true
+    selectTextOnFocus = false
+    clearTextOnFocus = false
+    contextMenuHidden = false
+    spellCheck = true
+    selectionStart = -1.0
+    selectionEnd = -1.0
     maxLength = 0.0
     transformWorklet = 0.0
     onChangeTextWorklet = 0.0
@@ -246,6 +300,9 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     onChangeValue = null
     onFocusChange = null
     onSubmitEditing = null
+    onEndEditing = null
+    onSelectionChange = null
+    onKeyPress = null
     onSizeChange = null
     lastAppliedText = null
     eventCount = 0
@@ -272,8 +329,41 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     commitIfNeeded()
   }
 
+  private fun markSelectionDirty() {
+    selectionDirty = true
+    commitIfNeeded()
+  }
+
   private fun commitIfNeeded() {
     if (!isBatching) commit()
+  }
+
+  /// A controlled `selection`; -1 on either end means "leave the caret alone".
+  private fun flushSelectionIfNeeded() {
+    if (!selectionDirty) return
+    selectionDirty = false
+    val start = clampInt(selectionStart, -1, Int.MAX_VALUE, -1)
+    val end = clampInt(selectionEnd, -1, Int.MAX_VALUE, -1)
+    if (start < 0 || end < 0) return
+    inputView.setSelection(start, end)
+  }
+
+  /// React Native's `textContentType` / `autoComplete` names mapped onto
+  /// Android's autofill hints. An unknown name disables autofill.
+  private fun autofillHintFor(name: String): String? = when (name) {
+    "name" -> android.view.View.AUTOFILL_HINT_NAME
+    "givenName", "middleName", "familyName", "namePrefix", "nameSuffix", "nickname" ->
+      android.view.View.AUTOFILL_HINT_NAME
+    "username" -> android.view.View.AUTOFILL_HINT_USERNAME
+    "password", "newPassword" -> android.view.View.AUTOFILL_HINT_PASSWORD
+    "emailAddress" -> android.view.View.AUTOFILL_HINT_EMAIL_ADDRESS
+    "telephoneNumber" -> android.view.View.AUTOFILL_HINT_PHONE
+    "fullStreetAddress", "streetAddressLine1", "streetAddressLine2", "addressCity",
+    "addressState", "addressCityAndState", "sublocality", "countryName", "postalCode" ->
+      android.view.View.AUTOFILL_HINT_POSTAL_ADDRESS
+    "creditCardNumber" -> android.view.View.AUTOFILL_HINT_CREDIT_CARD_NUMBER
+    "oneTimeCode" -> "smsOTPCode"
+    else -> null
   }
 
   private fun commit() {
@@ -281,6 +371,7 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
       inputView.batch {
         flushConfigIfNeeded()
         flushTextIfNeeded()
+        flushSelectionIfNeeded()
       }
     }
   }
@@ -383,6 +474,17 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
       editable = editable,
       autoFocus = autoFocus,
       maxLength = clampInt(maxLength, 0, Int.MAX_VALUE, 0),
+      plain = plain,
+      testID = fieldTestID.ifEmpty { null },
+      accessibilityLabel = fieldAccessibilityLabel.ifEmpty { null },
+      blurOnSubmit = submitBehavior == NitroInputSubmitBehavior.BLURANDSUBMIT,
+      secureTextEntry = secureTextEntry,
+      autofillHint = autofillHintFor(textContentType),
+      showSoftInputOnFocus = showSoftInputOnFocus,
+      selectTextOnFocus = selectTextOnFocus,
+      clearTextOnFocus = clearTextOnFocus,
+      contextMenuHidden = contextMenuHidden,
+      spellCheck = spellCheck && autoCorrect,
     )
     inputView.caret = NitroInputView.Caret(
       color = colorFromARGB(caretColor),

@@ -9,7 +9,16 @@ import {NitroInputAmountDemo, NitroInputTextDemo, NitroInputEuroDemo} from '@sit
 
 # Nitro Input
 
-`react-native-nitro-input` is the second package in this repository: a native single-line **input** whose text morphs the way [Torph](https://torph.lochie.me) morphs text on the web. Characters that stay glide to their new place, new ones slide or fade in, removed ones leave alongside their neighbours. A comma that reflows travels to where it now belongs instead of blinking into existence.
+`react-native-nitro-input` is the second package in this repository, and it ships two
+components over one native field:
+
+- **`NitroInput`** — a plain native input. The system field draws its own text, so it
+  costs no more to mount than a bare `UITextField` / `EditText`. This is the one you
+  reach for by default.
+- **`MorphInput`** — the same field with the morph on, for the screens where the
+  animation is the point (in practice, amounts).
+
+`MorphInput` morphs its text the way [Torph](https://torph.lochie.me) morphs text on the web. Characters that stay glide to their new place, new ones slide or fade in, removed ones leave alongside their neighbours. A comma that reflows travels to where it now belongs instead of blinking into existence.
 
 It is a real input. A system text field (`UITextField` on iOS, `EditText` on Android) owns the keyboard, editing, selection, paste and accessibility; the morph layer on top only draws its glyphs. What makes it different from a `TextInput` that formats in `onChangeText`:
 
@@ -27,11 +36,11 @@ cd ios && pod install
 ## An amount field
 
 <Example
-  code={`import { NitroInput } from 'react-native-nitro-input'
+  code={`import { MorphInput } from 'react-native-nitro-input'
 
 const [amount, setAmount] = useState(NaN)
 
-<NitroInput
+<MorphInput
   mode="number"
   prefix="$"
   prefixFontSize={28}
@@ -54,7 +63,7 @@ Keep the field uncontrolled and read `onChangeValue` (the number) or `onChangeTe
 ## Text
 
 <Example
-  code={`<NitroInput
+  code={`<MorphInput
   placeholder="Your name"
   fontSize={22}
   autoCapitalize="words"
@@ -70,7 +79,7 @@ In `mode="text"` (the default) characters fade and scale in and out. Digits and 
 ## Other currencies
 
 <Example
-  code={`<NitroInput
+  code={`<MorphInput
   mode="number"
   groupingSeparator="."
   decimalSeparator=","
@@ -97,10 +106,10 @@ const usernameTransform: NitroInputTransform = ({ text }) => {
   return { text: cleaned ? '@' + cleaned : '' }
 }
 
-<NitroInput placeholder="@username" transform={usernameTransform} />
+<MorphInput placeholder="@username" transform={usernameTransform} />
 
 const progress = useSharedValue(0)
-<NitroInput mode="number" onChangeValue={(value) => { 'worklet'; progress.value = value / 10 }} />
+<MorphInput mode="number" onChangeValue={(value) => { 'worklet'; progress.value = value / 10 }} />
 ```
 
 Without `react-native-worklets` the props are ignored with a single warning and everything else keeps working.
@@ -136,5 +145,102 @@ The full table is in the package [README](https://github.com/ronickg/react-nativ
 | `keyboardType`, `returnKeyType`, `autoCapitalize`, `autoCorrect`, `maxLength`, `editable`, `autoFocus` | | Input traits. |
 | `transform` | | A worklet mask, run synchronously on the UI thread. |
 | `onChangeText`, `onChangeValue`, `onFocus`, `onBlur`, `onSubmitEditing` | | The change handlers may be worklets. |
+| `submitBehavior` | `'blurAndSubmit'` | `'submit'` keeps focus so a form can move to the next field itself. |
+| `secureTextEntry` | `false` | Draws bullets; the field keeps the real text for autofill. |
+| `textContentType` / `autoComplete` | `''` | Autofill: `'username'`, `'password'`, `'oneTimeCode'`, … |
+| `keyboardAppearance`, `enablesReturnKeyAutomatically`, `showSoftInputOnFocus` | | Keyboard behaviour. |
+| `selectTextOnFocus`, `clearTextOnFocus`, `contextMenuHidden`, `spellCheck`, `readOnly` | | As on `TextInput`. |
+| `selection` | | `{ start, end? }` in code points, controlled. |
+| `onEndEditing`, `onSelectionChange`, `onKeyPress` | | The rest of `TextInput`'s edit callbacks. |
 
 Imperative handle: `focus()`, `blur()`, `clear()`, `setText()`, `setValue()`, `getText()`, `getValue()`, `isFocused()`.
+
+## A plain field
+
+`NitroInput` is the same component without the morph: the system field draws
+its own text, so there is no glyph engine, no per-glyph layers and no custom
+caret. Everything else is identical — `'number'` formatting, the focus path,
+React Native's text-input registry and keyboard-controller support.
+
+```tsx
+import { NitroInput } from 'react-native-nitro-input'
+
+<NitroInput
+  placeholder="Email"
+  keyboardType="email-address"
+  textContentType="username"
+  style={{ height: 52, width: '100%' }}
+/>
+```
+
+It takes every `MorphInput` prop except the morph ones (`duration`, `easing`,
+`bounce`, `effect`).
+
+## Benchmarks
+
+Release builds; mount is 20 fields rendered in one state update, measured to
+the last `onLayout` over 5 cold passes; focus is `focus()` → `onFocus` over 12
+runs. Medians.
+
+| target | mount: MorphInput | mount: TextInput | focus: MorphInput | focus: TextInput |
+| --- | --- | --- | --- | --- |
+| iPhone 13 Pro Max | 12.6 ms | **9.7 ms** | **4.5 ms** | 53.7 ms |
+| iPhone 17 Pro simulator | 17.2 ms | **8.8 ms** | **4.1 ms** | 29.3 ms |
+| Pixel 9 Pro emulator | **24.8 ms** | 62.6 ms | **2.0 ms** | 18.4 ms |
+| Pixel 10 | **30.3 ms** | 41.7 ms | **2.5 ms** | 21.9 ms |
+| Galaxy A22 (slow device) | **76.4 ms** | 90.8 ms | **14.1 ms** | 24.8 ms |
+
+On the iPhone, `NitroInput` mounts in 12.9 ms and focuses in 10.6 ms — the same
+mount as `MorphInput`, because the overlay is not what mount costs.
+
+For a third point of reference, `@expo/ui`'s SwiftUI `TextField` on the same
+device mounts 20 fields in **91.4 ms** and focuses in **107.4 ms** — roughly 7x
+our mount and 24x `MorphInput`'s focus, and it is invisible to
+`react-native-keyboard-controller`.
+
+**Programmatic focus is faster**, because `focus()` is a direct call into the
+hybrid that lands on the next runloop turn, and `onFocus` comes back from the
+field's own delegate. `TextInput.focus()` goes through `TextInputState` and a
+Fabric view command applied with the mounting transaction, then returns through
+the batched event emitter — about a frame's wait either side. Tapping a field
+is unaffected: the OS grants first responder directly, with no JS in the loop.
+
+**The ratio depends on the device.** On fast hardware it looks like 8–9×; on a
+budget phone it is 1.8×, because MorphInput's round trip costs real CPU while
+`TextInput`'s frame wait stays roughly constant. The dependable claim is
+**~10 ms saved per programmatic focus on a slow device**, more on a fast one.
+
+**Mount** is cheaper than `TextInput` on every Android target measured, and on
+iOS costs about 0.16 ms more per field. That difference is not this component:
+a *different* Nitro view (`RollingNumber`, no text input, fewer props) mounts at
+the same 12.2 ms per 20 that `MorphInput` and `NitroInput` do, against 9.1 ms
+for `TextInput` and 4.1 ms for a bare `View`. It is the per-view floor of a
+Nitro `HybridView`, roughly 0.6 ms each — measured on an iPhone 13 Pro Max over
+15 cold passes.
+
+Both components deliver `onFocus` **asynchronously**; the benchmark screen
+checks that rather than assuming it, so the two numbers measure the same event.
+Re-run any of this from the example app's **Mount / focus benchmark** screen.
+
+## Working with the rest of React Native
+
+`MorphInput` registers itself in React Native's text-input registry and answers
+the `focus` / `blur` view commands, so the things that act on "the focused
+input" work on it as they do on `TextInput`:
+
+- `Keyboard.dismiss()`, `TextInput.State.currentlyFocusedInput()` and
+  `TextInput.State.blurTextInput()`
+- a `ScrollView`'s `keyboardShouldPersistTaps` / auto-blur
+- `react-native-keyboard-controller`: the focused-input observer sees it,
+  `KeyboardAwareScrollView` scrolls it into view, and `KeyboardToolbar`'s
+  next/previous traverses into and out of it
+
+`testID` and `accessibilityLabel` are forwarded to the hidden system field —
+the element VoiceOver, TalkBack and e2e tools actually interact with — and the
+`placeholder` is exposed as its accessibility value while the field is empty.
+
+:::note Layout
+Unlike `TextInput`, `MorphInput` sizes itself to its content. Give it a
+`width` (or `flex`) in `style` to make it fill its parent the way a `TextInput`
+does; without one it hugs the text and grows as you type.
+:::

@@ -1,6 +1,7 @@
 import React, { createRef } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
-import { NitroInput, type NitroInputHandle } from '../NitroInput'
+import { MorphInput, type MorphInputHandle } from '../MorphInput'
+import { NitroInput } from '../NitroInput'
 
 function render(element: React.ReactElement): ReactTestRenderer {
   let renderer: ReactTestRenderer | undefined
@@ -15,9 +16,9 @@ function nativeProps(renderer: ReactTestRenderer): Record<string, unknown> {
   return host.props as Record<string, unknown>
 }
 
-describe('NitroInput', () => {
+describe('MorphInput', () => {
   it('sends the defaults for every native prop', () => {
-    const props = nativeProps(render(<NitroInput />))
+    const props = nativeProps(render(<MorphInput />))
     expect(props.text).toBe('')
     expect(props.mostRecentEventCount).toBe(0)
     expect(props.mode).toBe('text')
@@ -37,10 +38,67 @@ describe('NitroInput', () => {
     expect(props.fontFamily).toBe('')
     expect(props.maxLength).toBe(0)
     expect(props.editable).toBe(true)
+    expect(props.submitBehavior).toBe('blurAndSubmit')
+    expect(props.secureTextEntry).toBe(false)
+    expect(props.keyboardAppearance).toBe('default')
+    expect(props.textContentType).toBe('')
+    expect(props.showSoftInputOnFocus).toBe(true)
+    expect(props.spellCheck).toBe(true)
+    expect(props.selectionStart).toBe(-1)
+    expect(props.selectionEnd).toBe(-1)
+  })
+
+  it('maps the React Native aliases onto the native props', () => {
+    // `blurOnSubmit={false}` is React Native's older spelling of 'submit'.
+    expect(nativeProps(render(<MorphInput blurOnSubmit={false} />)).submitBehavior).toBe('submit')
+    expect(nativeProps(render(<MorphInput submitBehavior="submit" blurOnSubmit />)).submitBehavior).toBe('submit')
+    // `readOnly` is an alias of `editable={false}`.
+    expect(nativeProps(render(<MorphInput readOnly />)).editable).toBe(false)
+    expect(nativeProps(render(<MorphInput editable={false} />)).editable).toBe(false)
+    // `autoComplete` fills in for `textContentType` when that is not given.
+    expect(nativeProps(render(<MorphInput autoComplete="username" />)).textContentType).toBe('username')
+    expect(
+      nativeProps(render(<MorphInput autoComplete="username" textContentType="password" />)).textContentType
+    ).toBe('password')
+    // `spellCheck` follows `autoCorrect` unless it is set itself.
+    expect(nativeProps(render(<MorphInput autoCorrect={false} />)).spellCheck).toBe(false)
+    expect(nativeProps(render(<MorphInput autoCorrect={false} spellCheck />)).spellCheck).toBe(true)
+  })
+
+  it('renders the plain field with the overlay off and the morph one with it on', () => {
+    expect(nativeProps(render(<MorphInput />)).plain).toBe(false)
+    expect(nativeProps(render(<NitroInput />)).plain).toBe(true)
+    // NitroInput is the same component underneath, so the rest still applies.
+    const props = nativeProps(render(<NitroInput mode="number" placeholder="0" testID="amount" />))
+    expect(props.mode).toBe('number')
+    expect(props.placeholder).toBe('0')
+    expect(props.fieldTestID).toBe('amount')
+  })
+
+  it('forwards the field identity so the hidden system field carries it', () => {
+    const props = nativeProps(render(<MorphInput testID="amount" accessibilityLabel="Amount" />))
+    expect(props.fieldTestID).toBe('amount')
+    expect(props.fieldAccessibilityLabel).toBe('Amount')
+    // testID stays on the host (existing tests may query it), the label does
+    // not: it would otherwise be on two accessibility elements.
+    expect(props.testID).toBe('amount')
+    expect('accessibilityLabel' in props).toBe(false)
+  })
+
+  it('sends a controlled selection and nothing when there is none', () => {
+    const none = nativeProps(render(<MorphInput />))
+    expect(none.selectionStart).toBe(-1)
+    expect(none.selectionEnd).toBe(-1)
+    const caret = nativeProps(render(<MorphInput selection={{ start: 3 }} />))
+    expect(caret.selectionStart).toBe(3)
+    expect(caret.selectionEnd).toBe(3)
+    const range = nativeProps(render(<MorphInput selection={{ start: 1, end: 4 }} />))
+    expect(range.selectionStart).toBe(1)
+    expect(range.selectionEnd).toBe(4)
   })
 
   it('never sends undefined for a native prop', () => {
-    const props = nativeProps(render(<NitroInput mode="number" value="1,234" />))
+    const props = nativeProps(render(<MorphInput mode="number" value="1,234" />))
     for (const [key, value] of Object.entries(props)) {
       if (key === 'style' || key === 'hybridRef') continue
       expect([key, value]).not.toEqual([key, undefined])
@@ -49,23 +107,23 @@ describe('NitroInput', () => {
   })
 
   it('picks a numeric keyboard in number mode', () => {
-    expect(nativeProps(render(<NitroInput mode="number" />)).keyboardType).toBe('decimal-pad')
-    expect(nativeProps(render(<NitroInput mode="number" fractionDigits={0} />)).keyboardType).toBe('number-pad')
-    expect(nativeProps(render(<NitroInput mode="number" keyboardType="numeric" />)).keyboardType).toBe('numeric')
+    expect(nativeProps(render(<MorphInput mode="number" />)).keyboardType).toBe('decimal-pad')
+    expect(nativeProps(render(<MorphInput mode="number" fractionDigits={0} />)).keyboardType).toBe('number-pad')
+    expect(nativeProps(render(<MorphInput mode="number" keyboardType="numeric" />)).keyboardType).toBe('numeric')
   })
 
   it('converts colors and font weights', () => {
-    const props = nativeProps(render(<NitroInput color="#ff0000" fontWeight="bold" placeholderTextColor="#00ff00" />))
+    const props = nativeProps(render(<MorphInput color="#ff0000" fontWeight="bold" placeholderTextColor="#00ff00" />))
     expect(props.color).toBe(0xffff0000)
     expect(props.placeholderColor).toBe(0xff00ff00)
     expect(props.fontWeight).toBe(700)
   })
 
   it('keeps an uncontrolled field on its initial text', () => {
-    const renderer = render(<NitroInput defaultValue="hello" />)
+    const renderer = render(<MorphInput defaultValue="hello" />)
     expect(nativeProps(renderer).text).toBe('hello')
     act(() => {
-      renderer.update(<NitroInput defaultValue="changed" />)
+      renderer.update(<MorphInput defaultValue="changed" />)
     })
     expect(nativeProps(renderer).text).toBe('hello')
   })
@@ -73,7 +131,7 @@ describe('NitroInput', () => {
   it('maps onFocusChange to onFocus and onBlur', () => {
     const onFocus = jest.fn()
     const onBlur = jest.fn()
-    const renderer = render(<NitroInput onFocus={onFocus} onBlur={onBlur} />)
+    const renderer = render(<MorphInput onFocus={onFocus} onBlur={onBlur} />)
     const callback = nativeProps(renderer).onFocusChange as { f: (focused: boolean) => void }
     act(() => {
       callback.f(true)
@@ -85,7 +143,7 @@ describe('NitroInput', () => {
 
   it('reports the event count of the latest native edit back to native', () => {
     const onChangeText = jest.fn()
-    const renderer = render(<NitroInput value="1" onChangeText={onChangeText} />)
+    const renderer = render(<MorphInput value="1" onChangeText={onChangeText} />)
     const props = nativeProps(renderer)
     const callback = props.onChangeText as { f: (text: string, count: number) => void }
     act(() => {
@@ -96,10 +154,10 @@ describe('NitroInput', () => {
   })
 
   it('keeps the callback props stable across renders', () => {
-    const renderer = render(<NitroInput onChangeText={() => {}} onFocus={() => {}} />)
+    const renderer = render(<MorphInput onChangeText={() => {}} onFocus={() => {}} />)
     const first = nativeProps(renderer)
     act(() => {
-      renderer.update(<NitroInput onChangeText={() => {}} onFocus={() => {}} />)
+      renderer.update(<MorphInput onChangeText={() => {}} onFocus={() => {}} />)
     })
     const second = nativeProps(renderer)
     expect(second.onChangeText).toBe(first.onChangeText)
@@ -110,7 +168,7 @@ describe('NitroInput', () => {
   })
 
   it('sizes itself from onSizeChange unless the style says otherwise', () => {
-    const renderer = render(<NitroInput fontSize={40} />)
+    const renderer = render(<MorphInput fontSize={40} />)
     expect(nativeProps(renderer).style).toEqual([{ height: 50 }, undefined])
     const onSizeChange = nativeProps(renderer).onSizeChange as { f: (w: number, h: number) => void }
     act(() => {
@@ -123,7 +181,7 @@ describe('NitroInput', () => {
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
     const transform = Object.assign(() => null, { __workletHash: 1 })
     const onChangeText = Object.assign(() => {}, { __workletHash: 2 })
-    const props = nativeProps(render(<NitroInput transform={transform} onChangeText={onChangeText} />))
+    const props = nativeProps(render(<MorphInput transform={transform} onChangeText={onChangeText} />))
     expect(props.transformWorklet).toBe(0)
     expect(props.onChangeTextWorklet).toBe(0)
     expect(props.onChangeValueWorklet).toBe(0)
@@ -131,8 +189,8 @@ describe('NitroInput', () => {
   })
 
   it('exposes a handle whose methods are no-ops before mount', () => {
-    const ref = createRef<NitroInputHandle>()
-    render(<NitroInput ref={ref} defaultValue="abc" />)
+    const ref = createRef<MorphInputHandle>()
+    render(<MorphInput ref={ref} defaultValue="abc" />)
     expect(ref.current).not.toBeNull()
     expect(() => ref.current!.focus()).not.toThrow()
     expect(ref.current!.getText()).toBe('abc')

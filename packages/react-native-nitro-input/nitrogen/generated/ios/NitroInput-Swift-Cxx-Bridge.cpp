@@ -46,11 +46,11 @@ namespace margelo::nitro::nitroinput::bridge::swift {
     };
   }
   
-  // pragma MARK: std::function<void(double /* width */, double /* height */)>
+  // pragma MARK: std::function<void(double /* start */, double /* end */)>
   Func_void_double_double create_Func_void_double_double(void* NON_NULL swiftClosureWrapper) noexcept {
     auto swiftClosure = NitroInput::Func_void_double_double::fromUnsafe(swiftClosureWrapper);
-    return [swiftClosure = std::move(swiftClosure)](double width, double height) mutable -> void {
-      swiftClosure.call(width, height);
+    return [swiftClosure = std::move(swiftClosure)](double start, double end) mutable -> void {
+      swiftClosure.call(start, end);
     };
   }
   
