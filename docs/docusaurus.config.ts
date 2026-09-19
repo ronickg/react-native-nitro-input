@@ -156,7 +156,6 @@ const config: Config = {
           label: 'Nitro Input',
           className: 'navbar__item--product',
         },
-        {to: '/rolling-number/benchmarks', label: 'Benchmarks', position: 'left'},
         {
           href: 'https://www.npmjs.com/package/react-native-nitro-rolling-number',
           position: 'right',

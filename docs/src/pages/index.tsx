@@ -70,10 +70,10 @@ function Hero() {
         </p>
         <div className={styles.buttons}>
           <Link className="button button--primary button--lg" to="/rolling-number/getting-started">
-            Get started
+            Rolling Number →
           </Link>
-          <Link className="button button--secondary button--lg" to="/rolling-number/benchmarks">
-            See the benchmarks
+          <Link className="button button--primary button--lg" to="/input">
+            Nitro Input →
           </Link>
         </div>
       </div>

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0" r="0.75">
+      <stop offset="0" stop-color="#2563eb" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#2563eb" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="56" height="56" patternUnits="userSpaceOnUse">
+      <path d="M56 0H0V56" fill="none" stroke="#ffffff" stroke-opacity="0.05" stroke-width="1"/>
+    </pattern>
+    <clipPath id="wheel"><rect x="10" y="12" width="44" height="40" rx="8"/></clipPath>
+  </defs>
+
+  <rect width="1200" height="630" fill="#0a0d14"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+
+  <!-- the site mark, same artwork as the favicon's bigger sibling -->
+  <g transform="translate(88, 84)">
+    <rect width="64" height="64" rx="16" fill="url(#mark)"/>
+    <g clip-path="url(#wheel)" fill="#fff" font-family="Helvetica Neue" font-weight="bold" font-size="30" text-anchor="middle">
+      <text x="22" y="43">4</text>
+      <text x="42" y="26" opacity="0.35">6</text>
+      <text x="42" y="55">7</text>
+    </g>
+    <rect x="10" y="12" width="44" height="40" rx="8" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="2"/>
+  </g>
+  <text x="172" y="127" font-family="Helvetica Neue" font-weight="medium" font-size="30" fill="#e2e8f0">Ronickg&#8217;s Libs</text>
+
+  <!-- the thing the libraries actually do -->
+  <text x="88" y="286" font-family="Helvetica Neue" font-weight="bold" font-size="76" fill="#f8fafc" letter-spacing="-2.5">Numbers that roll,</text>
+  <text x="88" y="374" font-family="Helvetica Neue" font-weight="bold" font-size="76" fill="#f8fafc" letter-spacing="-2.5">fields that morph</text>
+
+  <text x="88" y="440" font-family="Helvetica Neue" font-size="27" fill="#94a3b8">Native React Native components, built with Nitro Modules.</text>
+  <text x="88" y="478" font-family="Helvetica Neue" font-size="27" fill="#94a3b8">One C++ engine each, iOS and Android.</text>
+
+  <line x1="88" y1="528" x2="1112" y2="528" stroke="#ffffff" stroke-opacity="0.1" stroke-width="1"/>
+  <text x="88" y="570" font-family="Menlo" font-size="21" fill="#60a5fa">react-native-nitro-rolling-number</text>
+  <text x="528" y="570" font-family="Helvetica Neue" font-size="21" fill="#475569">·</text>
+  <text x="556" y="570" font-family="Menlo" font-size="21" fill="#60a5fa">react-native-nitro-input</text>
+</svg>
