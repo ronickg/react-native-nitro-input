@@ -10,7 +10,6 @@ const EDIT_URL = `${GITHUB}/tree/main/docs/`;
 /** Pages that used to live under /docs, now split across the two sections. */
 const ROLLING_NUMBER_PAGES = [
   'getting-started',
-  'usage',
   'currency',
   'fit-to-width',
   'loading',
@@ -102,6 +101,13 @@ const config: Config = {
         redirects: [
           {from: '/docs', to: '/rolling-number/getting-started'},
           {from: '/docs/nitro-input', to: '/input'},
+          // /input opened on an overview page for one deploy, with getting
+          // started a page of its own. They are the same page now.
+          {from: '/input/getting-started', to: '/input'},
+          // Usage was one page of loosely related sections; it is three
+          // topic pages now, the way the other Nitro libraries do it.
+          {from: '/docs/usage', to: '/rolling-number/rolling-and-timing'},
+          {from: '/rolling-number/usage', to: '/rolling-number/rolling-and-timing'},
           ...ROLLING_NUMBER_PAGES.map((id) => ({
             from: `/docs/${id}`,
             to: `/rolling-number/${id}`,

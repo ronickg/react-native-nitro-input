@@ -1,5 +1,6 @@
 ---
-sidebar_position: 2
+slug: /
+sidebar_position: 1
 title: Getting started
 description: Install react-native-nitro-input and render your first morphing field.
 ---
@@ -10,6 +11,14 @@ import {NitroInputTextDemo} from '@site/src/components/NitroInput/NitroInputDemo
 # Getting started
 
 `react-native-nitro-input` is a **native single-line text and amount input** for React Native, built with [Nitro Modules](https://nitro.margelo.com). A system text field owns the keyboard, editing, selection and accessibility; a morph layer on top draws its glyphs, so characters glide to their new place instead of being redrawn where they land.
+
+It ships two components over that one native field:
+
+- **`NitroInput`** — a plain native input. The system field draws its own text, so it
+  costs no more to mount than a bare `UITextField` / `EditText`. This is the one you
+  reach for by default.
+- **`MorphInput`** — the same field with the morph on, for the screens where the
+  animation is the point (in practice, amounts).
 
 <Frame caption="Live, in your browser: the same C++ engine the native views use, compiled to WebAssembly.">
   <NitroInputTextDemo />
@@ -70,3 +79,4 @@ Reach for [`NitroInput`](/input/plain-field) instead when you want the same nati
 - [A plain field](/input/plain-field): the same input with the morph off.
 - [Worklets](/input/worklets): masks and shared values on the UI thread.
 - [Props](/input/props): the full reference.
+- [How the morph works](/input/how-it-works): what moves on an edit, and why.

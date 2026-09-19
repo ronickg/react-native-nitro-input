@@ -1,0 +1,37 @@
+---
+sidebar_position: 1
+title: Rolling and timing
+description: How a change to value becomes a roll, and the curve, stagger and direction it rolls with.
+---
+
+import {Example, TimingDemo} from '@site/src/components/Demo/Demo';
+
+The only thing the view needs is a number. Every change to `value` becomes one native roll: each digit takes the shortest path to its new glyph in the direction of the change, columns that appear slide in from blank, columns that disappear slide out.
+
+A value that arrives while the wheels are still rolling doesn't restart them from rest: the roll continues with the ease-out half of its curve towards the new target, so a live ticker that updates several times a second keeps flowing.
+
+## Timing
+
+`duration` is the length of a roll in milliseconds (`0` snaps). `easing` picks the curve: `linear`, `easeIn`, `easeOut`, `easeInOut` (default) or `spring`, whose overshoot is `bounce` (0–1). `stagger` delays each digit's start by that many milliseconds, least significant digit first, so a change cascades like a mechanical carry.
+
+<Example
+  code={`<RollingNumber
+  value={value}
+  groupingSeparator=","
+  fontSize={56}
+  fontWeight="800"
+  easing="spring"   // 'linear' | 'easeIn' | 'easeOut' | 'easeInOut' | 'spring'
+  bounce={0.15}     // spring overshoot, 0–1
+  duration={500}    // ms
+  stagger={30}      // ms between digits, least significant first
+/>`}>
+  <TimingDemo />
+</Example>
+
+## Direction
+
+By default a digit rolls **up** when the number grows and **down** when it shrinks. Force one with `direction="up"` or `"down"`, e.g. for a countdown that should always fall.
+
+```tsx
+<RollingNumber value={secondsLeft} direction="down" minimumIntegerDigits={2} />
+```
