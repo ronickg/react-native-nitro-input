@@ -126,7 +126,7 @@ The example's Android Gradle files point at the workspace root `node_modules`, a
 
 ## Credits
 
-The input's morph is based on [Torph](https://torph.lochie.me) by [Lochie Axon](https://github.com/lochie) — the pairing rules, the enter and exit ramps, the 0.95× fade scale and the `expo` curve all come from it. Thanks for building it, and for the MIT licence.
+The input's morph is based on [Torph](https://torph.lochie.me) by [Lochie Axon](https://github.com/lochie). Thanks for building it.
 
 ## License
 

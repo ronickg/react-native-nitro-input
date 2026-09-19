@@ -309,9 +309,7 @@ that grows or shrinks stays one shape. All of it is Reduce Motion aware.
 ## Credits
 
 The morph is based on [Torph](https://torph.lochie.me) by
-[Lochie Axon](https://github.com/lochie) — the pairing rules, the enter and
-exit ramps, the 0.95× fade scale and the `expo` curve all come from it. Thanks
-for building it, and for the MIT licence.
+[Lochie Axon](https://github.com/lochie). Thanks for building it.
 
 ## License
 
