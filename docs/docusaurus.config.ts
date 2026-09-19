@@ -25,9 +25,9 @@ const ROLLING_NUMBER_PAGES = [
 ];
 
 const config: Config = {
-  title: 'Nitro Rolling Number',
+  title: "Ronickg's Libs",
   tagline:
-    'A native rolling number for React Native. Every digit is a wheel that rolls, driven by one C++ engine on iOS and Android.',
+    'Native React Native components built with Nitro Modules. One C++ engine each, the same behaviour on iOS and Android.',
   favicon: 'img/favicon.svg',
 
   future: {
@@ -133,9 +133,9 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'Nitro Rolling Number',
+      title: "Ronickg's Libs",
       logo: {
-        alt: 'Nitro Rolling Number',
+        alt: "Ronickg's Libs",
         src: 'img/logo.svg',
       },
       items: [

@@ -59,7 +59,9 @@ function Hero() {
           <strong>Nitro Modules</strong> · iOS &amp; Android · New architecture
         </span>
         <Heading as="h1" className={styles.title}>
-          Nitro Rolling Number
+          Numbers that roll,
+          <br />
+          fields that morph
         </Heading>
         <p className={styles.tagline}>{siteConfig.tagline}</p>
         <HeroNumber />
@@ -81,7 +83,7 @@ function Hero() {
 
 export default function Home(): ReactNode {
   return (
-    <Layout title="Native rolling numbers for React Native" description="A native rolling number (odometer / ticker) view for React Native, built with Nitro Modules. One C++ engine, iOS and Android.">
+    <Layout title="Native React Native components" description="Two native components for React Native, built with Nitro Modules: a rolling number (odometer / ticker) and a text and amount input whose characters morph as you type. One C++ engine each, iOS and Android.">
       <Hero />
       <main>
         <section className={styles.section}>
@@ -102,7 +104,7 @@ export default function Home(): ReactNode {
           <div className="container">
             <span className={styles.kicker}>Two packages</span>
             <Heading as="h2" className={styles.sectionTitle}>
-              Numbers that roll, fields that morph
+              Pick a package
             </Heading>
             <p className={styles.sectionLead}>
               Both are built on Nitro Modules, both share the same formatting model, and
