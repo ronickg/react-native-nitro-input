@@ -28,7 +28,8 @@
     "target": "esnext",
     "verbatimModuleSyntax": true,
     "types": [
-      "jest"
+      "jest",
+      "node"
     ]
   }
 }

@@ -71,8 +71,16 @@ export interface RollingNumberProps extends HybridViewProps {
    * significant digit upwards (a cascading carry). Default: `0`.
    */
   stagger?: number
-  /** Which way the digits roll. Default: `'auto'`. */
-  direction?: RollingNumberDirection
+  /**
+   * Which way the digits roll. Default: `'auto'`.
+   *
+   * Named `rollDirection` and not `direction` because a Hybrid View's props
+   * derive from `react::ViewProps`, so React Native parses every name we
+   * declare as well: `direction` is Yoga's layout property, and it logged
+   * `Could not parse yoga::Direction: up` on every update. The public prop the
+   * wrapper exposes is still `direction`; see `RollingNumber.tsx`.
+   */
+  rollDirection?: RollingNumberDirection
   /**
    * Jackpot reveal state. `0` (default): a normal rolling number, `value`
    * changes roll. `1`: the view shows the opening frame of `value`, its layout

@@ -155,12 +155,12 @@ namespace margelo::nitro::nitrorollingnumber {
     inline void setStagger(std::optional<double> stagger) noexcept override {
       _swiftPart.setStagger(stagger);
     }
-    inline std::optional<RollingNumberDirection> getDirection() noexcept override {
-      auto __result = _swiftPart.getDirection();
+    inline std::optional<RollingNumberDirection> getRollDirection() noexcept override {
+      auto __result = _swiftPart.getRollDirection();
       return __result;
     }
-    inline void setDirection(std::optional<RollingNumberDirection> direction) noexcept override {
-      _swiftPart.setDirection(direction);
+    inline void setRollDirection(std::optional<RollingNumberDirection> rollDirection) noexcept override {
+      _swiftPart.setRollDirection(rollDirection);
     }
     inline std::optional<double> getRevealState() noexcept override {
       auto __result = _swiftPart.getRevealState();

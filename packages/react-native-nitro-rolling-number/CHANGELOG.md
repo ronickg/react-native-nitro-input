@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- The native prop behind `direction` is now `rollDirection`. The public prop is
+  unchanged — the wrapper maps it — but `direction` is Yoga's layout property,
+  and because a Hybrid View's props derive from `ViewProps` React Native parsed
+  ours too, logging `Could not parse yoga::Direction: up` on every update.
+
 ## 0.1.0 (2026-09-18)
 
 - Initial release: native rolling number view (iOS + Android) built with Nitro Modules.
