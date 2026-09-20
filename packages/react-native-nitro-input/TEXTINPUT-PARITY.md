@@ -336,12 +336,19 @@ Compose field.
    `disableKeyboardShortcuts`, `onPressIn`/`onPressOut`, `onScroll`,
    `onContentSizeChange` (`onSizeChange` is the near equivalent), and the
    `inputMode`/`enterKeyHint` aliases.
-4. **keyboard-controller `target`** is the react tag of the host view. That is
+4. **`TextInput.State.focusTextInput` / `blurTextInput` bypass the JS routing.**
+   `TextInput.js` copies those two function references by value at module-eval
+   time (`TextInput.State = { focusTextInput: TextInputState.focusTextInput, … }`),
+   long before `patchRegistryOnce()` runs, so the patch is invisible to them.
+   `ref.focus()` and `Keyboard.dismiss()` are unaffected - both read
+   `TextInputState.*` live. On iOS the view-command category covers the gap; on
+   Android those two entry points do not reach a `MorphInput`.
+5. **keyboard-controller `target`** is the react tag of the host view. That is
    the right view to measure and scroll, but it is not the same tag a
    `TextInput` reports for itself.
-5. **`onKeyPress` with autocorrect** reports the whole replacement string (e.g.
+6. **`onKeyPress` with autocorrect** reports the whole replacement string (e.g.
    `"An"` when the keyboard corrects `"Ab"`), where RN reports single keys.
-6. **Not yet checked:** iOS edit-menu placement in an overflowed
+7. **Not yet checked:** iOS edit-menu placement in an overflowed
    right-aligned field, Android selection highlight when the field overflows,
    and behaviour on a physical device (all simulator/emulator so far).
 

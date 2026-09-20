@@ -124,6 +124,82 @@ In `mode="text"` (the default) characters fade and scale in and out (Torph's
 text morph); digits and separators only slide in `mode="number"`, unless you
 force one style with `effect="slide"` / `effect="fade"`.
 
+That is `MorphInput`. `NitroInput` is the same field with the glyph engine
+off — characters appear the instant you type them, the way a `TextInput` does.
+For an ordinary form field that is the one you want; reach for `MorphInput`
+where the morph is the point, which in practice means amounts.
+
+### A masked field
+
+```tsx
+<NitroInput
+  mode="mask"
+  mask="+1 ([000]) [000]-[0000]"
+  placeholder="+1 (000) 000-0000"
+  keyboardType="number-pad"
+  maskAutoSkip
+  onChangeMask={(formatted, extracted, tail, complete) => {
+    setPhone(extracted)      // "5551234567" — the characters the user gave
+    setDone(complete)        // every mandatory slot filled
+  }}
+/>
+```
+
+The pattern is compiled once into a linked state machine in C++ and shared by
+both platforms, so the formatting, the caret and the "what is still missing"
+tail all come from one place and cannot drift apart. `[…]` is an editable
+block, `{…}` a literal the engine inserts for you. Built-in slots: `0` a
+required digit, `9` an optional one, `A`/`a` letters, `_` any character, `…`
+repeats the previous slot.
+
+Add your own with `maskNotations`:
+
+```tsx
+<NitroInput
+  mode="mask"
+  mask="#[HHHHHH]"
+  maskNotations={[{ character: 'H', characterSet: '0123456789ABCDEFabcdef', isOptional: false }]}
+/>
+```
+
+`maskAutocomplete` (default `true`) fills in literals as soon as the slot
+before them is satisfied; `maskAutoSkip` (default `false`) lets a backspace
+step back over them. Autocompletion only runs when the caret is at the end, so
+editing in the middle of a value does not fight you.
+
+### Outlined and filled frames
+
+```tsx
+<NitroInput
+  variant="outlined"
+  label="Email address"
+  placeholder="you@example.com"
+  strokeColor="#94a3b8"
+  focusedStrokeColor="#2563eb"
+  cornerRadius={10}
+  keyboardType="email-address"
+  style={{ width: '100%', height: 52 }}
+/>
+```
+
+The label floats onto the top edge when the field is focused or holds text, and
+the outline opens a notch for it. The notch is a **real hole in the stroked
+path**, not a patch of background colour painted over the line, so whatever is
+behind the field shows through it — no Skia, no masking, and it works over a
+photo or a gradient. The geometry is shared C++ (`OutlineGeometry`) that both
+platforms replay as the same move / line / arc commands, and every path has the
+same verbs at every progress so Core Animation and `ValueAnimator` can
+interpolate between them.
+
+`variant="filled"` gives the Material filled field instead: a `fillColor`
+background with a square bottom and an indicator rule along it.
+
+Timings follow Material's: the label runs 200 ms on the standard decelerate
+curve, and the notch is staggered 50 ms behind it opening and closes in 50 ms,
+so the gap is never open under a label that has not arrived. All of it runs
+inside the view, off a native focus callback — there is no React state to
+declare and nothing crosses into JS per frame.
+
 ### Worklets: masks in JS and shared values, synchronously
 
 With [`react-native-worklets`](https://docs.swmansion.com/react-native-worklets/)
@@ -210,6 +286,7 @@ ref.current?.clear()
 ref.current?.getText()           // "1,234.56"
 ref.current?.getValue()          // 1234.56, NaN when empty
 ref.current?.isFocused()
+ref.current?.setSelection(4, 7)  // code point offsets; equal values place the caret
 ```
 
 `setValue` / `setText` / `clear` use **place matching**: `1,204` → `1,318`
@@ -224,11 +301,24 @@ rather than renumbering the columns.
 | --- | --- | --- | --- |
 | `value` | `string` | – | Controlled text, applied when it differs from what the field shows and JS has seen every native edit. |
 | `defaultValue` | `string` | `''` | Initial text (uncontrolled). |
-| `mode` | `'text' \| 'number'` | `'text'` | `number` formats as you type. |
+| `mode` | `'text' \| 'number' \| 'mask'` | `'text'` | `number` formats as you type; `mask` applies a fixed pattern. |
 | `fractionDigits` | `number` | `2` | `number`: most decimals accepted; `0` disables the decimal key. |
 | `maxIntegerDigits` | `number` | `15` | `number`: most integer digits accepted; further digits are rejected. |
 | `groupingSeparator` | `string` | `','` | `number`: every three integer digits; `''` disables grouping. |
 | `decimalSeparator` | `string` | `'.'` | `number`: between integer and fraction digits. |
+| `mask` | `string` | `''` | `mask`: the pattern. `[…]` an editable block, `{…}` a literal the engine inserts. Slots: `0` required digit, `9` optional digit, `A`/`a` letter, `_` any, `…` repeat. |
+| `maskNotations` | `{ character, characterSet, isOptional }[]` | `[]` | `mask`: caller-defined slots beyond the built-ins. |
+| `maskAutocomplete` | `boolean` | `true` | `mask`: insert literals as soon as the slot before them is filled. Only while the caret is at the end. |
+| `maskAutoSkip` | `boolean` | `false` | `mask`: let a backspace step back over inserted literals. |
+| `variant` | `'none' \| 'outlined' \| 'filled'` | `'none'` | Draws a frame for itself. The outlined notch is a real hole in the stroke. |
+| `label` | `string` | `''` | Floating label. Also becomes the field's accessible name when nothing else gives it one. |
+| `labelBehavior` | `'float' \| 'always'` | `'float'` | `always` keeps it floated even when empty and blurred. |
+| `labelColor` / `labelFocusedColor` | `ColorValue` | placeholder / `focusedStrokeColor` | Label colors. |
+| `labelFontSize` | `number` | `fontSize * 0.75` | Floated label size. |
+| `strokeColor` / `focusedStrokeColor` | `ColorValue` | separator / `strokeColor` | Outline color. Named `stroke*`, not `outline*`: React Native 0.76 added CSS `outlineColor` to every view, and a Hybrid View's props derive from `ViewProps`, so both parsers would run. |
+| `strokeWidth` | `number` | `1` | Doubles while focused. |
+| `cornerRadius` | `number` | `8` | Clamped to half the shorter side. `filled` squares its bottom so the indicator meets the fill. |
+| `fillColor` | `ColorValue` | secondary fill | `filled` background. |
 | `prefix` / `suffix` | `string` | `''` | Static text drawn around the field's text (`$`, ` USD`). Not part of the editable text. |
 | `prefixFontSize` / `suffixFontSize` | `number` | `fontSize` | Their own sizes. |
 | `affixAlign` | `'baseline' \| 'center' \| 'top' \| 'bottom'` | `'baseline'` | How they line up with the text: `top` pins glyph tops, `bottom` the bottom of the ink (a currency code sits on the digits' baseline). |
@@ -261,6 +351,7 @@ rather than renumbering the columns.
 | `transform` | `NitroInputTransform` | – | A `'worklet'` that rewrites text and selection after every edit, synchronously on the UI thread (needs `react-native-worklets`). |
 | `onChangeText` | `(text) => void` | – | After every edit, the formatted text. A `'worklet'` runs on the UI thread. |
 | `onChangeValue` | `(value) => void` | – | `number` mode: the numeric value, `NaN` while empty. A `'worklet'` runs on the UI thread. |
+| `onChangeMask` | `(formatted, extracted, tail, complete) => void` | – | `mask` mode: the formatted text, the characters the user contributed, what is still missing, and whether every mandatory slot is filled. |
 | `onFocus` / `onBlur` | `() => void` | – | |
 | `onSubmitEditing` | `(text) => void` | – | Return key pressed (the field then blurs). |
 | `onNativeRef` | `(ref) => void` | – | Receives the Nitro object on mount. |
