@@ -6,6 +6,7 @@
 #include "AmountFormatter.hpp"
 
 #include <algorithm>
+#include <clocale>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -23,7 +24,24 @@ uint32_t firstCodePoint(const std::string& utf8, uint32_t fallback) {
   return decoded.empty() ? fallback : decoded[0];
 }
 
+/// `snprintf("%f")` and `strtod` both write and read the *C locale's* decimal
+/// separator, which a native dependency in the host app can change process-wide
+/// with `setlocale`. Ask for the current one instead of assuming '.'.
+char localeDecimalPoint() {
+  const std::lconv* conventions = std::localeconv();
+  if (conventions == nullptr || conventions->decimal_point == nullptr || conventions->decimal_point[0] == '\0') {
+    return '.';
+  }
+  return conventions->decimal_point[0];
+}
+
 } // namespace
+
+bool AmountFormatter::takeSign(std::vector<uint32_t>& text) {
+  if (text.empty() || text[0] != '-') return false;
+  text.erase(text.begin());
+  return true;
+}
 
 AmountFormatter::AmountFormatter() = default;
 
@@ -115,7 +133,18 @@ AmountFormatter::Raw AmountFormatter::rawOf(const std::vector<uint32_t>& formatt
 }
 
 AmountFormatter::Edit AmountFormatter::applyEdit(const std::string& current, int start, int end, const std::string& replacement) const {
-  const auto cur = decode(current);
+  auto cur = decode(current);
+  // A sign is a property of the value, not something the keyboard can type:
+  // it survives editing but is never introduced by it. Offsets count it, so
+  // drop it first and shift the range back by one.
+  const bool negative = takeSign(cur);
+  // The caller's offsets count the sign; ours must not. Keep the original end
+  // for the rejection path, which hands `current` back untouched.
+  const int fallbackCaret = end;
+  if (negative) {
+    start -= 1;
+    end -= 1;
+  }
   const int n = static_cast<int>(cur.size());
   start = std::clamp(start, 0, n);
   end = std::clamp(end, start, n);
@@ -176,21 +205,23 @@ AmountFormatter::Edit AmountFormatter::applyEdit(const std::string& current, int
   const int caret = static_cast<int>(raw.size());
   raw.insert(raw.end(), after.begin(), after.end());
 
-  return formatRaw(std::move(raw), caret, Rules{false, typedDecimal, false}, current, end);
+  return formatRaw(std::move(raw), caret, negative, Rules{false, typedDecimal, false}, current, fallbackCaret);
 }
 
 AmountFormatter::Edit AmountFormatter::normalize(const std::string& text) const {
   // Text in the field's own format: its grouping separators are dropped, not read as decimals.
+  auto decoded = decode(text);
+  const bool negative = takeSign(decoded);
   std::vector<uint32_t> raw;
-  for (uint32_t c : decode(text)) {
+  for (uint32_t c : decoded) {
     if (isDigit(c)) raw.push_back(c);
     else if (!isGrouping(c) && isTypedDecimal(c)) raw.push_back(decimal_);
   }
   const int caret = static_cast<int>(raw.size());
-  return formatRaw(std::move(raw), caret, Rules{true, true, true}, "", 0);
+  return formatRaw(std::move(raw), caret, negative, Rules{true, true, true}, "", 0);
 }
 
-AmountFormatter::Edit AmountFormatter::formatRaw(std::vector<uint32_t> raw, int caret, Rules rules,
+AmountFormatter::Edit AmountFormatter::formatRaw(std::vector<uint32_t> raw, int caret, bool negative, Rules rules,
                                                  const std::string& fallback, int fallbackCaret) const {
   // Only the first decimal separator counts.
   {
@@ -240,7 +271,14 @@ AmountFormatter::Edit AmountFormatter::formatRaw(std::vector<uint32_t> raw, int 
   }
 
   std::vector<uint32_t> formatted;
-  formatted.reserve(integer.size() + integer.size() / 3 + fraction.size() + 1);
+  formatted.reserve(integer.size() + integer.size() / 3 + fraction.size() + 2);
+  // Zero is never negative, and neither is an empty field.
+  const bool anyDigit = std::any_of(integer.begin(), integer.end(), isDigit) ||
+                        std::any_of(fraction.begin(), fraction.end(), isDigit);
+  const bool isZero = !std::any_of(integer.begin(), integer.end(), [](uint32_t c) { return c != '0'; }) &&
+                      !std::any_of(fraction.begin(), fraction.end(), [](uint32_t c) { return c != '0'; });
+  const bool signIt = negative && anyDigit && !isZero;
+  if (signIt) formatted.push_back('-');
   for (size_t i = 0; i < integer.size(); ++i) {
     if (grouping_ != 0 && i > 0 && (integer.size() - i) % 3 == 0) formatted.push_back(grouping_);
     formatted.push_back(integer[i]);
@@ -252,7 +290,8 @@ AmountFormatter::Edit AmountFormatter::formatRaw(std::vector<uint32_t> raw, int 
 
   const int rawCount = static_cast<int>(integer.size()) + (decimalAt >= 0 ? 1 : 0) + static_cast<int>(fraction.size());
   caret = std::clamp(caret, 0, rawCount);
-  int caretFormatted = 0;
+  // Never park the caret before the sign - a digit typed there would flip it.
+  int caretFormatted = signIt ? 1 : 0;
   if (caret > 0) {
     int seen = 0;
     caretFormatted = static_cast<int>(formatted.size());
@@ -270,32 +309,38 @@ AmountFormatter::Edit AmountFormatter::formatRaw(std::vector<uint32_t> raw, int 
 
 std::string AmountFormatter::format(double value) const {
   if (!std::isfinite(value)) return "";
+  const bool negative = std::signbit(value);
   char buffer[64];
   std::snprintf(buffer, sizeof(buffer), "%.*f", fractionDigits_, std::fabs(value));
   std::string text(buffer);
+  const char point = localeDecimalPoint();
   if (fractionDigits_ > 0) {
     while (!text.empty() && text.back() == '0') text.pop_back();
-    if (!text.empty() && text.back() == '.') text.pop_back();
+    if (!text.empty() && text.back() == point) text.pop_back();
   }
   std::vector<uint32_t> raw;
   for (char c : text) {
-    if (c == '.') raw.push_back(decimal_);
+    if (c == point) raw.push_back(decimal_);
     else raw.push_back(static_cast<uint32_t>(static_cast<unsigned char>(c)));
   }
   const int caret = static_cast<int>(raw.size());
-  return formatRaw(std::move(raw), caret, Rules{true, true, true}, "", 0).text;
+  return formatRaw(std::move(raw), caret, negative, Rules{true, true, true}, "", 0).text;
 }
 
 double AmountFormatter::value(const std::string& formatted) const {
-  const Raw raw = rawOf(decode(formatted), 0);
+  auto decoded = decode(formatted);
+  const bool negative = takeSign(decoded);
+  const Raw raw = rawOf(decoded, 0);
+  const char point = localeDecimalPoint();
   std::string plain;
   bool digits = false;
   for (uint32_t c : raw.chars) {
-    if (c == decimal_) plain.push_back('.');
+    if (c == decimal_) plain.push_back(point);
     else { plain.push_back(static_cast<char>(c)); digits = true; }
   }
   if (!digits) return std::nan("");
-  return std::strtod(plain.c_str(), nullptr);
+  const double magnitude = std::strtod(plain.c_str(), nullptr);
+  return negative ? -magnitude : magnitude;
 }
 
 } // namespace margelo::nitro::nitroinput

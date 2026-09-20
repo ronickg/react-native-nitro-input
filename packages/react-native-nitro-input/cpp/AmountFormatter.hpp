@@ -38,10 +38,11 @@ public:
   /// grouping separator removes the digit before it. Digits beyond
   /// `fractionDigits` / `maxIntegerDigits` reject the edit.
   Edit applyEdit(const std::string& current, int start, int end, const std::string& replacement) const;
-  /// Formats arbitrary text (e.g. a `text` prop): keeps digits and the first
-  /// decimal, truncates instead of rejecting. Caret at the end.
+  /// Formats arbitrary text (e.g. a `text` prop): keeps a leading sign, digits
+  /// and the first decimal, truncates instead of rejecting. Caret at the end.
   Edit normalize(const std::string& text) const;
-  /// Formats a value with up to `fractionDigits` (no trailing zeros). NaN → "".
+  /// Formats a value with up to `fractionDigits` (no trailing zeros), keeping
+  /// a negative sign. Non-finite → "".
   std::string format(double value) const;
   /// The numeric value of formatted text; NaN when there are no digits.
   double value(const std::string& formatted) const;
@@ -71,7 +72,12 @@ private:
     /// ".5" becomes "0.5" (formatted values); while typing it stays ".5".
     bool leadingZero;
   };
-  Edit formatRaw(std::vector<uint32_t> raw, int caret, Rules rules, const std::string& fallback, int fallbackCaret) const;
+  /// `negative` prepends a sign to the result. A value that formats to zero
+  /// never keeps one, so "-0" is impossible.
+  Edit formatRaw(std::vector<uint32_t> raw, int caret, bool negative, Rules rules, const std::string& fallback,
+                 int fallbackCaret) const;
+  /// A leading '-' in `text`, removed from it.
+  static bool takeSign(std::vector<uint32_t>& text);
 
   int fractionDigits_ = 2;
   int maxIntegerDigits_ = 15;
