@@ -21,3 +21,9 @@ raw/
 scripts/iosrec/IosRec.app/Contents/MacOS/iosrec
 scripts/iosrec/IosRec.app/Contents/_CodeSignature/
 .argent/
+
+# Reference write-ups on *other* projects' internals (React Native's TextInput,
+# Nitro Modules, worklets, react-native-advanced-input-mask). Research notes,
+# not documentation of this library, so they are kept locally rather than
+# shipped and reviewed with it.
+*-INTERNALS.md
