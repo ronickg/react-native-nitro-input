@@ -835,7 +835,14 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         setValue: (next) => nativeRef.current?.setValue(next),
         getText: () => nativeRef.current?.currentText() ?? value ?? initialText,
         getValue: () => nativeRef.current?.getValue() ?? NaN,
-        isFocused: () => nativeRef.current?.isFocused() ?? false,
+        // The native view is the truth once there is one - it knows whether it
+        // actually holds first responder. Before it attaches, fall back to the
+        // registry this field already keeps up to date, which is the same place
+        // `TextInput.isFocused()` reads from.
+        isFocused: () =>
+          nativeRef.current?.isFocused() ??
+          (registryKeyRef.current != null &&
+            textInputRegistry?.currentlyFocusedInput() === registryKeyRef.current),
         setSelection: (start: number, end?: number) =>
           nativeRef.current?.setSelection(start, end ?? start),
         get native() {
@@ -894,11 +901,27 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     const resolvedShowSoftInput =
       showSoftInputOnFocus ?? (inputMode != null ? inputMode !== 'none' : true)
 
+    // React Native resolves its HTML-flavoured aliases inside its own
+    // components; a Nitro view is handed the raw props, so `aria-label` and
+    // `id` would arrive unresolved and be dropped by the C++ parser. Both take
+    // precedence over the older spelling, as they do on a `TextInput`.
+    //
     // The label goes on the hidden field (below), so leaving it on the host as
     // well would put the same label on two accessibility elements. `testID`
     // stays on the host too: it makes no accessibility element of its own, and
     // a test that already queries the host must keep working.
-    const { accessibilityLabel, ...hostViewProps } = viewProps
+    const {
+      accessibilityLabel,
+      'aria-label': ariaLabel,
+      id,
+      nativeID,
+      ...restViewProps
+    } = viewProps as typeof viewProps & { 'aria-label'?: string }
+    const resolvedAccessibilityLabel = ariaLabel ?? accessibilityLabel
+    const resolvedNativeID = id ?? nativeID
+    // Added only when there is one: a native prop is never sent `undefined`.
+    const hostViewProps =
+      resolvedNativeID != null ? { ...restViewProps, nativeID: resolvedNativeID } : restViewProps
 
     const autoSize = useMemo(
       () =>
@@ -977,7 +1000,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         scrollEnabled={scrollEnabled ?? true}
         autoFocus={autoFocus ?? false}
         fieldTestID={viewProps.testID ?? ''}
-        fieldAccessibilityLabel={accessibilityLabel ?? ''}
+        fieldAccessibilityLabel={resolvedAccessibilityLabel ?? ''}
         submitBehavior={submitBehavior ?? (blurOnSubmit === false ? 'submit' : 'blurAndSubmit')}
         secureTextEntry={secureTextEntry ?? false}
         keyboardAppearance={keyboardAppearance ?? 'default'}
