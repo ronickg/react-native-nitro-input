@@ -320,6 +320,12 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.fontSize.hasSameValue(oldViewProps->fontSize)) {
       swiftPart.setFontSize(newViewProps.fontSize.get());
     }
+    // lineHeight: number
+    if (oldViewProps == nullptr
+          ? newViewProps.lineHeight.isProvided()
+          : !newViewProps.lineHeight.hasSameValue(oldViewProps->lineHeight)) {
+      swiftPart.setLineHeight(newViewProps.lineHeight.get());
+    }
     // fontWeight: number
     if (oldViewProps == nullptr
           ? newViewProps.fontWeight.isProvided()

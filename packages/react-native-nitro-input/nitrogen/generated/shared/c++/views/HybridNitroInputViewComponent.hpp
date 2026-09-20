@@ -95,6 +95,7 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<double> bounce;
     nitro::ReactProp<NitroInputEffect> effect;
     nitro::ReactProp<double> fontSize;
+    nitro::ReactProp<double> lineHeight;
     nitro::ReactProp<double> fontWeight;
     nitro::ReactProp<std::string> fontFamily;
     nitro::ReactProp<double> color;
@@ -184,6 +185,7 @@ namespace margelo::nitro::nitroinput::views {
              bounce.hasSameValue(other.bounce) &&
              effect.hasSameValue(other.effect) &&
              fontSize.hasSameValue(other.fontSize) &&
+             lineHeight.hasSameValue(other.lineHeight) &&
              fontWeight.hasSameValue(other.fontWeight) &&
              fontFamily.hasSameValue(other.fontFamily) &&
              color.hasSameValue(other.color) &&
@@ -274,6 +276,7 @@ namespace margelo::nitro::nitroinput::views {
              bounce.isProvided() ||
              effect.isProvided() ||
              fontSize.isProvided() ||
+             lineHeight.isProvided() ||
              fontWeight.isProvided() ||
              fontFamily.isProvided() ||
              color.isProvided() ||

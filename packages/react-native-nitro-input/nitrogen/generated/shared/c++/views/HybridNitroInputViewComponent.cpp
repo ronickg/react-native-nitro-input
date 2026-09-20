@@ -57,6 +57,7 @@ namespace margelo::nitro::nitroinput::views {
     bounce(nitro::ReactProp<double>::fromRawValue("NitroInputView", "bounce", rawProps, sourceProps.bounce)),
     effect(nitro::ReactProp<NitroInputEffect>::fromRawValue("NitroInputView", "effect", rawProps, sourceProps.effect)),
     fontSize(nitro::ReactProp<double>::fromRawValue("NitroInputView", "fontSize", rawProps, sourceProps.fontSize)),
+    lineHeight(nitro::ReactProp<double>::fromRawValue("NitroInputView", "lineHeight", rawProps, sourceProps.lineHeight)),
     fontWeight(nitro::ReactProp<double>::fromRawValue("NitroInputView", "fontWeight", rawProps, sourceProps.fontWeight)),
     fontFamily(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "fontFamily", rawProps, sourceProps.fontFamily)),
     color(nitro::ReactProp<double>::fromRawValue("NitroInputView", "color", rawProps, sourceProps.color)),
@@ -146,6 +147,7 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("bounce"): return true;
       case hashString("effect"): return true;
       case hashString("fontSize"): return true;
+      case hashString("lineHeight"): return true;
       case hashString("fontWeight"): return true;
       case hashString("fontFamily"): return true;
       case hashString("color"): return true;

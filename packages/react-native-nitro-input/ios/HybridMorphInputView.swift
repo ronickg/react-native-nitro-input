@@ -113,6 +113,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var bounce: Double = 0.15 { didSet { markConfigDirty() } }
   var effect: NitroInputEffect = .auto { didSet { markConfigDirty() } }
   var fontSize: Double = 32 { didSet { markConfigDirty() } }
+  var lineHeight: Double = 0 { didSet { markConfigDirty() } }
   var fontWeight: Double = 400 { didSet { markConfigDirty() } }
   var fontFamily: String = "" { didSet { markConfigDirty() } }
   var color: Double = .nan { didSet { markConfigDirty() } }
@@ -129,6 +130,10 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var autoCapitalize: NitroInputAutoCapitalize = .sentences { didSet { markConfigDirty() } }
   var autoCorrect: Bool = true { didSet { markConfigDirty() } }
   var editable: Bool = true { didSet { markConfigDirty() } }
+  var multiline: Bool = false { didSet { markConfigDirty() } }
+  var numberOfLines: Double = 0 { didSet { markConfigDirty() } }
+  var textAlignVertical: NitroInputTextAlignVertical = .auto { didSet { markConfigDirty() } }
+  var scrollEnabled: Bool = true { didSet { markConfigDirty() } }
   var autoFocus: Bool = false { didSet { markConfigDirty() } }
   var fieldTestID: String = "" { didSet { markConfigDirty() } }
   var fieldAccessibilityLabel: String = "" { didSet { markConfigDirty() } }
@@ -279,6 +284,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     bounce = 0.15
     effect = .auto
     fontSize = 32
+    lineHeight = 0
     fontWeight = 400
     fontFamily = ""
     color = .nan
@@ -295,6 +301,10 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     autoCapitalize = .sentences
     autoCorrect = true
     editable = true
+    multiline = false
+    numberOfLines = 0
+    textAlignVertical = .auto
+    scrollEnabled = true
     autoFocus = false
     fieldTestID = ""
     fieldAccessibilityLabel = ""
@@ -458,6 +468,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
 
     var typography = NitroInputView.Typography()
     typography.fontSize = CGFloat(fontSize.isFinite && fontSize > 0 ? fontSize : 32)
+    typography.lineHeight = CGFloat(lineHeight.isFinite && lineHeight > 0 ? lineHeight : 0)
     typography.prefixFontSize = prefixFontSize.isFinite && prefixFontSize > 0 ? CGFloat(prefixFontSize) : nil
     typography.suffixFontSize = suffixFontSize.isFinite && suffixFontSize > 0 ? CGFloat(suffixFontSize) : nil
     typography.fontWeight = CGFloat(fontWeight.isFinite ? fontWeight : 400)
@@ -483,6 +494,15 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     traits.autocapitalization = Self.mapAutoCapitalize(autoCapitalize)
     traits.autocorrect = autoCorrect
     traits.editable = editable
+    traits.multiline = multiline
+    traits.numberOfLines = numberOfLines.isFinite ? max(0, Int(numberOfLines)) : 0
+    traits.textAlignVertical = switch textAlignVertical {
+      case .top: .top
+      case .center: .center
+      case .bottom: .bottom
+      case .auto: .auto
+    }
+    traits.scrollEnabled = scrollEnabled
     traits.autoFocus = autoFocus
     traits.caretHidden = caretHidden
     traits.caretColor = Self.color(fromARGB: caretColor)

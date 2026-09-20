@@ -345,6 +345,12 @@ namespace margelo::nitro::nitroinput {
     inline void setFontSize(double fontSize) noexcept override {
       _swiftPart.setFontSize(std::forward<decltype(fontSize)>(fontSize));
     }
+    inline double getLineHeight() noexcept override {
+      return _swiftPart.getLineHeight();
+    }
+    inline void setLineHeight(double lineHeight) noexcept override {
+      _swiftPart.setLineHeight(std::forward<decltype(lineHeight)>(lineHeight));
+    }
     inline double getFontWeight() noexcept override {
       return _swiftPart.getFontWeight();
     }

@@ -534,6 +534,17 @@ open class HybridNitroInputViewSpec_cxx {
     }
   }
   
+  public final var lineHeight: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.lineHeight
+    }
+    @inline(__always)
+    set {
+      self.__implementation.lineHeight = newValue
+    }
+  }
+  
   public final var fontWeight: Double {
     @inline(__always)
     get {

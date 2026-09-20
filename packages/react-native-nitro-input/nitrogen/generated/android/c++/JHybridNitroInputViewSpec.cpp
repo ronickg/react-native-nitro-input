@@ -457,6 +457,15 @@ namespace margelo::nitro::nitroinput {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* fontSize */)>("setFontSize");
     method(_javaPart, fontSize);
   }
+  double JHybridNitroInputViewSpec::getLineHeight() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getLineHeight");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setLineHeight(double lineHeight) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* lineHeight */)>("setLineHeight");
+    method(_javaPart, lineHeight);
+  }
   double JHybridNitroInputViewSpec::getFontWeight() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getFontWeight");
     auto __result = method(_javaPart);

@@ -162,6 +162,8 @@ namespace margelo::nitro::nitroinput {
       virtual void setEffect(NitroInputEffect effect) = 0;
       virtual double getFontSize() = 0;
       virtual void setFontSize(double fontSize) = 0;
+      virtual double getLineHeight() = 0;
+      virtual void setLineHeight(double lineHeight) = 0;
       virtual double getFontWeight() = 0;
       virtual void setFontWeight(double fontWeight) = 0;
       virtual std::string getFontFamily() = 0;

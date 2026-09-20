@@ -124,6 +124,8 @@ namespace margelo::nitro::nitroinput {
     void setEffect(NitroInputEffect effect) override;
     double getFontSize() override;
     void setFontSize(double fontSize) override;
+    double getLineHeight() override;
+    void setLineHeight(double lineHeight) override;
     double getFontWeight() override;
     void setFontWeight(double fontWeight) override;
     std::string getFontFamily() override;

@@ -218,6 +218,19 @@ export interface NitroInputProps extends HybridViewProps {
   effect: NitroInputEffect
   /** Font size of the text in points. Default: `32`. */
   fontSize: number
+  /**
+   * Height of the line box in points — the CSS meaning: the total height a
+   * line occupies, not extra leading. `0` (the default) uses the font's own.
+   *
+   * Both platforms add the difference *above* the line, so the glyphs have to
+   * be nudged back down by half of it or they ride high in the box. We apply
+   * that whatever the value, including a line height *tighter* than the font —
+   * which is the case React Native skips
+   * (`RCTApplyBaselineOffsetForRange` returns early when
+   * `lineHeight < font.lineHeight`), and the reason a compressed `lineHeight`
+   * renders off-centre on a `TextInput`.
+   */
+  lineHeight: number
   /** Numeric font weight, `100`–`900`. Default: `400`. */
   fontWeight: number
   /** Font family name; empty = system font. */

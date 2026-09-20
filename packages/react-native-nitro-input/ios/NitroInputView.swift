@@ -62,6 +62,8 @@ final class NitroInputView: UIView {
     var maxLength: Int = 0
   }
 
+  enum TextAlignVertical: Equatable { case auto, top, center, bottom }
+
   enum AffixAlign {
     case baseline, center, top, bottom
   }
@@ -90,6 +92,8 @@ final class NitroInputView: UIView {
 
   struct Typography: Hashable {
     var fontSize: CGFloat = 32
+    /// Line box height in points; 0 uses the font's own.
+    var lineHeight: CGFloat = 0
     var prefixFontSize: CGFloat? = nil
     var suffixFontSize: CGFloat? = nil
     var fontWeight: CGFloat = 400
@@ -121,6 +125,14 @@ final class NitroInputView: UIView {
     var autocorrect: Bool = true
     var editable: Bool = true
     var autoFocus: Bool = false
+    /// Wrapping field. Always plain and always text - the JS side drops
+    /// `morph` and any non-text mode first - so the glyph engine, which lays
+    /// one run out on one baseline, never has to deal with a wrapped one.
+    var multiline: Bool = false
+    /// Lines before it scrolls; 0 grows with the content.
+    var numberOfLines: Int = 0
+    var textAlignVertical: TextAlignVertical = .auto
+    var scrollEnabled: Bool = true
     var caretHidden: Bool = false
     var caretColor: UIColor? = nil
     var selectionColor: UIColor? = nil
@@ -177,6 +189,9 @@ final class NitroInputView: UIView {
       guard typography != oldValue else { return }
       rebuildFonts()
       if inputFrame.draws { layoutFrame(animated: false) }
+      // A multiline box is `lineHeight` tall per line, so its height follows
+      // the line box even when the text itself has not changed.
+      if typography.lineHeight != oldValue.lineHeight { reportIntrinsicSize() }
     }
   }
 
@@ -192,6 +207,14 @@ final class NitroInputView: UIView {
     didSet {
       guard traits != oldValue else { return }
       applyTraits()
+      // Nothing else re-measures when a field turns multiline or changes how
+      // many lines it may be: the text is unchanged, so no edit comes through
+      // to carry a new height out with it.
+      if traits.multiline != oldValue.multiline
+        || traits.numberOfLines != oldValue.numberOfLines
+        || traits.scrollEnabled != oldValue.scrollEnabled {
+        reportIntrinsicSize()
+      }
     }
   }
 
@@ -227,13 +250,25 @@ final class NitroInputView: UIView {
   var onIntrinsicSizeChange: ((CGSize) -> Void)?
 
   /// The field's current (formatted) text.
-  var text: String { field.text ?? "" }
+  /// Whichever backing view is currently the editor: the text view when the
+  /// field wraps, the text field otherwise.
+  fileprivate var editor: UIView {
+    if traits.multiline, didBuildTextView { return textView }
+    return field
+  }
+
+  /// The text, from whichever backing view is showing. A multiline field is
+  /// drawn by the text view, so that is where its text lives.
+  var text: String {
+    if traits.multiline, didBuildTextView { return textView.text ?? "" }
+    return field.text ?? ""
+  }
   /// Numeric value of the text: NaN in text mode or when there are no digits.
   var value: Double {
     guard format.mode == .number else { return .nan }
     return formatter.value(std.string(text))
   }
-  var hasFocus: Bool { field.isFirstResponder }
+  var hasFocus: Bool { editor.isFirstResponder }
   /// Incremented on every native text change JS has not caused itself.
   private(set) var eventCount = 0
 
@@ -449,6 +484,24 @@ final class NitroInputView: UIView {
   private var isSettingText = false
 
   fileprivate let field = HiddenTextField()
+  /// Built the first time `multiline` is set, so a single-line field never
+  /// pays for it.
+  fileprivate lazy var textView: HiddenTextView = {
+    let view = HiddenTextView()
+    view.owner = self
+    view.delegate = self
+    view.backgroundColor = .clear
+    view.textContainer.lineFragmentPadding = 0
+    view.textContainerInset = .zero
+    view.contentInsetAdjustmentBehavior = .never
+    view.isHidden = true
+    insertSubview(view, aboveSubview: field)
+    return view
+  }()
+  /// True once `textView` has been built; reading the lazy var would build it.
+  private var didBuildTextView = false
+  /// The width the multiline height was last measured against.
+  private var lastMeasuredWidth: CGFloat = 0
   /// Scaled and aligned container for the content (font space).
   private let contentLayer = CALayer()
   /// Clips glyphs to the line box, extended sideways so glyphs sliding in the
@@ -576,6 +629,14 @@ final class NitroInputView: UIView {
   override func layoutSubviews() {
     super.layoutSubviews()
     field.frame = bounds
+    if didBuildTextView { textView.frame = bounds }
+    // Where the text wraps - and so how tall the box is - depends on the width,
+    // and layout is the first thing to know it. Measuring from inside the pass
+    // would re-enter it, so the report goes out after this one lands.
+    if traits.multiline, bounds.width != lastMeasuredWidth {
+      lastMeasuredWidth = bounds.width
+      DispatchQueue.main.async { [weak self] in self?.reportIntrinsicSize() }
+    }
     // UIKit makes the field first responder - and lays us out for the keyboard
     // - before it calls the delegate, so this pass is usually the first to see
     // the label needing to float. If it committed the move without animating,
@@ -611,10 +672,10 @@ final class NitroInputView: UIView {
   private func maybeAutoFocus() {
     guard window != nil, traits.autoFocus, traits.editable, !didAutoFocus else { return }
     didAutoFocus = true
-    if field.becomeFirstResponder() { return }
+    if editor.becomeFirstResponder() { return }
     DispatchQueue.main.async { [weak self] in
       guard let self, self.window != nil else { return }
-      self.field.becomeFirstResponder()
+      self.editor.becomeFirstResponder()
     }
   }
 
@@ -632,7 +693,7 @@ final class NitroInputView: UIView {
   /// element (`RecyclableView`). Props are re-applied by Nitro afterwards.
   func resetForRecycle() {
     worklets = Worklets()
-    if field.isFirstResponder { field.resignFirstResponder() }
+    if editor.isFirstResponder { editor.resignFirstResponder() }
     stopDisplayLink()
     stopBlink()
     engine.reset()
@@ -664,11 +725,11 @@ final class NitroInputView: UIView {
 
   func focus() {
     guard traits.editable else { return }
-    field.becomeFirstResponder()
+    editor.becomeFirstResponder()
   }
 
   func blur() {
-    field.resignFirstResponder()
+    editor.resignFirstResponder()
   }
 
   /// Moves the caret/selection to `start`..`end`, in code points.
@@ -707,6 +768,12 @@ final class NitroInputView: UIView {
     // empty) text and its placeholder to draw.
     guard normalized != text || !engine.hasText() else { return false }
     isSettingText = true
+    if traits.multiline, didBuildTextView {
+      // Multiline holds its own text; the formatter is single-line by
+      // definition, so `normalized` is just the text itself here.
+      if textView.text != normalized { textView.text = normalized }
+      applyTextViewTypography()
+    }
     field.text = normalized
     field.selectedTextRange = field.textRange(from: field.endOfDocument, to: field.endOfDocument)
     isSettingText = false
@@ -809,6 +876,7 @@ final class NitroInputView: UIView {
     attributes[.foregroundColor] = traits.plain ? typography.color : UIColor.clear
     field.defaultTextAttributes = attributes
     updateFieldInsets()
+    applyTextViewTypography()
   }
 
   /// In morph mode the overlay draws the prefix and suffix, so the field only
@@ -851,7 +919,144 @@ final class NitroInputView: UIView {
     affix.unicodeScalars.reduce(CGFloat(0)) { $0 + fonts.width(of: String($1), role: role) }
   }
 
+  /// Swaps which backing view is showing, and mirrors onto the text view the
+  /// settings that matter to it. Everything the single-line path does is left
+  /// alone: a field that never sets `multiline` never builds the text view and
+  /// never takes this branch.
+  private func applyMultiline() {
+    guard traits.multiline || didBuildTextView else { return }
+    didBuildTextView = true
+    let on = traits.multiline
+    textView.isHidden = !on
+    textView.isUserInteractionEnabled = on && traits.editable
+    field.isHidden = on
+    field.isUserInteractionEnabled = !on && traits.editable
+    guard on else { return }
+
+    textView.frame = bounds
+    textView.keyboardType = traits.keyboardType
+    textView.returnKeyType = traits.returnKeyType
+    textView.autocapitalizationType = traits.autocapitalization
+    textView.autocorrectionType = traits.autocorrect ? .yes : .no
+    textView.spellCheckingType = traits.spellCheck ? .yes : .no
+    textView.isEditable = traits.editable
+    textView.isSelectable = true
+    textView.keyboardAppearance = traits.keyboardAppearance
+    textView.textContentType = traits.textContentType
+    textView.isSecureTextEntry = traits.secureTextEntry
+    textView.showSoftInputOnFocus = traits.showSoftInputOnFocus
+    textView.tintColor = traits.caretColor ?? traits.selectionColor
+    textView.hidesNativeCaret = traits.caretHidden
+    textView.isScrollEnabled = traits.scrollEnabled
+    textView.textAlignment = Self.textAlignment(for: alignment)
+    textView.inputAccessoryView = field.inputAccessoryView
+    applyTextViewTypography()
+    // `multiline` forces plain on the JS side, so the overlay is already off;
+    // the text view carries the real text from here on.
+    if textView.text != text { textView.text = text }
+  }
+
+  /// Font, colour, and the line box. `UITextView` stacks any extra leading
+  /// above the line, so the glyphs are pushed back down by half of it -
+  /// including when the line box is *tighter* than the font, which is the case
+  /// `RCTApplyBaselineOffsetForRange` returns early on.
+  private func applyTextViewTypography() {
+    guard didBuildTextView else { return }
+    let font = fonts.font(for: .body)
+    textView.font = font
+    textView.textColor = typography.color
+    textView.placeholder = effectivePlaceholder
+    textView.placeholderColor = typography.placeholderColor
+
+    var attributes: [NSAttributedString.Key: Any] = [.font: font]
+    attributes[.foregroundColor] = typography.color
+    let style = NSMutableParagraphStyle()
+    style.alignment = Self.textAlignment(for: alignment)
+    if typography.lineHeight > 0 {
+      // TextKit gives a line fragment one ascent, and it is the font's however
+      // tall the fragment is told to be, so neither direction centres itself.
+      let extra = typography.lineHeight - font.lineHeight
+      if extra >= 0 {
+        // Looser: `maximumLineHeight` would make the fragment taller and leave
+        // the glyphs sitting at the top of it. Putting the room *between* the
+        // lines instead keeps the pitch exactly `lineHeight`, and half of it
+        // above the first line (`lineBoxPadding`) centres every glyph in its
+        // own box.
+        style.lineSpacing = extra
+      } else {
+        // Tighter - the case `RCTApplyBaselineOffsetForRange` returns early on,
+        // which is why a compressed `lineHeight` rides off-centre on a
+        // `TextInput`. Compressing the fragment clips it from the top (TextKit
+        // keeps the descender and drops the baseline to `lineHeight` less it),
+        // so the text rides high by half of what was taken away. `.baselineOffset`
+        // is the wrong lever for it: it comes out of the fragment TextKit just
+        // sized, which drags the pitch down with it - 14 measured 12 - so the
+        // correction goes on the container inset, where the pitch cannot see it.
+        style.minimumLineHeight = typography.lineHeight
+        style.maximumLineHeight = typography.lineHeight
+      }
+    }
+    attributes[.paragraphStyle] = style
+    textView.typingAttributes = attributes
+    if !textView.text.isEmpty {
+      let selected = textView.selectedRange
+      textView.attributedText = NSAttributedString(string: textView.text, attributes: attributes)
+      textView.selectedRange = selected
+    }
+    applyTextViewInsets()
+    textView.setNeedsDisplay()
+  }
+
+  /// How far the text as a whole has to come down to sit in the middle of its
+  /// line boxes. Loose: the first line needs the room the others got below them
+  /// as `lineSpacing`. Tight: it has to make up what compressing the fragment
+  /// clipped off the top. Both are the same for every line, so one inset does
+  /// it - and both are half the difference, which is why the sign does not
+  /// reach this far. What differs is where the other half goes, which is
+  /// `lineBoxTrailing`.
+  private var lineBoxPadding: CGFloat {
+    guard typography.lineHeight > 0 else { return 0 }
+    return abs(typography.lineHeight - fonts.font(for: .body).lineHeight) / 2
+  }
+
+  /// The other half: room *added* below a loose box, room *taken back* from a
+  /// tight one - so the text view's content is exactly the height the field
+  /// reports either way, and a box showing all its lines cannot be scrolled.
+  private var lineBoxTrailing: CGFloat {
+    guard typography.lineHeight > 0 else { return 0 }
+    return typography.lineHeight >= fonts.font(for: .body).lineHeight ? lineBoxPadding : -lineBoxPadding
+  }
+
+  /// The room a framed multiline field keeps above and below its text. It has
+  /// to carry its own: the single-line path is centred inside whatever height
+  /// the caller gives it, whereas this one reports its own height, so nothing
+  /// else is going to put space between the text and the stroke.
+  private var frameVerticalInset: (top: CGFloat, bottom: CGFloat) {
+    guard inputFrame.draws else { return (0, 0) }
+    let side = frameSideInset
+    // An outlined field's floated label straddles the top stroke, so half of it
+    // hangs back into the box. `frameTopInset` discounts that on purpose - a
+    // single line is centred, far below it - but a multiline field's first line
+    // starts at the top, exactly where the label is, so here it has to be paid.
+    let overhang = inputFrame.hasLabel && inputFrame.variant != .filled ? floatedLabelSize / 2 : 0
+    return (side + frameTopInset + overhang, side)
+  }
+
+  /// A framed multiline field has to carry its own padding. The single-line
+  /// path never needed one: it is centred inside whatever height the caller
+  /// gives it, whereas this one reports its own height, so nothing else is
+  /// going to put room between the text and the stroke.
+  private func applyTextViewInsets() {
+    guard didBuildTextView else { return }
+    let frame = frameVerticalInset
+    textView.textContainerInset = UIEdgeInsets(top: frame.top + lineBoxPadding,
+                                               left: frameSideInset,
+                                               bottom: frame.bottom + lineBoxTrailing,
+                                               right: frameSideInset)
+  }
+
   private func applyTraits() {
+    applyMultiline()
     field.keyboardType = traits.keyboardType
     field.returnKeyType = traits.returnKeyType
     field.isEnabled = traits.editable
@@ -875,8 +1080,8 @@ final class NitroInputView: UIView {
     syncAccessibilityFromHost()
     field.showSoftInputOnFocus = traits.showSoftInputOnFocus
     field.contextMenuHidden = traits.contextMenuHidden
-    if !traits.editable, field.isFirstResponder {
-      field.resignFirstResponder()
+    if !traits.editable, editor.isFirstResponder {
+      editor.resignFirstResponder()
     }
     applyKeyboardTraitsForMode()
     maybeAutoFocus()
@@ -941,8 +1146,8 @@ final class NitroInputView: UIView {
       field.smartQuotesType = .default
       field.smartDashesType = .default
     }
-    if field.isFirstResponder {
-      field.reloadInputViews()
+    if editor.isFirstResponder {
+      editor.reloadInputViews()
     }
   }
 
@@ -1160,8 +1365,40 @@ final class NitroInputView: UIView {
 
   // MARK: - Intrinsic size
 
+  /// One line, or - wrapping - as tall as the text is, capped by
+  /// `numberOfLines`. Asking for `numberOfLines` x the line box and getting
+  /// exactly that is the contract; the platforms differ on what they measure,
+  /// so neither is trusted with it.
+  private func intrinsicHeight() -> CGFloat {
+    guard traits.multiline else { return fonts.lineHeight }
+    let line = typography.lineHeight > 0 ? typography.lineHeight : fonts.lineHeight
+    // Only the frame's room is on top of the text. The rest of the text view's
+    // inset is `lineBoxPadding`, which is the *first* line's share of the
+    // leading - already inside the `lineHeight` each line is billed for.
+    let framePadding = frameVerticalInset.top + frameVerticalInset.bottom
+    // Before the first layout pass the width is 0, and `sizeThatFits` against
+    // it wraps every word onto its own line. `numberOfLines` is the better
+    // answer until there is a real width to wrap against.
+    guard didBuildTextView, bounds.width > 1 else {
+      return framePadding + line * CGFloat(max(1, traits.numberOfLines))
+    }
+    // `sizeThatFits` reports the insets too, and a loose line box spends its
+    // last line's leading on the bottom inset rather than on the line - so the
+    // count comes from the text alone, and the height is rebuilt from it.
+    let inset = textView.textContainerInset
+    let used = textView.sizeThatFits(CGSize(width: max(1, bounds.width),
+                                            height: .greatestFiniteMagnitude)).height
+      - inset.top - inset.bottom
+    let lines = max(1, Int((used / line).rounded(.up)))
+    // `numberOfLines` pins the box, it does not cap a growing one: asking for
+    // n lines and getting exactly n is the contract, and it is what Android's
+    // `intrinsicHeightPx` reports.
+    let capped = traits.numberOfLines > 0 ? traits.numberOfLines : lines
+    return framePadding + line * CGFloat(capped)
+  }
+
   private func reportIntrinsicSize() {
-    let size = CGSize(width: ceil(CGFloat(engine.targetWidth()) + 2), height: fonts.lineHeight)
+    let size = CGSize(width: ceil(CGFloat(engine.targetWidth()) + 2), height: intrinsicHeight())
     guard abs(size.width - lastReportedSize.width) > 0.01 || abs(size.height - lastReportedSize.height) > 0.01 else {
       pendingSizeReport = false
       return
@@ -1405,6 +1642,64 @@ final class NitroInputView: UIView {
   // MARK: - Hidden field
 
   /// The system field: invisible text, no caret, our insets, our hit mapping.
+  /**
+   A `UITextField` cannot wrap - there is no flag for it - so a multiline field
+   is a `UITextView` instead, the same split React Native makes between
+   `RCTUITextField` and `RCTUITextView`. It is created only when it is needed
+   and the single-line path is left exactly as it was.
+
+   `UITextView` has no placeholder of its own, so this draws one.
+   */
+  fileprivate final class HiddenTextView: UITextView {
+    weak var owner: NitroInputView?
+    var placeholder: String = "" { didSet { setNeedsDisplay() } }
+    var placeholderColor: UIColor = .placeholderText { didSet { setNeedsDisplay() } }
+
+    var showSoftInputOnFocus: Bool = true {
+      didSet {
+        guard showSoftInputOnFocus != oldValue else { return }
+        inputView = showSoftInputOnFocus ? nil : UIView(frame: .zero)
+        if isFirstResponder { reloadInputViews() }
+      }
+    }
+
+    override var text: String! {
+      didSet { setNeedsDisplay() }
+    }
+
+    override func caretRect(for position: UITextPosition) -> CGRect {
+      let rect = super.caretRect(for: position)
+      guard hidesNativeCaret else { return rect }
+      return CGRect(origin: rect.origin, size: .zero)
+    }
+
+    var hidesNativeCaret = false {
+      didSet { if hidesNativeCaret != oldValue { setNeedsDisplay() } }
+    }
+
+    /// The placeholder sits exactly where the first line of text will, so it
+    /// has to respect the same container inset and line fragment padding.
+    override func draw(_ rect: CGRect) {
+      super.draw(rect)
+      guard text.isEmpty, !placeholder.isEmpty else { return }
+      var attributes: [NSAttributedString.Key: Any] = [
+        .font: font ?? UIFont.systemFont(ofSize: UIFont.systemFontSize),
+        .foregroundColor: placeholderColor,
+      ]
+      if let style = typingAttributes[.paragraphStyle] { attributes[.paragraphStyle] = style }
+      if let offset = typingAttributes[.baselineOffset] { attributes[.baselineOffset] = offset }
+      let origin = CGPoint(
+        x: textContainerInset.left + textContainer.lineFragmentPadding,
+        y: textContainerInset.top
+      )
+      let width = bounds.width - origin.x - textContainerInset.right - textContainer.lineFragmentPadding
+      (placeholder as NSString).draw(
+        in: CGRect(x: origin.x, y: origin.y, width: max(0, width), height: bounds.height - origin.y),
+        withAttributes: attributes
+      )
+    }
+  }
+
   fileprivate final class HiddenTextField: UITextField {
     weak var owner: NitroInputView?
     var leftInset: CGFloat = 0
@@ -1528,6 +1823,35 @@ final class NitroInputView: UIView {
   }
 }
 
+// MARK: - UITextViewDelegate
+
+extension NitroInputView: UITextViewDelegate {
+  func textViewDidBeginEditing(_ textView: UITextView) {
+    textFieldDidBeginEditing(field)
+  }
+
+  func textViewDidEndEditing(_ textView: UITextView) {
+    textFieldDidEndEditing(field)
+  }
+
+  func textViewDidChange(_ textView: UITextView) {
+    // The text view owns the text here. `setText` runs it through the
+    // formatter, which is single-line by definition, so the multiline path
+    // reports what the view already holds instead.
+    guard !isSettingText else { return }
+    eventCount += 1
+    // Typing changes how many lines there are, so the height follows it.
+    reportIntrinsicSize()
+    if wantsFrameDrawing { layoutFrame(animated: true) }
+    onTextChange?(text, Double.nan, eventCount, .user)
+  }
+
+  func textViewDidChangeSelection(_ textView: UITextView) {
+    guard !isSettingText else { return }
+    reportSelection()
+  }
+}
+
 // MARK: - UITextFieldDelegate
 
 extension NitroInputView: UITextFieldDelegate {
@@ -1638,8 +1962,8 @@ extension NitroInputView: UITextFieldDelegate {
     } else if traits.selectTextOnFocus {
       // In the next runloop turn: UIKit sets its own selection as it begins.
       DispatchQueue.main.async { [weak self] in
-        guard let self, self.field.isFirstResponder else { return }
-        self.field.selectAll(nil)
+        guard let self, self.editor.isFirstResponder else { return }
+        self.editor.selectAll(nil)
       }
     }
     if contentOverflows { render() }
@@ -1732,7 +2056,7 @@ extension NitroInputView {
   private var labelShouldFloat: Bool {
     guard inputFrame.hasLabel else { return false }
     if inputFrame.labelBehavior == .always { return true }
-    return field.isFirstResponder || !text.isEmpty
+    return editor.isFirstResponder || !text.isEmpty
   }
 
   private var restingLabelFont: UIFont { fonts.font(for: .body) }
@@ -1745,12 +2069,12 @@ extension NitroInputView {
 
   private var resolvedOutlineColor: UIColor {
     let base = inputFrame.strokeColor ?? UIColor.separator
-    guard field.isFirstResponder else { return base }
+    guard editor.isFirstResponder else { return base }
     return inputFrame.focusedStrokeColor ?? base
   }
 
   private var resolvedLabelColor: UIColor {
-    if field.isFirstResponder {
+    if editor.isFirstResponder {
       return inputFrame.labelFocusedColor ?? inputFrame.focusedStrokeColor ?? typography.placeholderColor
     }
     return inputFrame.labelColor ?? typography.placeholderColor
@@ -1811,7 +2135,7 @@ extension NitroInputView {
     snapshot.bounds = bounds
     snapshot.progress = target
     snapshot.stroke = strokeWidthNow
-    snapshot.focused = field.isFirstResponder
+    snapshot.focused = editor.isFirstResponder
     snapshot.label = inputFrame.label
     snapshot.fontSize = restingLabelFont.pointSize
     snapshot.frame = inputFrame
@@ -1919,7 +2243,7 @@ extension NitroInputView {
   /// A focused outlined field draws a heavier line, as Material does.
   private var strokeWidthNow: CGFloat {
     guard inputFrame.draws else { return inputFrame.strokeWidth }
-    return field.isFirstResponder ? inputFrame.strokeWidth * 2 : inputFrame.strokeWidth
+    return editor.isFirstResponder ? inputFrame.strokeWidth * 2 : inputFrame.strokeWidth
   }
 
   /// Replays the shared geometry into a CGPath. The arcs are the same centre /

@@ -305,6 +305,15 @@ export interface NitroInputProps extends Omit<ViewProps, 'children'> {
   effect?: NitroInputEffect
   /** Font size in points. Default: `32`. */
   fontSize?: number
+  /**
+   * Height of the line box in points — the CSS meaning, the total height a
+   * line occupies rather than extra leading. Omit to use the font's own.
+   *
+   * Unlike `TextInput`, a line height *tighter* than the font is centred
+   * correctly too, and it applies to single-line and morphing fields, not only
+   * wrapped ones.
+   */
+  lineHeight?: number
   /** Font weight, like `Text`'s `fontWeight`. Default: `'normal'`. */
   fontWeight?: TextStyle['fontWeight']
   /** Font family name, like `Text`'s `fontFamily`. Defaults to the system font. */
@@ -552,6 +561,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       bounce,
       effect,
       fontSize,
+      lineHeight,
       fontWeight,
       fontFamily,
       color,
@@ -928,6 +938,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         bounce={bounce ?? 0.15}
         effect={effect ?? 'auto'}
         fontSize={resolvedFontSize}
+        lineHeight={Math.max(0, lineHeight ?? 0)}
         fontWeight={numericWeight}
         fontFamily={fontFamily ?? ''}
         color={processedColor}

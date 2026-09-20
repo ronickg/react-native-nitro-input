@@ -88,6 +88,8 @@ namespace margelo::nitro::nitroinput {
       prototype.registerHybridSetter("effect", &HybridNitroInputViewSpec::setEffect);
       prototype.registerHybridGetter("fontSize", &HybridNitroInputViewSpec::getFontSize);
       prototype.registerHybridSetter("fontSize", &HybridNitroInputViewSpec::setFontSize);
+      prototype.registerHybridGetter("lineHeight", &HybridNitroInputViewSpec::getLineHeight);
+      prototype.registerHybridSetter("lineHeight", &HybridNitroInputViewSpec::setLineHeight);
       prototype.registerHybridGetter("fontWeight", &HybridNitroInputViewSpec::getFontWeight);
       prototype.registerHybridSetter("fontWeight", &HybridNitroInputViewSpec::setFontWeight);
       prototype.registerHybridGetter("fontFamily", &HybridNitroInputViewSpec::getFontFamily);

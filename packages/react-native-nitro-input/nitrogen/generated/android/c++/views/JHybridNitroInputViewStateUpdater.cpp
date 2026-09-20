@@ -239,6 +239,11 @@ void JHybridNitroInputViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCla
     hybridView->setFontSize(newProps->fontSize.get());
   }
   if (oldProps == nullptr
+        ? newProps->lineHeight.isProvided()
+        : !newProps->lineHeight.hasSameValue(oldProps->lineHeight)) {
+    hybridView->setLineHeight(newProps->lineHeight.get());
+  }
+  if (oldProps == nullptr
         ? newProps->fontWeight.isProvided()
         : !newProps->fontWeight.hasSameValue(oldProps->fontWeight)) {
     hybridView->setFontWeight(newProps->fontWeight.get());

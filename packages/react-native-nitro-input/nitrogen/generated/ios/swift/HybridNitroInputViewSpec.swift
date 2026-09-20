@@ -47,6 +47,7 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   var bounce: Double { get set }
   var effect: NitroInputEffect { get set }
   var fontSize: Double { get set }
+  var lineHeight: Double { get set }
   var fontWeight: Double { get set }
   var fontFamily: String { get set }
   var color: Double { get set }

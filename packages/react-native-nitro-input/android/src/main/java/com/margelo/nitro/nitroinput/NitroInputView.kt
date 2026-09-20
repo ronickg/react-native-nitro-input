@@ -119,6 +119,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val minimumFontScale: Float = 0.5f,
     val allowFontScaling: Boolean = false,
     val maxFontSizeMultiplier: Float = 0f,
+    /** Line box height in px; `0` uses the font's own. */
+    val lineHeightPx: Float = 0f
   )
 
   data class Timing(
@@ -515,8 +517,17 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     private val prefixAlign = t.prefixAlign
     private val suffixAlign = t.suffixAlign
     private val bodyMetrics: Paint.FontMetrics = body.fontMetrics
-    /** Height of the line box (the body paint's line height), in px. */
-    val lineHeight: Float = ceil(bodyMetrics.descent - bodyMetrics.ascent)
+    /** The font's own line box, before any `lineHeight` override. */
+    val fontLineHeight: Float = ceil(bodyMetrics.descent - bodyMetrics.ascent)
+    /** Height of the line box in px: `lineHeight` when given, else the font's. */
+    val lineHeight: Float = if (t.lineHeightPx > 0f) t.lineHeightPx else fontLineHeight
+    /**
+     * How far to push the glyphs down inside the line box. The platform stacks
+     * the extra leading above the line, so without this the run rides high;
+     * with a line height *tighter* than the font it rides low, and the same
+     * halving corrects both. React Native skips the tighter case.
+     */
+    val baselineNudge: Float = (lineHeight - fontLineHeight) / 2f
     private val widthCaches = Array(3) { HashMap<Int, Float>() }
     private val capHeightCache = HashMap<Role, Float>()
     private val inkDescentCache = HashMap<String, Float>()
@@ -545,14 +556,18 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
     /** Baseline y for `role` drawing `text`, given the top of the body line box. */
     fun baseline(role: Role, text: String, lineTop: Float): Float {
-      val bodyBaseline = lineTop - bodyMetrics.ascent
+      // `baselineNudge` re-centres the run when `lineHeight` differs from the
+      // font's: the extra goes above the line, so the body sits that far lower.
+      // Everything pinned to the body follows it; `CENTER` does not, because it
+      // centres in the line box itself, which is already the new height.
+      val bodyBaseline = lineTop + baselineNudge - bodyMetrics.ascent
       if (role == Role.BODY) return bodyBaseline
       val p = paint(role)
       val m = p.fontMetrics
       return when (if (role == Role.PREFIX) prefixAlign else suffixAlign) {
         AffixAlign.BASELINE -> bodyBaseline
         AffixAlign.CENTER -> lineTop + (lineHeight - (m.descent - m.ascent)) / 2f - m.ascent
-        AffixAlign.TOP -> lineTop + (-bodyMetrics.ascent - capHeight(Role.BODY)) + capHeight(role)
+        AffixAlign.TOP -> bodyBaseline - capHeight(Role.BODY) + capHeight(role)
         // Pin the bottom of the ink, not of the line boxes: the digits' ink ends
         // on the baseline, so "USD" sits on it too instead of hanging down to
         // where a comma's tail reaches.
@@ -660,6 +675,12 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     // Not `setTextSize` directly: the platform ignores it while auto-sizing is
     // on, which would leave the auto-size bounds stale after a font change.
     applyAutoSize()
+    // TextViewCompat distributes the leading properly (and back-ports
+    // `setLineHeight` below API 28), so the plain path needs no nudge of its
+    // own - unlike the overlay, which positions its own glyphs.
+    if (typography.lineHeightPx > 0f) {
+      TextViewCompat.setLineHeight(editText, typography.lineHeightPx.roundToInt())
+    }
     // An outlined or filled frame reserves room at the sides for its stroke and
     // at the top for the floated label. Only the top is padded, not the bottom,
     // so the centred text actually moves down rather than staying put.
@@ -1371,8 +1392,16 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     } else {
       layout.lineCount.coerceAtLeast(1)
     }
-    val text = if (lines == layout.lineCount) layout.height.toFloat()
-               else fonts.lineHeight * lines
+    // With an explicit line height, compute the box rather than trusting
+    // `layout.height`: StaticLayout does not add the extra leading after the
+    // final line, so three lines at 34 measured 97.7dp instead of 102. Asking
+    // for `numberOfLines` x `lineHeight` and getting it is the contract worth
+    // having, and it keeps the two platforms agreeing.
+    val text = when {
+      typography.lineHeightPx > 0f -> fonts.lineHeight * lines
+      lines == layout.lineCount -> layout.height.toFloat()
+      else -> fonts.lineHeight * lines
+    }
     return text + editText.paddingTop + editText.paddingBottom
   }
 

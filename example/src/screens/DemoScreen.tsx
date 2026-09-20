@@ -611,6 +611,33 @@ function MorphInputDemo() {
         <Text style={styles.morphReadout} testID="morph-multiline-readout">
           multiline {JSON.stringify(multilineText)}
         </Text>
+        {/* lineHeight, both directions. 34 is looser than the font's own line
+            box at 15pt, 14 is tighter — the case RN's correction skips, which
+            is why a compressed lineHeight rides off-centre on a TextInput. */}
+        <NitroInput
+          testID="morph-lineheight-loose"
+          multiline
+          numberOfLines={3}
+          lineHeight={34}
+          variant="outlined"
+          label="lineHeight 34 (loose)"
+          fontSize={15}
+          strokeColor="#94a3b8"
+          cornerRadius={10}
+          defaultValue={'One line\nTwo lines\nThree lines'}
+        />
+        <NitroInput
+          testID="morph-lineheight-tight"
+          multiline
+          numberOfLines={3}
+          lineHeight={14}
+          variant="outlined"
+          label="lineHeight 14 (tight)"
+          fontSize={15}
+          strokeColor="#94a3b8"
+          cornerRadius={10}
+          defaultValue={'One line\nTwo lines\nThree lines'}
+        />
       </View>
       <Text style={styles.morphReadout} testID="morph-outlined-readout">
         outlined "{outlinedText}"

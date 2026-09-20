@@ -135,6 +135,8 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     set(v) { field = v; markConfigDirty() }
   override var fontSize: Double = 32.0
     set(v) { field = v; markConfigDirty() }
+  override var lineHeight: Double = 0.0
+    set(v) { field = v; markConfigDirty() }
   override var fontWeight: Double = 400.0
     set(v) { field = v; markConfigDirty() }
   override var fontFamily: String = ""
@@ -328,6 +330,7 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     bounce = 0.15
     effect = NitroInputEffect.AUTO
     fontSize = 32.0
+    lineHeight = 0.0
     fontWeight = 400.0
     fontFamily = ""
     color = Double.NaN
@@ -493,6 +496,7 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     )
     inputView.typography = NitroInputView.Typography(
       fontSize = size,
+      lineHeightPx = (Math.max(0.0, finite(lineHeight, 0.0)) * inputView.resources.displayMetrics.density).toFloat(),
       prefixFontSize = finite(prefixFontSize, size.toDouble()).toFloat(),
       suffixFontSize = finite(suffixFontSize, size.toDouble()).toFloat(),
       fontWeight = clampInt(fontWeight, 100, 900, 400),

@@ -41,6 +41,7 @@
     "bounce": true,
     "effect": true,
     "fontSize": true,
+    "lineHeight": true,
     "fontWeight": true,
     "fontFamily": true,
     "color": true,
