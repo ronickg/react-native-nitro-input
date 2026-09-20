@@ -1,16 +1,30 @@
 # react-native-nitro-input
 
-A native single-line **text and amount input** for React Native whose text
-**morphs** as you type, built with [Nitro Modules](https://nitro.margelo.com).
-The effect is [Torph](https://torph.lochie.me)'s text continuity, native:
-characters that stay glide to their new place, new ones slide or fade in,
-removed ones leave alongside their neighbours, and a comma that reflows travels
-to where it now belongs instead of blinking into existence.
+A native single-line **text input** for React Native, built with
+[Nitro Modules](https://nitro.margelo.com). `NitroInput` is the component: a
+system text field (`UITextField` / `EditText`) that owns the keyboard, editing,
+selection, paste and accessibility, with native formatting, native masking and
+a Material-style outlined or filled frame on top of it.
 
-- **It is a real input.** A system text field (`UITextField` / `EditText`)
-  owns the keyboard, editing, selection, paste and accessibility; only its
-  glyphs are drawn by the morph layer on top. Focus, blur, return key, keyboard
-  types, auto-capitalisation, max length, all the usual.
+```tsx
+import { NitroInput } from 'react-native-nitro-input'
+
+<NitroInput variant="outlined" label="Email address" keyboardType="email-address" />
+```
+
+`MorphInput` is the same component with `morph` on, for the one case
+where animating the characters is the point — an amount. It is not the default,
+and for an ordinary form field you do not want it.
+
+- **It is a real input.** Focus, blur, return key, keyboard types,
+  auto-capitalisation, max length, selection, the text-input registry, all the
+  usual. Not a re-implementation of text editing.
+- **Masks are native.** `mode="mask"` compiles the pattern once into a state
+  machine in C++ and applies it below the keystroke — no JS round trip, no
+  caret fighting.
+- **The outlined frame's notch is a real hole** in the stroked path, not
+  background paint over the line, so whatever is behind the field shows through
+  it. No Skia.
 - **Amounts are formatted natively as you type.** In `mode="number"` every
   keystroke is formatted on the native side before the field shows a frame:
   grouping separators, one decimal separator, at most `fractionDigits`
@@ -20,9 +34,9 @@ to where it now belongs instead of blinking into existence.
 - **Same formatting model as [`react-native-nitro-rolling-number`](https://www.npmjs.com/package/react-native-nitro-rolling-number)**:
   prefix/suffix at their own font sizes, pinned to the top, bottom, baseline or
   centre of the digits; grouping and decimal separators of your choice.
-- **One C++ engine** drives both platforms: the matching (which characters
-  persist, enter and leave), the slide/fade/scale curves, the timing. Swift
-  and Kotlin only measure glyphs, draw and talk to the keyboard.
+- **One C++ engine per concern** drives both platforms — formatting, masking,
+  the frame geometry, and (with `morph`) the glyph matching and curves. Swift
+  and Kotlin only measure, draw and talk to the keyboard.
 - Fabric only (new architecture), React Native ≥ 0.78, Nitro Modules ≥ 0.37.
 
 Docs: **https://ronickg.github.io/react-native-nitro-rolling-number/input**
@@ -35,77 +49,6 @@ cd ios && pod install
 ```
 
 ## Usage
-
-### An amount field
-
-```tsx
-import { NitroInput } from 'react-native-nitro-input'
-
-const [amount, setAmount] = useState(NaN)
-
-<NitroInput
-  mode="number"
-  prefix="$"
-  prefixFontSize={28}
-  affixAlign="top"
-  placeholder="0"
-  fractionDigits={2}
-  fontSize={48}
-  fontWeight="700"
-  textAlign="center"
-  style={{ width: '100%' }}
-  onChangeValue={setAmount}          // 1234.5, or NaN while empty
-  onChangeText={(text) => {}}        // "1,234.5"
-/>
-```
-
-Type `1234` and the field shows `$1,234`: the `1` slides over to make room as
-the comma arrives from below, the `4` drops in from above. Type `.5` and the
-decimal point and the `5` follow. Backspace over the comma and it takes the
-digit before it with it. A third decimal is rejected without a flicker.
-
-Everything the user sees is formatted on the native side, synchronously, so
-the JS thread only ever learns about the result. State the value in whatever
-shape suits you (`onChangeValue` for the number, `onChangeText` for the
-formatted string) and keep the field uncontrolled, or pass `value` to drive it:
-
-```tsx
-const [text, setText] = useState('')
-
-<NitroInput mode="number" value={text} onChangeText={setText} prefix="$" />
-```
-
-A `value` that merely echoes `onChangeText` back never fights the user: native
-already shows it. A `value` that differs (a "Max" button, a clamp) is applied
-and morphs in.
-
-### Currency layouts
-
-```tsx
-// "$" smaller than the amount, aligned to the top of the digits
-<NitroInput mode="number" prefix="$" prefixFontSize={22} affixAlign="top" fontSize={44} />
-
-// currency code after the amount, smaller and sitting on the baseline of the digits' ink
-<NitroInput mode="number" suffix=" USD" suffixFontSize={18} suffixAlign="bottom" />
-
-// European separators: 1.234,56
-<NitroInput mode="number" groupingSeparator="." decimalSeparator="," />
-
-// whole numbers only (no decimal key accepted), at most six digits
-<NitroInput mode="number" fractionDigits={0} maxIntegerDigits={6} />
-
-// a big centred amount that shrinks when it gets long
-<NitroInput mode="number" fontSize={64} adjustsFontSizeToFit minimumFontScale={0.4} textAlign="center" style={{ width: '100%' }} />
-```
-
-Whatever the keyboard's decimal key produces (`.` or `,`) counts as the
-decimal separator; nobody types a grouping separator on purpose. The rules
-follow what a well-behaved amount field does: a decimal typed in the integer
-part moves the decimal point (`1,234.5` with the caret after the `1` becomes
-`1.23`), one typed inside the fraction is ignored, a leading `.5` stays `.5`
-while typing (`setValue(0.5)` shows `0.5`), a digit typed in front of a lone
-`0` replaces it, and deleting the decimal point merges the fraction into the
-integer part (`1,234.56` → `123,456`).
 
 ### A text field
 
@@ -120,14 +63,10 @@ integer part (`1,234.56` → `123,456`).
 />
 ```
 
-In `mode="text"` (the default) characters fade and scale in and out (Torph's
-text morph); digits and separators only slide in `mode="number"`, unless you
-force one style with `effect="slide"` / `effect="fade"`.
-
-That is `MorphInput`. `NitroInput` is the same field with the glyph engine
-off — characters appear the instant you type them, the way a `TextInput` does.
-For an ordinary form field that is the one you want; reach for `MorphInput`
-where the morph is the point, which in practice means amounts.
+`NitroInput` does not animate its characters: they appear the instant you type
+them, the way a `TextInput` does. Pass `morph` (or use `MorphInput`, which is
+that plus content sizing) to turn the glyph engine on — see
+[An amount field](#an-amount-field-the-morph), which is where it earns itself.
 
 ### A masked field
 
@@ -199,6 +138,85 @@ curve, and the notch is staggered 50 ms behind it opening and closes in 50 ms,
 so the gap is never open under a label that has not arrived. All of it runs
 inside the view, off a native focus callback — there is no React state to
 declare and nothing crosses into JS per frame.
+
+### An amount field (the morph)
+
+This is the one case the morph is for, so it uses `MorphInput` — `NitroInput`
+with `morph` on, and with the box sized to its content so it grows as digits
+arrive.
+
+With the engine running, `mode="text"` fades and scales characters in and out
+(Torph's text morph) while digits and separators slide in `mode="number"`,
+unless you force one style with `effect="slide"` / `effect="fade"`.
+
+```tsx
+import { MorphInput } from 'react-native-nitro-input'
+
+const [amount, setAmount] = useState(NaN)
+
+<MorphInput
+  mode="number"
+  prefix="$"
+  prefixFontSize={28}
+  affixAlign="top"
+  placeholder="0"
+  fractionDigits={2}
+  fontSize={48}
+  fontWeight="700"
+  textAlign="center"
+  style={{ width: '100%' }}
+  onChangeValue={setAmount}          // 1234.5, or NaN while empty
+  onChangeText={(text) => {}}        // "1,234.5"
+/>
+```
+
+Type `1234` and the field shows `$1,234`: the `1` slides over to make room as
+the comma arrives from below, the `4` drops in from above. Type `.5` and the
+decimal point and the `5` follow. Backspace over the comma and it takes the
+digit before it with it. A third decimal is rejected without a flicker.
+
+Everything the user sees is formatted on the native side, synchronously, so
+the JS thread only ever learns about the result. State the value in whatever
+shape suits you (`onChangeValue` for the number, `onChangeText` for the
+formatted string) and keep the field uncontrolled, or pass `value` to drive it:
+
+```tsx
+const [text, setText] = useState('')
+
+<MorphInput mode="number" value={text} onChangeText={setText} prefix="$" />
+```
+
+A `value` that merely echoes `onChangeText` back never fights the user: native
+already shows it. A `value` that differs (a "Max" button, a clamp) is applied
+and morphs in.
+
+### Currency layouts
+
+```tsx
+// "$" smaller than the amount, aligned to the top of the digits
+<MorphInput mode="number" prefix="$" prefixFontSize={22} affixAlign="top" fontSize={44} />
+
+// currency code after the amount, smaller and sitting on the baseline of the digits' ink
+<MorphInput mode="number" suffix=" USD" suffixFontSize={18} suffixAlign="bottom" />
+
+// European separators: 1.234,56
+<MorphInput mode="number" groupingSeparator="." decimalSeparator="," />
+
+// whole numbers only (no decimal key accepted), at most six digits
+<MorphInput mode="number" fractionDigits={0} maxIntegerDigits={6} />
+
+// a big centred amount that shrinks when it gets long
+<MorphInput mode="number" fontSize={64} adjustsFontSizeToFit minimumFontScale={0.4} textAlign="center" style={{ width: '100%' }} />
+```
+
+Whatever the keyboard's decimal key produces (`.` or `,`) counts as the
+decimal separator; nobody types a grouping separator on purpose. The rules
+follow what a well-behaved amount field does: a decimal typed in the integer
+part moves the decimal point (`1,234.5` with the caret after the `1` becomes
+`1.23`), one typed inside the fraction is ignored, a leading `.5` stays `.5`
+while typing (`setValue(0.5)` shows `0.5`), a digit typed in front of a lone
+`0` replaces it, and deleting the decimal point merges the fraction into the
+integer part (`1,234.56` → `123,456`).
 
 ### Worklets: masks in JS and shared values, synchronously
 
@@ -274,9 +292,9 @@ the worklets UI runtime is handed to native once, the worklet is called with
 ### Imperative
 
 ```tsx
-const ref = useRef<NitroInputHandle>(null)
+const ref = useRef<MorphInputHandle>(null)
 
-<NitroInput ref={ref} mode="number" />
+<MorphInput ref={ref} mode="number" />
 
 ref.current?.focus()
 ref.current?.blur()
@@ -325,6 +343,8 @@ rather than renumbering the columns.
 | `prefixAlign` / `suffixAlign` | same | `affixAlign` | Per-affix override. |
 | `placeholder` | `string` | `''` | Shown while empty; the first character morphs it away. `'0'` reads well for amounts. |
 | `placeholderTextColor` | `ColorValue` | platform | Placeholder color. |
+| `morph` | `boolean` | `false` | Run the glyph engine, so text morphs as it changes. `MorphInput` is this plus content sizing. |
+| `autoWidth` | `boolean \| 'auto'` | `false` | `false` takes no width, so flexbox stretches it like a `TextInput`; `'auto'` infers it from `style` (what `MorphInput` uses). |
 | `duration` | `number` | `400` | ms of the morph; `0` snaps. |
 | `easing` | `'expo' \| 'easeOut' \| 'easeInOut' \| 'linear' \| 'spring'` | `'expo'` | Timing curve. `expo` is Torph's `cubic-bezier(0.19, 1, 0.22, 1)`. |
 | `bounce` | `number` | `0.15` | Overshoot of the `spring` easing (0–1). |

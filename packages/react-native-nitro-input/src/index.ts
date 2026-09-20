@@ -1,11 +1,12 @@
 export {
   NitroInput,
+  NativeNitroInputView,
   type NitroInputProps,
   type NitroInputHandle,
+  type NitroInputRef,
 } from './NitroInput'
 export {
   MorphInput,
-  NativeNitroInputView,
   type MorphInputProps,
   type MorphInputHandle,
   type MorphInputRef,
