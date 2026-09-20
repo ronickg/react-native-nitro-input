@@ -1,0 +1,242 @@
+/* The playground is two panes: a preview that stays put while you scroll the
+   knobs next to it, stacking on anything narrower than a tablet. */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 996px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.preview {
+  position: sticky;
+  top: calc(var(--ifm-navbar-height) + 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+@media (max-width: 996px) {
+  .preview {
+    position: static;
+  }
+}
+
+/* A checkerboard behind the field, so the notch reads as a real hole in the
+   stroke rather than a lighter patch painted over it. */
+.canvasWrap {
+  border-radius: 12px;
+  padding: 28px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+  background-color: var(--nitro-bg-raised);
+  background-image: linear-gradient(45deg, var(--nitro-border) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--nitro-border) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--nitro-border) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--nitro-border) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+
+.canvasWrap > * {
+  width: 100%;
+}
+
+.readout {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--nitro-ink-muted);
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+@media (max-width: 996px) {
+  .panel {
+    max-height: none;
+    overflow-y: visible;
+  }
+}
+
+.group {
+  border: 1px solid var(--nitro-border);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  background: var(--nitro-bg-raised);
+}
+
+.groupHead {
+  appearance: none;
+  width: 100%;
+  background: none;
+  border: 0;
+  color: var(--ifm-font-color-base);
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.groupBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 2px 12px 12px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 106px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.rowLabel {
+  font-size: 0.72rem;
+  color: var(--nitro-ink-muted);
+  font-family: var(--ifm-font-family-monospace);
+  overflow-wrap: anywhere;
+}
+
+.rowValue {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rowValue select,
+.rowValue input[type='text'] {
+  width: 100%;
+  border: 1px solid var(--nitro-border-strong);
+  background: var(--nitro-bg-sunken);
+  color: var(--ifm-font-color-base);
+  border-radius: 7px;
+  padding: 4px 7px;
+  font-size: 0.78rem;
+  min-width: 0;
+}
+
+.rowValue input[type='range'] {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--ifm-color-primary);
+}
+
+.num {
+  font-size: 0.72rem;
+  color: var(--nitro-ink-muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 30px;
+  text-align: right;
+}
+
+/* A segmented control: cheaper to scan than a select for two or three values. */
+.seg {
+  display: flex;
+  border: 1px solid var(--nitro-border-strong);
+  border-radius: 7px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.segBtn {
+  appearance: none;
+  flex: 1;
+  border: 0;
+  border-left: 1px solid var(--nitro-border-strong);
+  background: var(--nitro-bg-sunken);
+  color: var(--ifm-font-color-base);
+  font-size: 0.72rem;
+  font-weight: 550;
+  padding: 4px 2px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.segBtn:first-child {
+  border-left: 0;
+}
+
+.segBtn[data-on='true'] {
+  background: var(--ifm-color-primary);
+  color: #fff;
+}
+
+.swatches {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: 1px solid var(--nitro-border-strong);
+  cursor: pointer;
+  padding: 0;
+}
+
+.swatch[data-on='true'] {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 1px;
+}
+
+.code {
+  margin-top: 4px;
+}
+
+.codeHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.codeTitle {
+  font-size: 0.75rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--nitro-ink-muted);
+}
+
+.codeBlock {
+  margin: 0;
+  border-radius: 10px;
+  border: 1px solid var(--nitro-border);
+  background: var(--nitro-bg-sunken);
+  padding: 12px 14px;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  overflow-x: auto;
+}
+
+.note {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--nitro-ink-muted);
+}

@@ -11,10 +11,12 @@
 
 #include "AmountFormatter.hpp"
 #include "MorphEngine.hpp"
+#include "OutlineGeometry.hpp"
 
 using namespace emscripten;
 using margelo::nitro::nitroinput::AmountFormatter;
 using margelo::nitro::nitroinput::MorphEngine;
+using margelo::nitro::nitroinput::OutlineGeometry;
 
 namespace {
 
@@ -38,6 +40,46 @@ GlyphJS glyphAt(const MorphEngine& engine, int index) {
   const auto g = engine.glyphAt(index);
   return GlyphJS{static_cast<double>(g.id), g.character, g.role, g.kind, g.width, g.placeholder,
                  g.x, g.y, g.opacity, g.scale, g.exiting};
+}
+
+/// `OutlineGeometry::Segment` flattened: embind value objects take plain
+/// fields, and the arc's centre and the line's destination share `x`/`y` the
+/// same way the C++ `point` does.
+struct SegmentJS {
+  int verb;
+  double x;
+  double y;
+  double radius;
+  double startAngle;
+  double sweepAngle;
+};
+
+std::vector<SegmentJS> outlinePath(double width, double height, double radius, double strokeWidth,
+                                   double bottomRadius, double gapLeft, double gapWidth,
+                                   double gapPadding, double progress) {
+  OutlineGeometry::Box box;
+  box.width = width;
+  box.height = height;
+  box.radius = radius;
+  box.strokeWidth = strokeWidth;
+  box.bottomRadius = bottomRadius;
+  OutlineGeometry::Gap gap;
+  gap.left = gapLeft;
+  gap.width = gapWidth;
+  gap.padding = gapPadding;
+  std::vector<SegmentJS> out;
+  for (const auto& s : OutlineGeometry::outline(box, gap, progress)) {
+    out.push_back(SegmentJS{static_cast<int>(s.verb), s.point.x, s.point.y, s.radius, s.startAngle,
+                            s.sweepAngle});
+  }
+  return out;
+}
+
+OutlineGeometry::Rect lerpRect(double fx, double fy, double fw, double fh, double tx, double ty,
+                               double tw, double th, double progress) {
+  OutlineGeometry::Rect from{fx, fy, fw, fh};
+  OutlineGeometry::Rect to{tx, ty, tw, th};
+  return OutlineGeometry::lerp(from, to, progress);
 }
 
 } // namespace
@@ -90,4 +132,25 @@ EMSCRIPTEN_BINDINGS(morph_engine) {
       .function("value", &AmountFormatter::value)
       .function("kindOf", &AmountFormatter::kindOf)
       .class_function("codePointCount", &AmountFormatter::codePointCount);
+
+  // The frame. The gap in the top edge is a real hole in the stroked path, so
+  // the docs draw the same geometry the two platforms stroke rather than a
+  // look-alike.
+  value_object<SegmentJS>("Segment")
+      .field("verb", &SegmentJS::verb)
+      .field("x", &SegmentJS::x)
+      .field("y", &SegmentJS::y)
+      .field("radius", &SegmentJS::radius)
+      .field("startAngle", &SegmentJS::startAngle)
+      .field("sweepAngle", &SegmentJS::sweepAngle);
+  register_vector<SegmentJS>("SegmentList");
+
+  value_object<OutlineGeometry::Rect>("Rect")
+      .field("x", &OutlineGeometry::Rect::x)
+      .field("y", &OutlineGeometry::Rect::y)
+      .field("width", &OutlineGeometry::Rect::width)
+      .field("height", &OutlineGeometry::Rect::height);
+
+  function("outlinePath", &outlinePath);
+  function("lerpRect", &lerpRect);
 }
