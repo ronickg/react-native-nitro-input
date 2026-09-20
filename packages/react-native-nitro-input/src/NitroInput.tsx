@@ -340,6 +340,23 @@ export interface NitroInputProps extends Omit<ViewProps, 'children'> {
   autoCorrect?: boolean
   /** Whether the user can edit the field. Default: `true`. */
   editable?: boolean
+  /**
+   * Let the text wrap onto more than one line.
+   *
+   * A multiline field is always drawn by the system view and is always
+   * `'text'` mode: the glyph engine lays one run out on one baseline, so it
+   * cannot morph wrapped text, and an amount or a mask is a single-line idea.
+   * `morph`, `mode="number"` and `mode="mask"` are ignored alongside it.
+   */
+  multiline?: boolean
+  /** `multiline`: lines tall before it scrolls. Omit to grow with the content. */
+  numberOfLines?: number
+  /** Alias for {@link numberOfLines}, matching `TextInput`. */
+  rows?: number
+  /** `multiline`: where the text sits in the box. Default: `'auto'` (top). */
+  textAlignVertical?: 'auto' | 'top' | 'center' | 'bottom'
+  /** `multiline`: whether it scrolls once the text outgrows it. Default: `true`. */
+  scrollEnabled?: boolean
   /** Focus the field when it mounts. Default: `false`. */
   autoFocus?: boolean
   /**
@@ -499,6 +516,18 @@ interface Size {
  *
  * The view sizes itself to its content unless `style` gives it a width.
  */
+const warnedIncompatible = new Set<string>()
+/** Once per offending prop, not once per render. */
+function warnIncompatible(what: string): void {
+  if (warnedIncompatible.has(what)) return
+  warnedIncompatible.add(what)
+  console.warn(
+    `[NitroInput] \`${what}\` is ignored on a multiline field: the glyph ` +
+      'engine draws one run on one baseline, and amounts and masks are ' +
+      'single-line. Drop one of the two.'
+  )
+}
+
 export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
   function NitroInput(
     {
@@ -556,6 +585,11 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       autoCapitalize,
       autoCorrect,
       editable,
+      multiline,
+      numberOfLines,
+      rows,
+      textAlignVertical,
+      scrollEnabled,
       autoFocus,
       morph,
       autoWidth: autoWidthProp,
@@ -821,7 +855,19 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     const numericWeight = toNumericWeight(fontWeight) ?? 400
     const resolvedFontSize = fontSize ?? 32
     const resolvedAffixAlign = affixAlign ?? 'baseline'
-    const resolvedMode = mode ?? 'text'
+    // Multiline is drawn by the system view and is always text: the glyph
+    // engine lays one run out on one baseline, and an amount or a mask is a
+    // single-line idea. Rather than half-honour the combination, drop the part
+    // that cannot work and say so.
+    const isMultiline = multiline ?? false
+    if (__DEV__ && isMultiline) {
+      if (mode != null && mode !== 'text') {
+        warnIncompatible(`mode="${mode}"`)
+      }
+      if (morph) warnIncompatible('morph')
+    }
+    const resolvedMode = isMultiline ? 'text' : (mode ?? 'text')
+    const resolvedMorph = isMultiline ? false : (morph ?? false)
     const resolvedFractionDigits = fractionDigits ?? 2
     const resolvedKeyboardType =
       keyboardType ??
@@ -863,7 +909,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         text={value ?? initialText}
         mostRecentEventCount={eventCount}
         mode={resolvedMode}
-        plain={!morph}
+        plain={!resolvedMorph}
         fractionDigits={resolvedFractionDigits}
         maxIntegerDigits={maxIntegerDigits ?? 15}
         groupingSeparator={groupingSeparator ?? ','}
@@ -914,6 +960,10 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         autoCapitalize={autoCapitalize ?? 'sentences'}
         autoCorrect={autoCorrect ?? true}
         editable={(editable ?? true) && !(readOnly ?? false)}
+        multiline={isMultiline}
+        numberOfLines={Math.max(0, Math.trunc(numberOfLines ?? rows ?? 0))}
+        textAlignVertical={textAlignVertical ?? 'auto'}
+        scrollEnabled={scrollEnabled ?? true}
         autoFocus={autoFocus ?? false}
         fieldTestID={viewProps.testID ?? ''}
         fieldAccessibilityLabel={accessibilityLabel ?? ''}

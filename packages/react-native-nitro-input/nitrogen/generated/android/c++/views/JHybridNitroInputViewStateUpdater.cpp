@@ -319,6 +319,26 @@ void JHybridNitroInputViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCla
     hybridView->setEditable(newProps->editable.get());
   }
   if (oldProps == nullptr
+        ? newProps->multiline.isProvided()
+        : !newProps->multiline.hasSameValue(oldProps->multiline)) {
+    hybridView->setMultiline(newProps->multiline.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->numberOfLines.isProvided()
+        : !newProps->numberOfLines.hasSameValue(oldProps->numberOfLines)) {
+    hybridView->setNumberOfLines(newProps->numberOfLines.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->textAlignVertical.isProvided()
+        : !newProps->textAlignVertical.hasSameValue(oldProps->textAlignVertical)) {
+    hybridView->setTextAlignVertical(newProps->textAlignVertical.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->scrollEnabled.isProvided()
+        : !newProps->scrollEnabled.hasSameValue(oldProps->scrollEnabled)) {
+    hybridView->setScrollEnabled(newProps->scrollEnabled.get());
+  }
+  if (oldProps == nullptr
         ? newProps->autoFocus.isProvided()
         : !newProps->autoFocus.hasSameValue(oldProps->autoFocus)) {
     hybridView->setAutoFocus(newProps->autoFocus.get());

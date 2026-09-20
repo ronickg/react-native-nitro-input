@@ -53,6 +53,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   enum class Mode { TEXT, NUMBER, MASK }
   enum class AffixAlign { BASELINE, CENTER, TOP, BOTTOM }
   enum class Alignment { LEFT, CENTER, RIGHT }
+  enum class TextAlignVertical { AUTO, TOP, CENTER, BOTTOM }
   enum class Easing(val raw: Int) { EXPO(0), EASE_OUT(1), EASE_IN_OUT(2), LINEAR(3), SPRING(4) }
   enum class Effect(val raw: Int) { AUTO(0), SLIDE(1), FADE(2) }
   enum class KeyboardType { DEFAULT, NUMBER_PAD, DECIMAL_PAD, NUMERIC, EMAIL_ADDRESS, PHONE_PAD, URL, ASCII_CAPABLE, NUMBERS_AND_PUNCTUATION }
@@ -154,6 +155,16 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val accessibilityLabel: String? = null,
     /** `NitroInput`: the EditText draws its own text and the overlay is off. */
     val plain: Boolean = false,
+    /**
+     * Wrapping field. Always plain and always text - the JS side drops `morph`
+     * and any non-text mode before it gets here - so nothing below has to
+     * reconcile a wrapped run with the glyph engine.
+     */
+    val multiline: Boolean = false,
+    /** `multiline`: lines before it scrolls; `0` grows with the content. */
+    val numberOfLines: Int = 0,
+    val textAlignVertical: TextAlignVertical = TextAlignVertical.AUTO,
+    val scrollEnabled: Boolean = true,
   )
 
   data class Caret(
@@ -221,8 +232,17 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   var keyboard: Keyboard = Keyboard()
     set(value) {
       if (field == value) return
+      val wasMultiline = field.multiline
+      val wasLines = field.numberOfLines
       field = value
       applyKeyboard()
+      // How tall the field wants to be depends on `multiline` and
+      // `numberOfLines`, and this prop lands *after* `typography` — whose
+      // `rebuildFonts` is the usual reporter. Without this a wrapping field
+      // reported a single line and stayed one line tall.
+      if (value.multiline != wasMultiline || value.numberOfLines != wasLines) {
+        reportIntrinsicSize()
+      }
       maybeAutoFocus()
     }
 
@@ -651,7 +671,12 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       0,
     )
     applyAffixes()
-    editText.gravity = Gravity.CENTER_VERTICAL or when (alignment) {
+    val vertical = if (!keyboard.multiline) Gravity.CENTER_VERTICAL else when (keyboard.textAlignVertical) {
+      TextAlignVertical.CENTER -> Gravity.CENTER_VERTICAL
+      TextAlignVertical.BOTTOM -> Gravity.BOTTOM
+      else -> Gravity.TOP
+    }
+    editText.gravity = vertical or when (alignment) {
       Alignment.LEFT -> Gravity.START
       Alignment.CENTER -> Gravity.CENTER_HORIZONTAL
       Alignment.RIGHT -> Gravity.END
@@ -696,9 +721,25 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       textType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
       rawType = null
     }
+    if (k.multiline) {
+      // TYPE_TEXT_FLAG_MULTI_LINE is what makes the IME offer a return key that
+      // inserts a newline rather than submitting.
+      textType = textType or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+    }
     editText.inputType = textType
     if (rawType != null) editText.setRawInputType(rawType)
-    editText.setSingleLine()
+    if (k.multiline) {
+      editText.setSingleLine(false)
+      editText.setHorizontallyScrolling(false)
+      editText.maxLines = if (k.numberOfLines > 0) k.numberOfLines else Int.MAX_VALUE
+      if (k.numberOfLines > 0) editText.minLines = k.numberOfLines
+      editText.isVerticalScrollBarEnabled = k.scrollEnabled
+      editText.movementMethod = android.text.method.ArrowKeyMovementMethod.getInstance()
+    } else {
+      editText.setSingleLine()
+      editText.maxLines = 1
+      editText.minLines = 1
+    }
     editText.imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI or when (k.returnKeyType) {
       ReturnKeyType.DEFAULT -> EditorInfo.IME_ACTION_UNSPECIFIED
       ReturnKeyType.DONE -> EditorInfo.IME_ACTION_DONE
@@ -1170,6 +1211,9 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     if (updated == text) return
     text = updated
     requestFeed(caretCodePoints)
+    // A wrapping field's height follows its text; the glyph engine is off, so
+    // nothing else would ask.
+    if (keyboard.multiline) post { reportIntrinsicSize() }
     notifyChange()
   }
 
@@ -1314,11 +1358,29 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
   // region Intrinsic size
 
+  /**
+   * One line, or - wrapping - as tall as the text actually is. `maxLines` caps
+   * it, so a field with `numberOfLines` stops growing and scrolls instead;
+   * without one it keeps growing and React follows through `onSizeChange`.
+   */
+  private fun intrinsicHeightPx(): Float {
+    if (!keyboard.multiline) return fonts.lineHeight
+    val layout = editText.layout ?: return fonts.lineHeight * maxOf(1, keyboard.numberOfLines)
+    val lines = if (keyboard.numberOfLines > 0) {
+      layout.lineCount.coerceAtMost(keyboard.numberOfLines).coerceAtLeast(keyboard.numberOfLines)
+    } else {
+      layout.lineCount.coerceAtLeast(1)
+    }
+    val text = if (lines == layout.lineCount) layout.height.toFloat()
+               else fonts.lineHeight * lines
+    return text + editText.paddingTop + editText.paddingBottom
+  }
+
   private fun reportIntrinsicSize() {
     // The reported size is always the full-size one: with shrink-to-fit the view
     // keeps its height and the scaled text is centred inside it when drawing.
     val widthDp = ceil(engine.targetWidth().toFloat() / density + 2f)
-    val heightDp = ceil(fonts.lineHeight / density)
+    val heightDp = ceil(intrinsicHeightPx() / density)
     if (abs(widthDp - lastReportedWidth) <= 0.01f && abs(heightDp - lastReportedHeight) <= 0.01f) {
       pendingSizeReport = false
       return

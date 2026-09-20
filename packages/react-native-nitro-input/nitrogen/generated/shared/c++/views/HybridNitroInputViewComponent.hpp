@@ -30,6 +30,7 @@
 #include "NitroInputKeyboardType.hpp"
 #include "NitroInputReturnKeyType.hpp"
 #include "NitroInputAutoCapitalize.hpp"
+#include "NitroInputTextAlignVertical.hpp"
 #include "NitroInputSubmitBehavior.hpp"
 #include "NitroInputKeyboardAppearance.hpp"
 #include <functional>
@@ -110,6 +111,10 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<NitroInputAutoCapitalize> autoCapitalize;
     nitro::ReactProp<bool> autoCorrect;
     nitro::ReactProp<bool> editable;
+    nitro::ReactProp<bool> multiline;
+    nitro::ReactProp<double> numberOfLines;
+    nitro::ReactProp<NitroInputTextAlignVertical> textAlignVertical;
+    nitro::ReactProp<bool> scrollEnabled;
     nitro::ReactProp<bool> autoFocus;
     nitro::ReactProp<std::string> fieldTestID;
     nitro::ReactProp<std::string> fieldAccessibilityLabel;
@@ -195,6 +200,10 @@ namespace margelo::nitro::nitroinput::views {
              autoCapitalize.hasSameValue(other.autoCapitalize) &&
              autoCorrect.hasSameValue(other.autoCorrect) &&
              editable.hasSameValue(other.editable) &&
+             multiline.hasSameValue(other.multiline) &&
+             numberOfLines.hasSameValue(other.numberOfLines) &&
+             textAlignVertical.hasSameValue(other.textAlignVertical) &&
+             scrollEnabled.hasSameValue(other.scrollEnabled) &&
              autoFocus.hasSameValue(other.autoFocus) &&
              fieldTestID.hasSameValue(other.fieldTestID) &&
              fieldAccessibilityLabel.hasSameValue(other.fieldAccessibilityLabel) &&
@@ -281,6 +290,10 @@ namespace margelo::nitro::nitroinput::views {
              autoCapitalize.isProvided() ||
              autoCorrect.isProvided() ||
              editable.isProvided() ||
+             multiline.isProvided() ||
+             numberOfLines.isProvided() ||
+             textAlignVertical.isProvided() ||
+             scrollEnabled.isProvided() ||
              autoFocus.isProvided() ||
              fieldTestID.isProvided() ||
              fieldAccessibilityLabel.isProvided() ||

@@ -63,6 +63,10 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   var autoCapitalize: NitroInputAutoCapitalize { get set }
   var autoCorrect: Bool { get set }
   var editable: Bool { get set }
+  var multiline: Bool { get set }
+  var numberOfLines: Double { get set }
+  var textAlignVertical: NitroInputTextAlignVertical { get set }
+  var scrollEnabled: Bool { get set }
   var autoFocus: Bool { get set }
   var fieldTestID: String { get set }
   var fieldAccessibilityLabel: String { get set }

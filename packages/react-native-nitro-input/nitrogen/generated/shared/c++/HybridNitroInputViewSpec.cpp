@@ -120,6 +120,14 @@ namespace margelo::nitro::nitroinput {
       prototype.registerHybridSetter("autoCorrect", &HybridNitroInputViewSpec::setAutoCorrect);
       prototype.registerHybridGetter("editable", &HybridNitroInputViewSpec::getEditable);
       prototype.registerHybridSetter("editable", &HybridNitroInputViewSpec::setEditable);
+      prototype.registerHybridGetter("multiline", &HybridNitroInputViewSpec::getMultiline);
+      prototype.registerHybridSetter("multiline", &HybridNitroInputViewSpec::setMultiline);
+      prototype.registerHybridGetter("numberOfLines", &HybridNitroInputViewSpec::getNumberOfLines);
+      prototype.registerHybridSetter("numberOfLines", &HybridNitroInputViewSpec::setNumberOfLines);
+      prototype.registerHybridGetter("textAlignVertical", &HybridNitroInputViewSpec::getTextAlignVertical);
+      prototype.registerHybridSetter("textAlignVertical", &HybridNitroInputViewSpec::setTextAlignVertical);
+      prototype.registerHybridGetter("scrollEnabled", &HybridNitroInputViewSpec::getScrollEnabled);
+      prototype.registerHybridSetter("scrollEnabled", &HybridNitroInputViewSpec::setScrollEnabled);
       prototype.registerHybridGetter("autoFocus", &HybridNitroInputViewSpec::getAutoFocus);
       prototype.registerHybridSetter("autoFocus", &HybridNitroInputViewSpec::setAutoFocus);
       prototype.registerHybridGetter("fieldTestID", &HybridNitroInputViewSpec::getFieldTestID);

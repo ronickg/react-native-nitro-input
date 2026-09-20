@@ -29,6 +29,8 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardType; }
 namespace margelo::nitro::nitroinput { enum class NitroInputReturnKeyType; }
 // Forward declaration of `NitroInputAutoCapitalize` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputAutoCapitalize; }
+// Forward declaration of `NitroInputTextAlignVertical` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputTextAlignVertical; }
 // Forward declaration of `NitroInputSubmitBehavior` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputSubmitBehavior; }
 // Forward declaration of `NitroInputKeyboardAppearance` to properly resolve imports.
@@ -58,6 +60,8 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardAppearance; 
 #include "JNitroInputReturnKeyType.hpp"
 #include "NitroInputAutoCapitalize.hpp"
 #include "JNitroInputAutoCapitalize.hpp"
+#include "NitroInputTextAlignVertical.hpp"
+#include "JNitroInputTextAlignVertical.hpp"
 #include "NitroInputSubmitBehavior.hpp"
 #include "JNitroInputSubmitBehavior.hpp"
 #include "NitroInputKeyboardAppearance.hpp"
@@ -596,6 +600,42 @@ namespace margelo::nitro::nitroinput {
   void JHybridNitroInputViewSpec::setEditable(bool editable) {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jboolean /* editable */)>("setEditable");
     method(_javaPart, editable);
+  }
+  bool JHybridNitroInputViewSpec::getMultiline() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean()>("getMultiline");
+    auto __result = method(_javaPart);
+    return static_cast<bool>(__result);
+  }
+  void JHybridNitroInputViewSpec::setMultiline(bool multiline) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jboolean /* multiline */)>("setMultiline");
+    method(_javaPart, multiline);
+  }
+  double JHybridNitroInputViewSpec::getNumberOfLines() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getNumberOfLines");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setNumberOfLines(double numberOfLines) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* numberOfLines */)>("setNumberOfLines");
+    method(_javaPart, numberOfLines);
+  }
+  NitroInputTextAlignVertical JHybridNitroInputViewSpec::getTextAlignVertical() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JNitroInputTextAlignVertical>()>("getTextAlignVertical");
+    auto __result = method(_javaPart);
+    return __result->toCpp();
+  }
+  void JHybridNitroInputViewSpec::setTextAlignVertical(NitroInputTextAlignVertical textAlignVertical) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroInputTextAlignVertical> /* textAlignVertical */)>("setTextAlignVertical");
+    method(_javaPart, JNitroInputTextAlignVertical::fromCpp(textAlignVertical));
+  }
+  bool JHybridNitroInputViewSpec::getScrollEnabled() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean()>("getScrollEnabled");
+    auto __result = method(_javaPart);
+    return static_cast<bool>(__result);
+  }
+  void JHybridNitroInputViewSpec::setScrollEnabled(bool scrollEnabled) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jboolean /* scrollEnabled */)>("setScrollEnabled");
+    method(_javaPart, scrollEnabled);
   }
   bool JHybridNitroInputViewSpec::getAutoFocus() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean()>("getAutoFocus");

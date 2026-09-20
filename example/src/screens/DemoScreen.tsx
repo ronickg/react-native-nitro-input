@@ -508,6 +508,7 @@ function MorphInputDemo() {
   const maskPhoneRef = useRef<MorphInputHandle>(null)
   const [maskSel, setMaskSel] = useState('-')
   const [outlinedText, setOutlinedText] = useState('')
+  const [multilineText, setMultilineText] = useState('')
   const [maskPhone, setMaskPhone] = useState(EMPTY_MASK)
   const [maskHex, setMaskHex] = useState(EMPTY_MASK)
   return (
@@ -593,6 +594,23 @@ function MorphInputDemo() {
         {/* No `style` at all: a drop-in has to take its width from its parent,
             the way a TextInput does, rather than sizing to its content. */}
         <NitroInput testID="morph-stretch" placeholder="No style — should fill the row" fontSize={15} />
+        {/* Wrapping. Grows with its text until `numberOfLines`, then scrolls. */}
+        <NitroInput
+          testID="morph-multiline"
+          multiline
+          numberOfLines={4}
+          variant="outlined"
+          label="Notes"
+          placeholder="Type a few lines…"
+          fontSize={15}
+          strokeColor="#94a3b8"
+          focusedStrokeColor="#2563eb"
+          cornerRadius={10}
+          onChangeText={setMultilineText}
+        />
+        <Text style={styles.morphReadout} testID="morph-multiline-readout">
+          multiline {JSON.stringify(multilineText)}
+        </Text>
       </View>
       <Text style={styles.morphReadout} testID="morph-outlined-readout">
         outlined "{outlinedText}"

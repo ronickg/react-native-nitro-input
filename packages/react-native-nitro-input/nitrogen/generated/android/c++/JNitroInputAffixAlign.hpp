@@ -45,15 +45,15 @@ namespace margelo::nitro::nitroinput {
         case NitroInputAffixAlign::CENTER:
           static const auto fieldCENTER = clazz->getStaticField<JNitroInputAffixAlign>("CENTER");
           return clazz->getStaticFieldValue(fieldCENTER);
-        case NitroInputAffixAlign::BASELINE:
-          static const auto fieldBASELINE = clazz->getStaticField<JNitroInputAffixAlign>("BASELINE");
-          return clazz->getStaticFieldValue(fieldBASELINE);
         case NitroInputAffixAlign::TOP:
           static const auto fieldTOP = clazz->getStaticField<JNitroInputAffixAlign>("TOP");
           return clazz->getStaticFieldValue(fieldTOP);
         case NitroInputAffixAlign::BOTTOM:
           static const auto fieldBOTTOM = clazz->getStaticField<JNitroInputAffixAlign>("BOTTOM");
           return clazz->getStaticFieldValue(fieldBOTTOM);
+        case NitroInputAffixAlign::BASELINE:
+          static const auto fieldBASELINE = clazz->getStaticField<JNitroInputAffixAlign>("BASELINE");
+          return clazz->getStaticFieldValue(fieldBASELINE);
         default:
           std::string stringValue = std::to_string(static_cast<int>(value));
           throw std::invalid_argument("Invalid enum value (" + stringValue + "!");

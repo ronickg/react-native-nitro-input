@@ -73,6 +73,10 @@ namespace margelo::nitro::nitroinput::views {
     autoCapitalize(nitro::ReactProp<NitroInputAutoCapitalize>::fromRawValue("NitroInputView", "autoCapitalize", rawProps, sourceProps.autoCapitalize)),
     autoCorrect(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "autoCorrect", rawProps, sourceProps.autoCorrect)),
     editable(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "editable", rawProps, sourceProps.editable)),
+    multiline(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "multiline", rawProps, sourceProps.multiline)),
+    numberOfLines(nitro::ReactProp<double>::fromRawValue("NitroInputView", "numberOfLines", rawProps, sourceProps.numberOfLines)),
+    textAlignVertical(nitro::ReactProp<NitroInputTextAlignVertical>::fromRawValue("NitroInputView", "textAlignVertical", rawProps, sourceProps.textAlignVertical)),
+    scrollEnabled(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "scrollEnabled", rawProps, sourceProps.scrollEnabled)),
     autoFocus(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "autoFocus", rawProps, sourceProps.autoFocus)),
     fieldTestID(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "fieldTestID", rawProps, sourceProps.fieldTestID)),
     fieldAccessibilityLabel(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "fieldAccessibilityLabel", rawProps, sourceProps.fieldAccessibilityLabel)),
@@ -158,6 +162,10 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("autoCapitalize"): return true;
       case hashString("autoCorrect"): return true;
       case hashString("editable"): return true;
+      case hashString("multiline"): return true;
+      case hashString("numberOfLines"): return true;
+      case hashString("textAlignVertical"): return true;
+      case hashString("scrollEnabled"): return true;
       case hashString("autoFocus"): return true;
       case hashString("fieldTestID"): return true;
       case hashString("fieldAccessibilityLabel"): return true;

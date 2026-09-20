@@ -156,6 +156,14 @@ namespace margelo::nitro::nitroinput {
     void setAutoCorrect(bool autoCorrect) override;
     bool getEditable() override;
     void setEditable(bool editable) override;
+    bool getMultiline() override;
+    void setMultiline(bool multiline) override;
+    double getNumberOfLines() override;
+    void setNumberOfLines(double numberOfLines) override;
+    NitroInputTextAlignVertical getTextAlignVertical() override;
+    void setTextAlignVertical(NitroInputTextAlignVertical textAlignVertical) override;
+    bool getScrollEnabled() override;
+    void setScrollEnabled(bool scrollEnabled) override;
     bool getAutoFocus() override;
     void setAutoFocus(bool autoFocus) override;
     std::string getFieldTestID() override;

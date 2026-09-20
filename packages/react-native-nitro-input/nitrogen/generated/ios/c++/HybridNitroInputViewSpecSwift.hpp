@@ -34,6 +34,8 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardType; }
 namespace margelo::nitro::nitroinput { enum class NitroInputReturnKeyType; }
 // Forward declaration of `NitroInputAutoCapitalize` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputAutoCapitalize; }
+// Forward declaration of `NitroInputTextAlignVertical` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputTextAlignVertical; }
 // Forward declaration of `NitroInputSubmitBehavior` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputSubmitBehavior; }
 // Forward declaration of `NitroInputKeyboardAppearance` to properly resolve imports.
@@ -52,6 +54,7 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardAppearance; 
 #include "NitroInputKeyboardType.hpp"
 #include "NitroInputReturnKeyType.hpp"
 #include "NitroInputAutoCapitalize.hpp"
+#include "NitroInputTextAlignVertical.hpp"
 #include "NitroInputSubmitBehavior.hpp"
 #include "NitroInputKeyboardAppearance.hpp"
 #include <functional>
@@ -442,6 +445,31 @@ namespace margelo::nitro::nitroinput {
     }
     inline void setEditable(bool editable) noexcept override {
       _swiftPart.setEditable(std::forward<decltype(editable)>(editable));
+    }
+    inline bool getMultiline() noexcept override {
+      return _swiftPart.getMultiline();
+    }
+    inline void setMultiline(bool multiline) noexcept override {
+      _swiftPart.setMultiline(std::forward<decltype(multiline)>(multiline));
+    }
+    inline double getNumberOfLines() noexcept override {
+      return _swiftPart.getNumberOfLines();
+    }
+    inline void setNumberOfLines(double numberOfLines) noexcept override {
+      _swiftPart.setNumberOfLines(std::forward<decltype(numberOfLines)>(numberOfLines));
+    }
+    inline NitroInputTextAlignVertical getTextAlignVertical() noexcept override {
+      auto __result = _swiftPart.getTextAlignVertical();
+      return static_cast<NitroInputTextAlignVertical>(__result);
+    }
+    inline void setTextAlignVertical(NitroInputTextAlignVertical textAlignVertical) noexcept override {
+      _swiftPart.setTextAlignVertical(static_cast<int>(textAlignVertical));
+    }
+    inline bool getScrollEnabled() noexcept override {
+      return _swiftPart.getScrollEnabled();
+    }
+    inline void setScrollEnabled(bool scrollEnabled) noexcept override {
+      _swiftPart.setScrollEnabled(std::forward<decltype(scrollEnabled)>(scrollEnabled));
     }
     inline bool getAutoFocus() noexcept override {
       return _swiftPart.getAutoFocus();

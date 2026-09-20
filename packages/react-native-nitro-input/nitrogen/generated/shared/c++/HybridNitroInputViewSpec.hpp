@@ -35,6 +35,8 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardType; }
 namespace margelo::nitro::nitroinput { enum class NitroInputReturnKeyType; }
 // Forward declaration of `NitroInputAutoCapitalize` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputAutoCapitalize; }
+// Forward declaration of `NitroInputTextAlignVertical` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputTextAlignVertical; }
 // Forward declaration of `NitroInputSubmitBehavior` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputSubmitBehavior; }
 // Forward declaration of `NitroInputKeyboardAppearance` to properly resolve imports.
@@ -53,6 +55,7 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardAppearance; 
 #include "NitroInputKeyboardType.hpp"
 #include "NitroInputReturnKeyType.hpp"
 #include "NitroInputAutoCapitalize.hpp"
+#include "NitroInputTextAlignVertical.hpp"
 #include "NitroInputSubmitBehavior.hpp"
 #include "NitroInputKeyboardAppearance.hpp"
 #include <functional>
@@ -191,6 +194,14 @@ namespace margelo::nitro::nitroinput {
       virtual void setAutoCorrect(bool autoCorrect) = 0;
       virtual bool getEditable() = 0;
       virtual void setEditable(bool editable) = 0;
+      virtual bool getMultiline() = 0;
+      virtual void setMultiline(bool multiline) = 0;
+      virtual double getNumberOfLines() = 0;
+      virtual void setNumberOfLines(double numberOfLines) = 0;
+      virtual NitroInputTextAlignVertical getTextAlignVertical() = 0;
+      virtual void setTextAlignVertical(NitroInputTextAlignVertical textAlignVertical) = 0;
+      virtual bool getScrollEnabled() = 0;
+      virtual void setScrollEnabled(bool scrollEnabled) = 0;
       virtual bool getAutoFocus() = 0;
       virtual void setAutoFocus(bool autoFocus) = 0;
       virtual std::string getFieldTestID() = 0;

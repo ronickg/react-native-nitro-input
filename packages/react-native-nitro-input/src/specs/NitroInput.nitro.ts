@@ -61,6 +61,9 @@ export type NitroInputLabelBehavior = 'float' | 'always'
 /** Horizontal alignment of the text inside the view's frame. */
 export type NitroInputTextAlign = 'left' | 'center' | 'right'
 
+/** Where the text sits in a field taller than one line. */
+export type NitroInputTextAlignVertical = 'auto' | 'top' | 'center' | 'bottom'
+
 /** How a prefix/suffix drawn at a different size lines up with the text. */
 export type NitroInputAffixAlign = 'baseline' | 'center' | 'top' | 'bottom'
 
@@ -247,6 +250,29 @@ export interface NitroInputProps extends HybridViewProps {
   autoCorrect: boolean
   /** Whether the user can edit the field. Default: `true`. */
   editable: boolean
+  /**
+   * Let the text wrap onto more than one line.
+   *
+   * A multiline field is always drawn by the system view — the glyph engine
+   * lays one run out on one baseline, so it cannot morph wrapped text — and it
+   * is always `'text'` mode, since an amount and a mask are single-line ideas.
+   * Setting `morph`, `'number'` or `'mask'` alongside it is ignored, with a
+   * warning. Default: `false`.
+   */
+  multiline: boolean
+  /**
+   * `multiline`: how many lines tall the field is before it scrolls. `0` (the
+   * default) lets it grow with its content; the height it wants is reported
+   * through `onSizeChange`.
+   */
+  numberOfLines: number
+  /** `multiline`: where the text sits in the box. Default: `'auto'` (top). */
+  textAlignVertical: NitroInputTextAlignVertical
+  /**
+   * `multiline`: whether the field scrolls once the text is taller than it.
+   * Turning it off lets a growing field drive its own height. Default: `true`.
+   */
+  scrollEnabled: boolean
   /** Focus the field when it mounts. Default: `false`. */
   autoFocus: boolean
   /**

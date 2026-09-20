@@ -167,6 +167,14 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     set(v) { field = v; markConfigDirty() }
   override var editable: Boolean = true
     set(v) { field = v; markConfigDirty() }
+  override var multiline: Boolean = false
+    set(v) { field = v; markConfigDirty() }
+  override var numberOfLines: Double = 0.0
+    set(v) { field = v; markConfigDirty() }
+  override var textAlignVertical: NitroInputTextAlignVertical = NitroInputTextAlignVertical.AUTO
+    set(v) { field = v; markConfigDirty() }
+  override var scrollEnabled: Boolean = true
+    set(v) { field = v; markConfigDirty() }
   override var autoFocus: Boolean = false
     set(v) { field = v; markConfigDirty() }
   override var plain: Boolean = false
@@ -336,6 +344,10 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     autoCapitalize = NitroInputAutoCapitalize.SENTENCES
     autoCorrect = true
     editable = true
+    multiline = false
+    numberOfLines = 0.0
+    textAlignVertical = NitroInputTextAlignVertical.AUTO
+    scrollEnabled = true
     autoFocus = false
     plain = false
     fieldTestID = ""
@@ -546,6 +558,15 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
       autoFocus = autoFocus,
       maxLength = clampInt(maxLength, 0, Int.MAX_VALUE, 0),
       plain = plain,
+      multiline = multiline,
+      numberOfLines = clampInt(numberOfLines, 0, 1000, 0),
+      textAlignVertical = when (textAlignVertical) {
+        NitroInputTextAlignVertical.TOP -> NitroInputView.TextAlignVertical.TOP
+        NitroInputTextAlignVertical.CENTER -> NitroInputView.TextAlignVertical.CENTER
+        NitroInputTextAlignVertical.BOTTOM -> NitroInputView.TextAlignVertical.BOTTOM
+        NitroInputTextAlignVertical.AUTO -> NitroInputView.TextAlignVertical.AUTO
+      },
+      scrollEnabled = scrollEnabled,
       testID = fieldTestID.ifEmpty { null },
       accessibilityLabel = fieldAccessibilityLabel.ifEmpty { null },
       blurOnSubmit = submitBehavior == NitroInputSubmitBehavior.BLURANDSUBMIT,

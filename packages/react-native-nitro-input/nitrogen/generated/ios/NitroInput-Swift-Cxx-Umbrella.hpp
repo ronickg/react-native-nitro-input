@@ -32,6 +32,8 @@ namespace margelo::nitro::nitroinput { struct NitroInputNotation; }
 namespace margelo::nitro::nitroinput { enum class NitroInputReturnKeyType; }
 // Forward declaration of `NitroInputSubmitBehavior` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputSubmitBehavior; }
+// Forward declaration of `NitroInputTextAlignVertical` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputTextAlignVertical; }
 // Forward declaration of `NitroInputTextAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputTextAlign; }
 // Forward declaration of `NitroInputVariant` to properly resolve imports.
@@ -51,6 +53,7 @@ namespace margelo::nitro::nitroinput { enum class NitroInputVariant; }
 #include "NitroInputReturnKeyType.hpp"
 #include "NitroInputSubmitBehavior.hpp"
 #include "NitroInputTextAlign.hpp"
+#include "NitroInputTextAlignVertical.hpp"
 #include "NitroInputVariant.hpp"
 #include <NitroModules/Result.hpp>
 #include <exception>

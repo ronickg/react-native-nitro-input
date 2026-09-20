@@ -710,6 +710,50 @@ open class HybridNitroInputViewSpec_cxx {
     }
   }
   
+  public final var multiline: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.multiline
+    }
+    @inline(__always)
+    set {
+      self.__implementation.multiline = newValue
+    }
+  }
+  
+  public final var numberOfLines: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.numberOfLines
+    }
+    @inline(__always)
+    set {
+      self.__implementation.numberOfLines = newValue
+    }
+  }
+  
+  public final var textAlignVertical: Int32 {
+    @inline(__always)
+    get {
+      return self.__implementation.textAlignVertical.rawValue
+    }
+    @inline(__always)
+    set {
+      self.__implementation.textAlignVertical = margelo.nitro.nitroinput.NitroInputTextAlignVertical(rawValue: newValue)!
+    }
+  }
+  
+  public final var scrollEnabled: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.scrollEnabled
+    }
+    @inline(__always)
+    set {
+      self.__implementation.scrollEnabled = newValue
+    }
+  }
+  
   public final var autoFocus: Bool {
     @inline(__always)
     get {

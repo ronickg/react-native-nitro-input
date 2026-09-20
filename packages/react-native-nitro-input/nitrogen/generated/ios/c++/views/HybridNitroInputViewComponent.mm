@@ -416,6 +416,30 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.editable.hasSameValue(oldViewProps->editable)) {
       swiftPart.setEditable(newViewProps.editable.get());
     }
+    // multiline: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.multiline.isProvided()
+          : !newViewProps.multiline.hasSameValue(oldViewProps->multiline)) {
+      swiftPart.setMultiline(newViewProps.multiline.get());
+    }
+    // numberOfLines: number
+    if (oldViewProps == nullptr
+          ? newViewProps.numberOfLines.isProvided()
+          : !newViewProps.numberOfLines.hasSameValue(oldViewProps->numberOfLines)) {
+      swiftPart.setNumberOfLines(newViewProps.numberOfLines.get());
+    }
+    // textAlignVertical: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.textAlignVertical.isProvided()
+          : !newViewProps.textAlignVertical.hasSameValue(oldViewProps->textAlignVertical)) {
+      swiftPart.setTextAlignVertical(static_cast<int>(newViewProps.textAlignVertical.get()));
+    }
+    // scrollEnabled: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.scrollEnabled.isProvided()
+          : !newViewProps.scrollEnabled.hasSameValue(oldViewProps->scrollEnabled)) {
+      swiftPart.setScrollEnabled(newViewProps.scrollEnabled.get());
+    }
     // autoFocus: boolean
     if (oldViewProps == nullptr
           ? newViewProps.autoFocus.isProvided()
