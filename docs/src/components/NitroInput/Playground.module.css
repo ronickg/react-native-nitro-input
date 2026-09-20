@@ -7,7 +7,7 @@
   align-items: start;
 }
 
-@media (max-width: 996px) {
+@media (max-width: 1200px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -22,7 +22,7 @@
   min-width: 0;
 }
 
-@media (max-width: 996px) {
+@media (max-width: 1200px) {
   .preview {
     position: static;
   }
@@ -67,7 +67,7 @@
   padding-right: 4px;
 }
 
-@media (max-width: 996px) {
+@media (max-width: 1200px) {
   .panel {
     max-height: none;
     overflow-y: visible;

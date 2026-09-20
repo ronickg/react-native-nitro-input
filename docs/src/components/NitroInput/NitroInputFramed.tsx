@@ -12,7 +12,7 @@ import {
   type NitroInputCanvasHandle,
   type NitroInputCanvasProps,
 } from './NitroInputCanvas';
-import {useMorphModule, type MainModule} from '@site/src/engine/useMorphEngine';
+import {useMorphModule} from '@site/src/engine/useMorphEngine';
 
 // ---------------------------------------------------------------------------
 // The outlined / filled frame, split the way the native views split it: this
@@ -25,42 +25,6 @@ import {useMorphModule, type MainModule} from '@site/src/engine/useMorphEngine';
 // the same C++ `OutlineGeometry` the two platforms replay (docs/wasm), so this
 // is the geometry rather than a look-alike.
 // ---------------------------------------------------------------------------
-
-/** One `OutlineGeometry::Segment`, as the Emscripten bindings hand it over. */
-interface Segment {
-  verb: number;
-  x: number;
-  y: number;
-  radius: number;
-  startAngle: number;
-  sweepAngle: number;
-}
-
-interface SegmentList {
-  size(): number;
-  get(index: number): Segment | undefined;
-  delete(): void;
-}
-
-/**
- * `outlinePath` is only in the module once the WebAssembly has been rebuilt
- * with the `OutlineGeometry` bindings (`npm run build:wasm:morph`, which needs
- * Emscripten). Until then the frame falls back to an unbroken rounded
- * rectangle, so the docs build and run either way.
- */
-type WithOutline = MainModule & {
-  outlinePath?: (
-    width: number,
-    height: number,
-    radius: number,
-    strokeWidth: number,
-    bottomRadius: number,
-    gapLeft: number,
-    gapWidth: number,
-    gapPadding: number,
-    progress: number,
-  ) => SegmentList;
-};
 
 export type Variant = 'none' | 'outlined' | 'filled';
 export type LabelBehavior = 'float' | 'always';
@@ -218,10 +182,12 @@ export const NitroInputFramed = forwardRef<NitroInputFramedHandle, NitroInputFra
       ctx.font = `${fontWeight} ${size}px ${family}`;
       const labelWidth = hasLabel ? ctx.measureText(label).width : 0;
 
-      const half = width / 2;
+      // `OutlineGeometry` insets by half the stroke itself - it hands back
+      // 0.5 for a 1pt stroke - so the box it is given is the full one, and
+      // there is no half-stroke translate to apply on top.
       const inner = {
-        width: Math.max(0, w - width),
-        height: Math.max(0, h - width),
+        width: Math.max(0, w),
+        height: Math.max(0, h),
         radius: cornerRadius,
         strokeWidth: width,
         // A filled field squares its bottom so the indicator rule meets the
@@ -230,11 +196,11 @@ export const NitroInputFramed = forwardRef<NitroInputFramedHandle, NitroInputFra
       };
 
       ctx.save();
-      ctx.translate(half, half);
 
       const path = new Path2D();
-      const outlinePath = (module as WithOutline | null)?.outlinePath;
-      const segments = outlinePath && draws && variant === 'outlined' ? outlinePath(
+      // The module loads asynchronously; before it arrives the frame is an
+      // unbroken rounded rectangle, which is also what an unlabelled one is.
+      const segments = module && draws && variant === 'outlined' ? module.outlinePath(
         inner.width,
         inner.height,
         inner.radius,
@@ -259,21 +225,21 @@ export const NitroInputFramed = forwardRef<NitroInputFramedHandle, NitroInputFra
         }
         segments.delete();
       } else {
-        // No WebAssembly geometry available: an unbroken rounded rectangle.
-        path.roundRect(0, 0, inner.width, inner.height, cornerRadius);
+        const half = width / 2;
+        path.roundRect(half, half, Math.max(0, w - width), Math.max(0, h - width), cornerRadius);
       }
 
       if (variant === 'filled') {
         const fillPath = new Path2D();
-        fillPath.roundRect(0, 0, inner.width, inner.height, [cornerRadius, cornerRadius, 0, 0]);
+        fillPath.roundRect(0, 0, w, h, [cornerRadius, cornerRadius, 0, 0]);
         ctx.fillStyle = fillColor;
         ctx.fill(fillPath);
         // Its one rule along the bottom, rather than a stroke all the way round.
         ctx.strokeStyle = stroke;
         ctx.lineWidth = width;
         ctx.beginPath();
-        ctx.moveTo(0, inner.height);
-        ctx.lineTo(inner.width, inner.height);
+        ctx.moveTo(0, h - width / 2);
+        ctx.lineTo(w, h - width / 2);
         ctx.stroke();
       } else {
         ctx.strokeStyle = stroke;
@@ -286,7 +252,9 @@ export const NitroInputFramed = forwardRef<NitroInputFramedHandle, NitroInputFra
         // Resting: on the text's own line, at the text's size. Floated: onto the
         // top stroke (outlined) or the line above the text (filled).
         const restY = variant === 'filled' ? padTop + lineBox / 2 : h / 2;
-        const floatY = variant === 'filled' ? inset + floatedSize / 2 : half;
+        // Floated onto the stroke means centred on it, which is what the gap
+        // is cut around.
+        const floatY = variant === 'filled' ? inset + floatedSize / 2 : width / 2;
         const y = restY + (floatY - restY) * p;
         ctx.save();
         ctx.font = `${fontWeight} ${size}px ${family}`;
