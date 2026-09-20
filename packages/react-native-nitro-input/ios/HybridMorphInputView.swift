@@ -47,6 +47,9 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
         self.onChangeValue?(value)
       }
     }
+    inputView.onMaskChange = { [weak self] formatted, extracted, tail, complete in
+      self?.onChangeMask?(formatted, extracted, tail, complete)
+    }
     inputView.onFocusChange = { [weak self] focused in
       guard let self else { return }
       self.snapshotLock.lock()
@@ -76,6 +79,21 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var text: String = "" { didSet { markTextDirty() } }
   var mostRecentEventCount: Double = 0 { didSet { markTextDirty() } }
   var mode: NitroInputMode = .text { didSet { markConfigDirty() } }
+  var variant: NitroInputVariant = .none { didSet { markConfigDirty() } }
+  var label: String = "" { didSet { markConfigDirty() } }
+  var labelBehavior: NitroInputLabelBehavior = .float { didSet { markConfigDirty() } }
+  var labelColor: Double = .nan { didSet { markConfigDirty() } }
+  var labelFocusedColor: Double = .nan { didSet { markConfigDirty() } }
+  var labelFontSize: Double = 0 { didSet { markConfigDirty() } }
+  var strokeColor: Double = .nan { didSet { markConfigDirty() } }
+  var focusedStrokeColor: Double = .nan { didSet { markConfigDirty() } }
+  var strokeWidth: Double = 1 { didSet { markConfigDirty() } }
+  var cornerRadius: Double = 8 { didSet { markConfigDirty() } }
+  var fillColor: Double = .nan { didSet { markConfigDirty() } }
+  var mask: String = "" { didSet { markConfigDirty() } }
+  var maskNotations: [NitroInputNotation] = [] { didSet { markConfigDirty() } }
+  var maskAutocomplete: Bool = true { didSet { markConfigDirty() } }
+  var maskAutoSkip: Bool = false { didSet { markConfigDirty() } }
   var plain: Bool = false { didSet { markConfigDirty() } }
   var fractionDigits: Double = 2 { didSet { markConfigDirty() } }
   var maxIntegerDigits: Double = 15 { didSet { markConfigDirty() } }
@@ -132,6 +150,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var onChangeValueWorklet: Double = 0 { didSet { markConfigDirty() } }
   var onChangeText: ((String, Double) -> Void)?
   var onChangeValue: ((Double) -> Void)?
+  var onChangeMask: ((String, String, String, Bool) -> Void)?
   var onFocusChange: ((Bool) -> Void)?
   var onSubmitEditing: ((String) -> Void)?
   var onEndEditing: ((String) -> Void)?
@@ -187,6 +206,17 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     return snapshot.value
   }
 
+  func setSelection(start: Double, end: Double) throws {
+    onMain {
+      self.flushConfigIfNeeded()
+      self.applyTextIfNeeded()
+      let from = Self.clampInt(start, 0, Int(Int32.max), fallback: 0)
+      // `end` defaults to `start`: a NaN or a value behind it is a caret move.
+      let to = end.isFinite ? Self.clampInt(end, 0, Int(Int32.max), fallback: from) : from
+      self.inputView.setSelection(start: from, end: max(from, to))
+    }
+  }
+
   func isFocused() throws -> Bool {
     snapshotLock.lock()
     defer { snapshotLock.unlock() }
@@ -216,6 +246,21 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     mostRecentEventCount = 0
     mode = .text
     plain = false
+    variant = .none
+    label = ""
+    labelBehavior = .float
+    labelColor = .nan
+    labelFocusedColor = .nan
+    labelFontSize = 0
+    strokeColor = .nan
+    focusedStrokeColor = .nan
+    strokeWidth = 1
+    cornerRadius = 8
+    fillColor = .nan
+    mask = ""
+    maskNotations = []
+    maskAutocomplete = true
+    maskAutoSkip = false
     fractionDigits = 2
     maxIntegerDigits = 15
     groupingSeparator = ","
@@ -271,6 +316,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     onChangeValueWorklet = 0
     onChangeText = nil
     onChangeValue = nil
+    onChangeMask = nil
     onFocusChange = nil
     onSubmitEditing = nil
     onEndEditing = nil
@@ -390,7 +436,17 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     configDirty = false
 
     var format = NitroInputView.Format()
-    format.mode = mode == .number ? .number : .text
+    switch mode {
+    case .number: format.mode = .number
+    case .mask: format.mode = .mask
+    case .text: format.mode = .text
+    }
+    format.mask = mask
+    format.maskNotations = maskNotations.map {
+      NitroInputView.MaskNotation(character: $0.character, characterSet: $0.characterSet, isOptional: $0.isOptional)
+    }
+    format.maskAutocomplete = maskAutocomplete
+    format.maskAutoSkip = maskAutoSkip
     format.fractionDigits = Self.clampInt(fractionDigits, 0, 9, fallback: 2)
     format.maxIntegerDigits = Self.clampInt(maxIntegerDigits, 1, 15, fallback: 15)
     format.groupingSeparator = groupingSeparator
@@ -451,6 +507,23 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     worklets.onChangeValue = Self.clampInt(onChangeValueWorklet, 0, Int(Int32.max), fallback: 0)
 
     inputView.typography = typography
+    var inputFrame = NitroInputView.Frame()
+    switch variant {
+    case .outlined: inputFrame.variant = .outlined
+    case .filled: inputFrame.variant = .filled
+    case .none: inputFrame.variant = .none
+    }
+    inputFrame.label = label
+    inputFrame.labelBehavior = labelBehavior == .always ? .always : .float
+    inputFrame.labelColor = Self.color(fromARGB: labelColor)
+    inputFrame.labelFocusedColor = Self.color(fromARGB: labelFocusedColor)
+    inputFrame.labelFontSize = labelFontSize.isFinite ? max(0, CGFloat(labelFontSize)) : 0
+    inputFrame.strokeColor = Self.color(fromARGB: strokeColor)
+    inputFrame.focusedStrokeColor = Self.color(fromARGB: focusedStrokeColor)
+    inputFrame.strokeWidth = strokeWidth.isFinite ? max(0, CGFloat(strokeWidth)) : 1
+    inputFrame.cornerRadius = cornerRadius.isFinite ? max(0, CGFloat(cornerRadius)) : 8
+    inputFrame.fillColor = Self.color(fromARGB: fillColor)
+    inputView.inputFrame = inputFrame
     inputView.format = format
     inputView.timing = timing
     inputView.traits = traits
