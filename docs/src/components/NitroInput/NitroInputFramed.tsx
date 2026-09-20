@@ -100,6 +100,7 @@ export const NitroInputFramed = forwardRef<NitroInputFramedHandle, NitroInputFra
     } = props;
 
     const module = useMorphModule();
+    const editable = (canvasProps as {editable?: boolean}).editable !== false;
     const draws = variant !== 'none';
     const hasLabel = draws && label.length > 0;
 
@@ -370,7 +371,25 @@ export const NitroInputFramed = forwardRef<NitroInputFramedHandle, NitroInputFra
     return (
       <div
         ref={hostRef}
-        style={{position: 'relative', width: '100%', height: boxHeight, boxSizing: 'border-box'}}>
+        // The editor only covers the text; the rest of the box is frame. A field
+        // is focused by tapping anywhere inside its bounds, which is what the
+        // native views do - there the hidden field *is* the bounds - so the
+        // padding has to hand the focus on rather than swallow it.
+        onPointerDown={(event) => {
+          const target = event.target as HTMLElement;
+          if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+          // Without this the press lands on nothing, which blurs the editor.
+          event.preventDefault();
+          if (multiline) areaRef.current?.focus();
+          else fieldRef.current?.focus();
+        }}
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: boxHeight,
+          boxSizing: 'border-box',
+          cursor: editable ? 'text' : 'default',
+        }}>
         {draws ? (
           <canvas
             ref={frameRef}
