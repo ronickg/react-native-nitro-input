@@ -30,11 +30,16 @@ using facebook::jsi::Value;
 constexpr auto kRegistry = "__nitroInputWorklets";
 
 std::mutex gMutex;
-std::shared_ptr<worklets::WorkletRuntime> gRuntime;
+/// Weak on purpose. react-native-worklets owns the UI runtime for as long as
+/// the RN instance lives, so a strong reference here would (a) leak a whole JS
+/// runtime on every reload and (b) keep a torn-down runtime callable in the
+/// window between a reload and JS re-installing. Weak means a worklet simply
+/// does not run once the runtime is gone.
+std::weak_ptr<worklets::WorkletRuntime> gRuntime;
 
 std::shared_ptr<worklets::WorkletRuntime> runtime() {
   std::lock_guard<std::mutex> lock(gMutex);
-  return gRuntime;
+  return gRuntime.lock();
 }
 
 /// The registered wrapper for `id`, or undefined.
@@ -64,6 +69,11 @@ bool isAvailable() {
 
 bool isReady() {
   return runtime() != nullptr;
+}
+
+void uninstallRuntime() {
+  std::lock_guard<std::mutex> lock(gMutex);
+  gRuntime.reset();
 }
 
 bool installRuntime(Runtime& rt, const Value& holder) {
@@ -161,6 +171,8 @@ bool isReady() {
 bool installRuntime(facebook::jsi::Runtime&, const facebook::jsi::Value&) {
   return false;
 }
+
+void uninstallRuntime() {}
 
 TransformResult runTransform(int, const std::string&, const std::string&, int, int, int, int) {
   return TransformResult{false, "", 0, 0};

@@ -24,6 +24,9 @@ namespace margelo::nitro::nitroinput::nitroinputworklets {
 bool isReady();
 /// True when react-native-worklets was available at build time.
 bool isAvailable();
+/// Forgets the installed runtime. The reference is weak, so this is only
+/// needed to drop it eagerly; a torn-down runtime expires on its own.
+void uninstallRuntime();
 
 struct TransformResult {
   /// False when there is no worklet for `id`, it returned nothing, or it threw.

@@ -10,9 +10,13 @@ add_library(${PACKAGE_NAME} SHARED
         src/main/cpp/cpp-adapter.cpp
         src/main/cpp/JMorphEngine.cpp
         src/main/cpp/JAmountFormatter.cpp
+        src/main/cpp/JMaskEngine.cpp
+        src/main/cpp/JOutlineGeometry.cpp
         src/main/cpp/JNitroInputWorklets.cpp
         ../cpp/MorphEngine.cpp
         ../cpp/AmountFormatter.cpp
+        ../cpp/MaskEngine.cpp
+        ../cpp/OutlineGeometry.cpp
         ../cpp/worklets/NitroInputWorkletsBridge.cpp
         ../cpp/worklets/HybridNitroInputWorklets.cpp
 )
