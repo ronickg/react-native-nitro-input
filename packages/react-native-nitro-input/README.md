@@ -58,7 +58,7 @@ cd ios && pod install
   fontSize={22}
   autoCapitalize="words"
   returnKeyType="done"
-  onSubmitEditing={(name) => save(name)}
+  onSubmitEditing={({ text }) => save(text)}
   style={{ width: '100%', height: 44, paddingHorizontal: 12, backgroundColor: '#F2F2F7', borderRadius: 10 }}
 />
 ```
@@ -372,12 +372,25 @@ rather than renumbering the columns.
 | `onChangeText` | `(text) => void` | – | After every edit, the formatted text. A `'worklet'` runs on the UI thread. |
 | `onChangeValue` | `(value) => void` | – | `number` mode: the numeric value, `NaN` while empty. A `'worklet'` runs on the UI thread. |
 | `onChangeMask` | `(formatted, extracted, tail, complete) => void` | – | `mask` mode: the formatted text, the characters the user contributed, what is still missing, and whether every mandatory slot is filled. |
-| `onFocus` / `onBlur` | `() => void` | – | |
-| `onSubmitEditing` | `(text) => void` | – | Return key pressed (the field then blurs). |
+| `onFocus` / `onBlur` | `(event) => void` | – | Carries `text`, `eventCount` and `target`. |
+| `onSubmitEditing` | `(event) => void` | – | Return key pressed (the field then blurs). |
+| `onEndEditing` | `(event) => void` | – | Editing finished. |
+| `onSelectionChange` | `(event) => void` | – | The caret or selection moved, in code points. |
+| `onKeyPress` | `(event) => void` | – | Before the text changes: the character, `'Backspace'` or `'Enter'`. |
 | `onNativeRef` | `(ref) => void` | – | Receives the Nitro object on mount. |
 | `style`, `testID`, … | `ViewProps` | – | Regular view props. Give the field a `width` (or `flex`) in `style`; without one it sizes itself to its text. |
 
 `keyboardType`: `'default' | 'number-pad' | 'decimal-pad' | 'numeric' | 'email-address' | 'phone-pad' | 'url' | 'ascii-capable' | 'numbers-and-punctuation'`.
+
+Every `event` above is a superset of the one `TextInput` passes: `nativeEvent`
+is there with the same fields under the same names, so a handler written for a
+`TextInput` works unchanged, and those fields are repeated at the top level so
+new code can destructure instead of reaching through it.
+
+```tsx
+onSubmitEditing={e => search(e.nativeEvent.text)}   // as on a TextInput
+onSubmitEditing={({ text }) => search(text)}        // or just this
+```
 
 ## How the morph decides what moves
 

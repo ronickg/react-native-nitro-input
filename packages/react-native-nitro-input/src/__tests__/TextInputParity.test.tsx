@@ -446,26 +446,54 @@ describe('callbacks', () => {
     expect(ourBlur).toHaveBeenCalledTimes(1)
   })
 
-  it('every one of these fires on both, whatever it carries', () => {
-    // Firing at all is the parity that matters here; what they hand over
-    // differs on purpose, and is pinned down under "deliberate differences".
-    for (const event of ['onSubmitEditing', 'onEndEditing', 'onSelectionChange'] as const) {
-      const rnSpy = jest.fn()
-      const ourSpy = jest.fn()
-      const rn = render(<TextInput {...{ [event]: rnSpy }} />)
-      const ours = render(<NitroInput {...{ [event]: ourSpy }} />)
-      for (const [renderer, drive] of [
-        [rn, rnDriver(rn)],
-        [ours, ourDriver(ours)],
-      ] as const) {
-        void renderer
-        if (event === 'onSelectionChange') drive.select(1, 3)
-        else if (event === 'onEndEditing') drive.endEditing('final')
-        else drive.submit('done')
-      }
-      expect(rnSpy).toHaveBeenCalledTimes(1)
-      expect(ourSpy).toHaveBeenCalledTimes(1)
-    }
+  /**
+   * A handler written against a `TextInput` reaches through `nativeEvent`.
+   * Every event this component sends carries it, under the same names, so
+   * swapping the component does not mean touching the handler.
+   */
+  it('onSubmitEditing reaches nativeEvent.text on both', () => {
+    const rnSpy = jest.fn()
+    const ourSpy = jest.fn()
+    const rn = render(<TextInput onSubmitEditing={rnSpy} />)
+    const ours = render(<NitroInput onSubmitEditing={ourSpy} />)
+    rnDriver(rn).submit('done')
+    ourDriver(ours).submit('done')
+    expect(rnSpy.mock.calls[0]![0].nativeEvent.text).toBe('done')
+    expect(ourSpy.mock.calls[0]![0].nativeEvent.text).toBe('done')
+  })
+
+  it('onEndEditing reaches nativeEvent.text on both', () => {
+    const rnSpy = jest.fn()
+    const ourSpy = jest.fn()
+    const rn = render(<TextInput onEndEditing={rnSpy} />)
+    const ours = render(<NitroInput onEndEditing={ourSpy} />)
+    rnDriver(rn).endEditing('final')
+    ourDriver(ours).endEditing('final')
+    expect(rnSpy.mock.calls[0]![0].nativeEvent.text).toBe('final')
+    expect(ourSpy.mock.calls[0]![0].nativeEvent.text).toBe('final')
+  })
+
+  it('onSelectionChange reaches nativeEvent.selection on both', () => {
+    const rnSpy = jest.fn()
+    const ourSpy = jest.fn()
+    const rn = render(<TextInput onSelectionChange={rnSpy} />)
+    const ours = render(<NitroInput onSelectionChange={ourSpy} />)
+    rnDriver(rn).select(1, 3)
+    ourDriver(ours).select(1, 3)
+    expect(rnSpy.mock.calls[0]![0].nativeEvent.selection).toEqual({ start: 1, end: 3 })
+    expect(ourSpy.mock.calls[0]![0].nativeEvent.selection).toEqual({ start: 1, end: 3 })
+  })
+
+  it('onFocus and onBlur carry an event on both', () => {
+    const rnFocus = jest.fn()
+    const ourFocus = jest.fn()
+    const rn = render(<TextInput onFocus={rnFocus} />)
+    const ours = render(<NitroInput onFocus={ourFocus} />)
+    rnDriver(rn).focus()
+    ourDriver(ours).focus()
+    expect(rnFocus.mock.calls[0]![0].nativeEvent).toBeDefined()
+    expect(ourFocus.mock.calls[0]![0].nativeEvent).toBeDefined()
+    expect(typeof ourFocus.mock.calls[0]![0].nativeEvent.target).toBe('number')
   })
 })
 
@@ -666,46 +694,58 @@ describe('deliberate differences', () => {
     expect(onChangeValue).toHaveBeenCalledWith(1234.5)
   })
 
+  /**
+   * The events are supersets: React Native's `nativeEvent` is there (asserted
+   * above, which is what makes the swap safe), and the same fields sit at the
+   * top level so a handler can destructure instead of reaching through it.
+   */
+  it('repeats every event field at the top level, which TextInput does not', () => {
+    const submit = jest.fn()
+    const end = jest.fn()
+    const select = jest.fn()
+    const focus = jest.fn()
+    const key = jest.fn()
+
+    const s1 = render(<NitroInput onSubmitEditing={submit} />)
+    ourDriver(s1).submit('done')
+    expect(submit.mock.calls[0]![0]).toMatchObject({ text: 'done', nativeEvent: { text: 'done' } })
+
+    const s2 = render(<NitroInput onEndEditing={end} />)
+    ourDriver(s2).endEditing('final')
+    expect(end.mock.calls[0]![0]).toMatchObject({ text: 'final', nativeEvent: { text: 'final' } })
+
+    const s3 = render(<NitroInput onSelectionChange={select} />)
+    ourDriver(s3).select(1, 3)
+    // Both `{ start, end }` and `{ selection }` read off the same event.
+    expect(select.mock.calls[0]![0]).toMatchObject({
+      start: 1,
+      end: 3,
+      selection: { start: 1, end: 3 },
+      nativeEvent: { selection: { start: 1, end: 3 } },
+    })
+
+    const s4 = render(<NitroInput onFocus={focus} />)
+    ourDriver(s4).focus()
+    expect(focus.mock.calls[0]![0]).toMatchObject({ text: '', eventCount: 0 })
+
+    const s5 = render(<NitroInput onKeyPress={key} />)
+    const cb = ourHost(s5).onKeyPress as { f: (k: string) => void }
+    act(() => cb.f('a'))
+    expect(key.mock.calls[0]![0]).toMatchObject({ key: 'a', nativeEvent: { key: 'a' } })
+  })
+
+  it('a focus event reports the text the field currently holds', () => {
+    const focus = jest.fn()
+    const ours = render(<NitroInput value="hello" onChangeText={() => {}} onFocus={focus} />)
+    ourDriver(ours).focus()
+    expect(focus.mock.calls[0]![0].text).toBe('hello')
+    expect(focus.mock.calls[0]![0].nativeEvent.text).toBe('hello')
+  })
+
   it('draws its own frame, where TextInput has underlineColorAndroid and nothing on iOS', () => {
     const framed = ourHost(render(<NitroInput variant="outlined" label="Email" />))
     expect(framed.variant).toBe('outlined')
     expect(framed.label).toBe('Email')
-  })
-
-  /**
-   * The event callbacks hand over what they are about, rather than a synthetic
-   * event to reach into. Easier to read and to type - but it is the one place
-   * a `TextInput` cannot be swapped for this without touching the handler, so
-   * it is pinned here rather than left to be discovered.
-   */
-  it('hands simpler arguments to onSubmitEditing, onEndEditing and onSelectionChange', () => {
-    const rnSubmit = jest.fn()
-    const ourSubmit = jest.fn()
-    const rn = render(<TextInput onSubmitEditing={rnSubmit} />)
-    const ours = render(<NitroInput onSubmitEditing={ourSubmit} />)
-    rnDriver(rn).submit('done')
-    ourDriver(ours).submit('done')
-    // React Native: a synthetic event. Ours: the text.
-    expect(rnSubmit).toHaveBeenCalledWith(expect.objectContaining({ nativeEvent: expect.any(Object) }))
-    expect(rnSubmit.mock.calls[0]![0].nativeEvent.text).toBe('done')
-    expect(ourSubmit).toHaveBeenCalledWith('done')
-
-    const ourSelect = jest.fn()
-    const selecting = render(<NitroInput onSelectionChange={ourSelect} />)
-    ourDriver(selecting).select(1, 3)
-    expect(ourSelect).toHaveBeenCalledWith({ start: 1, end: 3 })
-
-    const ourEnd = jest.fn()
-    const ending = render(<NitroInput onEndEditing={ourEnd} />)
-    ourDriver(ending).endEditing('final')
-    expect(ourEnd).toHaveBeenCalledWith('final')
-  })
-
-  it('onFocus and onBlur take no argument', () => {
-    const ourFocus = jest.fn()
-    const ours = render(<NitroInput onFocus={ourFocus} />)
-    ourDriver(ours).focus()
-    expect(ourFocus).toHaveBeenCalledWith()
   })
 
   /**

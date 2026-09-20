@@ -181,7 +181,52 @@ export const NativeNitroInputView = getHostComponent<
 /** The native Nitro `HybridObject` behind a mounted {@link NitroInput}. */
 export type NitroInputRef = HybridRef<NativeNitroInputProps, NitroInputMethods>
 
-export interface NitroInputProps extends Omit<ViewProps, 'children'> {
+/**
+ * The events this component hands to its callbacks.
+ *
+ * Each one is a superset of what `TextInput` passes: `nativeEvent` is there
+ * with the same fields under the same names, so a handler written against a
+ * `TextInput` keeps working when the component is swapped, and the fields are
+ * repeated at the top level so new code can destructure them instead of
+ * reaching through `nativeEvent`.
+ */
+export interface NitroInputTextEvent {
+  text: string
+  /** The host view's react tag, as `TextInput` reports for itself. */
+  target: number
+  nativeEvent: { text: string; target: number }
+}
+
+export interface NitroInputFocusEvent extends NitroInputTextEvent {
+  /** The native edit counter, as in `TextInput`. */
+  eventCount: number
+  nativeEvent: { text: string; target: number; eventCount: number }
+}
+
+export interface NitroInputSelection {
+  start: number
+  end: number
+}
+
+export interface NitroInputSelectionEvent {
+  /** The selection, in code points. */
+  selection: NitroInputSelection
+  /** The selection's bounds, repeated so `({ start, end }) => …` works. */
+  start: number
+  end: number
+  target: number
+  nativeEvent: { selection: NitroInputSelection; target: number }
+}
+
+export interface NitroInputKeyPressEvent {
+  /** The character, `'Backspace'` or `'Enter'`. */
+  key: string
+  eventCount: number
+  target: number
+  nativeEvent: { key: string; eventCount: number; target: number }
+}
+
+export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' | 'onBlur'> {
   /**
    * The text to show (controlled). The native side formats and shows what the
    * user types on its own; this prop is applied when it changes to something
@@ -446,16 +491,22 @@ export interface NitroInputProps extends Omit<ViewProps, 'children'> {
   }) => void
   /** `'number'` mode: called after every edit with the numeric value, `NaN` when empty. A `'worklet'` runs on the UI thread. */
   onChangeValue?: (value: number) => void
-  onFocus?: () => void
-  onBlur?: () => void
+  /**
+   * Focused. The event is `TextInput`'s, so a handler written for one works
+   * here unchanged - and the same fields are repeated at the top level, so
+   * `({ text }) => …` reads better than `(e) => e.nativeEvent.text`.
+   */
+  onFocus?: (event: NitroInputFocusEvent) => void
+  /** Blurred. Same event as {@link NitroInputProps.onFocus}. */
+  onBlur?: (event: NitroInputFocusEvent) => void
   /** The return key was pressed. */
-  onSubmitEditing?: (text: string) => void
+  onSubmitEditing?: (event: NitroInputTextEvent) => void
   /** Editing finished (focus lost or keyboard dismissed), like `TextInput`'s `onEndEditing`. */
-  onEndEditing?: (text: string) => void
+  onEndEditing?: (event: NitroInputTextEvent) => void
   /** The caret or selection moved, in code points. */
-  onSelectionChange?: (selection: { start: number; end: number }) => void
+  onSelectionChange?: (event: NitroInputSelectionEvent) => void
   /** A key was pressed, before the text changes: the character, `'Backspace'` or `'Enter'`. */
-  onKeyPress?: (key: string) => void
+  onKeyPress?: (event: NitroInputKeyPressEvent) => void
   /** Receives the native Nitro object once the view is mounted. */
   onNativeRef?: (ref: NitroInputRef) => void
 }
@@ -642,6 +693,11 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     // registry only ever compares identity or passes the value back to us.
     const hostRef = useRef<unknown>(null)
     const registryKeyRef = useRef<object | null>(null)
+    // The last text and edit counter the native side reported. `focus`, `blur`
+    // and `keyPress` carry both but are not themselves edits, so they have
+    // nothing of their own to read them from.
+    const textRef = useRef(defaultValue ?? '')
+    const eventCountRef = useRef(0)
     const latest = useRef({
       onNativeRef,
       onChangeText,
@@ -668,6 +724,8 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       onSelectionChange,
       onKeyPress,
     }
+    // A controlled field's text is the prop, not the last edit this saw.
+    if (value != null) textRef.current = value
 
     const [size, setSize] = useState<Size | null>(null)
     // Worklets are registered on the UI runtime and referenced by id; a
@@ -754,6 +812,8 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       () =>
         callback((text: string, count: number) => {
           setEventCount(count)
+          textRef.current = text
+          eventCountRef.current = count
           const handler = latest.current.onChangeText
           // A worklet handler already ran on the UI thread.
           if (handler && !isWorklet(handler)) handler(text)
@@ -783,6 +843,14 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         ),
       []
     )
+    // Every event below carries `nativeEvent` for a handler written against a
+    // `TextInput`, and the same fields at the top level for one written against
+    // this. Built here rather than natively: the native side sends the values,
+    // and the shape is a JavaScript convention React Native owns.
+    const textEvent = (text: string): NitroInputTextEvent => {
+      const target = reactTagOf(hostRef.current)
+      return { text, target, nativeEvent: { text, target } }
+    }
     const onFocusChangeCallback = useMemo(
       () =>
         callback((focused: boolean) => {
@@ -791,36 +859,62 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
             if (focused) textInputRegistry?.focusInput(key)
             else textInputRegistry?.blurInput(key)
           }
-          if (focused) latest.current.onFocus?.()
-          else latest.current.onBlur?.()
+          const text = textRef.current
+          const target = reactTagOf(hostRef.current)
+          const count = eventCountRef.current
+          const event: NitroInputFocusEvent = {
+            text,
+            target,
+            eventCount: count,
+            nativeEvent: { text, target, eventCount: count },
+          }
+          if (focused) latest.current.onFocus?.(event)
+          else latest.current.onBlur?.(event)
         }),
       []
     )
     const onSubmitEditingCallback = useMemo(
       () =>
         callback((text: string) => {
-          latest.current.onSubmitEditing?.(text)
+          latest.current.onSubmitEditing?.(textEvent(text))
         }),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       []
     )
     const onEndEditingCallback = useMemo(
       () =>
         callback((text: string) => {
-          latest.current.onEndEditing?.(text)
+          latest.current.onEndEditing?.(textEvent(text))
         }),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       []
     )
     const onSelectionChangeCallback = useMemo(
       () =>
         callback((start: number, end: number) => {
-          latest.current.onSelectionChange?.({ start, end })
+          const selection = { start, end }
+          const target = reactTagOf(hostRef.current)
+          latest.current.onSelectionChange?.({
+            selection,
+            start,
+            end,
+            target,
+            nativeEvent: { selection, target },
+          })
         }),
       []
     )
     const onKeyPressCallback = useMemo(
       () =>
         callback((key: string) => {
-          latest.current.onKeyPress?.(key)
+          const target = reactTagOf(hostRef.current)
+          const count = eventCountRef.current
+          latest.current.onKeyPress?.({
+            key,
+            eventCount: count,
+            target,
+            nativeEvent: { key, eventCount: count, target },
+          })
         }),
       []
     )
