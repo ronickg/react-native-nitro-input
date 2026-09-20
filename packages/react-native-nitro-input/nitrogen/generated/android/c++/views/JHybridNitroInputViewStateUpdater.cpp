@@ -84,6 +84,26 @@ void JHybridNitroInputViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCla
     hybridView->setMaxIntegerDigits(newProps->maxIntegerDigits.get());
   }
   if (oldProps == nullptr
+        ? newProps->mask.isProvided()
+        : !newProps->mask.hasSameValue(oldProps->mask)) {
+    hybridView->setMask(newProps->mask.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->maskNotations.isProvided()
+        : !newProps->maskNotations.hasSameValue(oldProps->maskNotations)) {
+    hybridView->setMaskNotations(newProps->maskNotations.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->maskAutocomplete.isProvided()
+        : !newProps->maskAutocomplete.hasSameValue(oldProps->maskAutocomplete)) {
+    hybridView->setMaskAutocomplete(newProps->maskAutocomplete.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->maskAutoSkip.isProvided()
+        : !newProps->maskAutoSkip.hasSameValue(oldProps->maskAutoSkip)) {
+    hybridView->setMaskAutoSkip(newProps->maskAutoSkip.get());
+  }
+  if (oldProps == nullptr
         ? newProps->groupingSeparator.isProvided()
         : !newProps->groupingSeparator.hasSameValue(oldProps->groupingSeparator)) {
     hybridView->setGroupingSeparator(newProps->groupingSeparator.get());
@@ -92,6 +112,61 @@ void JHybridNitroInputViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCla
         ? newProps->decimalSeparator.isProvided()
         : !newProps->decimalSeparator.hasSameValue(oldProps->decimalSeparator)) {
     hybridView->setDecimalSeparator(newProps->decimalSeparator.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->variant.isProvided()
+        : !newProps->variant.hasSameValue(oldProps->variant)) {
+    hybridView->setVariant(newProps->variant.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->label.isProvided()
+        : !newProps->label.hasSameValue(oldProps->label)) {
+    hybridView->setLabel(newProps->label.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->labelBehavior.isProvided()
+        : !newProps->labelBehavior.hasSameValue(oldProps->labelBehavior)) {
+    hybridView->setLabelBehavior(newProps->labelBehavior.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->labelColor.isProvided()
+        : !newProps->labelColor.hasSameValue(oldProps->labelColor)) {
+    hybridView->setLabelColor(newProps->labelColor.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->labelFocusedColor.isProvided()
+        : !newProps->labelFocusedColor.hasSameValue(oldProps->labelFocusedColor)) {
+    hybridView->setLabelFocusedColor(newProps->labelFocusedColor.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->labelFontSize.isProvided()
+        : !newProps->labelFontSize.hasSameValue(oldProps->labelFontSize)) {
+    hybridView->setLabelFontSize(newProps->labelFontSize.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->strokeColor.isProvided()
+        : !newProps->strokeColor.hasSameValue(oldProps->strokeColor)) {
+    hybridView->setStrokeColor(newProps->strokeColor.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->focusedStrokeColor.isProvided()
+        : !newProps->focusedStrokeColor.hasSameValue(oldProps->focusedStrokeColor)) {
+    hybridView->setFocusedStrokeColor(newProps->focusedStrokeColor.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->strokeWidth.isProvided()
+        : !newProps->strokeWidth.hasSameValue(oldProps->strokeWidth)) {
+    hybridView->setStrokeWidth(newProps->strokeWidth.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->cornerRadius.isProvided()
+        : !newProps->cornerRadius.hasSameValue(oldProps->cornerRadius)) {
+    hybridView->setCornerRadius(newProps->cornerRadius.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->fillColor.isProvided()
+        : !newProps->fillColor.hasSameValue(oldProps->fillColor)) {
+    hybridView->setFillColor(newProps->fillColor.get());
   }
   if (oldProps == nullptr
         ? newProps->prefix.isProvided()
@@ -342,6 +417,11 @@ void JHybridNitroInputViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCla
         ? newProps->onChangeText.isProvided()
         : !newProps->onChangeText.hasSameValue(oldProps->onChangeText)) {
     hybridView->setOnChangeText(newProps->onChangeText.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->onChangeMask.isProvided()
+        : !newProps->onChangeMask.hasSameValue(oldProps->onChangeMask)) {
+    hybridView->setOnChangeMask(newProps->onChangeMask.get());
   }
   if (oldProps == nullptr
         ? newProps->onChangeValue.isProvided()

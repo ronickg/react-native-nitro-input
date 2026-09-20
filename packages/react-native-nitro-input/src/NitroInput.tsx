@@ -28,6 +28,9 @@ export type NitroInputHandle = MorphInputHandle
 
 export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
   function NitroInput(props, ref) {
-    return <MorphInput {...props} ref={ref} plain />
+    // `autoWidth` off by default: a `TextInput` takes its width from its
+    // parent, and a drop-in has to do the same. Pass `autoWidth` explicitly to
+    // get the content-sizing behaviour back.
+    return <MorphInput autoWidth={false} {...props} ref={ref} plain />
   }
 )

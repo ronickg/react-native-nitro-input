@@ -21,6 +21,8 @@ public extension NitroInputMode {
         self = .number
       case "text":
         self = .text
+      case "mask":
+        self = .mask
       default:
         return nil
     }
@@ -35,6 +37,8 @@ public extension NitroInputMode {
         return "number"
       case .text:
         return "text"
+      case .mask:
+        return "mask"
     }
   }
 }

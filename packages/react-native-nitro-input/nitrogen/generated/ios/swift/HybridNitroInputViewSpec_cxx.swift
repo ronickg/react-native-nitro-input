@@ -187,6 +187,56 @@ open class HybridNitroInputViewSpec_cxx {
     }
   }
   
+  public final var mask: std.string {
+    @inline(__always)
+    get {
+      return std.string(self.__implementation.mask)
+    }
+    @inline(__always)
+    set {
+      self.__implementation.mask = String(newValue)
+    }
+  }
+  
+  public final var maskNotations: bridge.std__vector_NitroInputNotation_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__vector_NitroInputNotation_ in
+        var __vector = bridge.create_std__vector_NitroInputNotation_(self.__implementation.maskNotations.count)
+        for __item in self.__implementation.maskNotations {
+          __vector.push_back(__item)
+        }
+        return __vector
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.maskNotations = newValue.map({ __item in __item })
+    }
+  }
+  
+  public final var maskAutocomplete: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.maskAutocomplete
+    }
+    @inline(__always)
+    set {
+      self.__implementation.maskAutocomplete = newValue
+    }
+  }
+  
+  public final var maskAutoSkip: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.maskAutoSkip
+    }
+    @inline(__always)
+    set {
+      self.__implementation.maskAutoSkip = newValue
+    }
+  }
+  
   public final var groupingSeparator: std.string {
     @inline(__always)
     get {
@@ -206,6 +256,127 @@ open class HybridNitroInputViewSpec_cxx {
     @inline(__always)
     set {
       self.__implementation.decimalSeparator = String(newValue)
+    }
+  }
+  
+  public final var variant: Int32 {
+    @inline(__always)
+    get {
+      return self.__implementation.variant.rawValue
+    }
+    @inline(__always)
+    set {
+      self.__implementation.variant = margelo.nitro.nitroinput.NitroInputVariant(rawValue: newValue)!
+    }
+  }
+  
+  public final var label: std.string {
+    @inline(__always)
+    get {
+      return std.string(self.__implementation.label)
+    }
+    @inline(__always)
+    set {
+      self.__implementation.label = String(newValue)
+    }
+  }
+  
+  public final var labelBehavior: Int32 {
+    @inline(__always)
+    get {
+      return self.__implementation.labelBehavior.rawValue
+    }
+    @inline(__always)
+    set {
+      self.__implementation.labelBehavior = margelo.nitro.nitroinput.NitroInputLabelBehavior(rawValue: newValue)!
+    }
+  }
+  
+  public final var labelColor: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.labelColor
+    }
+    @inline(__always)
+    set {
+      self.__implementation.labelColor = newValue
+    }
+  }
+  
+  public final var labelFocusedColor: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.labelFocusedColor
+    }
+    @inline(__always)
+    set {
+      self.__implementation.labelFocusedColor = newValue
+    }
+  }
+  
+  public final var labelFontSize: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.labelFontSize
+    }
+    @inline(__always)
+    set {
+      self.__implementation.labelFontSize = newValue
+    }
+  }
+  
+  public final var strokeColor: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.strokeColor
+    }
+    @inline(__always)
+    set {
+      self.__implementation.strokeColor = newValue
+    }
+  }
+  
+  public final var focusedStrokeColor: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.focusedStrokeColor
+    }
+    @inline(__always)
+    set {
+      self.__implementation.focusedStrokeColor = newValue
+    }
+  }
+  
+  public final var strokeWidth: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.strokeWidth
+    }
+    @inline(__always)
+    set {
+      self.__implementation.strokeWidth = newValue
+    }
+  }
+  
+  public final var cornerRadius: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.cornerRadius
+    }
+    @inline(__always)
+    set {
+      self.__implementation.cornerRadius = newValue
+    }
+  }
+  
+  public final var fillColor: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.fillColor
+    }
+    @inline(__always)
+    set {
+      self.__implementation.fillColor = newValue
     }
   }
   
@@ -780,6 +951,38 @@ open class HybridNitroInputViewSpec_cxx {
     }
   }
   
+  public final var onChangeMask: bridge.std__optional_std__function_void_const_std__string_____formatted_____const_std__string_____extracted_____const_std__string_____tailPlaceholder_____bool____complete______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_const_std__string_____formatted_____const_std__string_____extracted_____const_std__string_____tailPlaceholder_____bool____complete______ in
+        if let __unwrappedValue = self.__implementation.onChangeMask {
+          return bridge.create_std__optional_std__function_void_const_std__string_____formatted_____const_std__string_____extracted_____const_std__string_____tailPlaceholder_____bool____complete______({ () -> bridge.Func_void_std__string_std__string_std__string_bool in
+            let __closureWrapper = Func_void_std__string_std__string_std__string_bool(__unwrappedValue)
+            return bridge.create_Func_void_std__string_std__string_std__string_bool(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onChangeMask = { () -> ((_ formatted: String, _ extracted: String, _ tailPlaceholder: String, _ complete: Bool) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_const_std__string_____formatted_____const_std__string_____extracted_____const_std__string_____tailPlaceholder_____bool____complete______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_const_std__string_____formatted_____const_std__string_____extracted_____const_std__string_____tailPlaceholder_____bool____complete______(newValue)
+          return { () -> (String, String, String, Bool) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_std__string_std__string_std__string_bool(__unwrapped)
+            return { (__formatted: String, __extracted: String, __tailPlaceholder: String, __complete: Bool) -> Void in
+              __wrappedFunction.call(std.string(__formatted), std.string(__extracted), std.string(__tailPlaceholder), __complete)
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
   public final var onChangeValue: bridge.std__optional_std__function_void_double____value______ {
     @inline(__always)
     get {
@@ -1093,6 +1296,17 @@ open class HybridNitroInputViewSpec_cxx {
     } catch (let __error) {
       let __exceptionPtr = __error.toCpp()
       return bridge.create_Result_bool_(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func setSelection(start: Double, end: Double) -> bridge.Result_void_ {
+    do {
+      try self.__implementation.setSelection(start: start, end: end)
+      return bridge.create_Result_void_()
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_void_(__exceptionPtr)
     }
   }
   

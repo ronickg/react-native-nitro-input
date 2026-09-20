@@ -26,14 +26,18 @@ import type {
   NitroInputEffect,
   NitroInputKeyboardAppearance,
   NitroInputKeyboardType,
+  NitroInputLabelBehavior,
   NitroInputMethods,
   NitroInputMode,
   NitroInputProps as NativeNitroInputProps,
   NitroInputReturnKeyType,
   NitroInputSubmitBehavior,
   NitroInputTextAlign,
+  NitroInputVariant,
+  NitroInputNotation,
 } from './specs/NitroInput.nitro'
 import {
+  allocateWorkletId,
   isWorklet,
   registerCallback,
   registerTransform,
@@ -76,6 +80,60 @@ const textInputRegistry: (TextInputRegistry & Partial<TextInputCommands>) | null
 })()
 
 /** Mounted fields, by the host instance React Native's registry stores. */
+/** React Native's `inputMode`, the HTML-aligned alias for `keyboardType`. */
+export type InputMode =
+  | 'none'
+  | 'text'
+  | 'decimal'
+  | 'numeric'
+  | 'tel'
+  | 'search'
+  | 'email'
+  | 'url'
+
+/** React Native's `enterKeyHint`, the HTML-aligned alias for `returnKeyType`. */
+export type EnterKeyHint = 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send'
+
+// Both tables are React Native's own (`TextInput.js`), so an app that swaps a
+// `TextInput` for this gets the same keyboard from the same prop.
+const INPUT_MODE_TO_KEYBOARD: Record<InputMode, NitroInputKeyboardType> = {
+  none: 'default',
+  text: 'default',
+  decimal: 'decimal-pad',
+  numeric: 'number-pad',
+  tel: 'phone-pad',
+  // RN picks iOS `web-search` here; this component has no such keyboard type,
+  // and Android already falls back to `default`.
+  search: 'default',
+  email: 'email-address',
+  url: 'url',
+}
+
+const ENTER_KEY_HINT_TO_RETURN_KEY: Record<EnterKeyHint, NitroInputReturnKeyType> = {
+  enter: 'default',
+  done: 'done',
+  go: 'go',
+  next: 'next',
+  // RN maps `previous` to an Android-only return key this component does not
+  // expose, so it falls back to the default on both.
+  previous: 'default',
+  search: 'search',
+  send: 'send',
+}
+
+/**
+ * The react tag of a host instance, or 0 when there is none. Fabric's
+ * `ReactNativeElement` keeps it on `__nativeTag`; the pre-Fabric name was
+ * `_nativeTag`. Android's Nitro view hands out no instance at all, so 0.
+ */
+function reactTagOf(host: unknown): number {
+  const instance = host as { _nativeTag?: number; __nativeTag?: number } | null
+  const tag = instance?.__nativeTag ?? instance?._nativeTag
+  return typeof tag === 'number' ? tag : 0
+}
+
+const EMPTY_NOTATIONS: NitroInputNotation[] = []
+
 const mountedFields = new WeakMap<object, { focus(): void; blur(): void }>()
 let patchedRegistry = false
 
@@ -138,7 +196,71 @@ export interface MorphInputProps extends Omit<ViewProps, 'children'> {
    * separator, up to `fractionDigits` decimals, a currency `prefix` /
    * `suffix`. `'text'` is a plain single-line field. Default: `'text'`.
    */
+  /**
+   * The field's frame. `'outlined'` strokes a rounded rectangle notched around
+   * the floating label - the notch is a real hole in the path, so whatever is
+   * behind the field shows through. `'filled'` tints the box instead.
+   * Default: `'none'`, leaving the border to `style` as before.
+   */
+  variant?: NitroInputVariant
+  /** Floating label text. Requires a `variant` other than `'none'`. */
+  label?: string
+  /** Whether the label floats on focus/content or stays floated. Default: `'float'`. */
+  labelBehavior?: NitroInputLabelBehavior
+  /** Label colour at rest; defaults to `placeholderTextColor`. */
+  labelColor?: ColorValue
+  /** Label colour while focused; defaults to `focusedStrokeColor`. */
+  labelFocusedColor?: ColorValue
+  /** Label size when floated, in points; omit to derive it from `fontSize`. */
+  labelFontSize?: number
+  /** Outline colour; defaults to a platform hairline grey. */
+  strokeColor?: ColorValue
+  /** Outline colour while focused; defaults to `strokeColor`. */
+  focusedStrokeColor?: ColorValue
+  /** Outline stroke width in points, doubled while focused. Default: `1`. */
+  strokeWidth?: number
+  /** Corner radius of the frame. Default: `8`. */
+  cornerRadius?: number
+  /** `'filled'`: the box tint. */
+  fillColor?: ColorValue
   mode?: NitroInputMode
+  /**
+   * React Native's alias for `keyboardType`, following the HTML attribute.
+   * Ignored when `keyboardType` is given. `'none'` also suppresses the soft
+   * keyboard, as it does in `TextInput`.
+   */
+  inputMode?: InputMode
+  /** React Native's alias for `returnKeyType`, following the HTML attribute. Ignored when `returnKeyType` is given. */
+  enterKeyHint?: EnterKeyHint
+  /**
+   * `'mask'`: the pattern, e.g. `'+1 ([000]) [000]-[0000]'`.
+   *
+   * `[0]` mandatory digit, `[9]` optional digit, `[A]` mandatory letter,
+   * `[a]` optional letter, `[_]` mandatory alphanumeric, `[-]` optional
+   * alphanumeric, `[…]` an unbounded run of the preceding type. `{…}` is a
+   * fixed block whose characters count towards the extracted value; a literal
+   * outside brackets is shown but not extracted. `\\` escapes.
+   *
+   * An invalid pattern leaves the field unmasked rather than breaking it.
+   */
+  mask?: string
+  /** `'mask'`: extra slot characters beyond the built-in ones. */
+  maskNotations?: NitroInputNotation[]
+  /** `'mask'`: fill in constants as the caret reaches them. Default: `true`. */
+  maskAutocomplete?: boolean
+  /** `'mask'`: backspace walks back over autocompleted constants. Default: `false`. */
+  maskAutoSkip?: boolean
+  /**
+   * `'mask'` mode: called after every edit with the masked text, the characters
+   * the user contributed, what is still missing, and whether every mandatory
+   * slot is filled.
+   */
+  onChangeMask?: (
+    formatted: string,
+    extracted: string,
+    tailPlaceholder: string,
+    complete: boolean
+  ) => void
   /** `'number'`: most digits allowed after the decimal separator; `0` disables the decimal. Default: `2`. */
   fractionDigits?: number
   /** `'number'`: most integer digits accepted. Default: `15`. */
@@ -258,6 +380,14 @@ export interface MorphInputProps extends Omit<ViewProps, 'children'> {
    * Default: `false`.
    */
   plain?: boolean
+  /**
+   * Whether the field sizes itself to its content. Left unset it is inferred:
+   * on unless `style` gives a `width` or `flex`, which is what lets an amount
+   * grow as digits arrive. Set `false` and the view takes no width of its own,
+   * so flexbox stretches it to its parent the way a `TextInput` is stretched —
+   * that is what {@link NitroInput} does, and what makes it a drop-in.
+   */
+  autoWidth?: boolean
   /** `'text'` mode: most characters accepted. Default: unlimited. */
   maxLength?: number
   /**
@@ -277,6 +407,14 @@ export interface MorphInputProps extends Omit<ViewProps, 'children'> {
    * before the next frame.
    */
   onChangeText?: (text: string) => void
+  /**
+   * React Native's other change callback, fired alongside `onChangeText` with
+   * the same text. `nativeEvent.eventCount` is the native edit counter, as in
+   * `TextInput`.
+   */
+  onChange?: (event: {
+    nativeEvent: { text: string; eventCount: number; target: number }
+  }) => void
   /** `'number'` mode: called after every edit with the numeric value, `NaN` when empty. A `'worklet'` runs on the UI thread. */
   onChangeValue?: (value: number) => void
   onFocus?: () => void
@@ -308,6 +446,8 @@ export interface MorphInputHandle {
   /** `'number'` mode: the numeric value, `NaN` when empty. */
   getValue(): number
   isFocused(): boolean
+  /** Moves the caret / selection; code points into the (formatted) text. */
+  setSelection(start: number, end?: number): void
   /** The native Nitro object, or `null` before mount. */
   readonly native: MorphInputRef | null
 }
@@ -391,13 +531,31 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
       minimumFontScale,
       allowFontScaling,
       maxFontSizeMultiplier,
+      variant,
+      label,
+      labelBehavior,
+      labelColor,
+      labelFocusedColor,
+      labelFontSize,
+      strokeColor,
+      focusedStrokeColor,
+      strokeWidth,
+      cornerRadius,
+      fillColor,
       keyboardType,
+      inputMode,
+      enterKeyHint,
+      mask,
+      maskNotations,
+      maskAutocomplete,
+      maskAutoSkip,
       returnKeyType,
       autoCapitalize,
       autoCorrect,
       editable,
       autoFocus,
       plain,
+      autoWidth: autoWidthProp,
       submitBehavior,
       blurOnSubmit,
       secureTextEntry,
@@ -418,7 +576,9 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
       maxLength,
       transform,
       onChangeText,
+      onChange,
       onChangeValue,
+      onChangeMask,
       onFocus,
       onBlur,
       onSubmitEditing,
@@ -438,7 +598,9 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
     const latest = useRef({
       onNativeRef,
       onChangeText,
+      onChange,
       onChangeValue,
+      onChangeMask,
       onFocus,
       onBlur,
       onSubmitEditing,
@@ -449,7 +611,9 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
     latest.current = {
       onNativeRef,
       onChangeText,
+      onChange,
       onChangeValue,
+      onChangeMask,
       onFocus,
       onBlur,
       onSubmitEditing,
@@ -508,7 +672,11 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
     const flat = StyleSheet.flatten(style) as
       | { width?: unknown; flex?: unknown; height?: unknown }
       | undefined
-    const autoWidth = flat?.width == null && flat?.flex == null
+    // `TextInput` stretches to its parent; sizing to content is this
+    // component's own behaviour, and it is what stops it being a drop-in.
+    // `NitroInput` turns it off so flexbox gives it the parent's width, the
+    // way a `TextInput` gets one.
+    const autoWidth = autoWidthProp ?? (flat?.width == null && flat?.flex == null)
     const autoWidthRef = useRef(autoWidth)
     autoWidthRef.current = autoWidth
     // When the style pins both axes, the measured size is never used: `style`
@@ -540,6 +708,12 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
           const handler = latest.current.onChangeText
           // A worklet handler already ran on the UI thread.
           if (handler && !isWorklet(handler)) handler(text)
+          // `onChange` fires alongside it with the same text, as in RN. The
+          // target is the host tag when there is one (iOS); Android's Nitro
+          // view hands out no instance, so it is 0 there.
+          latest.current.onChange?.({
+            nativeEvent: { text, eventCount: count, target: reactTagOf(hostRef.current) },
+          })
         }),
       []
     )
@@ -549,6 +723,15 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
           const handler = latest.current.onChangeValue
           if (handler && !isWorklet(handler)) handler(next)
         }),
+      []
+    )
+    const onChangeMaskCallback = useMemo(
+      () =>
+        callback(
+          (formatted: string, extracted: string, tailPlaceholder: string, complete: boolean) => {
+            latest.current.onChangeMask?.(formatted, extracted, tailPlaceholder, complete)
+          }
+        ),
       []
     )
     const onFocusChangeCallback = useMemo(
@@ -604,6 +787,8 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
         getText: () => nativeRef.current?.currentText() ?? value ?? initialText,
         getValue: () => nativeRef.current?.getValue() ?? NaN,
         isFocused: () => nativeRef.current?.isFocused() ?? false,
+        setSelection: (start: number, end?: number) =>
+          nativeRef.current?.setSelection(start, end ?? start),
         get native() {
           return nativeRef.current
         },
@@ -635,11 +820,18 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
     const resolvedFractionDigits = fractionDigits ?? 2
     const resolvedKeyboardType =
       keyboardType ??
-      (resolvedMode === 'number'
-        ? resolvedFractionDigits > 0
-          ? 'decimal-pad'
-          : 'number-pad'
-        : 'default')
+      (inputMode != null
+        ? INPUT_MODE_TO_KEYBOARD[inputMode]
+        : resolvedMode === 'number'
+          ? resolvedFractionDigits > 0
+            ? 'decimal-pad'
+            : 'number-pad'
+          : 'default')
+    const resolvedReturnKeyType =
+      returnKeyType ?? (enterKeyHint != null ? ENTER_KEY_HINT_TO_RETURN_KEY[enterKeyHint] : 'default')
+    // `inputMode="none"` means "focus it but show no keyboard", as in RN.
+    const resolvedShowSoftInput =
+      showSoftInputOnFocus ?? (inputMode != null ? inputMode !== 'none' : true)
 
     // The label goes on the hidden field (below), so leaving it on the host as
     // well would put the same label on two accessibility elements. `testID`
@@ -696,8 +888,24 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
         minimumFontScale={minimumFontScale ?? 0.5}
         allowFontScaling={allowFontScaling ?? false}
         maxFontSizeMultiplier={maxFontSizeMultiplier ?? 0}
+        variant={variant ?? 'none'}
+        label={label ?? ''}
+        labelBehavior={labelBehavior ?? 'float'}
+        labelColor={toProcessedColor(labelColor) ?? NaN}
+        labelFocusedColor={toProcessedColor(labelFocusedColor) ?? NaN}
+        labelFontSize={labelFontSize ?? 0}
+        strokeColor={toProcessedColor(strokeColor) ?? NaN}
+        focusedStrokeColor={toProcessedColor(focusedStrokeColor) ?? NaN}
+        strokeWidth={strokeWidth ?? 1}
+        cornerRadius={cornerRadius ?? 8}
+        fillColor={toProcessedColor(fillColor) ?? NaN}
+        mask={resolvedMode === 'mask' ? (mask ?? '') : ''}
+        maskNotations={maskNotations ?? EMPTY_NOTATIONS}
+        maskAutocomplete={maskAutocomplete ?? true}
+        maskAutoSkip={maskAutoSkip ?? false}
+        onChangeMask={onChangeMaskCallback}
         keyboardType={resolvedKeyboardType}
-        returnKeyType={returnKeyType ?? 'default'}
+        returnKeyType={resolvedReturnKeyType}
         autoCapitalize={autoCapitalize ?? 'sentences'}
         autoCorrect={autoCorrect ?? true}
         editable={(editable ?? true) && !(readOnly ?? false)}
@@ -709,7 +917,7 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
         keyboardAppearance={keyboardAppearance ?? 'default'}
         textContentType={textContentType ?? autoComplete ?? ''}
         enablesReturnKeyAutomatically={enablesReturnKeyAutomatically ?? false}
-        showSoftInputOnFocus={showSoftInputOnFocus ?? true}
+        showSoftInputOnFocus={resolvedShowSoftInput}
         selectTextOnFocus={selectTextOnFocus ?? false}
         clearTextOnFocus={clearTextOnFocus ?? false}
         contextMenuHidden={contextMenuHidden ?? false}
@@ -736,12 +944,21 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
 /**
  * Registers `fn` on the UI runtime for as long as it stays the same function
  * and returns its id (`0` while there is none or worklets are unavailable).
+ *
+ * The id is reserved during render so the first commit already carries it, but
+ * the registration itself happens in the effect: a render React discards (under
+ * StrictMode, or a concurrent render that loses) would otherwise leave an entry
+ * on the UI runtime that no cleanup ever removes.
  */
 function useWorkletId<T extends (...args: never[]) => unknown>(
   fn: T | undefined,
-  register: (fn: T) => number
+  register: (fn: T, id: number) => void
 ): number {
-  const id = useMemo(() => (fn ? register(fn) : 0), [fn, register])
-  useEffect(() => () => unregisterWorklet(id), [id])
+  const id = useMemo(() => (fn ? allocateWorkletId() : 0), [fn])
+  useEffect(() => {
+    if (id === 0 || !fn) return
+    register(fn, id)
+    return () => unregisterWorklet(id)
+  }, [id, fn, register])
   return id
 }

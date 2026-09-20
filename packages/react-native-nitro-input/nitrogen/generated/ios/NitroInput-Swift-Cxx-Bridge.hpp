@@ -10,6 +10,8 @@
 // Forward declarations of C++ defined types
 // Forward declaration of `HybridNitroInputViewSpec` to properly resolve imports.
 namespace margelo::nitro::nitroinput { class HybridNitroInputViewSpec; }
+// Forward declaration of `NitroInputNotation` to properly resolve imports.
+namespace margelo::nitro::nitroinput { struct NitroInputNotation; }
 
 // Forward declarations of Swift defined types
 // Forward declaration of `HybridNitroInputViewSpec_cxx` to properly resolve imports.
@@ -17,12 +19,14 @@ namespace NitroInput { class HybridNitroInputViewSpec_cxx; }
 
 // Include C++ defined types
 #include "HybridNitroInputViewSpec.hpp"
+#include "NitroInputNotation.hpp"
 #include <NitroModules/Result.hpp>
 #include <exception>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 /**
  * Contains specialized versions of C++ templated types so they can be accessed from Swift,
@@ -30,6 +34,17 @@ namespace NitroInput { class HybridNitroInputViewSpec_cxx; }
  */
 namespace margelo::nitro::nitroinput::bridge::swift {
 
+  // pragma MARK: std::vector<NitroInputNotation>
+  /**
+   * Specialized version of `std::vector<NitroInputNotation>`.
+   */
+  using std__vector_NitroInputNotation_ = std::vector<NitroInputNotation>;
+  inline std::vector<NitroInputNotation> create_std__vector_NitroInputNotation_(size_t size) noexcept {
+    std::vector<NitroInputNotation> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
   // pragma MARK: std::function<void(const std::string& /* text */, double /* eventCount */)>
   /**
    * Specialized version of `std::function<void(const std::string&, double)>`.
@@ -64,6 +79,43 @@ namespace margelo::nitro::nitroinput::bridge::swift {
     return optional.has_value();
   }
   inline std::function<void(const std::string& /* text */, double /* eventCount */)> get_std__optional_std__function_void_const_std__string_____text_____double____eventCount______(const std::optional<std::function<void(const std::string& /* text */, double /* eventCount */)>>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>
+  /**
+   * Specialized version of `std::function<void(const std::string&, const std::string&, const std::string&, bool)>`.
+   */
+  using Func_void_std__string_std__string_std__string_bool = std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>;
+  /**
+   * Wrapper class for a `std::function<void(const std::string& / * formatted * /, const std::string& / * extracted * /, const std::string& / * tailPlaceholder * /, bool / * complete * /)>`, this can be used from Swift.
+   */
+  class Func_void_std__string_std__string_std__string_bool_Wrapper final {
+  public:
+    explicit Func_void_std__string_std__string_std__string_bool_Wrapper(std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>&& func): _function(std::make_unique<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>>(std::move(func))) {}
+    inline void call(std::string formatted, std::string extracted, std::string tailPlaceholder, bool complete) const noexcept {
+      _function->operator()(formatted, extracted, tailPlaceholder, complete);
+    }
+  private:
+    std::unique_ptr<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_std__string_std__string_std__string_bool create_Func_void_std__string_std__string_std__string_bool(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_std__string_std__string_std__string_bool_Wrapper wrap_Func_void_std__string_std__string_std__string_bool(Func_void_std__string_std__string_std__string_bool value) noexcept {
+    return Func_void_std__string_std__string_std__string_bool_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::optional<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>>
+  /**
+   * Specialized version of `std::optional<std::function<void(const std::string& / * formatted * /, const std::string& / * extracted * /, const std::string& / * tailPlaceholder * /, bool / * complete * /)>>`.
+   */
+  using std__optional_std__function_void_const_std__string_____formatted_____const_std__string_____extracted_____const_std__string_____tailPlaceholder_____bool____complete______ = std::optional<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>>;
+  inline std::optional<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>> create_std__optional_std__function_void_const_std__string_____formatted_____const_std__string_____extracted_____const_std__string_____tailPlaceholder_____bool____complete______(const std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>& value) noexcept {
+    return std::optional<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void_const_std__string_____formatted_____const_std__string_____extracted_____const_std__string_____tailPlaceholder_____bool____complete______(const std::optional<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)> get_std__optional_std__function_void_const_std__string_____formatted_____const_std__string_____extracted_____const_std__string_____tailPlaceholder_____bool____complete______(const std::optional<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>>& optional) noexcept {
     return optional.value();
   }
   

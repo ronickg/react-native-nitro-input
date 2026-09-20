@@ -134,6 +134,30 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.maxIntegerDigits.hasSameValue(oldViewProps->maxIntegerDigits)) {
       swiftPart.setMaxIntegerDigits(newViewProps.maxIntegerDigits.get());
     }
+    // mask: string
+    if (oldViewProps == nullptr
+          ? newViewProps.mask.isProvided()
+          : !newViewProps.mask.hasSameValue(oldViewProps->mask)) {
+      swiftPart.setMask(newViewProps.mask.get());
+    }
+    // maskNotations: array
+    if (oldViewProps == nullptr
+          ? newViewProps.maskNotations.isProvided()
+          : !newViewProps.maskNotations.hasSameValue(oldViewProps->maskNotations)) {
+      swiftPart.setMaskNotations(newViewProps.maskNotations.get());
+    }
+    // maskAutocomplete: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.maskAutocomplete.isProvided()
+          : !newViewProps.maskAutocomplete.hasSameValue(oldViewProps->maskAutocomplete)) {
+      swiftPart.setMaskAutocomplete(newViewProps.maskAutocomplete.get());
+    }
+    // maskAutoSkip: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.maskAutoSkip.isProvided()
+          : !newViewProps.maskAutoSkip.hasSameValue(oldViewProps->maskAutoSkip)) {
+      swiftPart.setMaskAutoSkip(newViewProps.maskAutoSkip.get());
+    }
     // groupingSeparator: string
     if (oldViewProps == nullptr
           ? newViewProps.groupingSeparator.isProvided()
@@ -145,6 +169,72 @@ using namespace margelo::nitro::nitroinput::views;
           ? newViewProps.decimalSeparator.isProvided()
           : !newViewProps.decimalSeparator.hasSameValue(oldViewProps->decimalSeparator)) {
       swiftPart.setDecimalSeparator(newViewProps.decimalSeparator.get());
+    }
+    // variant: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.variant.isProvided()
+          : !newViewProps.variant.hasSameValue(oldViewProps->variant)) {
+      swiftPart.setVariant(static_cast<int>(newViewProps.variant.get()));
+    }
+    // label: string
+    if (oldViewProps == nullptr
+          ? newViewProps.label.isProvided()
+          : !newViewProps.label.hasSameValue(oldViewProps->label)) {
+      swiftPart.setLabel(newViewProps.label.get());
+    }
+    // labelBehavior: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.labelBehavior.isProvided()
+          : !newViewProps.labelBehavior.hasSameValue(oldViewProps->labelBehavior)) {
+      swiftPart.setLabelBehavior(static_cast<int>(newViewProps.labelBehavior.get()));
+    }
+    // labelColor: number
+    if (oldViewProps == nullptr
+          ? newViewProps.labelColor.isProvided()
+          : !newViewProps.labelColor.hasSameValue(oldViewProps->labelColor)) {
+      swiftPart.setLabelColor(newViewProps.labelColor.get());
+    }
+    // labelFocusedColor: number
+    if (oldViewProps == nullptr
+          ? newViewProps.labelFocusedColor.isProvided()
+          : !newViewProps.labelFocusedColor.hasSameValue(oldViewProps->labelFocusedColor)) {
+      swiftPart.setLabelFocusedColor(newViewProps.labelFocusedColor.get());
+    }
+    // labelFontSize: number
+    if (oldViewProps == nullptr
+          ? newViewProps.labelFontSize.isProvided()
+          : !newViewProps.labelFontSize.hasSameValue(oldViewProps->labelFontSize)) {
+      swiftPart.setLabelFontSize(newViewProps.labelFontSize.get());
+    }
+    // strokeColor: number
+    if (oldViewProps == nullptr
+          ? newViewProps.strokeColor.isProvided()
+          : !newViewProps.strokeColor.hasSameValue(oldViewProps->strokeColor)) {
+      swiftPart.setStrokeColor(newViewProps.strokeColor.get());
+    }
+    // focusedStrokeColor: number
+    if (oldViewProps == nullptr
+          ? newViewProps.focusedStrokeColor.isProvided()
+          : !newViewProps.focusedStrokeColor.hasSameValue(oldViewProps->focusedStrokeColor)) {
+      swiftPart.setFocusedStrokeColor(newViewProps.focusedStrokeColor.get());
+    }
+    // strokeWidth: number
+    if (oldViewProps == nullptr
+          ? newViewProps.strokeWidth.isProvided()
+          : !newViewProps.strokeWidth.hasSameValue(oldViewProps->strokeWidth)) {
+      swiftPart.setStrokeWidth(newViewProps.strokeWidth.get());
+    }
+    // cornerRadius: number
+    if (oldViewProps == nullptr
+          ? newViewProps.cornerRadius.isProvided()
+          : !newViewProps.cornerRadius.hasSameValue(oldViewProps->cornerRadius)) {
+      swiftPart.setCornerRadius(newViewProps.cornerRadius.get());
+    }
+    // fillColor: number
+    if (oldViewProps == nullptr
+          ? newViewProps.fillColor.isProvided()
+          : !newViewProps.fillColor.hasSameValue(oldViewProps->fillColor)) {
+      swiftPart.setFillColor(newViewProps.fillColor.get());
     }
     // prefix: string
     if (oldViewProps == nullptr
@@ -445,6 +535,12 @@ using namespace margelo::nitro::nitroinput::views;
           ? newViewProps.onChangeText.isProvided()
           : !newViewProps.onChangeText.hasSameValue(oldViewProps->onChangeText)) {
       swiftPart.setOnChangeText(newViewProps.onChangeText.get());
+    }
+    // onChangeMask: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onChangeMask.isProvided()
+          : !newViewProps.onChangeMask.hasSameValue(oldViewProps->onChangeMask)) {
+      swiftPart.setOnChangeMask(newViewProps.onChangeMask.get());
     }
     // onChangeValue: optional
     if (oldViewProps == nullptr

@@ -62,10 +62,40 @@ namespace margelo::nitro::nitroinput {
     void setFractionDigits(double fractionDigits) override;
     double getMaxIntegerDigits() override;
     void setMaxIntegerDigits(double maxIntegerDigits) override;
+    std::string getMask() override;
+    void setMask(const std::string& mask) override;
+    std::vector<NitroInputNotation> getMaskNotations() override;
+    void setMaskNotations(const std::vector<NitroInputNotation>& maskNotations) override;
+    bool getMaskAutocomplete() override;
+    void setMaskAutocomplete(bool maskAutocomplete) override;
+    bool getMaskAutoSkip() override;
+    void setMaskAutoSkip(bool maskAutoSkip) override;
     std::string getGroupingSeparator() override;
     void setGroupingSeparator(const std::string& groupingSeparator) override;
     std::string getDecimalSeparator() override;
     void setDecimalSeparator(const std::string& decimalSeparator) override;
+    NitroInputVariant getVariant() override;
+    void setVariant(NitroInputVariant variant) override;
+    std::string getLabel() override;
+    void setLabel(const std::string& label) override;
+    NitroInputLabelBehavior getLabelBehavior() override;
+    void setLabelBehavior(NitroInputLabelBehavior labelBehavior) override;
+    double getLabelColor() override;
+    void setLabelColor(double labelColor) override;
+    double getLabelFocusedColor() override;
+    void setLabelFocusedColor(double labelFocusedColor) override;
+    double getLabelFontSize() override;
+    void setLabelFontSize(double labelFontSize) override;
+    double getStrokeColor() override;
+    void setStrokeColor(double strokeColor) override;
+    double getFocusedStrokeColor() override;
+    void setFocusedStrokeColor(double focusedStrokeColor) override;
+    double getStrokeWidth() override;
+    void setStrokeWidth(double strokeWidth) override;
+    double getCornerRadius() override;
+    void setCornerRadius(double cornerRadius) override;
+    double getFillColor() override;
+    void setFillColor(double fillColor) override;
     std::string getPrefix() override;
     void setPrefix(const std::string& prefix) override;
     std::string getSuffix() override;
@@ -166,6 +196,8 @@ namespace margelo::nitro::nitroinput {
     void setOnChangeValueWorklet(double onChangeValueWorklet) override;
     std::optional<std::function<void(const std::string& /* text */, double /* eventCount */)>> getOnChangeText() override;
     void setOnChangeText(const std::optional<std::function<void(const std::string& /* text */, double /* eventCount */)>>& onChangeText) override;
+    std::optional<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>> getOnChangeMask() override;
+    void setOnChangeMask(const std::optional<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>>& onChangeMask) override;
     std::optional<std::function<void(double /* value */)>> getOnChangeValue() override;
     void setOnChangeValue(const std::optional<std::function<void(double /* value */)>>& onChangeValue) override;
     std::optional<std::function<void(bool /* focused */)>> getOnFocusChange() override;
@@ -191,6 +223,7 @@ namespace margelo::nitro::nitroinput {
     std::string currentText() override;
     double getValue() override;
     bool isFocused() override;
+    void setSelection(double start, double end) override;
 
   private:
     jni::global_ref<JHybridNitroInputViewSpec::JavaPart> _javaPart;

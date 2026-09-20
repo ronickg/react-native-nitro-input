@@ -9,6 +9,12 @@
 
 // Forward declaration of `NitroInputMode` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputMode; }
+// Forward declaration of `NitroInputNotation` to properly resolve imports.
+namespace margelo::nitro::nitroinput { struct NitroInputNotation; }
+// Forward declaration of `NitroInputVariant` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputVariant; }
+// Forward declaration of `NitroInputLabelBehavior` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputLabelBehavior; }
 // Forward declaration of `NitroInputAffixAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputAffixAlign; }
 // Forward declaration of `NitroInputEasing` to properly resolve imports.
@@ -31,6 +37,13 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardAppearance; 
 #include <string>
 #include "NitroInputMode.hpp"
 #include "JNitroInputMode.hpp"
+#include "NitroInputNotation.hpp"
+#include <vector>
+#include "JNitroInputNotation.hpp"
+#include "NitroInputVariant.hpp"
+#include "JNitroInputVariant.hpp"
+#include "NitroInputLabelBehavior.hpp"
+#include "JNitroInputLabelBehavior.hpp"
 #include "NitroInputAffixAlign.hpp"
 #include "JNitroInputAffixAlign.hpp"
 #include "NitroInputEasing.hpp"
@@ -53,6 +66,7 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardAppearance; 
 #include <optional>
 #include "JFunc_void_std__string_double.hpp"
 #include <NitroModules/JNICallable.hpp>
+#include "JFunc_void_std__string_std__string_std__string_bool.hpp"
 #include "JFunc_void_double.hpp"
 #include "JFunc_void_bool.hpp"
 #include "JFunc_void_std__string.hpp"
@@ -142,6 +156,60 @@ namespace margelo::nitro::nitroinput {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* maxIntegerDigits */)>("setMaxIntegerDigits");
     method(_javaPart, maxIntegerDigits);
   }
+  std::string JHybridNitroInputViewSpec::getMask() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("getMask");
+    auto __result = method(_javaPart);
+    return __result->toStdString();
+  }
+  void JHybridNitroInputViewSpec::setMask(const std::string& mask) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JString> /* mask */)>("setMask");
+    method(_javaPart, jni::make_jstring(mask));
+  }
+  std::vector<NitroInputNotation> JHybridNitroInputViewSpec::getMaskNotations() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JArrayClass<JNitroInputNotation>>()>("getMaskNotations");
+    auto __result = method(_javaPart);
+    return [&](auto&& __input) {
+      size_t __size = __input->size();
+      std::vector<NitroInputNotation> __vector;
+      __vector.reserve(__size);
+      for (size_t __i = 0; __i < __size; __i++) {
+        auto __element = __input->getElement(__i);
+        __vector.push_back(__element->toCpp());
+      }
+      return __vector;
+    }(__result);
+  }
+  void JHybridNitroInputViewSpec::setMaskNotations(const std::vector<NitroInputNotation>& maskNotations) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JArrayClass<JNitroInputNotation>> /* maskNotations */)>("setMaskNotations");
+    method(_javaPart, [&](auto&& __input) {
+      size_t __size = __input.size();
+      jni::local_ref<jni::JArrayClass<JNitroInputNotation>> __array = jni::JArrayClass<JNitroInputNotation>::newArray(__size);
+      for (size_t __i = 0; __i < __size; __i++) {
+        const auto& __element = __input[__i];
+        auto __elementJni = JNitroInputNotation::fromCpp(__element);
+        __array->setElement(__i, *__elementJni);
+      }
+      return __array;
+    }(maskNotations));
+  }
+  bool JHybridNitroInputViewSpec::getMaskAutocomplete() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean()>("getMaskAutocomplete");
+    auto __result = method(_javaPart);
+    return static_cast<bool>(__result);
+  }
+  void JHybridNitroInputViewSpec::setMaskAutocomplete(bool maskAutocomplete) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jboolean /* maskAutocomplete */)>("setMaskAutocomplete");
+    method(_javaPart, maskAutocomplete);
+  }
+  bool JHybridNitroInputViewSpec::getMaskAutoSkip() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean()>("getMaskAutoSkip");
+    auto __result = method(_javaPart);
+    return static_cast<bool>(__result);
+  }
+  void JHybridNitroInputViewSpec::setMaskAutoSkip(bool maskAutoSkip) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jboolean /* maskAutoSkip */)>("setMaskAutoSkip");
+    method(_javaPart, maskAutoSkip);
+  }
   std::string JHybridNitroInputViewSpec::getGroupingSeparator() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("getGroupingSeparator");
     auto __result = method(_javaPart);
@@ -159,6 +227,105 @@ namespace margelo::nitro::nitroinput {
   void JHybridNitroInputViewSpec::setDecimalSeparator(const std::string& decimalSeparator) {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JString> /* decimalSeparator */)>("setDecimalSeparator");
     method(_javaPart, jni::make_jstring(decimalSeparator));
+  }
+  NitroInputVariant JHybridNitroInputViewSpec::getVariant() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JNitroInputVariant>()>("getVariant");
+    auto __result = method(_javaPart);
+    return __result->toCpp();
+  }
+  void JHybridNitroInputViewSpec::setVariant(NitroInputVariant variant) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroInputVariant> /* variant */)>("setVariant");
+    method(_javaPart, JNitroInputVariant::fromCpp(variant));
+  }
+  std::string JHybridNitroInputViewSpec::getLabel() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("getLabel");
+    auto __result = method(_javaPart);
+    return __result->toStdString();
+  }
+  void JHybridNitroInputViewSpec::setLabel(const std::string& label) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JString> /* label */)>("setLabel");
+    method(_javaPart, jni::make_jstring(label));
+  }
+  NitroInputLabelBehavior JHybridNitroInputViewSpec::getLabelBehavior() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JNitroInputLabelBehavior>()>("getLabelBehavior");
+    auto __result = method(_javaPart);
+    return __result->toCpp();
+  }
+  void JHybridNitroInputViewSpec::setLabelBehavior(NitroInputLabelBehavior labelBehavior) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroInputLabelBehavior> /* labelBehavior */)>("setLabelBehavior");
+    method(_javaPart, JNitroInputLabelBehavior::fromCpp(labelBehavior));
+  }
+  double JHybridNitroInputViewSpec::getLabelColor() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getLabelColor");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setLabelColor(double labelColor) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* labelColor */)>("setLabelColor");
+    method(_javaPart, labelColor);
+  }
+  double JHybridNitroInputViewSpec::getLabelFocusedColor() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getLabelFocusedColor");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setLabelFocusedColor(double labelFocusedColor) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* labelFocusedColor */)>("setLabelFocusedColor");
+    method(_javaPart, labelFocusedColor);
+  }
+  double JHybridNitroInputViewSpec::getLabelFontSize() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getLabelFontSize");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setLabelFontSize(double labelFontSize) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* labelFontSize */)>("setLabelFontSize");
+    method(_javaPart, labelFontSize);
+  }
+  double JHybridNitroInputViewSpec::getStrokeColor() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getStrokeColor");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setStrokeColor(double strokeColor) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* strokeColor */)>("setStrokeColor");
+    method(_javaPart, strokeColor);
+  }
+  double JHybridNitroInputViewSpec::getFocusedStrokeColor() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getFocusedStrokeColor");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setFocusedStrokeColor(double focusedStrokeColor) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* focusedStrokeColor */)>("setFocusedStrokeColor");
+    method(_javaPart, focusedStrokeColor);
+  }
+  double JHybridNitroInputViewSpec::getStrokeWidth() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getStrokeWidth");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setStrokeWidth(double strokeWidth) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* strokeWidth */)>("setStrokeWidth");
+    method(_javaPart, strokeWidth);
+  }
+  double JHybridNitroInputViewSpec::getCornerRadius() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getCornerRadius");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setCornerRadius(double cornerRadius) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* cornerRadius */)>("setCornerRadius");
+    method(_javaPart, cornerRadius);
+  }
+  double JHybridNitroInputViewSpec::getFillColor() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getFillColor");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setFillColor(double fillColor) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* fillColor */)>("setFillColor");
+    method(_javaPart, fillColor);
   }
   std::string JHybridNitroInputViewSpec::getPrefix() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("getPrefix");
@@ -618,6 +785,23 @@ namespace margelo::nitro::nitroinput {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JFunc_void_std__string_double::javaobject> /* onChangeText */)>("setOnChangeText_cxx");
     method(_javaPart, onChangeText.has_value() ? JFunc_void_std__string_double_cxx::fromCpp(onChangeText.value()) : nullptr);
   }
+  std::optional<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>> JHybridNitroInputViewSpec::getOnChangeMask() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JFunc_void_std__string_std__string_std__string_bool::javaobject>()>("getOnChangeMask_cxx");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional([&]() -> std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)> {
+      if (__result->isInstanceOf(JFunc_void_std__string_std__string_std__string_bool_cxx::javaClassStatic())) [[likely]] {
+        auto downcast = jni::static_ref_cast<JFunc_void_std__string_std__string_std__string_bool_cxx::javaobject>(__result);
+        return downcast->cthis()->getFunction();
+      } else {
+        auto __resultRef = jni::make_global(__result);
+        return JNICallable<JFunc_void_std__string_std__string_std__string_bool, void(std::string, std::string, std::string, bool)>(std::move(__resultRef));
+      }
+    }()) : std::nullopt;
+  }
+  void JHybridNitroInputViewSpec::setOnChangeMask(const std::optional<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>>& onChangeMask) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JFunc_void_std__string_std__string_std__string_bool::javaobject> /* onChangeMask */)>("setOnChangeMask_cxx");
+    method(_javaPart, onChangeMask.has_value() ? JFunc_void_std__string_std__string_std__string_bool_cxx::fromCpp(onChangeMask.value()) : nullptr);
+  }
   std::optional<std::function<void(double /* value */)>> JHybridNitroInputViewSpec::getOnChangeValue() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JFunc_void_double::javaobject>()>("getOnChangeValue_cxx");
     auto __result = method(_javaPart);
@@ -773,6 +957,10 @@ namespace margelo::nitro::nitroinput {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean()>("isFocused");
     auto __result = method(_javaPart);
     return static_cast<bool>(__result);
+  }
+  void JHybridNitroInputViewSpec::setSelection(double start, double end) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* start */, double /* end */)>("setSelection");
+    method(_javaPart, start, end);
   }
 
 } // namespace margelo::nitro::nitroinput

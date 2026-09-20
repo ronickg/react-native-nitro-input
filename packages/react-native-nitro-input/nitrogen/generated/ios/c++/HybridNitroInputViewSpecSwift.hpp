@@ -14,6 +14,12 @@ namespace NitroInput { class HybridNitroInputViewSpec_cxx; }
 
 // Forward declaration of `NitroInputMode` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputMode; }
+// Forward declaration of `NitroInputNotation` to properly resolve imports.
+namespace margelo::nitro::nitroinput { struct NitroInputNotation; }
+// Forward declaration of `NitroInputVariant` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputVariant; }
+// Forward declaration of `NitroInputLabelBehavior` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputLabelBehavior; }
 // Forward declaration of `NitroInputAffixAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputAffixAlign; }
 // Forward declaration of `NitroInputEasing` to properly resolve imports.
@@ -35,6 +41,10 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardAppearance; 
 
 #include <string>
 #include "NitroInputMode.hpp"
+#include "NitroInputNotation.hpp"
+#include <vector>
+#include "NitroInputVariant.hpp"
+#include "NitroInputLabelBehavior.hpp"
 #include "NitroInputAffixAlign.hpp"
 #include "NitroInputEasing.hpp"
 #include "NitroInputEffect.hpp"
@@ -131,6 +141,32 @@ namespace margelo::nitro::nitroinput {
     inline void setMaxIntegerDigits(double maxIntegerDigits) noexcept override {
       _swiftPart.setMaxIntegerDigits(std::forward<decltype(maxIntegerDigits)>(maxIntegerDigits));
     }
+    inline std::string getMask() noexcept override {
+      auto __result = _swiftPart.getMask();
+      return __result;
+    }
+    inline void setMask(const std::string& mask) noexcept override {
+      _swiftPart.setMask(mask);
+    }
+    inline std::vector<NitroInputNotation> getMaskNotations() noexcept override {
+      auto __result = _swiftPart.getMaskNotations();
+      return __result;
+    }
+    inline void setMaskNotations(const std::vector<NitroInputNotation>& maskNotations) noexcept override {
+      _swiftPart.setMaskNotations(maskNotations);
+    }
+    inline bool getMaskAutocomplete() noexcept override {
+      return _swiftPart.getMaskAutocomplete();
+    }
+    inline void setMaskAutocomplete(bool maskAutocomplete) noexcept override {
+      _swiftPart.setMaskAutocomplete(std::forward<decltype(maskAutocomplete)>(maskAutocomplete));
+    }
+    inline bool getMaskAutoSkip() noexcept override {
+      return _swiftPart.getMaskAutoSkip();
+    }
+    inline void setMaskAutoSkip(bool maskAutoSkip) noexcept override {
+      _swiftPart.setMaskAutoSkip(std::forward<decltype(maskAutoSkip)>(maskAutoSkip));
+    }
     inline std::string getGroupingSeparator() noexcept override {
       auto __result = _swiftPart.getGroupingSeparator();
       return __result;
@@ -144,6 +180,75 @@ namespace margelo::nitro::nitroinput {
     }
     inline void setDecimalSeparator(const std::string& decimalSeparator) noexcept override {
       _swiftPart.setDecimalSeparator(decimalSeparator);
+    }
+    inline NitroInputVariant getVariant() noexcept override {
+      auto __result = _swiftPart.getVariant();
+      return static_cast<NitroInputVariant>(__result);
+    }
+    inline void setVariant(NitroInputVariant variant) noexcept override {
+      _swiftPart.setVariant(static_cast<int>(variant));
+    }
+    inline std::string getLabel() noexcept override {
+      auto __result = _swiftPart.getLabel();
+      return __result;
+    }
+    inline void setLabel(const std::string& label) noexcept override {
+      _swiftPart.setLabel(label);
+    }
+    inline NitroInputLabelBehavior getLabelBehavior() noexcept override {
+      auto __result = _swiftPart.getLabelBehavior();
+      return static_cast<NitroInputLabelBehavior>(__result);
+    }
+    inline void setLabelBehavior(NitroInputLabelBehavior labelBehavior) noexcept override {
+      _swiftPart.setLabelBehavior(static_cast<int>(labelBehavior));
+    }
+    inline double getLabelColor() noexcept override {
+      return _swiftPart.getLabelColor();
+    }
+    inline void setLabelColor(double labelColor) noexcept override {
+      _swiftPart.setLabelColor(std::forward<decltype(labelColor)>(labelColor));
+    }
+    inline double getLabelFocusedColor() noexcept override {
+      return _swiftPart.getLabelFocusedColor();
+    }
+    inline void setLabelFocusedColor(double labelFocusedColor) noexcept override {
+      _swiftPart.setLabelFocusedColor(std::forward<decltype(labelFocusedColor)>(labelFocusedColor));
+    }
+    inline double getLabelFontSize() noexcept override {
+      return _swiftPart.getLabelFontSize();
+    }
+    inline void setLabelFontSize(double labelFontSize) noexcept override {
+      _swiftPart.setLabelFontSize(std::forward<decltype(labelFontSize)>(labelFontSize));
+    }
+    inline double getStrokeColor() noexcept override {
+      return _swiftPart.getStrokeColor();
+    }
+    inline void setStrokeColor(double strokeColor) noexcept override {
+      _swiftPart.setStrokeColor(std::forward<decltype(strokeColor)>(strokeColor));
+    }
+    inline double getFocusedStrokeColor() noexcept override {
+      return _swiftPart.getFocusedStrokeColor();
+    }
+    inline void setFocusedStrokeColor(double focusedStrokeColor) noexcept override {
+      _swiftPart.setFocusedStrokeColor(std::forward<decltype(focusedStrokeColor)>(focusedStrokeColor));
+    }
+    inline double getStrokeWidth() noexcept override {
+      return _swiftPart.getStrokeWidth();
+    }
+    inline void setStrokeWidth(double strokeWidth) noexcept override {
+      _swiftPart.setStrokeWidth(std::forward<decltype(strokeWidth)>(strokeWidth));
+    }
+    inline double getCornerRadius() noexcept override {
+      return _swiftPart.getCornerRadius();
+    }
+    inline void setCornerRadius(double cornerRadius) noexcept override {
+      _swiftPart.setCornerRadius(std::forward<decltype(cornerRadius)>(cornerRadius));
+    }
+    inline double getFillColor() noexcept override {
+      return _swiftPart.getFillColor();
+    }
+    inline void setFillColor(double fillColor) noexcept override {
+      _swiftPart.setFillColor(std::forward<decltype(fillColor)>(fillColor));
     }
     inline std::string getPrefix() noexcept override {
       auto __result = _swiftPart.getPrefix();
@@ -464,6 +569,13 @@ namespace margelo::nitro::nitroinput {
     inline void setOnChangeText(const std::optional<std::function<void(const std::string& /* text */, double /* eventCount */)>>& onChangeText) noexcept override {
       _swiftPart.setOnChangeText(onChangeText);
     }
+    inline std::optional<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>> getOnChangeMask() noexcept override {
+      auto __result = _swiftPart.getOnChangeMask();
+      return __result;
+    }
+    inline void setOnChangeMask(const std::optional<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>>& onChangeMask) noexcept override {
+      _swiftPart.setOnChangeMask(onChangeMask);
+    }
     inline std::optional<std::function<void(double /* value */)>> getOnChangeValue() noexcept override {
       auto __result = _swiftPart.getOnChangeValue();
       return __result;
@@ -569,6 +681,12 @@ namespace margelo::nitro::nitroinput {
       }
       auto __value = std::move(__result.value());
       return __value;
+    }
+    inline void setSelection(double start, double end) override {
+      auto __result = _swiftPart.setSelection(std::forward<decltype(start)>(start), std::forward<decltype(end)>(end));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
     }
 
   private:

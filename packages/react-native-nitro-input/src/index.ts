@@ -17,7 +17,10 @@ export {
 } from './worklets'
 
 export type {
+  NitroInputLabelBehavior,
   NitroInputMode,
+  NitroInputNotation,
+  NitroInputVariant,
   NitroInputEasing,
   NitroInputEffect,
   NitroInputTextAlign,

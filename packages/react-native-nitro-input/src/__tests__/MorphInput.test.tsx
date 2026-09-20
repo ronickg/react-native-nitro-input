@@ -22,6 +22,10 @@ describe('MorphInput', () => {
     expect(props.text).toBe('')
     expect(props.mostRecentEventCount).toBe(0)
     expect(props.mode).toBe('text')
+    expect(props.mask).toBe('')
+    expect(props.maskNotations).toEqual([])
+    expect(props.maskAutocomplete).toBe(true)
+    expect(props.maskAutoSkip).toBe(false)
     expect(props.keyboardType).toBe('default')
     expect(props.groupingSeparator).toBe(',')
     expect(props.decimalSeparator).toBe('.')
@@ -197,5 +201,75 @@ describe('MorphInput', () => {
     expect(Number.isNaN(ref.current!.getValue())).toBe(true)
     expect(ref.current!.isFocused()).toBe(false)
     expect(ref.current!.native).toBeNull()
+  })
+  it('passes the mask through only in mask mode', () => {
+    const notations = [
+      { character: 'H', characterSet: '0123456789abcdef', isOptional: false },
+    ]
+    const masked = nativeProps(
+      render(
+        <MorphInput
+          mode="mask"
+          mask="+1 ([000]) [000]-[0000]"
+          maskNotations={notations}
+          maskAutoSkip
+        />
+      )
+    )
+    expect(masked.mode).toBe('mask')
+    expect(masked.mask).toBe('+1 ([000]) [000]-[0000]')
+    expect(masked.maskNotations).toEqual(notations)
+    expect(masked.maskAutoSkip).toBe(true)
+    expect(masked.maskAutocomplete).toBe(true)
+
+    // A mask left on the props while the mode is something else must not reach
+    // native, or the field would silently mask a plain text input.
+    const text = nativeProps(render(<MorphInput mask="[000]" />))
+    expect(text.mode).toBe('text')
+    expect(text.mask).toBe('')
+  })
+
+  it('keeps the mask callback stable across renders', () => {
+    const renderer = render(<MorphInput mode="mask" mask="[000]" onChangeMask={() => {}} />)
+    const first = nativeProps(renderer).onChangeMask
+    act(() => {
+      renderer.update(<MorphInput mode="mask" mask="[000]" onChangeMask={() => {}} />)
+    })
+    expect(nativeProps(renderer).onChangeMask).toBe(first)
+  })
+  it('maps inputMode and enterKeyHint like React Native does', () => {
+    expect(nativeProps(render(<MorphInput inputMode="decimal" />)).keyboardType).toBe('decimal-pad')
+    expect(nativeProps(render(<MorphInput inputMode="tel" />)).keyboardType).toBe('phone-pad')
+    expect(nativeProps(render(<MorphInput inputMode="email" />)).keyboardType).toBe('email-address')
+    expect(nativeProps(render(<MorphInput enterKeyHint="go" />)).returnKeyType).toBe('go')
+    expect(nativeProps(render(<MorphInput enterKeyHint="enter" />)).returnKeyType).toBe('default')
+
+    // `inputMode="none"` focuses without a keyboard.
+    const none = nativeProps(render(<MorphInput inputMode="none" />))
+    expect(none.showSoftInputOnFocus).toBe(false)
+
+    // An explicit prop always wins over the alias, as in RN.
+    const explicit = nativeProps(
+      render(<MorphInput inputMode="tel" keyboardType="url" enterKeyHint="go" returnKeyType="send" />)
+    )
+    expect(explicit.keyboardType).toBe('url')
+    expect(explicit.returnKeyType).toBe('send')
+  })
+
+  it('fires onChange alongside onChangeText', () => {
+    const onChange = jest.fn()
+    const onChangeText = jest.fn()
+    const renderer = render(<MorphInput onChange={onChange} onChangeText={onChangeText} />)
+    const native = nativeProps(renderer).onChangeText as { f: (t: string, c: number) => void }
+    act(() => {
+      native.f('abc', 3)
+    })
+    expect(onChangeText).toHaveBeenCalledWith('abc')
+    expect(onChange).toHaveBeenCalledTimes(1)
+    expect(onChange.mock.calls[0][0].nativeEvent).toEqual({
+      text: 'abc',
+      eventCount: 3,
+      target: expect.any(Number),
+    })
   })
 })

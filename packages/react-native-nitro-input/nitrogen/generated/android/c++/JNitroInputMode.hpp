@@ -48,6 +48,9 @@ namespace margelo::nitro::nitroinput {
         case NitroInputMode::TEXT:
           static const auto fieldTEXT = clazz->getStaticField<JNitroInputMode>("TEXT");
           return clazz->getStaticFieldValue(fieldTEXT);
+        case NitroInputMode::MASK:
+          static const auto fieldMASK = clazz->getStaticField<JNitroInputMode>("MASK");
+          return clazz->getStaticFieldValue(fieldMASK);
         default:
           std::string stringValue = std::to_string(static_cast<int>(value));
           throw std::invalid_argument("Invalid enum value (" + stringValue + "!");

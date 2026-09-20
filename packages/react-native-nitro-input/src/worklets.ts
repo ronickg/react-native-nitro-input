@@ -47,7 +47,7 @@ declare global {
 let workletsModule: WorkletsModule | null | undefined
 let hybrid: NitroInputWorklets | null = null
 let installed = false
-let warned = false
+const warned = new Set<string>()
 let nextId = 1
 
 function loadWorklets(): WorkletsModule | null {
@@ -88,9 +88,10 @@ export function ensureWorkletsInstalled(): boolean {
   return true
 }
 
+/** One warning per distinct reason: a later, different failure must not be swallowed. */
 function warnOnce(reason: string): false {
-  if (!warned) {
-    warned = true
+  if (!warned.has(reason)) {
+    warned.add(reason)
     console.warn(`[NitroInput] worklets are unavailable (${reason}); transform and worklet callbacks run nowhere.`)
   }
   return false
@@ -123,16 +124,28 @@ function defaultSelection(oldText: string, newText: string, start: number, end: 
 }
 
 /**
- * Registers a `transform` worklet; returns its id (0 when worklets are
- * unavailable). Native calls the registered wrapper with the edited text, the
- * previous text and both selections (code point offsets) and gets back the
- * final text and selection.
+ * Reserves an id for a worklet that is about to be registered. Safe to call
+ * during render: a render React throws away only burns an integer, where an
+ * actual registration would leak an entry on the UI runtime.
  */
-export function registerTransform(transform: NitroInputTransform): number {
+export function allocateWorkletId(): number {
   if (!ensureWorkletsInstalled()) return 0
+  return nextId++
+}
+
+/**
+ * Registers a `transform` worklet under `id`. Native calls the registered
+ * wrapper with the edited text, the previous text and both selections (code
+ * point offsets) and gets back the final text and selection.
+ *
+ * Registration is synchronous on purpose: `runOnUI` would land a tick later,
+ * and an edit in that window (an autofocused field typed into immediately)
+ * would find no worklet and silently skip the transform.
+ */
+export function registerTransform(transform: NitroInputTransform, id: number): void {
+  if (id === 0 || !ensureWorkletsInstalled()) return
   const worklets = loadWorklets()!
-  const id = nextId++
-  worklets.runOnUI(() => {
+  worklets.executeOnUIRuntimeSync(() => {
     'worklet'
     const wrapper = (
       text: string,
@@ -155,21 +168,22 @@ export function registerTransform(transform: NitroInputTransform): number {
     }
     globalThis.__nitroInputWorklets?.set(id, wrapper as (...args: never[]) => unknown)
   })()
-  return id
 }
 
-/** Registers a worklet callback (`onChangeText` / `onChangeValue`); returns its id (0 when unavailable). */
-export function registerCallback(callback: (arg: never) => void): number {
-  if (!ensureWorkletsInstalled()) return 0
+/** Registers a worklet callback (`onChangeText` / `onChangeValue`) under `id`. */
+export function registerCallback(callback: (arg: never) => void, id: number): void {
+  if (id === 0 || !ensureWorkletsInstalled()) return
   const worklets = loadWorklets()!
-  const id = nextId++
-  worklets.runOnUI(() => {
+  worklets.executeOnUIRuntimeSync(() => {
     'worklet'
     globalThis.__nitroInputWorklets?.set(id, callback as (...args: never[]) => unknown)
   })()
-  return id
 }
 
+/**
+ * Removes a worklet. Asynchronous, unlike registration: nothing is waiting on
+ * it, and stalling the JS thread on every unmount is the worse trade.
+ */
 export function unregisterWorklet(id: number): void {
   if (id === 0 || !installed) return
   const worklets = loadWorklets()

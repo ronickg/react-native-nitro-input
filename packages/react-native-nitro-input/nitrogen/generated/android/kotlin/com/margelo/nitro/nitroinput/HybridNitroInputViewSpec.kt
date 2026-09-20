@@ -67,6 +67,30 @@ abstract class HybridNitroInputViewSpec: HybridView() {
   @get:Keep
   @set:DoNotStrip
   @set:Keep
+  abstract var mask: String
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var maskNotations: Array<NitroInputNotation>
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var maskAutocomplete: Boolean
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var maskAutoSkip: Boolean
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
   abstract var groupingSeparator: String
   
   @get:DoNotStrip
@@ -74,6 +98,72 @@ abstract class HybridNitroInputViewSpec: HybridView() {
   @set:DoNotStrip
   @set:Keep
   abstract var decimalSeparator: String
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var variant: NitroInputVariant
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var label: String
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var labelBehavior: NitroInputLabelBehavior
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var labelColor: Double
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var labelFocusedColor: Double
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var labelFontSize: Double
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var strokeColor: Double
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var focusedStrokeColor: Double
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var strokeWidth: Double
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var cornerRadius: Double
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var fillColor: Double
   
   @get:DoNotStrip
   @get:Keep
@@ -383,6 +473,20 @@ abstract class HybridNitroInputViewSpec: HybridView() {
       onChangeText = value?.let { it }
     }
   
+  abstract var onChangeMask: ((formatted: String, extracted: String, tailPlaceholder: String, complete: Boolean) -> Unit)?
+  
+  private var onChangeMask_cxx: Func_void_std__string_std__string_std__string_bool?
+    @Keep
+    @DoNotStrip
+    get() {
+      return onChangeMask?.let { Func_void_std__string_std__string_std__string_bool_java(it) }
+    }
+    @Keep
+    @DoNotStrip
+    set(value) {
+      onChangeMask = value?.let { it }
+    }
+  
   abstract var onChangeValue: ((value: Double) -> Unit)?
   
   private var onChangeValue_cxx: Func_void_double?
@@ -513,6 +617,10 @@ abstract class HybridNitroInputViewSpec: HybridView() {
   @DoNotStrip
   @Keep
   abstract fun isFocused(): Boolean
+  
+  @DoNotStrip
+  @Keep
+  abstract fun setSelection(start: Double, end: Double): Unit
 
   // Default implementation of `HybridObject.toString()`
   override fun toString(): String {
