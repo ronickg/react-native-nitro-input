@@ -28,8 +28,7 @@
   }
 }
 
-/* A checkerboard behind the field, so the notch reads as a real hole in the
-   stroke rather than a lighter patch painted over it. */
+/* The field sits on the page's own surface, the way it would in an app. */
 .canvasWrap {
   border-radius: 12px;
   padding: 28px 20px;
@@ -37,13 +36,8 @@
   align-items: center;
   justify-content: center;
   min-height: 150px;
-  background-color: var(--nitro-bg-raised);
-  background-image: linear-gradient(45deg, var(--nitro-border) 25%, transparent 25%),
-    linear-gradient(-45deg, var(--nitro-border) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, var(--nitro-border) 75%),
-    linear-gradient(-45deg, transparent 75%, var(--nitro-border) 75%);
-  background-size: 16px 16px;
-  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background: var(--nitro-bg-raised);
+  border: 1px solid var(--nitro-border);
 }
 
 .canvasWrap > * {
