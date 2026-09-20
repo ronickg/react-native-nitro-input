@@ -243,6 +243,9 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       // `rebuildFonts` is the usual reporter. Without this a wrapping field
       // reported a single line and stayed one line tall.
       if (value.multiline != wasMultiline || value.numberOfLines != wasLines) {
+        // The padding is `multiline`'s too — a wrapping field pays for both
+        // edges — and it is read back below, so it has to be applied first.
+        if (value.multiline != wasMultiline) applyEditTextLayout()
         reportIntrinsicSize()
       }
       maybeAutoFocus()
@@ -682,14 +685,22 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       TextViewCompat.setLineHeight(editText, typography.lineHeightPx.roundToInt())
     }
     // An outlined or filled frame reserves room at the sides for its stroke and
-    // at the top for the floated label. Only the top is padded, not the bottom,
-    // so the centred text actually moves down rather than staying put.
+    // at the top for the floated label. A single line is centred in whatever
+    // height the caller gives it, so only the top is padded there - that moves
+    // the centred text down rather than leaving it put. A wrapping field
+    // reports its own height and starts at the top, so nothing else is going to
+    // put space between its first line and the stroke: it pays for both edges.
     val side = frameSideInsetPx.roundToInt()
+    val framePadding = if (inputFrame.draws && keyboard.multiline) {
+      (FRAME_PADDING_DP * density).roundToInt()
+    } else {
+      0
+    }
     editText.setPadding(
       side + f.width(format.prefix, Role.PREFIX).roundToInt(),
-      frameTopInsetPx.roundToInt(),
+      frameTopInsetPx.roundToInt() + framePadding,
       side + f.width(format.suffix, Role.SUFFIX).roundToInt(),
-      0,
+      framePadding,
     )
     applyAffixes()
     val vertical = if (!keyboard.multiline) Gravity.CENTER_VERTICAL else when (keyboard.textAlignVertical) {
@@ -1384,6 +1395,10 @@ class NitroInputView(context: Context) : FrameLayout(context) {
    * it, so a field with `numberOfLines` stops growing and scrolls instead;
    * without one it keeps growing and React follows through `onSizeChange`.
    */
+  /** The height one line occupies: an explicit `lineHeight`, or the font's own. */
+  private val lineBoxPx: Float
+    get() = if (typography.lineHeightPx > 0f) typography.lineHeightPx else fonts.lineHeight
+
   private fun intrinsicHeightPx(): Float {
     if (!keyboard.multiline) return fonts.lineHeight
     val layout = editText.layout ?: return fonts.lineHeight * maxOf(1, keyboard.numberOfLines)
@@ -1743,7 +1758,15 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
     val inset = labelInsetPx
     val floatedCentreY = if (filled) floatedSize * 0.9f else 0f
-    val restingCentreY = height / 2f
+    // Resting: on the text's own line. A single line is centred in the box, so
+    // that is the middle; a wrapping one starts at the top, and the label
+    // belongs where the first character will appear rather than halfway down
+    // an empty field.
+    val restingCentreY = if (keyboard.multiline) {
+      editText.paddingTop + lineBoxPx / 2f
+    } else {
+      height / 2f
+    }
 
     outlineGeometry.lerp(
       inset.toDouble(), restingCentreY.toDouble(), restingWidth.toDouble(), restingSize.toDouble(),
@@ -1863,6 +1886,13 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     private const val CARET_INSET = 0.1f
     /** How far the label starts from the frame's left edge, at a minimum. */
     private const val LABEL_INSET_DP = 16f
+    /**
+     * The room a framed field keeps above and below its text. Flat, unlike the
+     * side inset: that one grows with `cornerRadius` because the *label* has to
+     * clear the corner curve, which is a horizontal problem. The text sits in
+     * the middle of the box, so a rounder frame must not make the field taller.
+     */
+    private const val FRAME_PADDING_DP = 16f
     /** Clearance the label keeps past the corner arc, so the notch opens onto the straight run. */
     private const val LABEL_CORNER_GAP_DP = 8f
     /** Breathing room the notch leaves on each side of the label. */

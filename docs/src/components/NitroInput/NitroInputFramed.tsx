@@ -63,8 +63,17 @@ const decelerate = (t: number) => {
   return 1 - Math.pow(1 - c, 3) * 0.78 - (1 - c) * 0.22 * Math.pow(1 - c, 1);
 };
 
-/** `max(16, radius + 8)`, the inset the native views use for the label and text. */
+/**
+ * `max(16, radius + 8)`, the horizontal inset the native views use: the label
+ * has to clear the corner curve, so a rounder frame pushes it further in.
+ */
 const labelInsetFor = (radius: number) => Math.max(16, radius + 8);
+
+/**
+ * The room above and below the text. Flat, unlike the side inset - the text
+ * sits in the middle of the box, so a rounder frame must not make it taller.
+ */
+const FRAME_PADDING = 16;
 
 export interface NitroInputFramedHandle extends NitroInputCanvasHandle {}
 
@@ -130,6 +139,7 @@ export const NitroInputFramed = forwardRef<NitroInputFramedHandle, NitroInputFra
 
     const lineBox = lineHeight && lineHeight > 0 ? lineHeight : Math.ceil(fontSize * 1.18);
     const inset = draws ? labelInsetFor(cornerRadius) : 0;
+    const pad = draws ? FRAME_PADDING : 0;
     const floatedSize = labelFontSize && labelFontSize > 0 ? labelFontSize : Math.max(9, fontSize * FLOATED_RATIO);
     // An outlined label straddles the top stroke, so half of it hangs into the
     // box; a filled one sits inside, on its own line above the text.
@@ -140,10 +150,10 @@ export const NitroInputFramed = forwardRef<NitroInputFramedHandle, NitroInputFra
     const lines = multiline ? (numberOfLines > 0 ? numberOfLines : grownLines) : 1;
     const contentHeight = lineBox * lines;
     const boxHeight = draws
-      ? contentHeight + inset * 2 + topInset + (multiline ? overhang : 0)
+      ? contentHeight + pad * 2 + topInset + (multiline ? overhang : 0)
       : contentHeight;
     // A single line is centred in the box; a wrapping one starts at the top.
-    const padTop = draws ? (multiline ? inset + topInset + overhang : (boxHeight - contentHeight) / 2) : 0;
+    const padTop = draws ? (multiline ? pad + topInset + overhang : (boxHeight - contentHeight) / 2) : 0;
     // A floated outlined label is centred *on* the top stroke, so half of it is
     // above the box. The native views draw it - neither clips to its bounds -
     // so the canvas has to hang above its own box rather than cut it off.
@@ -252,10 +262,13 @@ export const NitroInputFramed = forwardRef<NitroInputFramedHandle, NitroInputFra
       if (hasLabel) {
         // Resting: on the text's own line, at the text's size. Floated: onto the
         // top stroke (outlined) or the line above the text (filled).
-        const restY = variant === 'filled' ? padTop + lineBox / 2 : h / 2;
+        // Resting: on the text's own line. A single line is centred in the box;
+        // a wrapping one starts at the top, and the label belongs where the
+        // first character will appear rather than halfway down an empty field.
+        const restY = variant === 'filled' || multiline ? padTop + lineBox / 2 : h / 2;
         // Floated onto the stroke means centred on it, which is what the gap
         // is cut around.
-        const floatY = variant === 'filled' ? inset + floatedSize / 2 : width / 2;
+        const floatY = variant === 'filled' ? pad + floatedSize / 2 : width / 2;
         const y = restY + (floatY - restY) * p;
         ctx.save();
         ctx.font = `${fontWeight} ${size}px ${family}`;
@@ -282,6 +295,7 @@ export const NitroInputFramed = forwardRef<NitroInputFramedHandle, NitroInputFra
       labelFocusedColor,
       lineBox,
       module,
+      multiline,
       overflowTop,
       padTop,
       strokeColor,

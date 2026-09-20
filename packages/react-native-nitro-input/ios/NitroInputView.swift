@@ -1033,7 +1033,12 @@ final class NitroInputView: UIView {
   /// else is going to put space between the text and the stroke.
   private var frameVerticalInset: (top: CGFloat, bottom: CGFloat) {
     guard inputFrame.draws else { return (0, 0) }
-    let side = frameSideInset
+    // Not `frameSideInset`: that is `max(16, cornerRadius + 8)` because the
+    // *label* has to clear the corner curve, which is a horizontal problem.
+    // The text sits in the middle of the box, nowhere near a corner, so a
+    // rounder frame must not make the field taller. Material's outlined field
+    // pads 16 either way whatever its radius.
+    let side = Self.framePadding
     // An outlined field's floated label straddles the top stroke, so half of it
     // hangs back into the box. `frameTopInset` discounts that on purpose - a
     // single line is centred, far below it - but a multiline field's first line
@@ -1369,9 +1374,15 @@ final class NitroInputView: UIView {
   /// `numberOfLines`. Asking for `numberOfLines` x the line box and getting
   /// exactly that is the contract; the platforms differ on what they measure,
   /// so neither is trusted with it.
+  /// The height one line occupies: the explicit `lineHeight` when there is one,
+  /// the font's own otherwise.
+  private var lineBoxHeight: CGFloat {
+    typography.lineHeight > 0 ? typography.lineHeight : fonts.lineHeight
+  }
+
   private func intrinsicHeight() -> CGFloat {
     guard traits.multiline else { return fonts.lineHeight }
-    let line = typography.lineHeight > 0 ? typography.lineHeight : fonts.lineHeight
+    let line = lineBoxHeight
     // Only the frame's room is on top of the text. The rest of the text view's
     // inset is `lineBoxPadding`, which is the *first* line's share of the
     // leading - already inside the `lineHeight` each line is billed for.
@@ -2121,6 +2132,10 @@ extension NitroInputView {
     return floatedLabelSize * 1.4
   }
 
+  /// The room a framed field keeps above and below its text. Flat, because
+  /// nothing about the vertical middle of the box depends on its corners.
+  static let framePadding: CGFloat = 16
+
   /// Horizontal room for the frame, so the text lines up under the label
   /// instead of running into the stroke.
   var frameSideInset: CGFloat {
@@ -2163,9 +2178,13 @@ extension NitroInputView {
     let restingWidth = labelText.size(withAttributes: [.font: restingFont]).width
     let floatedWidth = labelText.size(withAttributes: [.font: floatedFont]).width
 
-    // Resting: on the text's own baseline. Floated: centred on the top edge
-    // (outlined) or tucked under it (filled).
-    let restingCentreY = bounds.midY
+    // Resting: on the text's own line. A single line is centred in the box, so
+    // that is `midY`; a wrapping one starts at the top, and the label belongs
+    // where the first character will appear rather than halfway down an empty
+    // field.
+    let restingCentreY = traits.multiline
+      ? frameVerticalInset.top + lineBoxHeight / 2
+      : bounds.midY
     let floatedCentreY = inputFrame.variant == .outlined ? 0 : floatedSize * 0.9
     let resting = Outline.Rect(x: Double(labelInset), y: Double(restingCentreY),
                                width: Double(restingWidth), height: Double(restingFont.lineHeight))
