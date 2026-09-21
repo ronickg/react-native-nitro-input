@@ -1,4 +1,4 @@
-import React, {useMemo, useRef, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import BrowserOnly from '@docusaurus/BrowserOnly';
 import CodeBlock from '@theme/CodeBlock';
 import {NitroInputFramed, type NitroInputFramedHandle} from './NitroInputFramed';
@@ -40,9 +40,36 @@ interface Group {
 
 type State = Record<string, string | number | boolean>;
 
-const INK = ['#0f172a', '#2563eb', '#16a34a', '#b45309', '#dc2626', '#7c3aed'] as const;
+/** `auto` follows the site's theme; the rest are explicit choices. */
+const AUTO = 'auto';
+const INK = [AUTO, '#0f172a', '#2563eb', '#16a34a', '#b45309', '#dc2626', '#7c3aed'] as const;
 const STROKE = ['#94a3b8', '#0f172a', '#2563eb', '#16a34a', '#dc2626', '#7c3aed'] as const;
-const FILL = ['#e2e8f0', '#f1f5f9', '#ede9fe', '#dcfce7', '#fee2e2', '#fef3c7'] as const;
+const FILL = [AUTO, '#e2e8f0', '#f1f5f9', '#ede9fe', '#dcfce7', '#fee2e2', '#fef3c7'] as const;
+
+/**
+ * The colours the page itself is using. Read from the CSS variables rather
+ * than hard-coded, and re-read when the theme toggle flips `data-theme`, so a
+ * field with no colour of its own is legible in either theme.
+ */
+function useThemeColors() {
+  const [colors, setColors] = useState({ink: '#0f172a', fill: '#e2e8f0', muted: '#94a3b8'});
+  useEffect(() => {
+    const read = () => {
+      const style = getComputedStyle(document.documentElement);
+      const pick = (name: string, fallback: string) => style.getPropertyValue(name).trim() || fallback;
+      setColors({
+        ink: pick('--ifm-font-color-base', '#0f172a'),
+        fill: pick('--nitro-bg-sunken', '#e2e8f0'),
+        muted: pick('--nitro-ink-muted', '#94a3b8'),
+      });
+    };
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme', 'class']});
+    return () => observer.disconnect();
+  }, []);
+  return colors;
+}
 
 const framed = (s: State) => s.variant !== 'none';
 const labelled = (s: State) => framed(s) && String(s.label).length > 0;
@@ -77,7 +104,7 @@ const GROUPS: Group[] = [
         quote: true,
         when: framed,
       },
-      {key: 'fillColor', kind: 'color', def: '#e2e8f0', options: FILL, quote: true, when: (s) => s.variant === 'filled'},
+      {key: 'fillColor', kind: 'color', def: AUTO, options: FILL, quote: true, when: (s) => s.variant === 'filled'},
       {key: 'labelColor', kind: 'color', def: '#94a3b8', options: STROKE, quote: true, when: labelled},
       {key: 'labelFontSize', kind: 'range', def: 0, min: 0, max: 20, step: 1, when: labelled},
     ],
@@ -92,7 +119,7 @@ const GROUPS: Group[] = [
         def: 400,
         options: [300, 400, 500, 600, 700, 800, 900],
       },
-      {key: 'color', kind: 'color', def: '#0f172a', options: INK, quote: true},
+      {key: 'color', kind: 'color', def: AUTO, options: INK, quote: true},
       {key: 'textAlign', kind: 'seg', def: 'left', options: ['left', 'center', 'right'], quote: true},
       {
         key: 'lineHeight',
@@ -234,10 +261,13 @@ function Control({
   knob,
   value,
   onChange,
+  resolve,
 }: {
   knob: Knob;
   value: string | number | boolean;
   onChange: (v: string | number | boolean) => void;
+  /** What a theme-following colour is right now, for painting its swatch. */
+  resolve: (option: string) => string;
 }) {
   switch (knob.kind) {
     case 'seg':
@@ -301,11 +331,12 @@ function Control({
             <button
               key={String(o)}
               type="button"
-              aria-label={String(o)}
-              title={String(o)}
+              aria-label={o === AUTO ? 'follow the theme' : String(o)}
+              title={o === AUTO ? 'Follows the site theme' : String(o)}
               className={styles.swatch}
               data-on={value === o}
-              style={{background: String(o)}}
+              data-auto={o === AUTO}
+              style={{background: resolve(String(o))}}
               onClick={() => onChange(o)}
             />
           ))}
@@ -342,6 +373,11 @@ function PlaygroundInner() {
   const [text, setText] = useState('');
   const [value, setValue] = useState(NaN);
 
+  const theme = useThemeColors();
+  // `auto` means "whatever the page is using"; everything else is literal.
+  const resolveColor = (option: string) =>
+    option !== AUTO ? option : theme.ink;
+  const resolveFill = (option: string) => (option !== AUTO ? option : theme.fill);
   const active = useMemo(() => activeState(state), [state]);
   const snippet = useMemo(() => snippetFor(state), [state]);
   const set = (key: string) => (v: string | number | boolean) =>
@@ -365,12 +401,12 @@ function PlaygroundInner() {
               strokeWidth={active.strokeWidth as number}
               strokeColor={active.strokeColor as string}
               focusedStrokeColor={active.focusedStrokeColor as string}
-              fillColor={active.fillColor as string}
+              fillColor={resolveFill(active.fillColor as string)}
               labelColor={active.labelColor as string}
               labelFontSize={orUndef(active.labelFontSize)}
               fontSize={active.fontSize as number}
               fontWeight={active.fontWeight as number}
-              color={active.color as string}
+              color={resolveColor(active.color as string)}
               textAlign={active.textAlign as never}
               lineHeight={orUndef(active.lineHeight)}
               multiline={active.multiline as boolean}
@@ -446,7 +482,12 @@ function PlaygroundInner() {
                   <div className={styles.groupBody}>
                     {visible.map((knob) => (
                       <Row key={knob.key} knob={knob}>
-                        <Control knob={knob} value={state[knob.key]} onChange={set(knob.key)} />
+                        <Control
+                          knob={knob}
+                          value={state[knob.key]}
+                          onChange={set(knob.key)}
+                          resolve={resolveColor}
+                        />
                       </Row>
                     ))}
                   </div>
