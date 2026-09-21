@@ -176,11 +176,19 @@ const GROUPS: Group[] = [
       {
         key: 'morph',
         kind: 'bool',
-        def: true,
+        def: false,
         when: single,
-        hint: 'Off is a plain field: the system draws the text',
+        hint: 'Off is a plain field, as NitroInput is by default: the system draws the text',
       },
-      {key: 'duration', kind: 'range', def: 400, min: 80, max: 1200, step: 20, when: single},
+      {
+        key: 'duration',
+        kind: 'range',
+        def: 400,
+        min: 80,
+        max: 1200,
+        step: 20,
+        when: (s) => single(s) && s.morph === true,
+      },
       {
         key: 'easing',
         kind: 'select',
