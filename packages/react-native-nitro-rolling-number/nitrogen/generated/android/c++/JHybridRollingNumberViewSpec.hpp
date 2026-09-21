@@ -124,6 +124,8 @@ namespace margelo::nitro::nitrorollingnumber {
     void setColor(std::optional<double> color) override;
     std::optional<RollingNumberTextAlign> getTextAlign() override;
     void setTextAlign(std::optional<RollingNumberTextAlign> textAlign) override;
+    std::optional<bool> getRightToLeft() override;
+    void setRightToLeft(std::optional<bool> rightToLeft) override;
     std::optional<std::function<void(double /* width */, double /* height */)>> getOnSizeChange() override;
     void setOnSizeChange(const std::optional<std::function<void(double /* width */, double /* height */)>>& onSizeChange) override;
     std::optional<std::function<void()>> getOnRevealEnd() override;

@@ -41,6 +41,7 @@
     "fontFamily": true,
     "color": true,
     "textAlign": true,
+    "rightToLeft": true,
     "onSizeChange": true,
     "onRevealEnd": true,
     "onRevealMilestone": true,

@@ -47,6 +47,7 @@ public protocol HybridRollingNumberViewSpec_protocol: HybridObject, HybridView {
   var fontFamily: String? { get set }
   var color: Double? { get set }
   var textAlign: RollingNumberTextAlign? { get set }
+  var rightToLeft: Bool? { get set }
   var onSizeChange: ((_ width: Double, _ height: Double) -> Void)? { get set }
   var onRevealEnd: (() -> Void)? { get set }
   var onRevealMilestone: ((_ index: Double, _ value: Double) -> Void)? { get set }

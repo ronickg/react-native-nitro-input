@@ -5,7 +5,12 @@ import type {
 } from 'react-native-nitro-modules'
 
 /** Horizontal alignment of the number inside the view's frame. */
-export type RollingNumberTextAlign = 'left' | 'center' | 'right'
+/**
+ * `'auto'` is the start edge of the layout direction - left in a left-to-right
+ * app, right in a right-to-left one - which is what `Text` does with no
+ * `textAlign`. `'left'` and `'right'` are absolute, whatever the direction.
+ */
+export type RollingNumberTextAlign = 'auto' | 'left' | 'center' | 'right'
 
 /** Timing curve used when a value change is rolled natively. */
 export type RollingNumberEasing =
@@ -161,8 +166,17 @@ export interface RollingNumberProps extends HybridViewProps {
   fontFamily?: string
   /** Text color as a processed ARGB integer (from `processColor`). Defaults to the platform label color. */
   color?: number
-  /** Where the number sits inside the view when the view is wider than the number. Default: `'left'`. */
+  /** Where the number sits inside the view when the view is wider than the number. Default: `'auto'`, the start edge. */
   textAlign?: RollingNumberTextAlign
+  /**
+   * Lay the figure out right-to-left: `'auto'` alignment resolves to the right
+   * edge, the prefix moves to the right and the suffix to the left, and the
+   * digits still read left to right. Fabric does not hand a Hybrid View its
+   * layout direction, so the JS side resolves it - from the view's
+   * `style.direction`, else `I18nManager.isRTL` - the way React Native
+   * resolves its own views. Default: `false`.
+   */
+  rightToLeft?: boolean
   /**
    * Called whenever the settled (target) intrinsic size of the number changes,
    * e.g. after the first layout, when a digit column appears/disappears, or

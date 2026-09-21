@@ -71,7 +71,7 @@ See [Jackpot reveal](/rolling-number/reveal).
 | `fontWeight` | `TextStyle['fontWeight']` | `'normal'` | Font weight. |
 | `fontFamily` | `string` | system | Font family, resolved like `Text`. |
 | `color` | `ColorValue` | label color | Text color. |
-| `textAlign` | `'left' \| 'center' \| 'right'` | `'left'` | Alignment inside a wider frame. |
+| `textAlign` | `'auto' \| 'left' \| 'center' \| 'right'` | `'auto'` | Alignment inside a wider frame. `'auto'` is the start edge of the layout direction, as `Text`; `'left'` and `'right'` are absolute. In a right-to-left app the prefix sits at the right edge and the suffix at the left, and the digits keep reading left to right; a single figure can be flipped with `style={{ direction: 'rtl' }}`. |
 | `onNativeRef` | `(ref) => void` | – | Receives the Nitro object on mount. |
 
 ## Methods (`ref`)

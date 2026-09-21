@@ -6,6 +6,8 @@ import React, {
   useState,
 } from 'react'
 import {
+  I18nManager,
+  StyleSheet,
   processColor,
   type ColorValue,
   type TextStyle,
@@ -170,7 +172,8 @@ export interface RollingNumberProps extends Omit<ViewProps, 'children'> {
   /**
    * Where the number sits when the view is wider than its content, e.g. when
    * you give it a fixed `width` so it doesn't reflow as digits appear.
-   * Default: `'left'`.
+   * Default: `'auto'`: the start edge of the layout direction, as `Text`.
+   * `'left'` and `'right'` are absolute.
    */
   textAlign?: RollingNumberTextAlign
   /** Receives the native Nitro object once the view is mounted. */
@@ -381,6 +384,12 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
       [size, fontSize]
     )
 
+    // The layout direction, resolved the way React Native resolves it for its
+    // own views: the view's `style.direction` if it says, else the app's. Fabric
+    // does not hand a Hybrid View its resolved direction, so native is told.
+    const layoutDirection = (StyleSheet.flatten(style) as { direction?: unknown } | undefined)?.direction
+    const rightToLeft = layoutDirection === 'rtl' || (layoutDirection !== 'ltr' && I18nManager.isRTL)
+
     return (
       <NativeRollingNumberView
         {...viewProps}
@@ -424,7 +433,8 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
         fontWeight={numericWeight}
         fontFamily={fontFamily ?? ''}
         color={processedColor}
-        textAlign={textAlign ?? 'left'}
+        textAlign={textAlign ?? 'auto'}
+        rightToLeft={rightToLeft}
         onSizeChange={onSizeChange}
       />
     )

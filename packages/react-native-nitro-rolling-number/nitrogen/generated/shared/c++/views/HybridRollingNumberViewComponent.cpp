@@ -57,6 +57,7 @@ namespace margelo::nitro::nitrorollingnumber::views {
     fontFamily(nitro::ReactProp<std::optional<std::string>>::fromRawValue("RollingNumberView", "fontFamily", rawProps, sourceProps.fontFamily)),
     color(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "color", rawProps, sourceProps.color)),
     textAlign(nitro::ReactProp<std::optional<RollingNumberTextAlign>>::fromRawValue("RollingNumberView", "textAlign", rawProps, sourceProps.textAlign)),
+    rightToLeft(nitro::ReactProp<std::optional<bool>>::fromRawValue("RollingNumberView", "rightToLeft", rawProps, sourceProps.rightToLeft)),
     onSizeChange(nitro::ReactProp<std::optional<std::function<void(double /* width */, double /* height */)>>>::fromRawValue("RollingNumberView", "onSizeChange", rawProps, sourceProps.onSizeChange)),
     onRevealEnd(nitro::ReactProp<std::optional<std::function<void()>>>::fromRawValue("RollingNumberView", "onRevealEnd", rawProps, sourceProps.onRevealEnd)),
     onRevealMilestone(nitro::ReactProp<std::optional<std::function<void(double /* index */, double /* value */)>>>::fromRawValue("RollingNumberView", "onRevealMilestone", rawProps, sourceProps.onRevealMilestone)),
@@ -101,6 +102,7 @@ namespace margelo::nitro::nitrorollingnumber::views {
       case hashString("fontFamily"): return true;
       case hashString("color"): return true;
       case hashString("textAlign"): return true;
+      case hashString("rightToLeft"): return true;
       case hashString("onSizeChange"): return true;
       case hashString("onRevealEnd"): return true;
       case hashString("onRevealMilestone"): return true;

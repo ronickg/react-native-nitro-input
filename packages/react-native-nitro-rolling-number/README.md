@@ -172,7 +172,7 @@ scroll or drag handler drives the number.
 | `fontWeight` | `TextStyle['fontWeight']` | `'normal'` | Font weight. |
 | `fontFamily` | `string` | system | Font family, resolved like `Text` (bundled / expo-font fonts work). |
 | `color` | `ColorValue` | label color | Text color. |
-| `textAlign` | `'left' \| 'center' \| 'right'` | `'left'` | Alignment inside a wider frame. |
+| `textAlign` | `'auto' \| 'left' \| 'center' \| 'right'` | `'auto'` | Alignment inside a wider frame. `'auto'` is the start edge of the layout direction; `'left'` and `'right'` are absolute. In a right-to-left app the prefix sits at the right edge and the suffix at the left, and the digits keep reading left to right. |
 | `onNativeRef` | `(ref) => void` | – | Receives the Nitro object on mount. |
 | `style`, `testID`, … | `ViewProps` | – | Regular view props. |
 

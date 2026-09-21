@@ -320,6 +320,12 @@ using namespace margelo::nitro::nitrorollingnumber::views;
           : !newViewProps.textAlign.hasSameValue(oldViewProps->textAlign)) {
       swiftPart.setTextAlign(newViewProps.textAlign.get());
     }
+    // rightToLeft: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.rightToLeft.isProvided()
+          : !newViewProps.rightToLeft.hasSameValue(oldViewProps->rightToLeft)) {
+      swiftPart.setRightToLeft(newViewProps.rightToLeft.get());
+    }
     // onSizeChange: optional
     if (oldViewProps == nullptr
           ? newViewProps.onSizeChange.isProvided()

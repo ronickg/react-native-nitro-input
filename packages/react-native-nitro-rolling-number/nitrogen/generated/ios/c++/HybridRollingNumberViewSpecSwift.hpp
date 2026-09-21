@@ -337,6 +337,13 @@ namespace margelo::nitro::nitrorollingnumber {
     inline void setTextAlign(std::optional<RollingNumberTextAlign> textAlign) noexcept override {
       _swiftPart.setTextAlign(textAlign);
     }
+    inline std::optional<bool> getRightToLeft() noexcept override {
+      auto __result = _swiftPart.getRightToLeft();
+      return __result;
+    }
+    inline void setRightToLeft(std::optional<bool> rightToLeft) noexcept override {
+      _swiftPart.setRightToLeft(rightToLeft);
+    }
     inline std::optional<std::function<void(double /* width */, double /* height */)>> getOnSizeChange() noexcept override {
       auto __result = _swiftPart.getOnSizeChange();
       return __result;

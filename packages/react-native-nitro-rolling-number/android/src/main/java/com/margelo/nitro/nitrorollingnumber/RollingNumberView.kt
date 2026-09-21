@@ -97,7 +97,8 @@ class RollingNumberView(context: Context) : View(context) {
     val durationMs: Long = 950,
   )
 
-  enum class Alignment { LEFT, CENTER, RIGHT }
+  /** `AUTO` is the start edge of the layout direction, as `Text` with no `textAlign`; the rest are absolute. */
+  enum class Alignment { AUTO, LEFT, CENTER, RIGHT }
 
   var format: Format = Format()
     set(value) {
@@ -152,7 +153,7 @@ class RollingNumberView(context: Context) : View(context) {
       invalidate()
     }
 
-  var alignment: Alignment = Alignment.LEFT
+  var alignment: Alignment = Alignment.AUTO
     set(value) {
       field = value
       invalidate()
@@ -360,7 +361,7 @@ class RollingNumberView(context: Context) : View(context) {
     typography = Typography()
     timing = Timing()
     shimmer = Shimmer()
-    alignment = Alignment.LEFT
+    alignment = Alignment.AUTO
     revealMilestones = DoubleArray(0)
     // onIntrinsicSizeChange, onRevealEnd and onRevealMilestone are the hybrid's
     // wiring, not the element's props: they stay across recycling (the hybrid
@@ -527,9 +528,23 @@ class RollingNumberView(context: Context) : View(context) {
       elements.add(Element(-1, text, role, (width * factor).toFloat(), width, factor))
     }
 
-    // Sign first, then the currency prefix: "-$1,234.50".
-    addGlyph("-", GlyphRole.DIGIT, signFactor)
-    addGlyph(format.prefix, GlyphRole.PREFIX, 1.0)
+    // Under a right-to-left layout the prefix belongs at the start edge - the
+    // right - and the suffix at the end, while the digits stay a left-to-right
+    // run: a number reads the same way in every script. So the run is laid out
+    // block by block in mirror order, each block keeping its own order, and the
+    // space an affix keeps against the digits stays against them: " USD" after
+    // the number is "USD " before it.
+    val rtl = isRtl
+    val prefix = if (rtl) splitAffix(format.prefix, spaceAtEnd = true) else Pair(format.prefix, "")
+    val suffix = if (rtl) splitAffix(format.suffix, spaceAtEnd = false) else Pair(format.suffix, "")
+    if (rtl) {
+      addGlyph(suffix.first, GlyphRole.SUFFIX, 1.0)
+      addGlyph(suffix.second, GlyphRole.SUFFIX, 1.0)
+    } else {
+      // Sign first, then the currency prefix: "-$1,234.50".
+      addGlyph("-", GlyphRole.DIGIT, signFactor)
+      addGlyph(prefix.first, GlyphRole.PREFIX, 1.0)
+    }
     for (power in wheels.indices.reversed()) {
       val wheel = wheels[power]
       if (wheel.width > 0.0) {
@@ -538,8 +553,40 @@ class RollingNumberView(context: Context) : View(context) {
       if (power > fd && (power - fd) % 3 == 0) addGlyph(format.groupingSeparator, GlyphRole.DIGIT, wheel.width)
       if (fd > 0 && power == fd) addGlyph(format.decimalSeparator, GlyphRole.DIGIT, 1.0)
     }
-    addGlyph(format.suffix, GlyphRole.SUFFIX, 1.0)
+    if (rtl) {
+      addGlyph(prefix.second, GlyphRole.PREFIX, 1.0)
+      addGlyph(prefix.first, GlyphRole.PREFIX, 1.0)
+      addGlyph("-", GlyphRole.DIGIT, signFactor)
+    } else {
+      addGlyph(suffix.first, GlyphRole.SUFFIX, 1.0)
+    }
     return elements
+  }
+
+  /** Whether this view is laid out right-to-left. The hybrid sets it from the `rightToLeft` prop. */
+  val isRtl: Boolean get() = layoutDirection == LAYOUT_DIRECTION_RTL
+
+  /** `AUTO` resolved against the layout direction; the rest are already absolute. */
+  private val resolvedAlignment: Alignment
+    get() = if (alignment == Alignment.AUTO) (if (isRtl) Alignment.RIGHT else Alignment.LEFT) else alignment
+
+  override fun onRtlPropertiesChanged(layoutDirection: Int) {
+    super.onRtlPropertiesChanged(layoutDirection)
+    invalidate()
+  }
+
+  /**
+   * Splits an affix from the space it keeps against the digits - a prefix's
+   * trailing run, a suffix's leading one - as (ink, gap). An affix that is all
+   * space is one block.
+   */
+  private fun splitAffix(text: String, spaceAtEnd: Boolean): Pair<String, String> {
+    val isSpace = { c: Char -> c == ' ' || c == '\u00A0' || c == '\u2009' || c == '\u202F' }
+    var n = 0
+    while (n < text.length && isSpace(if (spaceAtEnd) text[text.length - 1 - n] else text[n])) n++
+    if (n == 0 || n == text.length) return Pair(text, "")
+    return if (spaceAtEnd) Pair(text.substring(0, text.length - n), text.substring(text.length - n))
+    else Pair(text.substring(n), text.substring(0, n))
   }
 
   private fun settledWidth(): Float {
@@ -616,8 +663,8 @@ class RollingNumberView(context: Context) : View(context) {
 
     // Position the (scaled) content, then draw everything in unscaled font space.
     // The reveal's landing pop scales about the content's centre on top of the fit.
-    var originX = when (alignment) {
-      Alignment.LEFT -> 0f
+    var originX = when (resolvedAlignment) {
+      Alignment.AUTO, Alignment.LEFT -> 0f
       Alignment.CENTER -> (width - total * fit) / 2f
       Alignment.RIGHT -> width - total * fit
     }
