@@ -8,15 +8,17 @@ The full table is in the package [README](https://github.com/ronickg/react-nativ
 
 | Prop | Default | |
 | --- | --- | --- |
-| `mode` | `'text'` | `'number'` formats as you type. |
+| `mode` | `'text'` | `'number'` formats as you type, `'mask'` applies a pattern. |
 | `fractionDigits`, `maxIntegerDigits` | `2`, `15` | Limits; digits past them are rejected. |
 | `groupingSeparator`, `decimalSeparator` | `','`, `'.'` | |
+| `mask`, `maskNotations`, `maskAutocomplete`, `maskAutoSkip` | `''`, `[]`, `true`, `false` | `'mask'`: the pattern, your own slots, and how literals are inserted and deleted — see [A masked field](/input/masked-field). |
 | `prefix`, `suffix`, `affixAlign` | `''`, `''`, `'baseline'` | As on the rolling number. |
 | `placeholder` | `''` | Swapped for the first character, not morphed into it — see below. |
 | `duration`, `easing`, `effect` | `400`, `'expo'`, `'auto'` | The morph. |
 | `keyboardType`, `returnKeyType`, `autoCapitalize`, `autoCorrect`, `maxLength`, `editable`, `autoFocus` | | Input traits. |
 | `transform` | | A worklet mask, run synchronously on the UI thread. |
 | `onChangeText`, `onChangeValue`, `onFocus`, `onBlur`, `onSubmitEditing`, `onEndEditing`, `onSelectionChange`, `onKeyPress` | | `TextInput`'s edit callbacks, plus `onChangeValue`. Any of them marked `'worklet'` runs on the UI thread instead of the JS one — see [Worklets](/input/worklets). |
+| `onChangeMask` | | `'mask'`: the formatted text, the extracted value, the missing tail and whether every mandatory slot is filled. |
 | `submitBehavior` | `'blurAndSubmit'` | `'submit'` keeps focus so a form can move to the next field itself. |
 | `secureTextEntry` | `false` | Draws bullets; the field keeps the real text for autofill. |
 | `textContentType` / `autoComplete` | `''` | Autofill: `'username'`, `'password'`, `'oneTimeCode'`, … |

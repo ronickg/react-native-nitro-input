@@ -1,0 +1,78 @@
+---
+sidebar_position: 3
+title: A masked field
+description: 'mode="mask": a phone number, a card number or a hex colour, with the pattern applied in C++ before the field draws a frame.'
+---
+
+`mode="mask"` applies a fixed pattern natively as you type, the way `mode="number"` formats an amount. The pattern is compiled once into a state machine in C++ and shared by both platforms, so the formatted text, the caret, the extracted value and the "what is still missing" tail all come from one place on every keystroke, and none of it waits on the JS thread.
+
+```tsx
+import { NitroInput } from 'react-native-nitro-input'
+
+<NitroInput
+  mode="mask"
+  mask="+1 ([000]) [000]-[0000]"
+  placeholder="+1 (000) 000-0000"
+  keyboardType="number-pad"
+  maskAutoSkip
+  onChangeMask={(formatted, extracted, tail, complete) => {
+    setPhone(extracted)  // "5551234567": the characters the user gave
+    setDone(complete)    // every mandatory slot filled
+  }}
+/>
+```
+
+Type `212` and the field shows `+1 (212) `: the literals arrive on their own as the slots before them fill. `MorphInput` takes the same props and morphs each keystroke in.
+
+## The pattern
+
+`[…]` is an editable block, `{…}` a fixed block, and anything outside brackets is a literal the engine inserts for you.
+
+| | |
+| --- | --- |
+| `[0]` / `[9]` | A mandatory / optional digit. |
+| `[A]` / `[a]` | A mandatory / optional letter. |
+| `[_]` / `[-]` | A mandatory / optional alphanumeric. |
+| `[…]` | An unbounded run of the preceding slot, e.g. `[0…]` for any number of digits. |
+| `{…}` | Literal characters that count towards the extracted value, e.g. `{+1}`. |
+| Anything else | A literal that is shown but not extracted: the `(`, `)` and `-` above. |
+| `\` | Escapes the next character. |
+
+Slots inside one block run together, so `[000]` is three mandatory digits. An invalid pattern (unbalanced brackets, or a slot character with no notation) leaves the field unmasked rather than breaking it.
+
+### Your own slots
+
+```tsx
+<NitroInput
+  mode="mask"
+  mask="#[HHHHHH]"
+  placeholder="#HHHHHH"
+  autoCapitalize="none"
+  maskNotations={[{ character: 'H', characterSet: '0123456789ABCDEFabcdef', isOptional: false }]}
+/>
+```
+
+`maskNotations` adds slot characters beyond the built-in ones: `character` is the letter that stands for the slot in the pattern, `characterSet` every character it accepts, and `isOptional` whether it may be left empty. The type is exported as `NitroInputNotation`.
+
+## Literals, autocompletion and backspace
+
+`maskAutocomplete` (default `true`) inserts the pattern's literals as soon as the slot before them is filled, so typing `212` into `+1 ([000]) [000]-[0000]` leaves `+1 (212) `. It only runs while the caret is at the end, so editing in the middle of a value does not fight you.
+
+`maskAutoSkip` (default `false`) lets a backspace at the end of a run walk back over those inserted literals. Without it, a backspace stops in front of them.
+
+## What you get back
+
+`onChangeMask` is called after every edit with four values: the formatted text as shown, the extracted value (only the characters the user contributed, plus any `{…}` block), the tail placeholder (what is still missing, `0-0000` after typing `212555`, for drawing a ghost of the rest of the pattern), and whether every mandatory slot is filled. `onChangeText` still fires with the formatted text.
+
+## Native or worklet?
+
+Two routes format as you type, and both run before a frame is drawn:
+
+- `mode="mask"` for anything a pattern can express: a phone number, a card number, a date, a hex colour. No dependency, and the extracted value and completeness come for free.
+- A [`transform` worklet](/input/worklets) for what a pattern cannot: a rule that depends on the text so far, or a real library such as libphonenumber-js. It needs `react-native-worklets`.
+
+`mode="number"` is the third: an amount with grouping, decimals and affixes, on its [own page](/input/amount-field).
+
+## Where it comes from
+
+The algorithm follows RedMadRobot's input-mask, by way of react-native-advanced-input-mask, and differs from both in three ways: it works in code points rather than UTF-16 units, so an astral character is never split in half; a bad pattern is reported rather than thrown; and there is one implementation in C++ shared by both platforms instead of a Swift one and a Kotlin one. Like an amount, a mask is a single-line idea: `multiline` ignores it.

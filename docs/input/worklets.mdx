@@ -23,6 +23,8 @@ const usernameTransform: NitroInputTransform = ({ text }) => {
 
 `transform` receives `{ text, previousText, selection, previousSelection }` (code point offsets) and returns `{ text?, selection? }`, or `null` to keep the edit as is. Without a `selection` the caret keeps its place relative to the edit. In `mode="number"` it runs after the native formatter. Create it once, at module scope or in `useCallback`: a new function re-registers the worklet on every render.
 
+For a fixed pattern, [`mode="mask"`](/input/masked-field) does this natively with no worklets at all. `transform` is for what a pattern cannot express.
+
 ## Every event can be a worklet
 
 Mark any handler `'worklet'` and it runs on the UI thread instead of the JS thread: `onChangeText`, `onChangeValue`, `onFocus`, `onBlur`, `onSelectionChange`, `onSubmitEditing`, `onEndEditing` and `onKeyPress`. It is opt-in per handler, and a worklet handler is not also called on the JS thread, so nothing fires twice. Plain functions keep working as before.

@@ -10,7 +10,7 @@ description: 'How each update pairs the old characters with the new ones, and wh
 
 It is a real input. A system text field (`UITextField` on iOS, `EditText` on Android) owns the keyboard, editing, selection, paste and accessibility; the morph layer on top only draws its glyphs. What makes it different from a `TextInput` that formats in `onChangeText`:
 
-- **Formatting happens natively, before a frame is drawn.** In `mode="number"` every keystroke goes through the same C++ formatter on both platforms: grouping separators, one decimal separator, at most `fractionDigits` decimals, the caret kept where you typed, a digit too many rejected outright. The JS thread only learns about the result, so there is no flicker, no caret jump and no dropped keystroke, however busy React is.
+- **Formatting happens natively, before a frame is drawn.** In `mode="number"` every keystroke goes through the same C++ formatter on both platforms: grouping separators, one decimal separator, at most `fractionDigits` decimals, the caret kept where you typed, a digit too many rejected outright. The JS thread only learns about the result, so there is no flicker, no caret jump and no dropped keystroke, however busy React is. `mode="mask"` does the same for a pattern, see [A masked field](/input/masked-field).
 - **The same formatting model as the rolling number**: `prefix` / `suffix` at their own sizes, pinned to the top, bottom, baseline or centre of the digits; grouping and decimal separators of your choice.
 - **One engine.** The matching (which characters persist, enter and leave), the slide, fade and scale curves and the timing live in `cpp/MorphEngine.cpp`, shared by Swift and Kotlin.
 

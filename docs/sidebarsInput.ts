@@ -21,6 +21,7 @@ const sidebars: SidebarsConfig = {
       collapsed: false,
       items: [
         'amount-field',
+        'masked-field',
         'text',
         'plain-field',
         'worklets',
