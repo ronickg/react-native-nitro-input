@@ -135,6 +135,11 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<double> transformWorklet;
     nitro::ReactProp<double> onChangeTextWorklet;
     nitro::ReactProp<double> onChangeValueWorklet;
+    nitro::ReactProp<double> onFocusChangeWorklet;
+    nitro::ReactProp<double> onSelectionChangeWorklet;
+    nitro::ReactProp<double> onSubmitEditingWorklet;
+    nitro::ReactProp<double> onEndEditingWorklet;
+    nitro::ReactProp<double> onKeyPressWorklet;
     nitro::ReactProp<std::optional<std::function<void(const std::string& /* text */, double /* eventCount */)>>> onChangeText;
     nitro::ReactProp<std::optional<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>>> onChangeMask;
     nitro::ReactProp<std::optional<std::function<void(double /* value */)>>> onChangeValue;
@@ -225,6 +230,11 @@ namespace margelo::nitro::nitroinput::views {
              transformWorklet.hasSameValue(other.transformWorklet) &&
              onChangeTextWorklet.hasSameValue(other.onChangeTextWorklet) &&
              onChangeValueWorklet.hasSameValue(other.onChangeValueWorklet) &&
+             onFocusChangeWorklet.hasSameValue(other.onFocusChangeWorklet) &&
+             onSelectionChangeWorklet.hasSameValue(other.onSelectionChangeWorklet) &&
+             onSubmitEditingWorklet.hasSameValue(other.onSubmitEditingWorklet) &&
+             onEndEditingWorklet.hasSameValue(other.onEndEditingWorklet) &&
+             onKeyPressWorklet.hasSameValue(other.onKeyPressWorklet) &&
              onChangeText.hasSameValue(other.onChangeText) &&
              onChangeMask.hasSameValue(other.onChangeMask) &&
              onChangeValue.hasSameValue(other.onChangeValue) &&
@@ -316,6 +326,11 @@ namespace margelo::nitro::nitroinput::views {
              transformWorklet.isProvided() ||
              onChangeTextWorklet.isProvided() ||
              onChangeValueWorklet.isProvided() ||
+             onFocusChangeWorklet.isProvided() ||
+             onSelectionChangeWorklet.isProvided() ||
+             onSubmitEditingWorklet.isProvided() ||
+             onEndEditingWorklet.isProvided() ||
+             onKeyPressWorklet.isProvided() ||
              onChangeText.isProvided() ||
              onChangeMask.isProvided() ||
              onChangeValue.isProvided() ||

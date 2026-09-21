@@ -180,6 +180,11 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val transform: Int = 0,
     val onChangeText: Int = 0,
     val onChangeValue: Int = 0,
+    val onFocusChange: Int = 0,
+    val onSelectionChange: Int = 0,
+    val onSubmitEditing: Int = 0,
+    val onEndEditing: Int = 0,
+    val onKeyPress: Int = 0,
   )
 
   var worklets: Worklets = Worklets()
@@ -474,6 +479,13 @@ class NitroInputView(context: Context) : FrameLayout(context) {
           editText.post { if (editText.hasFocus()) editText.selectAll() }
         }
       }
+      // A worklet handler runs on the UI thread, before the JS one hears anything.
+      if (worklets.onFocusChange != 0) {
+        NitroInputWorklets.runFocusChange(worklets.onFocusChange, focused, text)
+      }
+      if (!focused && worklets.onEndEditing != 0) {
+        NitroInputWorklets.runEndEditing(worklets.onEndEditing, text)
+      }
       onFocusChange?.invoke(focused)
       if (!focused) onEndEditing?.invoke(text)
     }
@@ -481,6 +493,10 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       val isEnter = event != null && event.keyCode == KeyEvent.KEYCODE_ENTER
       if (isEnter && event.action != KeyEvent.ACTION_DOWN) return@setOnEditorActionListener true
       if (actionId == EditorInfo.IME_ACTION_NONE && !isEnter) return@setOnEditorActionListener false
+      if (worklets.onKeyPress != 0) NitroInputWorklets.runKeyPress(worklets.onKeyPress, "Enter")
+      if (worklets.onSubmitEditing != 0) {
+        NitroInputWorklets.runSubmitEditing(worklets.onSubmitEditing, text)
+      }
       onKeyPress?.invoke("Enter")
       onSubmit?.invoke(text)
       // `submitBehavior: 'submit'` keeps focus so a form can move on itself.
@@ -965,14 +981,20 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
   /// Reports the caret/selection in code points, and only when it moved.
   private fun reportSelection(selStart: Int, selEnd: Int) {
-    val handler = onSelectionChange ?: return
+    // A worklet handler counts as a listener too - returning on the JS one
+    // alone would make a field with only a worklet report nothing.
+    val handler = onSelectionChange
+    if (handler == null && worklets.onSelectionChange == 0) return
     if (selStart < 0 || selEnd < 0) return
     val current = text
     val start = current.codePointCount(0, selStart.coerceIn(0, current.length))
     val end = current.codePointCount(0, selEnd.coerceIn(0, current.length))
     if (lastReportedSelection?.first == start && lastReportedSelection?.second == end) return
     lastReportedSelection = start to end
-    handler(start, end)
+    if (worklets.onSelectionChange != 0) {
+      NitroInputWorklets.runSelectionChange(worklets.onSelectionChange, start, end)
+    }
+    handler?.invoke(start, end)
   }
 
   fun blur() {
@@ -1164,7 +1186,9 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       // Like React Native's `onKeyPress`: the inserted text, or 'Backspace'.
       // Only for real key events — the watcher also runs for the initial set.
       if (editText.hasFocus()) {
-        onKeyPress?.invoke(if (replacement.isEmpty()) "Backspace" else replacement)
+        val key = if (replacement.isEmpty()) "Backspace" else replacement
+        if (worklets.onKeyPress != 0) NitroInputWorklets.runKeyPress(worklets.onKeyPress, key)
+        onKeyPress?.invoke(key)
       }
     }
 

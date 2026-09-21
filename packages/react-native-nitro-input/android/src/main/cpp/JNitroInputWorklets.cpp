@@ -23,6 +23,11 @@ void JNitroInputWorklets::registerNatives() {
       makeNativeMethod("lastSelectionEnd", JNitroInputWorklets::lastSelectionEnd),
       makeNativeMethod("runChangeText", JNitroInputWorklets::runChangeText),
       makeNativeMethod("runChangeValue", JNitroInputWorklets::runChangeValue),
+      makeNativeMethod("runFocusChange", JNitroInputWorklets::runFocusChange),
+      makeNativeMethod("runSelectionChange", JNitroInputWorklets::runSelectionChange),
+      makeNativeMethod("runSubmitEditing", JNitroInputWorklets::runSubmitEditing),
+      makeNativeMethod("runEndEditing", JNitroInputWorklets::runEndEditing),
+      makeNativeMethod("runKeyPress", JNitroInputWorklets::runKeyPress),
   });
 }
 
@@ -53,6 +58,27 @@ jint JNitroInputWorklets::lastSelectionEnd(jni::alias_ref<jni::JClass>) {
 
 void JNitroInputWorklets::runChangeText(jni::alias_ref<jni::JClass>, jint id, jni::alias_ref<jni::JString> text) {
   nitroinputworklets::runChangeText(id, text->toStdString());
+}
+
+void JNitroInputWorklets::runFocusChange(jni::alias_ref<jni::JClass>, jint id, jboolean focused,
+                                        jni::alias_ref<jni::JString> text) {
+  nitroinputworklets::runFocusChange(id, focused == JNI_TRUE, text->toStdString());
+}
+
+void JNitroInputWorklets::runSelectionChange(jni::alias_ref<jni::JClass>, jint id, jint start, jint end) {
+  nitroinputworklets::runSelectionChange(id, start, end);
+}
+
+void JNitroInputWorklets::runSubmitEditing(jni::alias_ref<jni::JClass>, jint id, jni::alias_ref<jni::JString> text) {
+  nitroinputworklets::runSubmitEditing(id, text->toStdString());
+}
+
+void JNitroInputWorklets::runEndEditing(jni::alias_ref<jni::JClass>, jint id, jni::alias_ref<jni::JString> text) {
+  nitroinputworklets::runEndEditing(id, text->toStdString());
+}
+
+void JNitroInputWorklets::runKeyPress(jni::alias_ref<jni::JClass>, jint id, jni::alias_ref<jni::JString> key) {
+  nitroinputworklets::runKeyPress(id, key->toStdString());
 }
 
 void JNitroInputWorklets::runChangeValue(jni::alias_ref<jni::JClass>, jint id, jdouble value) {

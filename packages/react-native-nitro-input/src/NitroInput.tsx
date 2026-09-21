@@ -39,6 +39,10 @@ import type {
 import {
   allocateWorkletId,
   isWorklet,
+  registerFocusChange,
+  registerKeyPress,
+  registerSelectionChange,
+  registerTextEvent,
   registerCallback,
   registerTransform,
   unregisterWorklet,
@@ -735,6 +739,29 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     const onChangeValueWorklet = isWorklet(onChangeValue) ? onChangeValue : undefined
     const onChangeTextId = useWorkletId(onChangeTextWorklet, registerCallback)
     const onChangeValueId = useWorkletId(onChangeValueWorklet, registerCallback)
+    // Marking any of these `'worklet'` moves it to the UI thread; the JS
+    // handler is then skipped, exactly as `onChangeText` already worked.
+    const onFocusId = useWorkletPairId(
+      isWorklet(onFocus) ? (onFocus as never) : undefined,
+      isWorklet(onBlur) ? (onBlur as never) : undefined,
+      registerFocusChange
+    )
+    const onSelectionChangeId = useWorkletId(
+      isWorklet(onSelectionChange) ? (onSelectionChange as never) : undefined,
+      registerSelectionChange as never
+    )
+    const onSubmitEditingId = useWorkletId(
+      isWorklet(onSubmitEditing) ? (onSubmitEditing as never) : undefined,
+      registerTextEvent as never
+    )
+    const onEndEditingId = useWorkletId(
+      isWorklet(onEndEditing) ? (onEndEditing as never) : undefined,
+      registerTextEvent as never
+    )
+    const onKeyPressId = useWorkletId(
+      isWorklet(onKeyPress) ? (onKeyPress as never) : undefined,
+      registerKeyPress as never
+    )
     // The latest native event count JS has processed: sent back with `text` so
     // native can tell a stale controlled value (the user typed since) from a
     // deliberate change.
@@ -868,15 +895,16 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
             eventCount: count,
             nativeEvent: { text, target, eventCount: count },
           }
-          if (focused) latest.current.onFocus?.(event)
-          else latest.current.onBlur?.(event)
+          const handler = focused ? latest.current.onFocus : latest.current.onBlur
+          if (handler && !isWorklet(handler)) handler(event)
         }),
       []
     )
     const onSubmitEditingCallback = useMemo(
       () =>
         callback((text: string) => {
-          latest.current.onSubmitEditing?.(textEvent(text))
+          const handler = latest.current.onSubmitEditing
+          if (handler && !isWorklet(handler)) handler(textEvent(text))
         }),
       // eslint-disable-next-line react-hooks/exhaustive-deps
       []
@@ -884,7 +912,8 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     const onEndEditingCallback = useMemo(
       () =>
         callback((text: string) => {
-          latest.current.onEndEditing?.(textEvent(text))
+          const handler = latest.current.onEndEditing
+          if (handler && !isWorklet(handler)) handler(textEvent(text))
         }),
       // eslint-disable-next-line react-hooks/exhaustive-deps
       []
@@ -892,29 +921,22 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     const onSelectionChangeCallback = useMemo(
       () =>
         callback((start: number, end: number) => {
+          const handler = latest.current.onSelectionChange
+          if (!handler || isWorklet(handler)) return
           const selection = { start, end }
           const target = reactTagOf(hostRef.current)
-          latest.current.onSelectionChange?.({
-            selection,
-            start,
-            end,
-            target,
-            nativeEvent: { selection, target },
-          })
+          handler({ selection, start, end, target, nativeEvent: { selection, target } })
         }),
       []
     )
     const onKeyPressCallback = useMemo(
       () =>
         callback((key: string) => {
+          const handler = latest.current.onKeyPress
+          if (!handler || isWorklet(handler)) return
           const target = reactTagOf(hostRef.current)
           const count = eventCountRef.current
-          latest.current.onKeyPress?.({
-            key,
-            eventCount: count,
-            target,
-            nativeEvent: { key, eventCount: count, target },
-          })
+          handler({ key, eventCount: count, target, nativeEvent: { key, eventCount: count, target } })
         }),
       []
     )
@@ -1111,6 +1133,11 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         transformWorklet={transformId}
         onChangeTextWorklet={onChangeTextId}
         onChangeValueWorklet={onChangeValueId}
+        onFocusChangeWorklet={onFocusId}
+        onSelectionChangeWorklet={onSelectionChangeId}
+        onSubmitEditingWorklet={onSubmitEditingId}
+        onEndEditingWorklet={onEndEditingId}
+        onKeyPressWorklet={onKeyPressId}
         onChangeText={onChangeTextCallback}
         onChangeValue={onChangeValueCallback}
         onFocusChange={onFocusChangeCallback}
@@ -1133,6 +1160,24 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
  * StrictMode, or a concurrent render that loses) would otherwise leave an entry
  * on the UI runtime that no cleanup ever removes.
  */
+/**
+ * The same, for the focus pair: native reports one focus change, so the two
+ * handlers share an id and the wrapper picks between them.
+ */
+function useWorkletPairId<T extends (...args: never[]) => unknown>(
+  onFocus: T | undefined,
+  onBlur: T | undefined,
+  register: (a: T | undefined, b: T | undefined, id: number) => void
+): number {
+  const id = useMemo(() => (onFocus || onBlur ? allocateWorkletId() : 0), [onFocus, onBlur])
+  useEffect(() => {
+    if (id === 0) return
+    register(onFocus, onBlur, id)
+    return () => unregisterWorklet(id)
+  }, [id, onFocus, onBlur, register])
+  return id
+}
+
 function useWorkletId<T extends (...args: never[]) => unknown>(
   fn: T | undefined,
   register: (fn: T, id: number) => void

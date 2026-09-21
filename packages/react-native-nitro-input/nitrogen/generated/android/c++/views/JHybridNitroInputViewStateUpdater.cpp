@@ -439,6 +439,31 @@ void JHybridNitroInputViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCla
     hybridView->setOnChangeValueWorklet(newProps->onChangeValueWorklet.get());
   }
   if (oldProps == nullptr
+        ? newProps->onFocusChangeWorklet.isProvided()
+        : !newProps->onFocusChangeWorklet.hasSameValue(oldProps->onFocusChangeWorklet)) {
+    hybridView->setOnFocusChangeWorklet(newProps->onFocusChangeWorklet.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->onSelectionChangeWorklet.isProvided()
+        : !newProps->onSelectionChangeWorklet.hasSameValue(oldProps->onSelectionChangeWorklet)) {
+    hybridView->setOnSelectionChangeWorklet(newProps->onSelectionChangeWorklet.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->onSubmitEditingWorklet.isProvided()
+        : !newProps->onSubmitEditingWorklet.hasSameValue(oldProps->onSubmitEditingWorklet)) {
+    hybridView->setOnSubmitEditingWorklet(newProps->onSubmitEditingWorklet.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->onEndEditingWorklet.isProvided()
+        : !newProps->onEndEditingWorklet.hasSameValue(oldProps->onEndEditingWorklet)) {
+    hybridView->setOnEndEditingWorklet(newProps->onEndEditingWorklet.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->onKeyPressWorklet.isProvided()
+        : !newProps->onKeyPressWorklet.hasSameValue(oldProps->onKeyPressWorklet)) {
+    hybridView->setOnKeyPressWorklet(newProps->onKeyPressWorklet.get());
+  }
+  if (oldProps == nullptr
         ? newProps->onChangeText.isProvided()
         : !newProps->onChangeText.hasSameValue(oldProps->onChangeText)) {
     hybridView->setOnChangeText(newProps->onChangeText.get());

@@ -87,6 +87,11 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   var transformWorklet: Double { get set }
   var onChangeTextWorklet: Double { get set }
   var onChangeValueWorklet: Double { get set }
+  var onFocusChangeWorklet: Double { get set }
+  var onSelectionChangeWorklet: Double { get set }
+  var onSubmitEditingWorklet: Double { get set }
+  var onEndEditingWorklet: Double { get set }
+  var onKeyPressWorklet: Double { get set }
   var onChangeText: ((_ text: String, _ eventCount: Double) -> Void)? { get set }
   var onChangeMask: ((_ formatted: String, _ extracted: String, _ tailPlaceholder: String, _ complete: Bool) -> Void)? { get set }
   var onChangeValue: ((_ value: Double) -> Void)? { get set }

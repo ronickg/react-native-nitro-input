@@ -337,6 +337,16 @@ export interface NitroInputProps extends HybridViewProps {
   onChangeTextWorklet: number
   /** Id of an `onChangeValue` worklet run synchronously on the UI thread after every change (`0` = none). */
   onChangeValueWorklet: number
+  /** Id of an `onFocus`/`onBlur` worklet run on the UI thread when focus changes (`0` = none). */
+  onFocusChangeWorklet: number
+  /** Id of an `onSelectionChange` worklet run on the UI thread when the caret moves (`0` = none). */
+  onSelectionChangeWorklet: number
+  /** Id of an `onSubmitEditing` worklet run on the UI thread when the return key is pressed (`0` = none). */
+  onSubmitEditingWorklet: number
+  /** Id of an `onEndEditing` worklet run on the UI thread when editing finishes (`0` = none). */
+  onEndEditingWorklet: number
+  /** Id of an `onKeyPress` worklet run on the UI thread before the text changes (`0` = none). */
+  onKeyPressWorklet: number
   /**
    * Called after every native edit with the field's (formatted) text and a
    * monotonically increasing event count. Feed the count back through

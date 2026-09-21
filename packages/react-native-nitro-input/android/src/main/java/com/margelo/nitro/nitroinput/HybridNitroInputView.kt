@@ -216,6 +216,11 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
   override var onChangeTextWorklet: Double = 0.0
     set(v) { field = v; markConfigDirty() }
   override var onChangeValueWorklet: Double = 0.0
+  override var onFocusChangeWorklet: Double = 0.0
+  override var onSelectionChangeWorklet: Double = 0.0
+  override var onSubmitEditingWorklet: Double = 0.0
+  override var onEndEditingWorklet: Double = 0.0
+  override var onKeyPressWorklet: Double = 0.0
     set(v) { field = v; markConfigDirty() }
   override var onChangeText: ((text: String, eventCount: Double) -> Unit)? = null
   override var onChangeValue: ((value: Double) -> Unit)? = null
@@ -371,6 +376,11 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     transformWorklet = 0.0
     onChangeTextWorklet = 0.0
     onChangeValueWorklet = 0.0
+    onFocusChangeWorklet = 0.0
+    onSelectionChangeWorklet = 0.0
+    onSubmitEditingWorklet = 0.0
+    onEndEditingWorklet = 0.0
+    onKeyPressWorklet = 0.0
     onChangeText = null
     onChangeValue = null
     onChangeMask = null
@@ -514,6 +524,11 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
       transform = clampInt(transformWorklet, 0, Int.MAX_VALUE, 0),
       onChangeText = clampInt(onChangeTextWorklet, 0, Int.MAX_VALUE, 0),
       onChangeValue = clampInt(onChangeValueWorklet, 0, Int.MAX_VALUE, 0),
+      onFocusChange = clampInt(onFocusChangeWorklet, 0, Int.MAX_VALUE, 0),
+      onSelectionChange = clampInt(onSelectionChangeWorklet, 0, Int.MAX_VALUE, 0),
+      onSubmitEditing = clampInt(onSubmitEditingWorklet, 0, Int.MAX_VALUE, 0),
+      onEndEditing = clampInt(onEndEditingWorklet, 0, Int.MAX_VALUE, 0),
+      onKeyPress = clampInt(onKeyPressWorklet, 0, Int.MAX_VALUE, 0),
     )
     inputView.timing = NitroInputView.Timing(
       durationMs = Math.max(0.0, finite(duration, 400.0)).toLong(),

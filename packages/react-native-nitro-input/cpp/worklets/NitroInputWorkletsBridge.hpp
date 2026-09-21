@@ -44,5 +44,15 @@ TransformResult runTransform(int id, const std::string& text, const std::string&
 void runChangeText(int id, const std::string& text);
 /// Runs the `onChangeValue` worklet `id` with the new value.
 void runChangeValue(int id, double value);
+/// Runs the `onFocus` / `onBlur` worklet `id` with the new focus state.
+void runFocusChange(int id, bool focused, const std::string& text);
+/// Runs the `onSelectionChange` worklet `id` with the selection, in code points.
+void runSelectionChange(int id, int start, int end);
+/// Runs the `onSubmitEditing` worklet `id` with the text.
+void runSubmitEditing(int id, const std::string& text);
+/// Runs the `onEndEditing` worklet `id` with the text.
+void runEndEditing(int id, const std::string& text);
+/// Runs the `onKeyPress` worklet `id` with the key.
+void runKeyPress(int id, const std::string& key);
 
 } // namespace margelo::nitro::nitroinput::nitroinputworklets

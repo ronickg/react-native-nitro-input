@@ -20,6 +20,7 @@ import {
   type MorphInputHandle,
   type NitroInputTransform,
 } from 'react-native-nitro-input'
+import { useNitroInputState } from 'react-native-nitro-input'
 import { NumberFlow } from 'number-flow-react-native'
 import { SkiaNumberFlow } from 'number-flow-react-native/skia'
 import { Canvas, matchFont } from '@shopify/react-native-skia'
@@ -638,6 +639,7 @@ function MorphInputDemo() {
           cornerRadius={10}
           defaultValue={'One line\nTwo lines\nThree lines'}
         />
+        <WorkletDrivenField />
       </View>
       <Text style={styles.morphReadout} testID="morph-outlined-readout">
         outlined "{outlinedText}"
@@ -1327,9 +1329,37 @@ export function DemoScreen() {
   )
 }
 
+/**
+ * The field's state as shared values, and a border animated from them. Every
+ * handler here is a worklet: focusing this field runs no JavaScript on the JS
+ * thread and re-renders nothing, yet the ring follows it.
+ */
+function WorkletDrivenField() {
+  const field = useNitroInputState(useSharedValue)
+  const ring = useAnimatedStyle(() => ({
+    borderColor: field.focused.value ? '#16a34a' : 'transparent',
+  }))
+  return (
+    <Animated.View testID="worklet-ring" style={[styles.workletRing, ring]}>
+      <NitroInput
+        testID="morph-worklet"
+        variant="outlined"
+        label="Worklet driven"
+        placeholder="focus me"
+        fontSize={15}
+        strokeColor="#94a3b8"
+        focusedStrokeColor="#16a34a"
+        cornerRadius={10}
+        {...field.handlers}
+      />
+    </Animated.View>
+  )
+}
+
 const styles = StyleSheet.create({
   outlineFields: { marginTop: 8, paddingVertical: 8, gap: 18 },
   outlineField: { width: '100%', height: 52 },
+  workletRing: { width: '100%', borderWidth: 2, borderRadius: 14, borderColor: 'transparent', padding: 4 },
 
   root: { flex: 1, backgroundColor: '#F2F2F7' },
   rootDark: { backgroundColor: '#000' },

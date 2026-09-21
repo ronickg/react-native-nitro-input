@@ -817,6 +817,51 @@ namespace margelo::nitro::nitroinput {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* onChangeValueWorklet */)>("setOnChangeValueWorklet");
     method(_javaPart, onChangeValueWorklet);
   }
+  double JHybridNitroInputViewSpec::getOnFocusChangeWorklet() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getOnFocusChangeWorklet");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setOnFocusChangeWorklet(double onFocusChangeWorklet) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* onFocusChangeWorklet */)>("setOnFocusChangeWorklet");
+    method(_javaPart, onFocusChangeWorklet);
+  }
+  double JHybridNitroInputViewSpec::getOnSelectionChangeWorklet() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getOnSelectionChangeWorklet");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setOnSelectionChangeWorklet(double onSelectionChangeWorklet) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* onSelectionChangeWorklet */)>("setOnSelectionChangeWorklet");
+    method(_javaPart, onSelectionChangeWorklet);
+  }
+  double JHybridNitroInputViewSpec::getOnSubmitEditingWorklet() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getOnSubmitEditingWorklet");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setOnSubmitEditingWorklet(double onSubmitEditingWorklet) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* onSubmitEditingWorklet */)>("setOnSubmitEditingWorklet");
+    method(_javaPart, onSubmitEditingWorklet);
+  }
+  double JHybridNitroInputViewSpec::getOnEndEditingWorklet() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getOnEndEditingWorklet");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setOnEndEditingWorklet(double onEndEditingWorklet) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* onEndEditingWorklet */)>("setOnEndEditingWorklet");
+    method(_javaPart, onEndEditingWorklet);
+  }
+  double JHybridNitroInputViewSpec::getOnKeyPressWorklet() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getOnKeyPressWorklet");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setOnKeyPressWorklet(double onKeyPressWorklet) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* onKeyPressWorklet */)>("setOnKeyPressWorklet");
+    method(_javaPart, onKeyPressWorklet);
+  }
   std::optional<std::function<void(const std::string& /* text */, double /* eventCount */)>> JHybridNitroInputViewSpec::getOnChangeText() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JFunc_void_std__string_double::javaobject>()>("getOnChangeText_cxx");
     auto __result = method(_javaPart);

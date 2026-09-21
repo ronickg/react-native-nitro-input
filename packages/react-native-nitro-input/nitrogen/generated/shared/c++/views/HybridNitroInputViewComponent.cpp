@@ -97,6 +97,11 @@ namespace margelo::nitro::nitroinput::views {
     transformWorklet(nitro::ReactProp<double>::fromRawValue("NitroInputView", "transformWorklet", rawProps, sourceProps.transformWorklet)),
     onChangeTextWorklet(nitro::ReactProp<double>::fromRawValue("NitroInputView", "onChangeTextWorklet", rawProps, sourceProps.onChangeTextWorklet)),
     onChangeValueWorklet(nitro::ReactProp<double>::fromRawValue("NitroInputView", "onChangeValueWorklet", rawProps, sourceProps.onChangeValueWorklet)),
+    onFocusChangeWorklet(nitro::ReactProp<double>::fromRawValue("NitroInputView", "onFocusChangeWorklet", rawProps, sourceProps.onFocusChangeWorklet)),
+    onSelectionChangeWorklet(nitro::ReactProp<double>::fromRawValue("NitroInputView", "onSelectionChangeWorklet", rawProps, sourceProps.onSelectionChangeWorklet)),
+    onSubmitEditingWorklet(nitro::ReactProp<double>::fromRawValue("NitroInputView", "onSubmitEditingWorklet", rawProps, sourceProps.onSubmitEditingWorklet)),
+    onEndEditingWorklet(nitro::ReactProp<double>::fromRawValue("NitroInputView", "onEndEditingWorklet", rawProps, sourceProps.onEndEditingWorklet)),
+    onKeyPressWorklet(nitro::ReactProp<double>::fromRawValue("NitroInputView", "onKeyPressWorklet", rawProps, sourceProps.onKeyPressWorklet)),
     onChangeText(nitro::ReactProp<std::optional<std::function<void(const std::string& /* text */, double /* eventCount */)>>>::fromRawValue("NitroInputView", "onChangeText", rawProps, sourceProps.onChangeText)),
     onChangeMask(nitro::ReactProp<std::optional<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>>>::fromRawValue("NitroInputView", "onChangeMask", rawProps, sourceProps.onChangeMask)),
     onChangeValue(nitro::ReactProp<std::optional<std::function<void(double /* value */)>>>::fromRawValue("NitroInputView", "onChangeValue", rawProps, sourceProps.onChangeValue)),
@@ -187,6 +192,11 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("transformWorklet"): return true;
       case hashString("onChangeTextWorklet"): return true;
       case hashString("onChangeValueWorklet"): return true;
+      case hashString("onFocusChangeWorklet"): return true;
+      case hashString("onSelectionChangeWorklet"): return true;
+      case hashString("onSubmitEditingWorklet"): return true;
+      case hashString("onEndEditingWorklet"): return true;
+      case hashString("onKeyPressWorklet"): return true;
       case hashString("onChangeText"): return true;
       case hashString("onChangeMask"): return true;
       case hashString("onChangeValue"): return true;

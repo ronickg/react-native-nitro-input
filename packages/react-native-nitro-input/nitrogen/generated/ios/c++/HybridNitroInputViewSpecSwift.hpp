@@ -596,6 +596,36 @@ namespace margelo::nitro::nitroinput {
     inline void setOnChangeValueWorklet(double onChangeValueWorklet) noexcept override {
       _swiftPart.setOnChangeValueWorklet(std::forward<decltype(onChangeValueWorklet)>(onChangeValueWorklet));
     }
+    inline double getOnFocusChangeWorklet() noexcept override {
+      return _swiftPart.getOnFocusChangeWorklet();
+    }
+    inline void setOnFocusChangeWorklet(double onFocusChangeWorklet) noexcept override {
+      _swiftPart.setOnFocusChangeWorklet(std::forward<decltype(onFocusChangeWorklet)>(onFocusChangeWorklet));
+    }
+    inline double getOnSelectionChangeWorklet() noexcept override {
+      return _swiftPart.getOnSelectionChangeWorklet();
+    }
+    inline void setOnSelectionChangeWorklet(double onSelectionChangeWorklet) noexcept override {
+      _swiftPart.setOnSelectionChangeWorklet(std::forward<decltype(onSelectionChangeWorklet)>(onSelectionChangeWorklet));
+    }
+    inline double getOnSubmitEditingWorklet() noexcept override {
+      return _swiftPart.getOnSubmitEditingWorklet();
+    }
+    inline void setOnSubmitEditingWorklet(double onSubmitEditingWorklet) noexcept override {
+      _swiftPart.setOnSubmitEditingWorklet(std::forward<decltype(onSubmitEditingWorklet)>(onSubmitEditingWorklet));
+    }
+    inline double getOnEndEditingWorklet() noexcept override {
+      return _swiftPart.getOnEndEditingWorklet();
+    }
+    inline void setOnEndEditingWorklet(double onEndEditingWorklet) noexcept override {
+      _swiftPart.setOnEndEditingWorklet(std::forward<decltype(onEndEditingWorklet)>(onEndEditingWorklet));
+    }
+    inline double getOnKeyPressWorklet() noexcept override {
+      return _swiftPart.getOnKeyPressWorklet();
+    }
+    inline void setOnKeyPressWorklet(double onKeyPressWorklet) noexcept override {
+      _swiftPart.setOnKeyPressWorklet(std::forward<decltype(onKeyPressWorklet)>(onKeyPressWorklet));
+    }
     inline std::optional<std::function<void(const std::string& /* text */, double /* eventCount */)>> getOnChangeText() noexcept override {
       auto __result = _swiftPart.getOnChangeText();
       return __result;
