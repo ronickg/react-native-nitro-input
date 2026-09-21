@@ -1,0 +1,110 @@
+name: Packages
+
+# The docs workflow deploys the site; this one is everything else. The root
+# scripts fan out over both packages, so the checks are the same commands a
+# developer runs, and a failure here is one they could have seen locally.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: packages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Typecheck, tests, C++ engines
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      # Applies patches/ too, which the view-props tripwire test depends on.
+      - name: Install
+        run: bun install --frozen-lockfile
+      - name: Typecheck
+        run: bun run typecheck
+      - name: Test
+        run: bun run test
+      # The shared engines are host-side clang++ binaries: no toolchain to set up.
+      - name: C++ engines
+        run: bun run test:cpp
+
+  android:
+    name: Android libraries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install
+        run: bun install --frozen-lockfile
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      # The runner image ships the SDK and accepted licenses; only the NDK the
+      # example pins is missing, and the Gradle plugin would otherwise fetch it
+      # mid-build without saying so.
+      - name: NDK
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;27.1.12297006" > /dev/null'
+      - uses: gradle/actions/setup-gradle@v4
+      # Both libraries' Kotlin and JNI, for the one ABI the emulators use. The
+      # example app itself is not assembled: what this guards is that the
+      # library code compiles, and the app would triple the time.
+      - name: Compile
+        working-directory: example/android
+        run: >
+          ./gradlew
+          :react-native-nitro-input:assembleDebug
+          :react-native-nitro-rolling-number:assembleDebug
+          -PreactNativeArchitectures=arm64-v8a
+          --no-daemon
+
+  ios:
+    name: iOS example
+    # Xcode 26 is the default here; macos-15 defaults to 16.4, whose SDK
+    # cannot resolve this workspace.
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install
+        run: bun install --frozen-lockfile
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: example
+      - name: Pods
+        working-directory: example/ios
+        # CocoaPods' own error reporter crashes under a non-UTF-8 locale and
+        # hides the real error; the locale is the whole fix.
+        env:
+          LANG: en_US.UTF-8
+        run: bundle exec pod install
+      # The example is the only target that compiles the Swift and the C++
+      # together, so it is the build that catches a broken view.
+      - name: Build
+        working-directory: example/ios
+        run: >
+          set -o pipefail &&
+          xcodebuild
+          -workspace RollingNumberExample.xcworkspace
+          -scheme RollingNumberExample
+          -configuration Debug
+          -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          ARCHS=arm64
+          ONLY_ACTIVE_ARCH=YES
+          CODE_SIGNING_ALLOWED=NO
+          build | xcbeautify --quiet
