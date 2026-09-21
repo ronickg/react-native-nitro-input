@@ -10,6 +10,7 @@ import { FormSheetScreen, NavAScreen, NavBScreen } from './screens/NavigationScr
 import { StateChangeScreen } from './screens/StateChangeScreen'
 import { KeyboardControllerScreen } from './screens/KeyboardControllerScreen'
 import { BenchScreen } from './screens/BenchScreen'
+import { ViewPropsReproScreen } from './screens/ViewPropsRepro'
 import {
   FlowAmountScreen,
   FlowEmailScreen,
@@ -32,6 +33,7 @@ export type RootStackParamList = {
   FlowAmount: { impl: Impl }
   FlowForm: { impl: Impl }
   FlowSheet: { impl: Impl }
+  ViewPropsRepro: undefined
 }
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
@@ -54,6 +56,7 @@ function HomeScreen() {
         hint="Four screens end to end — email, amount, a six-field form, then a search sheet. A run is built entirely from one component, so the keyboard behaviour you feel is that component's."
       >
         <Row>
+          <Btn testID="home-repro" title="Nitro view props (Android)" onPress={() => nav.navigate('ViewPropsRepro')} />
           <Btn testID="home-flow-ours" tone="primary" title="Run flow (NitroInput)" onPress={() => nav.navigate('FlowEmail', { impl: 'ours' })} />
           <Btn testID="home-flow-rn" tone="primary" title="Run flow (RN TextInput)" onPress={() => nav.navigate('FlowEmail', { impl: 'rn' })} />
         </Row>
@@ -91,6 +94,7 @@ export function RootNavigator() {
         <Stack.Screen name="FlowAmount" component={FlowAmountScreen} options={{ title: '2 — Amount' }} />
         <Stack.Screen name="FlowForm" component={FlowFormScreen} options={{ title: '3 — Details' }} />
         <Stack.Screen name="Demo" component={DemoScreen} options={{ title: 'Demo' }} />
+        <Stack.Screen name="ViewPropsRepro" component={ViewPropsReproScreen} options={{ title: 'View props' }} />
         <Stack.Screen
           name="FlowSheet"
           component={FlowSheetScreen}

@@ -13,6 +13,7 @@
     "test": "bun --cwd packages/react-native-nitro-rolling-number run test"
   },
   "patchedDependencies": {
-    "metro@0.87.1": "patches/metro@0.87.1.patch"
+    "metro@0.87.1": "patches/metro@0.87.1.patch",
+    "react-native-nitro-modules@0.37.1": "patches/react-native-nitro-modules@0.37.1.patch"
   }
 }
