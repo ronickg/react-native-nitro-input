@@ -17,6 +17,8 @@ public extension RollingNumberTextAlign {
    */
   init?(fromString string: String) {
     switch string {
+      case "auto":
+        self = .auto
       case "left":
         self = .left
       case "center":
@@ -33,6 +35,8 @@ public extension RollingNumberTextAlign {
    */
   var stringValue: String {
     switch self {
+      case .auto:
+        return "auto"
       case .left:
         return "left"
       case .center:

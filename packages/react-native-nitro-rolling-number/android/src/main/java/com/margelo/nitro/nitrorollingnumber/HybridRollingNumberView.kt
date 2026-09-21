@@ -131,6 +131,8 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
     set(v) { field = v; markConfigDirty() }
   override var textAlign: RollingNumberTextAlign? = null
     set(v) { field = v; markConfigDirty() }
+  override var rightToLeft: Boolean? = null
+    set(v) { field = v; markConfigDirty() }
   override var onSizeChange: ((width: Double, height: Double) -> Unit)? = null
     set(v) {
       field = v
@@ -258,6 +260,7 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
     fontFamily = null
     color = null
     textAlign = null
+    rightToLeft = null
     onSizeChange = null
     configDirty = true
     isBatching = false
@@ -364,8 +367,13 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
     rollingView.alignment = when (textAlign) {
       RollingNumberTextAlign.CENTER -> RollingNumberView.Alignment.CENTER
       RollingNumberTextAlign.RIGHT -> RollingNumberView.Alignment.RIGHT
-      RollingNumberTextAlign.LEFT, null -> RollingNumberView.Alignment.LEFT
+      RollingNumberTextAlign.LEFT -> RollingNumberView.Alignment.LEFT
+      RollingNumberTextAlign.AUTO, null -> RollingNumberView.Alignment.AUTO
     }
+    // Fabric does not hand a Hybrid View its layout direction, so JS resolves
+    // it and the view is told outright; the alignment and the affixes read it back.
+    val direction = if (rightToLeft == true) android.view.View.LAYOUT_DIRECTION_RTL else android.view.View.LAYOUT_DIRECTION_LTR
+    if (rollingView.layoutDirection != direction) rollingView.layoutDirection = direction
     rollingView.loading = loading ?: false
   }
 

@@ -88,6 +88,8 @@ namespace margelo::nitro::nitrorollingnumber {
       prototype.registerHybridSetter("color", &HybridRollingNumberViewSpec::setColor);
       prototype.registerHybridGetter("textAlign", &HybridRollingNumberViewSpec::getTextAlign);
       prototype.registerHybridSetter("textAlign", &HybridRollingNumberViewSpec::setTextAlign);
+      prototype.registerHybridGetter("rightToLeft", &HybridRollingNumberViewSpec::getRightToLeft);
+      prototype.registerHybridSetter("rightToLeft", &HybridRollingNumberViewSpec::setRightToLeft);
       prototype.registerHybridGetter("onSizeChange", &HybridRollingNumberViewSpec::getOnSizeChange);
       prototype.registerHybridSetter("onSizeChange", &HybridRollingNumberViewSpec::setOnSizeChange);
       prototype.registerHybridGetter("onRevealEnd", &HybridRollingNumberViewSpec::getOnRevealEnd);

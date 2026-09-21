@@ -86,6 +86,7 @@ namespace margelo::nitro::nitrorollingnumber::views {
     nitro::ReactProp<std::optional<std::string>> fontFamily;
     nitro::ReactProp<std::optional<double>> color;
     nitro::ReactProp<std::optional<RollingNumberTextAlign>> textAlign;
+    nitro::ReactProp<std::optional<bool>> rightToLeft;
     nitro::ReactProp<std::optional<std::function<void(double /* width */, double /* height */)>>> onSizeChange;
     nitro::ReactProp<std::optional<std::function<void()>>> onRevealEnd;
     nitro::ReactProp<std::optional<std::function<void(double /* index */, double /* value */)>>> onRevealMilestone;
@@ -130,6 +131,7 @@ namespace margelo::nitro::nitrorollingnumber::views {
              fontFamily.hasSameValue(other.fontFamily) &&
              color.hasSameValue(other.color) &&
              textAlign.hasSameValue(other.textAlign) &&
+             rightToLeft.hasSameValue(other.rightToLeft) &&
              onSizeChange.hasSameValue(other.onSizeChange) &&
              onRevealEnd.hasSameValue(other.onRevealEnd) &&
              onRevealMilestone.hasSameValue(other.onRevealMilestone) &&
@@ -175,6 +177,7 @@ namespace margelo::nitro::nitrorollingnumber::views {
              fontFamily.isProvided() ||
              color.isProvided() ||
              textAlign.isProvided() ||
+             rightToLeft.isProvided() ||
              onSizeChange.isProvided() ||
              onRevealEnd.isProvided() ||
              onRevealMilestone.isProvided() ||

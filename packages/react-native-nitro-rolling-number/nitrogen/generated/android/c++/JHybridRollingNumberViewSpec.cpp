@@ -409,6 +409,15 @@ namespace margelo::nitro::nitrorollingnumber {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JRollingNumberTextAlign> /* textAlign */)>("setTextAlign");
     method(_javaPart, textAlign.has_value() ? JRollingNumberTextAlign::fromCpp(textAlign.value()) : nullptr);
   }
+  std::optional<bool> JHybridRollingNumberViewSpec::getRightToLeft() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JBoolean>()>("getRightToLeft");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(static_cast<bool>(__result->value())) : std::nullopt;
+  }
+  void JHybridRollingNumberViewSpec::setRightToLeft(std::optional<bool> rightToLeft) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JBoolean> /* rightToLeft */)>("setRightToLeft");
+    method(_javaPart, rightToLeft.has_value() ? jni::JBoolean::valueOf(rightToLeft.value()) : nullptr);
+  }
   std::optional<std::function<void(double /* width */, double /* height */)>> JHybridRollingNumberViewSpec::getOnSizeChange() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JFunc_void_double_double::javaobject>()>("getOnSizeChange_cxx");
     auto __result = method(_javaPart);

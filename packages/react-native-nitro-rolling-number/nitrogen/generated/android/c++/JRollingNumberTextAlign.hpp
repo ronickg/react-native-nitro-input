@@ -42,6 +42,9 @@ namespace margelo::nitro::nitrorollingnumber {
     static jni::alias_ref<JRollingNumberTextAlign> fromCpp(RollingNumberTextAlign value) {
       static const auto clazz = javaClassStatic();
       switch (value) {
+        case RollingNumberTextAlign::AUTO:
+          static const auto fieldAUTO = clazz->getStaticField<JRollingNumberTextAlign>("AUTO");
+          return clazz->getStaticFieldValue(fieldAUTO);
         case RollingNumberTextAlign::LEFT:
           static const auto fieldLEFT = clazz->getStaticField<JRollingNumberTextAlign>("LEFT");
           return clazz->getStaticFieldValue(fieldLEFT);

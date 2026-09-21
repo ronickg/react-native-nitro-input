@@ -249,6 +249,12 @@ abstract class HybridRollingNumberViewSpec: HybridView() {
   @set:Keep
   abstract var textAlign: RollingNumberTextAlign?
   
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var rightToLeft: Boolean?
+  
   abstract var onSizeChange: ((width: Double, height: Double) -> Unit)?
   
   private var onSizeChange_cxx: Func_void_double_double?

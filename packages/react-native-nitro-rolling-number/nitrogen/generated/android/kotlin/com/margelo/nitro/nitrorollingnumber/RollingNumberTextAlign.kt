@@ -16,9 +16,10 @@ import com.facebook.proguard.annotations.DoNotStrip
 @DoNotStrip
 @Keep
 enum class RollingNumberTextAlign(@DoNotStrip @Keep val value: Int) {
-  LEFT(0),
-  CENTER(1),
-  RIGHT(2);
+  AUTO(0),
+  LEFT(1),
+  CENTER(2),
+  RIGHT(3);
 
   companion object
 }

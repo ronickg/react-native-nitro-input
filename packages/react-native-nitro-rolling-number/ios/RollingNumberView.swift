@@ -96,6 +96,10 @@ final class RollingNumberView: UIView {
   }
 
   enum Alignment {
+    /// The start edge of the layout direction: left in a left-to-right app,
+    /// right in a right-to-left one. What `Text` does with no `textAlign`.
+    case auto
+    /// Absolute, whatever the layout direction.
     case left, center, right
   }
 
@@ -153,7 +157,7 @@ final class RollingNumberView: UIView {
     }
   }
 
-  var alignment: Alignment = .left {
+  var alignment: Alignment = .auto {
     didSet { render() }
   }
 
@@ -421,7 +425,7 @@ final class RollingNumberView: UIView {
     typography = Typography()
     timing = Timing()
     shimmer = Shimmer()
-    alignment = .left
+    alignment = .auto
     revealMilestones = []
     // `onIntrinsicSizeChange`, `onRevealEnd` and `onRevealMilestone` are the
     // hybrid's wiring, not the element's props: they stay across recycling
@@ -642,9 +646,23 @@ final class RollingNumberView: UIView {
       elements.append(Element(kind: .glyph(text, role), width: width * CGFloat(factor), fullWidth: width, factor: factor))
     }
 
-    // Sign first, then the currency prefix: "-$1,234.50".
-    addGlyph("-", role: .digit, factor: signFactor)
-    addGlyph(format.prefix, role: .prefix, factor: 1)
+    // Under a right-to-left layout the prefix belongs at the start edge - the
+    // right - and the suffix at the end, while the digits stay a left-to-right
+    // run: a number reads the same way in every script. So the run is laid out
+    // block by block in mirror order, each block keeping its own order, and the
+    // space an affix keeps against the digits stays against them: " USD" after
+    // the number is "USD " before it.
+    let rtl = isRTL
+    let prefix = rtl ? Self.splitAffix(format.prefix, spaceAtEnd: true) : (ink: format.prefix, gap: "")
+    let suffix = rtl ? Self.splitAffix(format.suffix, spaceAtEnd: false) : (ink: format.suffix, gap: "")
+    if rtl {
+      addGlyph(suffix.ink, role: .suffix, factor: 1)
+      addGlyph(suffix.gap, role: .suffix, factor: 1)
+    } else {
+      // Sign first, then the currency prefix: "-$1,234.50".
+      addGlyph("-", role: .digit, factor: signFactor)
+      addGlyph(prefix.ink, role: .prefix, factor: 1)
+    }
     var power = wheels.count - 1
     while power >= 0 {
       let wheel = wheels[power]
@@ -659,8 +677,42 @@ final class RollingNumberView: UIView {
       }
       power -= 1
     }
-    addGlyph(format.suffix, role: .suffix, factor: 1)
+    if rtl {
+      addGlyph(prefix.gap, role: .prefix, factor: 1)
+      addGlyph(prefix.ink, role: .prefix, factor: 1)
+      addGlyph("-", role: .digit, factor: signFactor)
+    } else {
+      addGlyph(suffix.ink, role: .suffix, factor: 1)
+    }
     return elements
+  }
+
+  /// The layout direction this view is in. The hybrid sets
+  /// `semanticContentAttribute` from the `rightToLeft` prop, since Fabric
+  /// never hands a Hybrid View its resolved direction.
+  var isRTL: Bool { effectiveUserInterfaceLayoutDirection == .rightToLeft }
+
+  /// `.auto` resolved against the layout direction; the rest are already absolute.
+  private var resolvedAlignment: Alignment {
+    alignment == .auto ? (isRTL ? .right : .left) : alignment
+  }
+
+  private static let affixSpaces: Set<Unicode.Scalar> = [" ", "\u{A0}", "\u{2009}", "\u{202F}"]
+
+  /// Splits an affix from the space it keeps against the digits: a prefix's
+  /// trailing run, a suffix's leading one. An affix that is all space is one
+  /// block.
+  private static func splitAffix(_ text: String, spaceAtEnd: Bool) -> (ink: String, gap: String) {
+    let scalars = Array(text.unicodeScalars)
+    var n = 0
+    while n < scalars.count, affixSpaces.contains(spaceAtEnd ? scalars[scalars.count - 1 - n] : scalars[n]) {
+      n += 1
+    }
+    guard n > 0, n < scalars.count else { return (text, "") }
+    let cut = spaceAtEnd ? scalars.count - n : n
+    let head = String(String.UnicodeScalarView(scalars[0..<cut]))
+    let tail = String(String.UnicodeScalarView(scalars[cut...]))
+    return spaceAtEnd ? (ink: head, gap: tail) : (ink: tail, gap: head)
   }
 
   private func settledWidth() -> CGFloat {
@@ -854,8 +906,8 @@ final class RollingNumberView: UIView {
   private func contentPlacement(total: CGFloat, lineHeight: CGFloat) -> (origin: CGPoint, scale: CGFloat) {
     let fit = fontScale
     let originX: CGFloat
-    switch alignment {
-    case .left: originX = 0
+    switch resolvedAlignment {
+    case .auto, .left: originX = 0
     case .center: originX = (bounds.width - total * fit) / 2
     case .right: originX = bounds.width - total * fit
     }

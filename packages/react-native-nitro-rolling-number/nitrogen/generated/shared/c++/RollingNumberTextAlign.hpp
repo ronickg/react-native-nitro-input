@@ -29,9 +29,10 @@ namespace margelo::nitro::nitrorollingnumber {
    * An enum which can be represented as a JavaScript union (RollingNumberTextAlign).
    */
   enum class RollingNumberTextAlign {
-    LEFT      SWIFT_NAME(left) = 0,
-    CENTER      SWIFT_NAME(center) = 1,
-    RIGHT      SWIFT_NAME(right) = 2,
+    AUTO      SWIFT_NAME(auto) = 0,
+    LEFT      SWIFT_NAME(left) = 1,
+    CENTER      SWIFT_NAME(center) = 2,
+    RIGHT      SWIFT_NAME(right) = 3,
   } CLOSED_ENUM;
 
 } // namespace margelo::nitro::nitrorollingnumber
@@ -44,6 +45,7 @@ namespace margelo::nitro {
     static inline margelo::nitro::nitrorollingnumber::RollingNumberTextAlign fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
       std::string unionValue = JSIConverter<std::string>::fromJSI(runtime, arg);
       switch (hashString(unionValue.c_str(), unionValue.size())) {
+        case hashString("auto"): return margelo::nitro::nitrorollingnumber::RollingNumberTextAlign::AUTO;
         case hashString("left"): return margelo::nitro::nitrorollingnumber::RollingNumberTextAlign::LEFT;
         case hashString("center"): return margelo::nitro::nitrorollingnumber::RollingNumberTextAlign::CENTER;
         case hashString("right"): return margelo::nitro::nitrorollingnumber::RollingNumberTextAlign::RIGHT;
@@ -53,6 +55,7 @@ namespace margelo::nitro {
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, margelo::nitro::nitrorollingnumber::RollingNumberTextAlign arg) {
       switch (arg) {
+        case margelo::nitro::nitrorollingnumber::RollingNumberTextAlign::AUTO: return JSIConverter<std::string>::toJSI(runtime, "auto");
         case margelo::nitro::nitrorollingnumber::RollingNumberTextAlign::LEFT: return JSIConverter<std::string>::toJSI(runtime, "left");
         case margelo::nitro::nitrorollingnumber::RollingNumberTextAlign::CENTER: return JSIConverter<std::string>::toJSI(runtime, "center");
         case margelo::nitro::nitrorollingnumber::RollingNumberTextAlign::RIGHT: return JSIConverter<std::string>::toJSI(runtime, "right");
@@ -67,6 +70,7 @@ namespace margelo::nitro {
       }
       std::string unionValue = JSIConverter<std::string>::fromJSI(runtime, value);
       switch (hashString(unionValue.c_str(), unionValue.size())) {
+        case hashString("auto"):
         case hashString("left"):
         case hashString("center"):
         case hashString("right"):

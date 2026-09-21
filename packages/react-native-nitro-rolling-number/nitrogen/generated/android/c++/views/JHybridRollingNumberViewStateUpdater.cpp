@@ -239,6 +239,11 @@ void JHybridRollingNumberViewStateUpdater::updateViewProps(jni::alias_ref<jni::J
     hybridView->setTextAlign(newProps->textAlign.get());
   }
   if (oldProps == nullptr
+        ? newProps->rightToLeft.isProvided()
+        : !newProps->rightToLeft.hasSameValue(oldProps->rightToLeft)) {
+    hybridView->setRightToLeft(newProps->rightToLeft.get());
+  }
+  if (oldProps == nullptr
         ? newProps->onSizeChange.isProvided()
         : !newProps->onSizeChange.hasSameValue(oldProps->onSizeChange)) {
     hybridView->setOnSizeChange(newProps->onSizeChange.get());

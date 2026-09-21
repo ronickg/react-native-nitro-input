@@ -88,6 +88,7 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
   var fontFamily: String? { didSet { markConfigDirty() } }
   var color: Double? { didSet { markConfigDirty() } }
   var textAlign: RollingNumberTextAlign? { didSet { markConfigDirty() } }
+  var rightToLeft: Bool? { didSet { markConfigDirty() } }
   var onSizeChange: ((Double, Double) -> Void)? {
     didSet { onMain { self.rollingView.resendIntrinsicSize() } }
   }
@@ -209,6 +210,7 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
     fontFamily = nil
     color = nil
     textAlign = nil
+    rightToLeft = nil
     onSizeChange = nil
     configDirty = true
     isBatching = false
@@ -308,6 +310,14 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
     rollingView.revealMilestones = revealMilestones ?? []
     rollingView.shimmer = shimmer
     rollingView.alignment = Self.mapAlignment(textAlign)
+    // Fabric does not hand a Hybrid View its layout direction, so JS resolves
+    // it and the view is told outright; `effectiveUserInterfaceLayoutDirection`
+    // then reads it back for the alignment and the affixes.
+    let direction: UISemanticContentAttribute = (rightToLeft ?? false) ? .forceRightToLeft : .forceLeftToRight
+    if rollingView.semanticContentAttribute != direction {
+      rollingView.semanticContentAttribute = direction
+      rollingView.setNeedsLayout()
+    }
     rollingView.loading = loading ?? false
   }
 
@@ -370,12 +380,13 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
   }
 
   private static func mapAlignment(_ align: RollingNumberTextAlign?) -> RollingNumberView.Alignment {
-    guard let align else { return .left }
+    guard let align else { return .auto }
     switch align {
+    case .auto: return .auto
     case .left: return .left
     case .center: return .center
     case .right: return .right
-    default: return .left
+    default: return .auto
     }
   }
 }
