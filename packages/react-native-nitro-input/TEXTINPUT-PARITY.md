@@ -416,8 +416,9 @@ Compose field.
     has that the morph does not: shaped bidi text. The overlay draws one
     layer per character with no contextual shaping, so a word in an Arabic
     or Hebrew script morphs as disconnected letters; a plain field, which
-    the system draws, shapes it. Checked on the iOS simulator under
-    `I18nManager.forceRTL`; Android compiles and is not run.
+    the system draws, shapes it. Checked on the iOS simulator and the Android emulator under
+    `I18nManager.forceRTL`: alignment, plain and morphed affixes, the
+    negative, the floated label and its notch, on both.
 
 ## Re-running the comparison
 
