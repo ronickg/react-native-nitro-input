@@ -6,11 +6,12 @@
     "example"
   ],
   "scripts": {
-    "specs": "bun --cwd packages/react-native-nitro-rolling-number run specs",
-    "build": "bun --cwd packages/react-native-nitro-rolling-number run build",
-    "typecheck": "bun --cwd packages/react-native-nitro-rolling-number run typecheck",
-    "example": "bun --cwd example",
-    "test": "bun --cwd packages/react-native-nitro-rolling-number run test"
+    "specs": "bun run --filter './packages/*' specs",
+    "build": "bun run --filter './packages/*' build",
+    "typecheck": "bun run --filter './packages/*' typecheck",
+    "test": "bun run --filter './packages/*' test",
+    "test:cpp": "bun run --filter './packages/*' test:cpp",
+    "example": "bun --cwd example"
   },
   "patchedDependencies": {
     "metro@0.87.1": "patches/metro@0.87.1.patch",
