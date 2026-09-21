@@ -17,6 +17,8 @@ namespace margelo::nitro::nitroinput { enum class NitroInputVariant; }
 namespace margelo::nitro::nitroinput { enum class NitroInputLabelBehavior; }
 // Forward declaration of `NitroInputAffixAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputAffixAlign; }
+// Forward declaration of `NitroInputSignPlacement` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputSignPlacement; }
 // Forward declaration of `NitroInputEasing` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputEasing; }
 // Forward declaration of `NitroInputEffect` to properly resolve imports.
@@ -48,6 +50,8 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardAppearance; 
 #include "JNitroInputLabelBehavior.hpp"
 #include "NitroInputAffixAlign.hpp"
 #include "JNitroInputAffixAlign.hpp"
+#include "NitroInputSignPlacement.hpp"
+#include "JNitroInputSignPlacement.hpp"
 #include "NitroInputEasing.hpp"
 #include "JNitroInputEasing.hpp"
 #include "NitroInputEffect.hpp"
@@ -375,6 +379,15 @@ namespace margelo::nitro::nitroinput {
   void JHybridNitroInputViewSpec::setAffixAlign(NitroInputAffixAlign affixAlign) {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroInputAffixAlign> /* affixAlign */)>("setAffixAlign");
     method(_javaPart, JNitroInputAffixAlign::fromCpp(affixAlign));
+  }
+  NitroInputSignPlacement JHybridNitroInputViewSpec::getSignPlacement() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JNitroInputSignPlacement>()>("getSignPlacement");
+    auto __result = method(_javaPart);
+    return __result->toCpp();
+  }
+  void JHybridNitroInputViewSpec::setSignPlacement(NitroInputSignPlacement signPlacement) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroInputSignPlacement> /* signPlacement */)>("setSignPlacement");
+    method(_javaPart, JNitroInputSignPlacement::fromCpp(signPlacement));
   }
   NitroInputAffixAlign JHybridNitroInputViewSpec::getPrefixAlign() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JNitroInputAffixAlign>()>("getPrefixAlign");

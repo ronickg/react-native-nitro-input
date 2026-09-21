@@ -64,6 +64,17 @@ export type NitroInputTextAlign = 'left' | 'center' | 'right'
 /** Where the text sits in a field taller than one line. */
 export type NitroInputTextAlignVertical = 'auto' | 'top' | 'center' | 'bottom'
 
+/**
+ * Where a negative amount's sign sits relative to a `prefix`.
+ * `'beforeAffix'` (the default) reads `-$1,234.56`, which is how a locale that
+ * leads with its symbol writes it. `'afterAffix'` reads `$-1,234.56`, which
+ * suits a symbol styled as an ornament rather than read as part of the number -
+ * small, raised, in another colour. Only the morph honours it: a plain field's
+ * affixes are accessory views that sit outside the text, so it is always
+ * `'afterAffix'`.
+ */
+export type NitroInputSignPlacement = 'beforeAffix' | 'afterAffix'
+
 /** How a prefix/suffix drawn at a different size lines up with the text. */
 export type NitroInputAffixAlign = 'baseline' | 'center' | 'top' | 'bottom'
 
@@ -200,6 +211,8 @@ export interface NitroInputProps extends HybridViewProps {
   suffixFontSize: number
   /** Vertical alignment of prefix and suffix relative to the text. Default: `'baseline'`. */
   affixAlign: NitroInputAffixAlign
+  /** Where a negative amount's sign sits relative to `prefix`. */
+  signPlacement: NitroInputSignPlacement
   /** Alignment of `prefix` only. Defaults to `affixAlign`. */
   prefixAlign: NitroInputAffixAlign
   /** Alignment of `suffix` only. Defaults to `affixAlign`. */

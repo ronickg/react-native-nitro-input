@@ -366,14 +366,12 @@ Compose field.
    and `mode`, `mask` and the affixes - all single-line ideas - warn and are
    ignored. `inlineImage*`, `dataDetectorTypes` and `clearButtonMode` do not
    apply at all.
-3. **A negative amount keeps the sign after a `prefix` in plain mode.**
-   `-$1,234.56` is what the morph draws: the sign belongs to the amount, not
-   to the digits after the symbol, so it is laid out ahead of the affix. A
-   plain field cannot do that - its affixes are real accessory views
-   (`leftView` / a `TextView`), which by construction sit outside the text -
-   so it draws `$-1,234.56`. `NitroInput` is plain unless asked for `morph`,
-   so that is the default. Use `morph`, a `suffix`, or no affix for an amount
-   that can go negative.
+3. **A plain field always puts a negative sign after a `prefix`.**
+   The morph takes `signPlacement`: `'beforeAffix'` (the default) draws
+   `-$1,234.56`, `'afterAffix'` draws `$-1,234.56`. A plain field cannot
+   choose - its affixes are real accessory views (`leftView` / a `TextView`),
+   which by construction sit outside the text - so it is always `'afterAffix'`.
+   `NitroInput` is plain unless asked for `morph`, so that is the default.
 4. **Two narrower keyboard enums.** `inputMode="search"` gives the default
    keyboard rather than iOS's `web-search`, and `enterKeyHint="previous"` the
    default return key rather than Android's `previous`: neither value exists in
