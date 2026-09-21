@@ -104,6 +104,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var prefixFontSize: Double = 32 { didSet { markConfigDirty() } }
   var suffixFontSize: Double = 32 { didSet { markConfigDirty() } }
   var affixAlign: NitroInputAffixAlign = .baseline { didSet { markConfigDirty() } }
+  var signPlacement: NitroInputSignPlacement = .beforeaffix { didSet { markConfigDirty() } }
   var prefixAlign: NitroInputAffixAlign = .baseline { didSet { markConfigDirty() } }
   var suffixAlign: NitroInputAffixAlign = .baseline { didSet { markConfigDirty() } }
   var placeholder: String = "" { didSet { markConfigDirty() } }
@@ -280,6 +281,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     prefixFontSize = 32
     suffixFontSize = 32
     affixAlign = .baseline
+    signPlacement = .beforeaffix
     prefixAlign = .baseline
     suffixAlign = .baseline
     placeholder = ""
@@ -473,6 +475,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     format.decimalSeparator = decimalSeparator.isEmpty ? "." : decimalSeparator
     format.prefix = prefix
     format.suffix = suffix
+    format.signPlacement = signPlacement == .afteraffix ? .afterAffix : .beforeAffix
     format.placeholder = placeholder
     format.maxLength = Self.clampInt(maxLength, 0, 1_000_000, fallback: 0)
 

@@ -639,6 +639,24 @@ function MorphInputDemo() {
           cornerRadius={10}
           defaultValue={'One line\nTwo lines\nThree lines'}
         />
+        {/* The same amount without the morph: `NitroInput` is plain unless asked,
+            so this is what a currency field looks like by default. */}
+        <NitroInput
+          testID="morph-plain-negative"
+          mode="number"
+          prefix="$"
+          // The other placement: a symbol styled as an ornament reads better
+          // with the sign against the digits.
+          signPlacement="afterAffix"
+          morph
+          variant="outlined"
+          label="signPlacement afterAffix"
+          fontSize={17}
+          strokeColor="#94a3b8"
+          cornerRadius={10}
+          defaultValue="-1234.56"
+          style={styles.outlineField}
+        />
         <WorkletVsJsThread />
       </View>
       <Text style={styles.morphReadout} testID="morph-outlined-readout">

@@ -33,6 +33,7 @@ import type {
   NitroInputReturnKeyType,
   NitroInputSubmitBehavior,
   NitroInputTextAlign,
+  NitroInputSignPlacement,
   NitroInputVariant,
   NitroInputNotation,
 } from './specs/NitroInput.nitro'
@@ -332,6 +333,14 @@ export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' 
    * `'center'` centres. Default: `'baseline'`.
    */
   affixAlign?: NitroInputAffixAlign
+  /**
+   * Where a negative amount's sign sits relative to `prefix`. `'beforeAffix'`
+   * (the default) reads `-$1,234.56`; `'afterAffix'` reads `$-1,234.56`, which
+   * suits a symbol styled as an ornament rather than read as part of the
+   * number. Only the morph honours it - a plain field's affixes are accessory
+   * views outside the text, so it is always `'afterAffix'`.
+   */
+  signPlacement?: NitroInputSignPlacement
   /** Alignment of `prefix` only. Defaults to `affixAlign`. */
   prefixAlign?: NitroInputAffixAlign
   /** Alignment of `suffix` only. Defaults to `affixAlign`. */
@@ -607,6 +616,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       prefixFontSize,
       suffixFontSize,
       affixAlign,
+      signPlacement,
       prefixAlign,
       suffixAlign,
       placeholder,
@@ -1068,6 +1078,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         prefixFontSize={prefixFontSize ?? resolvedFontSize}
         suffixFontSize={suffixFontSize ?? resolvedFontSize}
         affixAlign={resolvedAffixAlign}
+        signPlacement={signPlacement ?? 'beforeAffix'}
         prefixAlign={prefixAlign ?? resolvedAffixAlign}
         suffixAlign={suffixAlign ?? resolvedAffixAlign}
         placeholder={placeholder ?? ''}

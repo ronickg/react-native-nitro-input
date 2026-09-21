@@ -366,30 +366,36 @@ Compose field.
    and `mode`, `mask` and the affixes - all single-line ideas - warn and are
    ignored. `inlineImage*`, `dataDetectorTypes` and `clearButtonMode` do not
    apply at all.
-3. **Two narrower keyboard enums.** `inputMode="search"` gives the default
+3. **A plain field always puts a negative sign after a `prefix`.**
+   The morph takes `signPlacement`: `'beforeAffix'` (the default) draws
+   `-$1,234.56`, `'afterAffix'` draws `$-1,234.56`. A plain field cannot
+   choose - its affixes are real accessory views (`leftView` / a `TextView`),
+   which by construction sit outside the text - so it is always `'afterAffix'`.
+   `NitroInput` is plain unless asked for `morph`, so that is the default.
+4. **Two narrower keyboard enums.** `inputMode="search"` gives the default
    keyboard rather than iOS's `web-search`, and `enterKeyHint="previous"` the
    default return key rather than Android's `previous`: neither value exists in
    this component's `keyboardType` / `returnKeyType`. Both fall back rather
    than fail.
-4. **Still missing:** `inputAccessoryViewID`, `passwordRules`,
+5. **Still missing:** `inputAccessoryViewID`, `passwordRules`,
    `smartInsertDelete`, `rejectResponderTermination`, `lineBreakStrategyIOS`,
    `disableFullscreenUI`, `underlineColorAndroid`, `selectionHandleColor`,
    `disableKeyboardShortcuts`, `onPress`/`onPressIn`/`onPressOut`, `onScroll`,
    and `onContentSizeChange` (the field reports its own intrinsic size and
    sizes itself instead). The parity test keeps a reason for each.
-5. **`TextInput.State.focusTextInput` / `blurTextInput` bypass the JS routing.**
+6. **`TextInput.State.focusTextInput` / `blurTextInput` bypass the JS routing.**
    `TextInput.js` copies those two function references by value at module-eval
    time (`TextInput.State = { focusTextInput: TextInputState.focusTextInput, … }`),
    long before `patchRegistryOnce()` runs, so the patch is invisible to them.
    `ref.focus()` and `Keyboard.dismiss()` are unaffected - both read
    `TextInputState.*` live. On iOS the view-command category covers the gap; on
    Android those two entry points do not reach a `MorphInput`.
-6. **keyboard-controller `target`** is the react tag of the host view. That is
+7. **keyboard-controller `target`** is the react tag of the host view. That is
    the right view to measure and scroll, but it is not the same tag a
    `TextInput` reports for itself.
-7. **`onKeyPress` with autocorrect** reports the whole replacement string (e.g.
+8. **`onKeyPress` with autocorrect** reports the whole replacement string (e.g.
    `"An"` when the keyboard corrects `"Ab"`), where RN reports single keys.
-8. **Not yet checked:** iOS edit-menu placement in an overflowed
+9. **Not yet checked:** iOS edit-menu placement in an overflowed
    right-aligned field, and Android selection highlight when the field
    overflows. Everything else here is simulator and emulator except the
    performance numbers above, which include an iPhone 13 Pro Max.
