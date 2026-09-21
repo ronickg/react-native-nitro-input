@@ -387,6 +387,12 @@ namespace margelo::nitro::nitroinput {
     inline void setTextAlign(NitroInputTextAlign textAlign) noexcept override {
       _swiftPart.setTextAlign(static_cast<int>(textAlign));
     }
+    inline bool getRightToLeft() noexcept override {
+      return _swiftPart.getRightToLeft();
+    }
+    inline void setRightToLeft(bool rightToLeft) noexcept override {
+      _swiftPart.setRightToLeft(std::forward<decltype(rightToLeft)>(rightToLeft));
+    }
     inline double getCaretColor() noexcept override {
       return _swiftPart.getCaretColor();
     }

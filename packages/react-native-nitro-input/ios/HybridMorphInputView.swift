@@ -118,7 +118,8 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var fontWeight: Double = 400 { didSet { markConfigDirty() } }
   var fontFamily: String = "" { didSet { markConfigDirty() } }
   var color: Double = .nan { didSet { markConfigDirty() } }
-  var textAlign: NitroInputTextAlign = .left { didSet { markConfigDirty() } }
+  var textAlign: NitroInputTextAlign = .auto { didSet { markConfigDirty() } }
+  var rightToLeft: Bool = false { didSet { markConfigDirty() } }
   var caretColor: Double = .nan { didSet { markConfigDirty() } }
   var selectionColor: Double = .nan { didSet { markConfigDirty() } }
   var caretHidden: Bool = false { didSet { markConfigDirty() } }
@@ -295,7 +296,8 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     fontWeight = 400
     fontFamily = ""
     color = .nan
-    textAlign = .left
+    textAlign = .auto
+    rightToLeft = false
     caretColor = .nan
     selectionColor = .nan
     caretHidden = false
@@ -567,6 +569,14 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     inputView.traits = traits
     inputView.worklets = worklets
     inputView.alignment = Self.mapAlignment(textAlign)
+    // Fabric does not hand a Hybrid View its layout direction, so JS resolves
+    // it and the view is told outright; `effectiveUserInterfaceLayoutDirection`
+    // then reads it back for everything that has an edge.
+    let direction: UISemanticContentAttribute = rightToLeft ? .forceRightToLeft : .forceLeftToRight
+    if inputView.semanticContentAttribute != direction {
+      inputView.semanticContentAttribute = direction
+      inputView.setNeedsLayout()
+    }
   }
 
   // MARK: - Helpers
@@ -627,10 +637,11 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
 
   private static func mapAlignment(_ align: NitroInputTextAlign) -> NitroInputView.Alignment {
     switch align {
+    case .auto: return .auto
     case .left: return .left
     case .center: return .center
     case .right: return .right
-    default: return .left
+    default: return .auto
     }
   }
 

@@ -58,8 +58,13 @@ export type NitroInputVariant = 'none' | 'outlined' | 'filled'
  */
 export type NitroInputLabelBehavior = 'float' | 'always'
 
-/** Horizontal alignment of the text inside the view's frame. */
-export type NitroInputTextAlign = 'left' | 'center' | 'right'
+/**
+ * Horizontal alignment of the text inside the view's frame. `'auto'` is the
+ * start edge of the layout direction - left in a left-to-right app, right in a
+ * right-to-left one - which is what `TextInput` does with no `textAlign`.
+ * `'left'` and `'right'` are absolute, whatever the direction.
+ */
+export type NitroInputTextAlign = 'auto' | 'left' | 'center' | 'right'
 
 /** Where the text sits in a field taller than one line. */
 export type NitroInputTextAlignVertical = 'auto' | 'top' | 'center' | 'bottom'
@@ -250,8 +255,17 @@ export interface NitroInputProps extends HybridViewProps {
   fontFamily: string
   /** Text color as a processed ARGB integer; `NaN` = platform label color. */
   color: number
-  /** Where the text sits when the view is wider than it. Default: `'left'`. */
+  /** Where the text sits when the view is wider than it. Default: `'auto'`, the start edge. */
   textAlign: NitroInputTextAlign
+  /**
+   * Lay the field out right-to-left: `'auto'` alignment resolves to the right
+   * edge, the prefix moves to the right and the suffix to the left, and a
+   * frame's label floats from the right. Fabric does not hand a Hybrid View
+   * its layout direction, so the JS side resolves it - from the field's
+   * `style.direction`, else `I18nManager.isRTL` - the way React Native
+   * resolves its own views. Default: `false`.
+   */
+  rightToLeft: boolean
   /** Caret color as a processed ARGB integer; `NaN` = platform tint. */
   caretColor: number
   /** Selection highlight color as a processed ARGB integer; `NaN` = platform tint. */

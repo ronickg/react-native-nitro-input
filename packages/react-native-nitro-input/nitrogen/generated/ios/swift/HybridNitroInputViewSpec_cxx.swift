@@ -600,6 +600,17 @@ open class HybridNitroInputViewSpec_cxx {
     }
   }
   
+  public final var rightToLeft: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.rightToLeft
+    }
+    @inline(__always)
+    set {
+      self.__implementation.rightToLeft = newValue
+    }
+  }
+  
   public final var caretColor: Double {
     @inline(__always)
     get {

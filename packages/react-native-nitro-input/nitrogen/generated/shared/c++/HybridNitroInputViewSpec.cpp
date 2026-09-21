@@ -100,6 +100,8 @@ namespace margelo::nitro::nitroinput {
       prototype.registerHybridSetter("color", &HybridNitroInputViewSpec::setColor);
       prototype.registerHybridGetter("textAlign", &HybridNitroInputViewSpec::getTextAlign);
       prototype.registerHybridSetter("textAlign", &HybridNitroInputViewSpec::setTextAlign);
+      prototype.registerHybridGetter("rightToLeft", &HybridNitroInputViewSpec::getRightToLeft);
+      prototype.registerHybridSetter("rightToLeft", &HybridNitroInputViewSpec::setRightToLeft);
       prototype.registerHybridGetter("caretColor", &HybridNitroInputViewSpec::getCaretColor);
       prototype.registerHybridSetter("caretColor", &HybridNitroInputViewSpec::setCaretColor);
       prototype.registerHybridGetter("selectionColor", &HybridNitroInputViewSpec::getSelectionColor);

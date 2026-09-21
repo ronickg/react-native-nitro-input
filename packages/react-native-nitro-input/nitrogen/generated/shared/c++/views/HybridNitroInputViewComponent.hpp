@@ -102,6 +102,7 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<std::string> fontFamily;
     nitro::ReactProp<double> color;
     nitro::ReactProp<NitroInputTextAlign> textAlign;
+    nitro::ReactProp<bool> rightToLeft;
     nitro::ReactProp<double> caretColor;
     nitro::ReactProp<double> selectionColor;
     nitro::ReactProp<bool> caretHidden;
@@ -198,6 +199,7 @@ namespace margelo::nitro::nitroinput::views {
              fontFamily.hasSameValue(other.fontFamily) &&
              color.hasSameValue(other.color) &&
              textAlign.hasSameValue(other.textAlign) &&
+             rightToLeft.hasSameValue(other.rightToLeft) &&
              caretColor.hasSameValue(other.caretColor) &&
              selectionColor.hasSameValue(other.selectionColor) &&
              caretHidden.hasSameValue(other.caretHidden) &&
@@ -295,6 +297,7 @@ namespace margelo::nitro::nitroinput::views {
              fontFamily.isProvided() ||
              color.isProvided() ||
              textAlign.isProvided() ||
+             rightToLeft.isProvided() ||
              caretColor.isProvided() ||
              selectionColor.isProvided() ||
              caretHidden.isProvided() ||

@@ -52,7 +52,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
   enum class Mode { TEXT, NUMBER, MASK }
   enum class AffixAlign { BASELINE, CENTER, TOP, BOTTOM }
-  enum class Alignment { LEFT, CENTER, RIGHT }
+  /** `AUTO` is the start edge of the layout direction, as `TextInput` with no `textAlign`; the rest are absolute. */
+  enum class Alignment { AUTO, LEFT, CENTER, RIGHT }
   enum class TextAlignVertical { AUTO, TOP, CENTER, BOTTOM }
   enum class Easing(val raw: Int) { EXPO(0), EASE_OUT(1), EASE_IN_OUT(2), LINEAR(3), SPRING(4) }
   enum class Effect(val raw: Int) { AUTO(0), SLIDE(1), FADE(2) }
@@ -267,7 +268,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       restartBlink()
     }
 
-  var alignment: Alignment = Alignment.LEFT
+  var alignment: Alignment = Alignment.AUTO
     set(value) {
       if (field == value) return
       field = value
@@ -732,7 +733,9 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     } else {
       0
     }
-    editText.setPadding(
+    // Relative: the prefix sits at the start edge and the suffix at the end,
+    // so under a right-to-left layout the room for them swaps sides too.
+    editText.setPaddingRelative(
       side + f.width(format.prefix, Role.PREFIX).roundToInt(),
       frameTopInsetPx.roundToInt() + framePadding + labelOverhang,
       side + f.width(format.suffix, Role.SUFFIX).roundToInt(),
@@ -745,9 +748,10 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       else -> Gravity.TOP
     }
     editText.gravity = vertical or when (alignment) {
-      Alignment.LEFT -> Gravity.START
+      Alignment.AUTO -> Gravity.START
+      Alignment.LEFT -> Gravity.LEFT
       Alignment.CENTER -> Gravity.CENTER_HORIZONTAL
-      Alignment.RIGHT -> Gravity.END
+      Alignment.RIGHT -> Gravity.RIGHT
     }
   }
 
@@ -897,8 +901,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     }
     val side = frameSideInsetPx.roundToInt()
     (view.layoutParams as LayoutParams).gravity = edge or Gravity.CENTER_VERTICAL
-    view.setPadding(if (edge == Gravity.START) side else 0, frameTopInsetPx.roundToInt(),
-                    if (edge == Gravity.END) side else 0, 0)
+    view.setPaddingRelative(if (edge == Gravity.START) side else 0, frameTopInsetPx.roundToInt(),
+                            if (edge == Gravity.END) side else 0, 0)
     view.gravity = Gravity.CENTER_VERTICAL
     view.typeface = paint.typeface
     view.setTextSize(TypedValue.COMPLEX_UNIT_PX, paint.textSize)
@@ -934,10 +938,13 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       applyNativeCursor()
       applyAutoSize()
       applyAffixes()
+      // `AUTO` is the start edge of the layout direction; `LEFT` and `RIGHT`
+      // are absolute, which only `TEXT_ALIGNMENT_GRAVITY` over an absolute
+      // gravity gives - `VIEW_START` / `VIEW_END` would flip with the direction.
       editText.textAlignment = when (alignment) {
+        Alignment.AUTO -> TEXT_ALIGNMENT_VIEW_START
         Alignment.CENTER -> TEXT_ALIGNMENT_CENTER
-        Alignment.RIGHT -> TEXT_ALIGNMENT_VIEW_END
-        Alignment.LEFT -> TEXT_ALIGNMENT_VIEW_START
+        Alignment.LEFT, Alignment.RIGHT -> TEXT_ALIGNMENT_GRAVITY
       }
     } else {
       overlay.visibility = VISIBLE
@@ -1102,7 +1109,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       timing = Timing()
       keyboard = Keyboard()
       caret = Caret()
-      alignment = Alignment.LEFT
+      alignment = Alignment.AUTO
     }
     // onTextChange, onFocusChange, onSubmit and onIntrinsicSizeChange are the
     // hybrid's wiring, not the element's props: they stay across recycling
@@ -1520,6 +1527,22 @@ class NitroInputView(context: Context) : FrameLayout(context) {
    * With [trackCaret] the scroll offset is updated to keep the caret in view
    * (drawing); without it the current offset is only read (hit testing).
    */
+  /** Whether this view is laid out right-to-left. Fabric sets it from Yoga's resolved direction. */
+  val isRtl: Boolean get() = layoutDirection == LAYOUT_DIRECTION_RTL
+
+  /** `AUTO` resolved against the layout direction; the rest are already absolute. */
+  private val resolvedAlignment: Alignment
+    get() = if (alignment == Alignment.AUTO) (if (isRtl) Alignment.RIGHT else Alignment.LEFT) else alignment
+
+  override fun onRtlPropertiesChanged(layoutDirection: Int) {
+    super.onRtlPropertiesChanged(layoutDirection)
+    // The overlay resolves `AUTO` at draw time, and the engine mirrors the
+    // affixes; the frame's label and the plain affixes resolve themselves.
+    engine.setRightToLeft(layoutDirection == LAYOUT_DIRECTION_RTL)
+    overlay.invalidate()
+    invalidate()
+  }
+
   private fun contentLayout(width: Int, height: Int, contentWidth: Float, trackCaret: Boolean = false): ContentLayout {
     val t = typography
     var fit = 1f
@@ -1542,15 +1565,15 @@ class NitroInputView(context: Context) : FrameLayout(context) {
           if (caretOnScreen > width - margin) scrollX += caretOnScreen - (width - margin)
           else if (caretOnScreen < margin) scrollX -= margin - caretOnScreen
         } else {
-          scrollX = if (alignment == Alignment.RIGHT) maxScroll else 0f
+          scrollX = if (resolvedAlignment == Alignment.RIGHT) maxScroll else 0f
         }
       }
       scrollX = scrollX.coerceIn(0f, maxScroll)
       out.originX = -scrollX
     } else {
       scrollX = 0f
-      out.originX = when (alignment) {
-        Alignment.LEFT -> 0f
+      out.originX = when (resolvedAlignment) {
+        Alignment.AUTO, Alignment.LEFT -> 0f
         Alignment.CENTER -> (width - shown) / 2f
         Alignment.RIGHT -> width - shown
       }
@@ -1819,6 +1842,11 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val restingWidth = if (inputFrame.hasLabel) labelPaint.measureText(label) else 0f
 
     val inset = labelInsetPx
+    // The label sits at the start edge: `inset` from the left, or the same
+    // distance from the right under a right-to-left layout. The notch is cut
+    // where the floated label is, so it follows.
+    val restingX = if (isRtl) width - inset - restingWidth else inset
+    val floatedX = if (isRtl) width - inset - floatedWidth else inset
     val floatedCentreY = if (filled) floatedSize * 0.9f else 0f
     // Resting: on the text's own line. A single line is centred in the box, so
     // that is the middle; a wrapping one starts at the top, and the label
@@ -1831,8 +1859,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     }
 
     outlineGeometry.lerp(
-      inset.toDouble(), restingCentreY.toDouble(), restingWidth.toDouble(), restingSize.toDouble(),
-      inset.toDouble(), floatedCentreY.toDouble(), floatedWidth.toDouble(), floatedSize.toDouble(),
+      restingX.toDouble(), restingCentreY.toDouble(), restingWidth.toDouble(), restingSize.toDouble(),
+      floatedX.toDouble(), floatedCentreY.toDouble(), floatedWidth.toDouble(), floatedSize.toDouble(),
       labelProgress.toDouble(), labelRect,
     )
 
@@ -1843,7 +1871,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     if (!buildOutlinePath(
           width.toDouble(), height.toDouble(), inputFrame.cornerRadius * density.toDouble(),
           if (filled) 0.0 else stroke.toDouble(), if (filled) 0.0 else -1.0,
-          inset.toDouble(), gapWidth, (LABEL_GAP_PADDING_DP * density).toDouble(), notchProgress.toDouble(),
+          floatedX.toDouble(), gapWidth, (LABEL_GAP_PADDING_DP * density).toDouble(), notchProgress.toDouble(),
         )
     ) {
       return

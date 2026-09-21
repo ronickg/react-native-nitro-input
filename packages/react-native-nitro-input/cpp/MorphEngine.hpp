@@ -84,6 +84,12 @@ public:
   void setEffect(int effect);
   /// Reduce Motion / "remove animations": every change snaps.
   void setReduceMotion(bool reduceMotion);
+  /// A right-to-left layout: the prefix moves to the right edge and the suffix
+  /// to the left, while the body stays a left-to-right run (digits read the
+  /// same way in every script). Applied to the published frames and `caretX`;
+  /// the layout itself is always computed left-to-right.
+  void setRightToLeft(bool rightToLeft);
+  bool rightToLeft() const { return rightToLeft_; }
 
   // MARK: Text
 
@@ -163,12 +169,15 @@ private:
                        std::vector<int>& matchOfNew) const;
   bool same(const Input& in, const Slot& slot) const;
   int slotIndexOf(int64_t id) const;
+  /// Copies the slots' frames into `glyphs_`, mirrored when right-to-left.
+  void publish();
 
   double duration_ = 0.4;
   int easing_ = 0;
   double bounce_ = 0.15;
   int effect_ = 0;
   bool reduceMotion_ = false;
+  bool rightToLeft_ = false;
 
   std::vector<Input> pending_;
   std::vector<Slot> slots_;

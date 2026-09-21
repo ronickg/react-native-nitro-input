@@ -144,7 +144,9 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     set(v) { field = v; markConfigDirty() }
   override var color: Double = Double.NaN
     set(v) { field = v; markConfigDirty() }
-  override var textAlign: NitroInputTextAlign = NitroInputTextAlign.LEFT
+  override var textAlign: NitroInputTextAlign = NitroInputTextAlign.AUTO
+    set(v) { field = v; markConfigDirty() }
+  override var rightToLeft: Boolean = false
     set(v) { field = v; markConfigDirty() }
   override var caretColor: Double = Double.NaN
     set(v) { field = v; markConfigDirty() }
@@ -341,7 +343,8 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     fontWeight = 400.0
     fontFamily = ""
     color = Double.NaN
-    textAlign = NitroInputTextAlign.LEFT
+    textAlign = NitroInputTextAlign.AUTO
+    rightToLeft = false
     caretColor = Double.NaN
     selectionColor = Double.NaN
     caretHidden = false
@@ -629,7 +632,13 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
       NitroInputTextAlign.CENTER -> NitroInputView.Alignment.CENTER
       NitroInputTextAlign.RIGHT -> NitroInputView.Alignment.RIGHT
       NitroInputTextAlign.LEFT -> NitroInputView.Alignment.LEFT
+      NitroInputTextAlign.AUTO -> NitroInputView.Alignment.AUTO
     }
+    // Fabric does not hand a Hybrid View its layout direction, so JS resolves
+    // it and the view is told outright; start / end gravity, relative padding
+    // and `onRtlPropertiesChanged` all follow from it.
+    val direction = if (rightToLeft) android.view.View.LAYOUT_DIRECTION_RTL else android.view.View.LAYOUT_DIRECTION_LTR
+    if (inputView.layoutDirection != direction) inputView.layoutDirection = direction
     // A format change may have re-normalised the field's text.
     cachedText = inputView.text
     cachedValue = inputView.currentValue()

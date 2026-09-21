@@ -177,6 +177,8 @@ namespace margelo::nitro::nitroinput {
       virtual void setColor(double color) = 0;
       virtual NitroInputTextAlign getTextAlign() = 0;
       virtual void setTextAlign(NitroInputTextAlign textAlign) = 0;
+      virtual bool getRightToLeft() = 0;
+      virtual void setRightToLeft(bool rightToLeft) = 0;
       virtual double getCaretColor() = 0;
       virtual void setCaretColor(double caretColor) = 0;
       virtual double getSelectionColor() = 0;

@@ -399,6 +399,25 @@ Compose field.
    right-aligned field, and Android selection highlight when the field
    overflows. Everything else here is simulator and emulator except the
    performance numbers above, which include an iPhone 13 Pro Max.
+10. **Right-to-left.** The direction is resolved on the JS side, from the
+    field's `style.direction` else `I18nManager.isRTL`, and handed to native
+    as a prop: Fabric does not give a Hybrid View its resolved layout
+    direction (the iOS component view never sets `semanticContentAttribute`
+    on it), so the view sets its own. `textAlign` defaults to `'auto'`, the
+    start edge of the layout direction, as `TextInput` with no `textAlign`; `'left'` and
+    `'right'` are absolute on both platforms (Android used to resolve
+    `'left'` as start). A `prefix` sits at the start edge and a `suffix` at
+    the end: the plain field swaps its accessory views on iOS and uses
+    start / end gravity on Android, and the morph has the engine mirror the
+    run block by block - prefix, body and suffix each move to their mirror
+    image and keep their own order, so the digits still read left to right,
+    and a sign laid out ahead of the prefix lands at the far right. The
+    frame's label and its notch sit at the start edge. What a `TextInput`
+    has that the morph does not: shaped bidi text. The overlay draws one
+    layer per character with no contextual shaping, so a word in an Arabic
+    or Hebrew script morphs as disconnected letters; a plain field, which
+    the system draws, shapes it. Checked on the iOS simulator under
+    `I18nManager.forceRTL`; Android compiles and is not run.
 
 ## Re-running the comparison
 

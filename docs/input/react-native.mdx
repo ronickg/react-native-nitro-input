@@ -44,6 +44,12 @@ sets `autoWidth="auto"` instead and sizes itself to its content, growing as you
 type; give it a `width` (or `flex`) in `style` to make it fill its parent.
 :::
 
+## Right-to-left
+
+`textAlign` defaults to `'auto'`: the start edge of the layout direction, as `TextInput` with no `textAlign`. `'left'` and `'right'` are absolute on both platforms. In a right-to-left app (`I18nManager.forceRTL`, or an RTL locale with `allowRTL`) everything that has an edge follows the direction, and a single field can be given the other one with `style={{ direction: 'rtl' }}`, as any React Native view can. A `prefix` sits at the start edge and a `suffix` at the end, in the plain field and in the morph alike; the digits keep reading left to right and only the affixes change sides, and a negative sign laid out ahead of the prefix lands at the far right. A frame's label and its notch sit at the start edge too.
+
+One limit: the morph draws one layer per character with no contextual shaping, so a word in an Arabic or Hebrew script morphs as disconnected letters. Use the field as it comes for text in those scripts; the system field shapes it.
+
 ## Threading and motion
 
 - Every keystroke is handled on the main thread: the formatter or the mask runs,

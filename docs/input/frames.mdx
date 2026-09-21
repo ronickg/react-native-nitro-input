@@ -33,7 +33,7 @@ When the label floats, the outline opens a gap for it. The gap is a **real hole 
 
 ## The label
 
-`label` floats on focus or while the field has text, and `labelBehavior="always"` keeps it floated even when the field is empty and blurred. It is drawn at `labelFontSize` (default three quarters of `fontSize`) in `labelColor`, switching to `labelFocusedColor` while focused; those default to the placeholder colour and to `focusedStrokeColor`. A label also becomes the field's accessible name when nothing else gives it one.
+`label` floats on focus or while the field has text, and `labelBehavior="always"` keeps it floated even when the field is empty and blurred. It is drawn at `labelFontSize` (default three quarters of `fontSize`) in `labelColor`, switching to `labelFocusedColor` while focused; those default to the placeholder colour and to `focusedStrokeColor`. A label also becomes the field's accessible name when nothing else gives it one. It sits at the start edge, so in a right-to-left layout it floats from the right and the notch opens there.
 
 The label runs 200 ms on a decelerate curve, and the notch is staggered 50 ms behind it opening and closes in 50 ms, so the gap is never open under a label that has not arrived. All of it runs inside the view, off a native focus callback. There is no React state to declare and nothing crosses into JS per frame.
 

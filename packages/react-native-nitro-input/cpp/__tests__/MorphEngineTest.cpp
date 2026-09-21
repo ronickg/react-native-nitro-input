@@ -552,6 +552,110 @@ static void aSurvivorKeepsTheRunSliding() {
   CHECK(one && near(one->scale, 1));
 }
 
+// Under a right-to-left layout the prefix moves to the right edge and the
+// suffix to the left, while the digits stay a left-to-right run.
+static void rightToLeftMirrorsTheAffixesNotTheDigits() {
+  MorphEngine e;
+  e.setTiming(0.4, 0, 0.15);
+  const auto us = usFormatter();
+  e.beginText();
+  e.addGlyph('$', MorphEngine::Prefix, MorphEngine::Text, 12, false);
+  for (char c : std::string("1,234")) {
+    const int kind = us.kindOf(static_cast<uint32_t>(c));
+    e.addGlyph(static_cast<uint32_t>(c), MorphEngine::Body, kind, kind == MorphEngine::Digit ? 10 : 4, false);
+  }
+  for (char c : std::string(" USD")) e.addGlyph(static_cast<uint32_t>(c), MorphEngine::Suffix, MorphEngine::Text, 8, false);
+  e.commitText(5, 0);
+  // Left-to-right: $ [0,12], 1,234 [12,56], " USD" [56,88].
+  CHECK(near(e.contentWidth(), 88));
+  CHECK(near(liveGlyph(e, '$')->x, 0));
+  CHECK(near(liveGlyph(e, 'D')->x, 80));
+
+  e.setRightToLeft(true);
+  // Each block at its mirror image, in its own order, and the suffix's space
+  // still against the digits: "USD" [0,24], " " [24,32], 1,234 [32,76], $ [76,88].
+  CHECK(near(e.contentWidth(), 88));
+  CHECK(near(liveGlyph(e, 'U')->x, 0));
+  CHECK(near(liveGlyph(e, 'D')->x, 16));
+  CHECK(near(liveGlyph(e, ' ')->x, 24));
+  CHECK(near(liveGlyph(e, '1')->x, 32));
+  CHECK(near(liveGlyph(e, ',')->x, 42));
+  CHECK(near(liveGlyph(e, '4')->x, 66));
+  CHECK(near(liveGlyph(e, '$')->x, 76));
+  // The caret moves with the body: before the first digit is its left edge,
+  // after the last its right, between two digits between them.
+  CHECK(near(e.caretX(0), 32));
+  CHECK(near(e.caretX(1), 42));
+  CHECK(near(e.caretX(5), 76));
+  // A frame keeps the mirror.
+  e.tick(0.2);
+  CHECK(near(liveGlyph(e, '$')->x, 76));
+
+  e.setRightToLeft(false);
+  CHECK(near(liveGlyph(e, '$')->x, 0));
+  CHECK(near(liveGlyph(e, 'D')->x, 80));
+  CHECK(near(e.caretX(5), 56));
+}
+
+// A sign laid out ahead of the prefix is its own block, and lands at the far
+// right - before the prefix, reading right to left - with the digits still
+// left-to-right on the other side of it.
+static void rightToLeftKeepsTheSignAheadOfThePrefix() {
+  MorphEngine e;
+  e.setTiming(0.4, 0, 0.15);
+  e.beginText();
+  e.addGlyph('-', MorphEngine::Body, MorphEngine::Text, 6, false);
+  e.addGlyph('$', MorphEngine::Prefix, MorphEngine::Text, 12, false);
+  e.addGlyph('1', MorphEngine::Body, MorphEngine::Digit, 10, false);
+  e.addGlyph('2', MorphEngine::Body, MorphEngine::Digit, 10, false);
+  e.commitText(3, 0);
+  // Left-to-right: - [0,6], $ [6,18], 12 [18,38].
+  CHECK(near(e.contentWidth(), 38));
+  CHECK(near(liveGlyph(e, '-')->x, 0));
+  CHECK(near(liveGlyph(e, '1')->x, 18));
+
+  e.setRightToLeft(true);
+  // 12 [0,20], $ [20,32], - [32,38].
+  CHECK(near(liveGlyph(e, '1')->x, 0));
+  CHECK(near(liveGlyph(e, '2')->x, 10));
+  CHECK(near(liveGlyph(e, '$')->x, 20));
+  CHECK(near(liveGlyph(e, '-')->x, 32));
+  CHECK(near(e.caretX(0), 32));
+  CHECK(near(e.caretX(1), 0));
+  CHECK(near(e.caretX(3), 20));
+}
+
+// A prefix that ends in a space keeps that space against the digits too.
+static void rightToLeftKeepsThePrefixGapAgainstTheDigits() {
+  MorphEngine e;
+  e.setTiming(0.4, 0, 0.15);
+  e.beginText();
+  for (char c : std::string("CHF ")) e.addGlyph(static_cast<uint32_t>(c), MorphEngine::Prefix, MorphEngine::Text, 8, false);
+  e.addGlyph('5', MorphEngine::Body, MorphEngine::Digit, 10, false);
+  e.commitText(1, 0);
+  // Left-to-right: CHF [0,24], " " [24,32], 5 [32,42].
+  e.setRightToLeft(true);
+  // 5 [0,10], " " [10,18], CHF [18,42].
+  CHECK(near(liveGlyph(e, '5')->x, 0));
+  CHECK(near(liveGlyph(e, ' ')->x, 10));
+  CHECK(near(liveGlyph(e, 'C')->x, 18));
+  CHECK(near(liveGlyph(e, 'F')->x, 34));
+  CHECK(near(e.caretX(1), 10));
+}
+
+// An empty body has no block; its caret is a point, and the point mirrors.
+static void rightToLeftCaretOfAnEmptyBody() {
+  MorphEngine e;
+  e.setTiming(0.4, 0, 0.15);
+  e.beginText();
+  e.addGlyph('$', MorphEngine::Prefix, MorphEngine::Text, 12, false);
+  e.commitText(0, 0);
+  CHECK(near(e.caretX(0), 12));
+  e.setRightToLeft(true);
+  CHECK(near(liveGlyph(e, '$')->x, 0));
+  CHECK(near(e.caretX(0), 0));
+}
+
 int main() {
   formatterGroupsAsYouType();
   formatterDecimals();
@@ -565,6 +669,10 @@ int main() {
   numericTextSlidesLikeAnAmount();
   replacingThePlaceholderDoesNotAnimate();
   snapsWithoutMotion();
+  rightToLeftMirrorsTheAffixesNotTheDigits();
+  rightToLeftKeepsTheSignAheadOfThePrefix();
+  rightToLeftKeepsThePrefixGapAgainstTheDigits();
+  rightToLeftCaretOfAnEmptyBody();
   interruptedEntryLeavesFromWhereItIs();
   exitingGlyphRidesWithItsNeighbour();
   whollyReplacedRunRecedesTogether();
