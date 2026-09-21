@@ -38,6 +38,19 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
 
+/**
+ * The four onboarding steps share their chrome: no title (the progress rail on
+ * the screen says which step you are on), a hairline-free header that blends
+ * into the page, and a back chevron with no label to compete with the headline.
+ */
+const FLOW_STEP = {
+  title: '',
+  headerBackButtonDisplayMode: 'minimal' as const,
+  headerShadowVisible: false,
+  headerStyle: { backgroundColor: '#F7F8FA' },
+  headerTintColor: '#39414E',
+}
+
 function HomeScreen() {
   const nav = useNavigation<any>()
   return (
@@ -90,9 +103,9 @@ export function RootNavigator() {
         <Stack.Screen name="StateChange" component={StateChangeScreen} options={{ title: 'State change' }} />
         <Stack.Screen name="KeyboardController" component={KeyboardControllerScreen} options={{ title: 'keyboard-controller' }} />
         <Stack.Screen name="Bench" component={BenchScreen} options={{ title: 'Benchmark' }} />
-        <Stack.Screen name="FlowEmail" component={FlowEmailScreen} options={{ title: '1 — Sign in' }} />
-        <Stack.Screen name="FlowAmount" component={FlowAmountScreen} options={{ title: '2 — Amount' }} />
-        <Stack.Screen name="FlowForm" component={FlowFormScreen} options={{ title: '3 — Details' }} />
+        <Stack.Screen name="FlowEmail" component={FlowEmailScreen} options={FLOW_STEP} />
+        <Stack.Screen name="FlowAmount" component={FlowAmountScreen} options={FLOW_STEP} />
+        <Stack.Screen name="FlowForm" component={FlowFormScreen} options={FLOW_STEP} />
         <Stack.Screen name="Demo" component={DemoScreen} options={{ title: 'Demo' }} />
         <Stack.Screen name="ViewPropsRepro" component={ViewPropsReproScreen} options={{ title: 'View props' }} />
         <Stack.Screen
@@ -103,7 +116,8 @@ export function RootNavigator() {
             sheetAllowedDetents: [0.6, 0.95],
             sheetGrabberVisible: true,
             sheetCornerRadius: 20,
-            title: '4 — Search',
+            title: '',
+            headerShown: false,
           }}
         />
         <Stack.Screen

@@ -9,7 +9,7 @@ import {
 } from 'react-native-keyboard-controller'
 import { runOnJS } from 'react-native-reanimated'
 import { NitroInput, type NitroInputHandle } from 'react-native-nitro-input'
-import { Btn, Card, FieldLabel, Row, styles } from '../harness'
+import { Btn, FieldLabel, Row, styles } from '../harness'
 import { clearKbLog, logKb, useKbLog } from '../keyboardLog'
 import type { RootStackParamList } from '../navigation'
 
@@ -179,21 +179,47 @@ function StickyFooter({ label, onPress, testID }: { label: string; onPress: () =
   return (
     <KeyboardStickyView offset={{ closed: 0, opened: 0 }} style={footer.wrap}>
       <View style={footer.inner}>
-        <Btn testID={testID} tone="primary" title={label} onPress={onPress} />
+        <Cta testID={testID} label={label} onPress={onPress} />
       </View>
     </KeyboardStickyView>
   )
 }
 
+/** The one button a step is asking you to press. */
+function Cta({
+  label,
+  onPress,
+  testID,
+  tone = 'primary',
+}: {
+  label: string
+  onPress: () => void
+  testID: string
+  tone?: 'primary' | 'quiet'
+}) {
+  return (
+    <Pressable
+      testID={testID}
+      onPress={onPress}
+      style={({ pressed }) => [
+        footer.cta,
+        tone === 'quiet' ? footer.ctaQuiet : footer.ctaPrimary,
+        pressed ? { opacity: 0.85 } : null,
+      ]}
+    >
+      <Text style={[footer.ctaText, tone === 'quiet' ? footer.ctaTextQuiet : null]}>{label}</Text>
+    </Pressable>
+  )
+}
+
 const footer = {
   wrap: { position: 'absolute' as const, left: 0, right: 0, bottom: 0 },
-  inner: {
-    padding: 12,
-    paddingBottom: 28,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
+  inner: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 30, backgroundColor: '#F7F8FA' },
+  cta: { height: 52, borderRadius: 14, alignItems: 'center' as const, justifyContent: 'center' as const },
+  ctaPrimary: { backgroundColor: '#2563EB' },
+  ctaQuiet: { backgroundColor: '#EDEFF3' },
+  ctaText: { fontSize: 17, fontWeight: '600' as const, color: '#FFFFFF' },
+  ctaTextQuiet: { color: '#39414E' },
 }
 
 /**
@@ -226,11 +252,27 @@ function Timeline({ height = 170 }: { height?: number }) {
   )
 }
 
-/** Header every step shares: which run this is, and where in it you are. */
+/**
+ * The step chrome, as an onboarding rather than a test harness: a progress
+ * rail, the question as a headline, and one line under it. Which
+ * implementation is running stays visible - the whole point of the flow is
+ * comparing them - but as a quiet chip rather than the loudest thing on screen.
+ */
 function StepHeader({ step, of, impl }: { step: number; of: number; impl: Impl }) {
   return (
     <View style={header.wrap}>
-      <Text style={header.step}>{`Step ${step} / ${of}`}</Text>
+      <View style={header.rail}>
+        {Array.from({ length: of }, (_, i) => (
+          <View
+            key={i}
+            style={[
+              header.pip,
+              i < step ? header.pipDone : null,
+              i === step - 1 ? header.pipHere : null,
+            ]}
+          />
+        ))}
+      </View>
       <View style={[header.badge, impl === 'ours' ? header.badgeOurs : header.badgeRn]}>
         <Text style={header.badgeText}>{impl === 'ours' ? 'NitroInput' : 'RN TextInput'}</Text>
       </View>
@@ -238,13 +280,50 @@ function StepHeader({ step, of, impl }: { step: number; of: number; impl: Impl }
   )
 }
 
+/** The question, and the one line that explains it. */
+function Hero({ title, hint }: { title: string; hint?: string }) {
+  return (
+    <View style={header.hero}>
+      <Text style={header.title}>{title}</Text>
+      {hint ? <Text style={header.hint}>{hint}</Text> : null}
+    </View>
+  )
+}
+
+/**
+ * The timeline, out of the way. It is the reason these screens exist, but an
+ * onboarding does not show you its logs - so it folds away and the flow reads
+ * as the thing it is imitating.
+ */
+function Diagnostics({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <View style={header.diag}>
+      <Pressable onPress={() => setOpen(o => !o)} style={header.diagHead} testID="flow-diagnostics">
+        <Text style={header.diagLabel}>{open ? 'Hide timeline' : 'Show timeline'}</Text>
+      </Pressable>
+      {open ? children : null}
+    </View>
+  )
+}
+
 const header = {
-  wrap: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8 },
-  step: { fontSize: 12, fontWeight: '700' as const, color: '#6B7280' },
+  wrap: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10 },
+  rail: { flexDirection: 'row' as const, gap: 5, flex: 1 },
+  pip: { height: 4, flex: 1, borderRadius: 2, backgroundColor: '#E2E5EA' },
+  pipDone: { backgroundColor: '#B9C0CA' },
+  pipHere: { backgroundColor: '#2563EB' },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   badgeOurs: { backgroundColor: '#34D399' },
   badgeRn: { backgroundColor: '#93C5FD' },
   badgeText: { fontSize: 11, fontWeight: '700' as const, color: '#0B2818' },
+  hero: { gap: 6, paddingTop: 18, paddingBottom: 6 },
+  title: { fontSize: 30, fontWeight: '700' as const, color: '#0B1220', letterSpacing: -0.5 },
+  hint: { fontSize: 15, lineHeight: 21, color: '#6B7280' },
+  diag: { marginTop: 8 },
+  diagHead: { paddingVertical: 8 },
+  diagLabel: { fontSize: 13, fontWeight: '600' as const, color: '#9AA1AC' },
+  diagNote: { fontSize: 13, lineHeight: 19, color: '#6B7280', paddingBottom: 8 },
 }
 
 function useImpl<T extends 'FlowEmail' | 'FlowAmount' | 'FlowForm' | 'FlowSheet'>(name: T): Impl {
@@ -252,8 +331,10 @@ function useImpl<T extends 'FlowEmail' | 'FlowAmount' | 'FlowForm' | 'FlowSheet'
   return (route.params as { impl?: Impl } | undefined)?.impl ?? 'ours'
 }
 
-const page = { flex: 1, backgroundColor: '#F2F2F7' }
-const scroll = { padding: 16, gap: 14, paddingBottom: 140 }
+const page = { flex: 1, backgroundColor: '#F7F8FA' }
+/** Fields, spaced. The field draws its own box, so nothing is drawn behind it. */
+const group = { gap: 14 }
+const scroll = { paddingHorizontal: 20, paddingTop: 8, gap: 10, paddingBottom: 150 }
 
 /* -------------------------------------------------------- 1. email (text) */
 
@@ -278,11 +359,8 @@ export function FlowEmailScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <StepHeader step={1} of={4} impl={impl} />
-        <Card
-          title="Sign in"
-          hint="An email field that autofocuses on mount. The keyboard should already be up when the push transition ends — no flash of an empty screen first."
-        >
-          <FieldLabel>EMAIL</FieldLabel>
+        <Hero title="What's your email?" hint="We'll use it to sign you in. The keyboard is already up." />
+        <View style={group}>
           <FlowField
             impl={impl}
             testID="flow-email"
@@ -298,16 +376,16 @@ export function FlowEmailScreen() {
             onFocus={() => logKb('field', 'email onFocus')}
             onBlur={() => logKb('field', 'email onBlur')}
           />
-        </Card>
+        </View>
 
-        <Card title="Timeline" hint="Keyboard events come from the native observer; field events from the input.">
+        <Diagnostics>
           <Timeline />
           <Row>
             <Btn testID="flow-clear" title="clear timeline" onPress={clearKbLog} />
           </Row>
-        </Card>
+        </Diagnostics>
       </KeyboardAwareScrollView>
-      <StickyFooter testID="flow-footer-1" label="Continue → amount" onPress={next} />
+      <StickyFooter testID="flow-footer-1" label="Continue" onPress={next} />
     </View>
   )
 }
@@ -340,15 +418,15 @@ export function FlowAmountScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <StepHeader step={2} of={4} impl={impl} />
-        <Card
+        <Hero
           title="How much?"
           hint={
             impl === 'ours'
-              ? 'A number field with native grouping and a "$" prefix. Coming from the email keyboard, the pad has to swap in place.'
-              : 'A decimal-pad field. Coming from the email keyboard, the pad has to swap in place. (TextInput has no native number formatting, so this one is unformatted.)'
+              ? 'Grouped as you type, natively. The pad swaps in place — the keyboard never drops.'
+              : 'A decimal pad. The pad swaps in place — the keyboard never drops.'
           }
-        >
-          <FieldLabel>AMOUNT</FieldLabel>
+        />
+        <View style={group}>
           <FlowField
             impl={impl}
             testID="flow-amount"
@@ -362,11 +440,11 @@ export function FlowAmountScreen() {
             onFocus={() => logKb('field', 'amount onFocus')}
             onBlur={() => logKb('field', 'amount onBlur')}
           />
-        </Card>
+        </View>
 
-        <Card title="Timeline"><Timeline /></Card>
+        <Diagnostics><Timeline /></Diagnostics>
       </KeyboardAwareScrollView>
-      <StickyFooter testID="flow-footer-2" label="Continue → details" onPress={next} />
+      <StickyFooter testID="flow-footer-2" label="Continue" onPress={next} />
     </View>
   )
 }
@@ -428,10 +506,11 @@ export function FlowFormScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <StepHeader step={3} of={4} impl={impl} />
-        <Card
+        <Hero
           title="Your details"
-          hint="Six fields, five different keyboards. The return key walks down them: the keyboard has to change type each time without ever dismissing, and the focused field has to stay in view."
-        >
+          hint="Six fields, five keyboards. Return walks down them — the pad changes type without ever dropping."
+        />
+        <View style={group}>
           {FORM_ROWS.map((row, i) => (
             <View key={row.key} style={{ gap: 6 }}>
               <FieldLabel>{row.label}</FieldLabel>
@@ -441,6 +520,7 @@ export function FlowFormScreen() {
                 ref={r => {
                   refs.current[row.key] = r
                 }}
+                autoFocus={i === 0}
                 placeholder={row.placeholder}
                 keyboardType={row.keyboardType}
                 autoCapitalize={row.autoCapitalize}
@@ -455,6 +535,11 @@ export function FlowFormScreen() {
               />
             </View>
           ))}
+        </View>
+
+        <Cta testID="flow-footer-3" label="Continue" onPress={next} />
+
+        <Diagnostics>
           <Row>
             <Btn
               testID="flow-form-focus-first"
@@ -467,18 +552,13 @@ export function FlowFormScreen() {
               onPress={() => refs.current.pin?.focus()}
             />
           </Row>
-        </Card>
-
-        <Card
-          title="Keyboard toolbar"
-          hint="Phone and number pads have no return key, so the chain above stops there. `KeyboardToolbar` is the usual answer: its arrows walk the fields natively, which only works if the component registered itself as a real text input."
-        >
-          <Row>
-            <Btn testID="flow-footer-3" tone="primary" title="Continue → search" onPress={next} />
-          </Row>
-        </Card>
-
-        <Card title="Timeline"><Timeline /></Card>
+          <Text style={header.diagNote}>
+            Phone and number pads have no return key, so the chain stops there. The toolbar's arrows
+            walk the fields natively — which only works because the field registered itself as a
+            real text input.
+          </Text>
+          <Timeline />
+        </Diagnostics>
       </KeyboardAwareScrollView>
       <KeyboardToolbar />
     </View>
@@ -524,11 +604,7 @@ export function FlowSheetScreen() {
   return (
     <View style={[page, { padding: 16, gap: 10 }]}>
       <StepHeader step={4} of={4} impl={impl} />
-      <Text style={styles.cardTitle}>Where are you?</Text>
-      <Text style={styles.cardHint}>
-        A search sheet over a screen that already had the keyboard up. The field must keep the
-        keyboard, the list must scroll under it, and dragging the list should dismiss it.
-      </Text>
+      <Hero title="Where are you?" hint="The sheet takes the keyboard over without it dropping." />
       <FlowField
         impl={impl}
         testID="flow-sheet-search"
@@ -543,22 +619,11 @@ export function FlowSheetScreen() {
         onFocus={() => logKb('field', 'search onFocus')}
         onBlur={() => logKb('field', 'search onBlur')}
       />
-      <Row>
-        <Btn testID="flow-sheet-close" tone="primary" title="Done" onPress={() => nav.goBack()} />
-        <Btn
-          testID="flow-sheet-restart"
-          title="restart flow"
-          onPress={() => {
-            clearKbLog()
-            nav.navigate('Home')
-          }}
-        />
-      </Row>
       {/* `overflow: 'hidden'` is load-bearing: inside a form sheet a scroll view
           whose box does not clip escapes its frame entirely and covers the whole
           sheet, drawing over everything above it. The height is fixed for the
           same reason — `flex: 1` collapses there. 44 rows need no virtualising. */}
-      <View style={{ height: windowHeight * 0.19, overflow: 'hidden' }}>
+      <View style={{ height: windowHeight * 0.22, overflow: 'hidden' }}>
         <ScrollView
           testID="flow-sheet-list"
           style={{ flex: 1 }}
@@ -585,6 +650,22 @@ export function FlowSheetScreen() {
           )}
         </ScrollView>
       </View>
+      <Cta
+        testID="flow-sheet-close"
+        tone={picked ? 'primary' : 'quiet'}
+        label={picked ? `Done · ${picked}` : 'Done'}
+        onPress={() => nav.goBack()}
+      />
+      <Pressable
+        testID="flow-sheet-restart"
+        onPress={() => {
+          clearKbLog()
+          nav.navigate('Home')
+        }}
+        style={header.diagHead}
+      >
+        <Text style={[header.diagLabel, { textAlign: 'center' }]}>Start over</Text>
+      </Pressable>
     </View>
   )
 }
