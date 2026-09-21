@@ -1,5 +1,5 @@
 import React from 'react'
-import { ScrollView, Text } from 'react-native'
+import { DevSettings, I18nManager, ScrollView, Text } from 'react-native'
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { useNavigation } from '@react-navigation/native'
@@ -11,6 +11,7 @@ import { StateChangeScreen } from './screens/StateChangeScreen'
 import { KeyboardControllerScreen } from './screens/KeyboardControllerScreen'
 import { BenchScreen } from './screens/BenchScreen'
 import { ViewPropsReproScreen } from './screens/ViewPropsRepro'
+import { RtlScreen } from './screens/RtlScreen'
 import {
   FlowAmountScreen,
   FlowEmailScreen,
@@ -34,6 +35,7 @@ export type RootStackParamList = {
   FlowForm: { impl: Impl }
   FlowSheet: { impl: Impl }
   ViewPropsRepro: undefined
+  Rtl: undefined
 }
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
@@ -74,6 +76,23 @@ function HomeScreen() {
           <Btn testID="home-flow-rn" tone="primary" title="Run flow (RN TextInput)" onPress={() => nav.navigate('FlowEmail', { impl: 'rn' })} />
         </Row>
       </Card>
+      <Card
+        title="Layout direction"
+        hint={`The app is ${I18nManager.isRTL ? 'right-to-left' : 'left-to-right'}. Flipping it reloads the bundle; on iOS the new direction may need the app relaunched.`}
+      >
+        <Row>
+          <Btn testID="home-rtl" tone="primary" title="Alignment, affixes, frame" onPress={() => nav.navigate('Rtl')} />
+          <Btn
+            testID="home-rtl-toggle"
+            title={I18nManager.isRTL ? 'Switch to left-to-right' : 'Switch to right-to-left'}
+            onPress={() => {
+              I18nManager.allowRTL(true)
+              I18nManager.forceRTL(!I18nManager.isRTL)
+              DevSettings.reload()
+            }}
+          />
+        </Row>
+      </Card>
       <Card title="Form sheets" hint="react-navigation native-stack `presentation: 'formSheet'`, with detents.">
         <Row>
           <Btn testID="home-sheet-morph" title="Sheet (morph, autoFocus)" onPress={() => nav.navigate('Sheet', { kind: 'morph', autoFocus: true })} />
@@ -108,6 +127,7 @@ export function RootNavigator() {
         <Stack.Screen name="FlowForm" component={FlowFormScreen} options={FLOW_STEP} />
         <Stack.Screen name="Demo" component={DemoScreen} options={{ title: 'Demo' }} />
         <Stack.Screen name="ViewPropsRepro" component={ViewPropsReproScreen} options={{ title: 'View props' }} />
+        <Stack.Screen name="Rtl" component={RtlScreen} options={{ title: 'Right-to-left' }} />
         <Stack.Screen
           name="FlowSheet"
           component={FlowSheetScreen}

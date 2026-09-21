@@ -25,6 +25,7 @@ public:
   void setTiming(double durationSeconds, int easing, double bounce);
   void setEffect(int effect);
   void setReduceMotion(bool reduceMotion);
+  void setRightToLeft(bool rightToLeft);
   void beginText();
   void addGlyph(int character, int role, int kind, double width, bool placeholder);
   void commitText(int caret, double now);

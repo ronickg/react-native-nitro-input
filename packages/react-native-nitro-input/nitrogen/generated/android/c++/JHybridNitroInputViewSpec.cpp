@@ -515,6 +515,15 @@ namespace margelo::nitro::nitroinput {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroInputTextAlign> /* textAlign */)>("setTextAlign");
     method(_javaPart, JNitroInputTextAlign::fromCpp(textAlign));
   }
+  bool JHybridNitroInputViewSpec::getRightToLeft() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean()>("getRightToLeft");
+    auto __result = method(_javaPart);
+    return static_cast<bool>(__result);
+  }
+  void JHybridNitroInputViewSpec::setRightToLeft(bool rightToLeft) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jboolean /* rightToLeft */)>("setRightToLeft");
+    method(_javaPart, rightToLeft);
+  }
   double JHybridNitroInputViewSpec::getCaretColor() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getCaretColor");
     auto __result = method(_javaPart);

@@ -179,8 +179,7 @@ void MorphEngine::snapTo(const std::vector<Input>& inputs) {
   }
   contentWidth_ = targetWidth_ = widthFrom_ = x;
   animating_ = false;
-  glyphs_.clear();
-  for (const auto& s : slots_) glyphs_.push_back(s.g);
+  publish();
 }
 
 /// Text mode hands every character in as `Text`. A body that is a number in
@@ -701,9 +700,7 @@ bool MorphEngine::tick(double now) {
                slots_.end());
 
   animating_ = moving;
-  glyphs_.clear();
-  glyphs_.reserve(slots_.size());
-  for (const auto& s : slots_) glyphs_.push_back(s.g);
+  publish();
   return moving;
 }
 
@@ -721,21 +718,151 @@ int MorphEngine::bodyCount() const {
   return count;
 }
 
+namespace {
+
+/// The horizontal extent of one block of the run.
+struct Block {
+  double start = 0;
+  double end = 0;
+  bool any = false;
+  void add(double x, double width) {
+    if (!any) {
+      start = x;
+      end = x + width;
+      any = true;
+    } else {
+      start = std::min(start, x);
+      end = std::max(end, x + width);
+    }
+  }
+};
+
+/// Whitespace an affix uses to keep its distance from the digits.
+bool isSpace(uint32_t c) {
+  return c == 0x20 || c == 0xA0 || c == 0x2009 || c == 0x202F;
+}
+
+/// The run in six blocks: the prefix's ink and the space it ends with, a sign
+/// laid out ahead of the prefix (`signPlacement: 'beforeAffix'` - a body
+/// glyph, but outside the body's extent), the rest of the body, and the space
+/// the suffix starts with and its ink. The spaces are blocks of their own so
+/// that, mirrored, they stay against the digits rather than ending up on the
+/// outside: " USD" after the number becomes "USD " before it.
+struct Blocks {
+  Block prefix, prefixGap, sign, rest, suffixGap, suffix;
+  /// The extent of every prefix glyph, gap included.
+  Block wholePrefix;
+  /// Right edge of the prefix's last ink, left edge of the suffix's first.
+  double prefixInkEnd = 0;
+  double suffixInkStart = 0;
+  bool aheadOfPrefix(const MorphEngine::Glyph& g) const {
+    return wholePrefix.any && g.x + g.width <= wholePrefix.start + 1e-6;
+  }
+  bool prefixGapGlyph(const MorphEngine::Glyph& g) const {
+    return g.role == MorphEngine::Prefix && isSpace(g.character) && g.x >= prefixInkEnd - 1e-6;
+  }
+  bool suffixGapGlyph(const MorphEngine::Glyph& g) const {
+    return g.role == MorphEngine::Suffix && isSpace(g.character) && g.x + g.width <= suffixInkStart + 1e-6;
+  }
+  const Block& of(const MorphEngine::Glyph& g) const {
+    if (g.role == MorphEngine::Prefix) return prefixGapGlyph(g) ? prefixGap : prefix;
+    if (g.role == MorphEngine::Suffix) return suffixGapGlyph(g) ? suffixGap : suffix;
+    return aheadOfPrefix(g) ? sign : rest;
+  }
+};
+
+Blocks blocksOf(const std::vector<MorphEngine::Glyph>& glyphs) {
+  Blocks b;
+  bool prefixInk = false;
+  bool suffixInk = false;
+  for (const auto& g : glyphs) {
+    if (g.role == MorphEngine::Prefix) {
+      b.wholePrefix.add(g.x, g.width);
+      if (!isSpace(g.character)) {
+        b.prefixInkEnd = prefixInk ? std::max(b.prefixInkEnd, g.x + g.width) : g.x + g.width;
+        prefixInk = true;
+      }
+    } else if (g.role == MorphEngine::Suffix && !isSpace(g.character)) {
+      b.suffixInkStart = suffixInk ? std::min(b.suffixInkStart, g.x) : g.x;
+      suffixInk = true;
+    }
+  }
+  // An affix that is all space has no ink to be inside of: it is one block.
+  if (!prefixInk) b.prefixInkEnd = b.wholePrefix.any ? b.wholePrefix.end : 0;
+  if (!suffixInk) b.suffixInkStart = -1;
+  for (const auto& g : glyphs) {
+    if (g.role == MorphEngine::Prefix) {
+      (b.prefixGapGlyph(g) ? b.prefixGap : b.prefix).add(g.x, g.width);
+    } else if (g.role == MorphEngine::Suffix) {
+      (b.suffixGapGlyph(g) ? b.suffixGap : b.suffix).add(g.x, g.width);
+    } else if (b.aheadOfPrefix(g)) {
+      b.sign.add(g.x, g.width);
+    } else {
+      b.rest.add(g.x, g.width);
+    }
+  }
+  return b;
+}
+
+/// Where `x`, inside `block`, lands once the block is at its mirror image.
+double mirrored(double x, const Block& block, double total) {
+  return total - block.end + (x - block.start);
+}
+
+} // namespace
+
+// Under a right-to-left layout the prefix belongs at the start edge, which is
+// the right, and the suffix at the end; the body stays a left-to-right run,
+// because a number reads the same way in every script. So the run is mirrored
+// block by block rather than glyph by glyph: each block moves to where its
+// mirror image would be and keeps its own order inside. `slots_` stay
+// left-to-right - the matching, the caret and the animation all reason there -
+// and only the published frames move.
+void MorphEngine::publish() {
+  glyphs_.clear();
+  glyphs_.reserve(slots_.size());
+  for (const auto& s : slots_) glyphs_.push_back(s.g);
+  if (!rightToLeft_ || glyphs_.empty()) return;
+  const Blocks b = blocksOf(glyphs_);
+  const double total = contentWidth_;
+  for (auto& g : glyphs_) g.x = mirrored(g.x, b.of(g), total);
+}
+
+void MorphEngine::setRightToLeft(bool rightToLeft) {
+  if (rightToLeft_ == rightToLeft) return;
+  rightToLeft_ = rightToLeft;
+  publish();
+}
+
 double MorphEngine::caretX(int index) const {
   int seen = 0;
   double afterPrefix = 0;
   double afterLast = -1;
+  double x = -1;
   for (const auto& s : slots_) {
     if (s.g.exiting) continue;
     if (s.g.role == Prefix) {
       afterPrefix = s.g.x + s.g.width;
     } else if (s.g.role == Body) {
-      if (seen == index) return s.g.x;
+      if (seen == index && x < 0) x = s.g.x;
       afterLast = s.g.x + s.g.width;
       ++seen;
     }
   }
-  return afterLast >= 0 ? afterLast : afterPrefix;
+  if (x < 0) x = afterLast >= 0 ? afterLast : afterPrefix;
+  if (!rightToLeft_) return x;
+  // The caret lives in the body's block - the sign's for index 0 when the sign
+  // is laid out ahead of the prefix - and moves with it. An empty body has no
+  // block, and its caret is a point: mirror the point.
+  std::vector<Glyph> live;
+  live.reserve(slots_.size());
+  for (const auto& s : slots_) {
+    if (!s.g.exiting) live.push_back(s.g);
+  }
+  const Blocks b = blocksOf(live);
+  const Block& block = (index == 0 && b.sign.any) ? b.sign : b.rest;
+  if (!block.any) return contentWidth_ - x;
+  return mirrored(x, block, contentWidth_);
 }
 
 void MorphEngine::reset() {

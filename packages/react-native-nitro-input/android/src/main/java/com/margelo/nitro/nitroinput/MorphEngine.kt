@@ -23,6 +23,8 @@ class MorphEngine {
   /** Effect: 0 auto, 1 slide, 2 fade. */
   external fun setEffect(effect: Int)
   external fun setReduceMotion(reduceMotion: Boolean)
+  /** Right-to-left layout: prefix at the right edge, suffix at the left, the body still a left-to-right run. */
+  external fun setRightToLeft(rightToLeft: Boolean)
   external fun beginText()
   external fun addGlyph(character: Int, role: Int, kind: Int, width: Double, placeholder: Boolean)
   /** `caret`: body index the edit ended at, or -1 for a programmatic replacement. */

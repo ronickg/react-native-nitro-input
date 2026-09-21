@@ -17,6 +17,7 @@ void JMorphEngine::registerNatives() {
       makeNativeMethod("setTiming", JMorphEngine::setTiming),
       makeNativeMethod("setEffect", JMorphEngine::setEffect),
       makeNativeMethod("setReduceMotion", JMorphEngine::setReduceMotion),
+      makeNativeMethod("setRightToLeft", JMorphEngine::setRightToLeft),
       makeNativeMethod("beginText", JMorphEngine::beginText),
       makeNativeMethod("addGlyph", JMorphEngine::addGlyph),
       makeNativeMethod("commitText", JMorphEngine::commitText),
@@ -43,6 +44,10 @@ void JMorphEngine::setEffect(int effect) {
 
 void JMorphEngine::setReduceMotion(bool reduceMotion) {
   engine_.setReduceMotion(reduceMotion);
+}
+
+void JMorphEngine::setRightToLeft(bool rightToLeft) {
+  engine_.setRightToLeft(rightToLeft);
 }
 
 void JMorphEngine::beginText() {

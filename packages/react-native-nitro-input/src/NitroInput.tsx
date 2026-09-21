@@ -7,6 +7,7 @@ import React, {
   useState,
 } from 'react'
 import {
+  I18nManager,
   processColor,
   StyleSheet,
   type ColorValue,
@@ -378,7 +379,11 @@ export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' 
   fontFamily?: string
   /** Text color. Defaults to the platform's primary label color. */
   color?: ColorValue
-  /** Where the text sits when the view is wider than it. Default: `'left'`. */
+  /**
+   * Where the text sits when the view is wider than it. Default: `'auto'`: the
+   * start edge of the layout direction, as `TextInput`. `'left'` and `'right'`
+   * are absolute.
+   */
   textAlign?: NitroInputTextAlign
   /** Caret color. Defaults to the platform tint. */
   cursorColor?: ColorValue
@@ -812,8 +817,14 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     // A field with a width of its own (the usual case) never needs a React
     // commit per keystroke: only the height (font-dependent) is taken from native.
     const flat = StyleSheet.flatten(style) as
-      | { width?: unknown; flex?: unknown; height?: unknown }
+      | { width?: unknown; flex?: unknown; height?: unknown; direction?: unknown }
       | undefined
+    // The layout direction, resolved the way React Native resolves it for its
+    // own views: the field's `style.direction` if it says, else the app's.
+    // Fabric does not hand a Hybrid View its resolved direction, so native is
+    // told outright.
+    const rightToLeft =
+      flat?.direction === 'rtl' || (flat?.direction !== 'ltr' && I18nManager.isRTL)
     // `TextInput` stretches to its parent; sizing to content is this
     // component's own behaviour, and it is what stops it being a drop-in.
     // `NitroInput` turns it off so flexbox gives it the parent's width, the
@@ -1092,7 +1103,8 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         fontWeight={numericWeight}
         fontFamily={fontFamily ?? ''}
         color={processedColor}
-        textAlign={textAlign ?? 'left'}
+        textAlign={textAlign ?? 'auto'}
+        rightToLeft={rightToLeft}
         caretColor={processedCursorColor}
         selectionColor={processedSelectionColor}
         caretHidden={caretHidden ?? false}

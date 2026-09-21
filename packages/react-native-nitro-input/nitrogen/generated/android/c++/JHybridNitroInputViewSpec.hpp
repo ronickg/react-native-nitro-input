@@ -136,6 +136,8 @@ namespace margelo::nitro::nitroinput {
     void setColor(double color) override;
     NitroInputTextAlign getTextAlign() override;
     void setTextAlign(NitroInputTextAlign textAlign) override;
+    bool getRightToLeft() override;
+    void setRightToLeft(bool rightToLeft) override;
     double getCaretColor() override;
     void setCaretColor(double caretColor) override;
     double getSelectionColor() override;

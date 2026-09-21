@@ -42,6 +42,9 @@ namespace margelo::nitro::nitroinput {
     static jni::alias_ref<JNitroInputTextAlign> fromCpp(NitroInputTextAlign value) {
       static const auto clazz = javaClassStatic();
       switch (value) {
+        case NitroInputTextAlign::AUTO:
+          static const auto fieldAUTO = clazz->getStaticField<JNitroInputTextAlign>("AUTO");
+          return clazz->getStaticFieldValue(fieldAUTO);
         case NitroInputTextAlign::LEFT:
           static const auto fieldLEFT = clazz->getStaticField<JNitroInputTextAlign>("LEFT");
           return clazz->getStaticFieldValue(fieldLEFT);

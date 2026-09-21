@@ -53,6 +53,7 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   var fontFamily: String { get set }
   var color: Double { get set }
   var textAlign: NitroInputTextAlign { get set }
+  var rightToLeft: Bool { get set }
   var caretColor: Double { get set }
   var selectionColor: Double { get set }
   var caretHidden: Bool { get set }

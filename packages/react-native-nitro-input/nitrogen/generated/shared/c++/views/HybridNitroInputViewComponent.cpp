@@ -63,6 +63,7 @@ namespace margelo::nitro::nitroinput::views {
     fontFamily(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "fontFamily", rawProps, sourceProps.fontFamily)),
     color(nitro::ReactProp<double>::fromRawValue("NitroInputView", "color", rawProps, sourceProps.color)),
     textAlign(nitro::ReactProp<NitroInputTextAlign>::fromRawValue("NitroInputView", "textAlign", rawProps, sourceProps.textAlign)),
+    rightToLeft(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "rightToLeft", rawProps, sourceProps.rightToLeft)),
     caretColor(nitro::ReactProp<double>::fromRawValue("NitroInputView", "caretColor", rawProps, sourceProps.caretColor)),
     selectionColor(nitro::ReactProp<double>::fromRawValue("NitroInputView", "selectionColor", rawProps, sourceProps.selectionColor)),
     caretHidden(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "caretHidden", rawProps, sourceProps.caretHidden)),
@@ -159,6 +160,7 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("fontFamily"): return true;
       case hashString("color"): return true;
       case hashString("textAlign"): return true;
+      case hashString("rightToLeft"): return true;
       case hashString("caretColor"): return true;
       case hashString("selectionColor"): return true;
       case hashString("caretHidden"): return true;

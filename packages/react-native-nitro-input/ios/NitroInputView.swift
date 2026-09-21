@@ -162,6 +162,10 @@ final class NitroInputView: UIView {
   }
 
   enum Alignment {
+    /// The start edge of the layout direction: left in a left-to-right app,
+    /// right in a right-to-left one. What `TextInput` does with no `textAlign`.
+    case auto
+    /// Absolute, whatever the layout direction.
     case left, center, right
   }
 
@@ -238,13 +242,28 @@ final class NitroInputView: UIView {
 
   var worklets = Worklets()
 
-  var alignment: Alignment = .left {
+  var alignment: Alignment = .auto {
     didSet {
       guard alignment != oldValue else { return }
-      field.textAlignment = Self.textAlignment(alignment)
+      field.textAlignment = textAlignment(for: alignment)
       render()
     }
   }
+
+  /// The layout direction this view is in. Fabric sets the host view's
+  /// `semanticContentAttribute` from Yoga's resolved direction, and
+  /// `effectiveUserInterfaceLayoutDirection` walks up the superview chain to it.
+  var isRTL: Bool { effectiveUserInterfaceLayoutDirection == .rightToLeft }
+
+  /// `.auto` resolved against the layout direction; the rest are already absolute.
+  private var resolvedAlignment: Alignment {
+    alignment == .auto ? (isRTL ? .right : .left) : alignment
+  }
+
+  /// The direction the alignment was last resolved against. It is only knowable
+  /// with a superview chain, and a view moved into a subtree with the other
+  /// direction has to re-resolve.
+  private var resolvedForRTL = false
 
   /// Called after every text change with the text, its numeric value (NaN in
   /// text mode / when empty), the native event count and why it changed.
@@ -638,6 +657,12 @@ final class NitroInputView: UIView {
 
   override func layoutSubviews() {
     super.layoutSubviews()
+    // `.auto` alignment is resolved against the layout direction, which is only
+    // known once there is a superview chain to walk.
+    if isRTL != resolvedForRTL {
+      resolvedForRTL = isRTL
+      applyLayoutDirection()
+    }
     field.frame = bounds
     if didBuildTextView { textView.frame = bounds }
     // Where the text wraps - and so how tall the box is - depends on the width,
@@ -659,6 +684,21 @@ final class NitroInputView: UIView {
     // tag are only reliable once it has been laid out.
     syncAccessibilityFromHost()
     // The shrink-to-fit scale and alignment depend on the bounds.
+    render()
+  }
+
+  /// Re-applies everything that was resolved against the layout direction:
+  /// `.auto` alignment, which edge the affixes sit at (the engine mirrors them
+  /// in the overlay, `leftView` / `rightView` swap in a plain field), and the
+  /// frame's label, which `layoutFrame` places at the start edge.
+  private func applyLayoutDirection() {
+    engine.setRightToLeft(isRTL)
+    field.textAlignment = traits.plain ? textAlignment(for: alignment) : .left
+    if didBuildTextView {
+      textView.textAlignment = textAlignment(for: alignment)
+      applyTextViewTypography()
+    }
+    updateFieldInsets()
     render()
   }
 
@@ -723,7 +763,7 @@ final class NitroInputView: UIView {
     typography = Typography()
     timing = Timing()
     traits = Traits()
-    alignment = .left
+    alignment = .auto
     // `onTextChange`, `onFocusChange`, `onSubmit` and `onIntrinsicSizeChange`
     // are the hybrid's wiring, not the element's props: they stay across
     // recycling (the hybrid clears its own callback props).
@@ -897,20 +937,30 @@ final class NitroInputView: UIView {
     // A floated label sits half above the top edge, so the text starts lower.
     field.topInset = frameTopInset
     let side = frameSideInset
+    // The prefix sits at the start edge and the suffix at the end. UIKit never
+    // mirrors `leftView` / `rightView`, so under a right-to-left layout the
+    // two accessories - and the room the overlay keeps for them - swap sides.
+    let rtl = isRTL
     if traits.plain {
       field.leftInset = side
       field.rightInset = side
-      field.leftView = affixLabel(format.prefix, role: .prefix, reusing: field.leftView as? UILabel)
+      let prefixLabel = affixLabel(format.prefix, role: .prefix,
+                                   reusing: (rtl ? field.rightView : field.leftView) as? UILabel)
+      let suffixLabel = affixLabel(format.suffix, role: .suffix,
+                                   reusing: (rtl ? field.leftView : field.rightView) as? UILabel)
+      field.leftView = rtl ? suffixLabel : prefixLabel
+      field.rightView = rtl ? prefixLabel : suffixLabel
       field.leftViewMode = field.leftView == nil ? .never : .always
-      field.rightView = affixLabel(format.suffix, role: .suffix, reusing: field.rightView as? UILabel)
       field.rightViewMode = field.rightView == nil ? .never : .always
     } else {
       field.leftView = nil
       field.rightView = nil
       field.leftViewMode = .never
       field.rightViewMode = .never
-      field.leftInset = side + affixWidth(format.prefix, role: .prefix)
-      field.rightInset = side + affixWidth(format.suffix, role: .suffix)
+      let prefixRoom = affixWidth(format.prefix, role: .prefix)
+      let suffixRoom = affixWidth(format.suffix, role: .suffix)
+      field.leftInset = side + (rtl ? suffixRoom : prefixRoom)
+      field.rightInset = side + (rtl ? prefixRoom : suffixRoom)
     }
     field.setNeedsLayout()
   }
@@ -958,7 +1008,7 @@ final class NitroInputView: UIView {
     textView.tintColor = traits.caretColor ?? traits.selectionColor
     textView.hidesNativeCaret = traits.caretHidden
     textView.isScrollEnabled = traits.scrollEnabled
-    textView.textAlignment = Self.textAlignment(for: alignment)
+    textView.textAlignment = textAlignment(for: alignment)
     textView.inputAccessoryView = field.inputAccessoryView
     applyTextViewTypography()
     // `multiline` forces plain on the JS side, so the overlay is already off;
@@ -981,7 +1031,7 @@ final class NitroInputView: UIView {
     var attributes: [NSAttributedString.Key: Any] = [.font: font]
     attributes[.foregroundColor] = typography.color
     let style = NSMutableParagraphStyle()
-    style.alignment = Self.textAlignment(for: alignment)
+    style.alignment = textAlignment(for: alignment)
     if typography.lineHeight > 0 {
       // TextKit gives a line fragment one ascent, and it is the font's however
       // tall the fragment is told to be, so neither direction centres itself.
@@ -1116,7 +1166,7 @@ final class NitroInputView: UIView {
       clearGlyphLayers()
       engine.reset()
       field.textColor = typography.color
-      field.textAlignment = Self.textAlignment(for: alignment)
+      field.textAlignment = textAlignment(for: alignment)
       field.adjustsFontSizeToFitWidth = typography.adjustsFontSizeToFit
       field.minimumFontSize = typography.adjustsFontSizeToFit
         ? typography.fontSize * typography.minimumFontScale
@@ -1135,8 +1185,9 @@ final class NitroInputView: UIView {
     updateFieldInsets()
   }
 
-  private static func textAlignment(for alignment: Alignment) -> NSTextAlignment {
+  private func textAlignment(for alignment: Alignment) -> NSTextAlignment {
     switch alignment {
+    case .auto: return isRTL ? .right : .left
     case .left: return .left
     case .center: return .center
     case .right: return .right
@@ -1390,13 +1441,6 @@ final class NitroInputView: UIView {
     }
   }
 
-  private static func textAlignment(_ alignment: Alignment) -> NSTextAlignment {
-    switch alignment {
-    case .left: return .left
-    case .center: return .center
-    case .right: return .right
-    }
-  }
 
   // MARK: - Intrinsic size
 
@@ -1502,14 +1546,14 @@ final class NitroInputView: UIView {
           scrollX -= margin - caretOnScreen
         }
       } else {
-        scrollX = alignment == .right ? maxScroll : 0
+        scrollX = resolvedAlignment == .right ? maxScroll : 0
       }
       scrollX = min(max(0, scrollX), maxScroll)
       originX = side - scrollX
     } else {
       scrollX = 0
-      switch alignment {
-      case .left: originX = side
+      switch resolvedAlignment {
+      case .auto, .left: originX = side
       case .center: originX = side + (boxWidth - shown) / 2
       case .right: originX = side + boxWidth - shown
       }
@@ -2240,9 +2284,14 @@ extension NitroInputView {
       ? frameVerticalInset.top + lineBoxHeight / 2
       : bounds.midY
     let floatedCentreY = inputFrame.variant == .outlined ? 0 : floatedSize * 0.9
-    let resting = Outline.Rect(x: Double(labelInset), y: Double(restingCentreY),
+    // The label sits at the start edge: `labelInset` from the left, or the same
+    // distance from the right under a right-to-left layout. The notch is cut
+    // where the floated label is, so it follows.
+    let restingX = isRTL ? bounds.width - labelInset - restingWidth : labelInset
+    let floatedX = isRTL ? bounds.width - labelInset - floatedWidth : labelInset
+    let resting = Outline.Rect(x: Double(restingX), y: Double(restingCentreY),
                                width: Double(restingWidth), height: Double(restingFont.lineHeight))
-    let floated = Outline.Rect(x: Double(labelInset), y: Double(floatedCentreY),
+    let floated = Outline.Rect(x: Double(floatedX), y: Double(floatedCentreY),
                                width: Double(floatedWidth), height: Double(floatedFont.lineHeight))
 
     let filled = inputFrame.variant == .filled

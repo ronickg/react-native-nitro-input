@@ -230,6 +230,9 @@ and morphs in.
 <MorphInput mode="number" fontSize={64} adjustsFontSizeToFit minimumFontScale={0.4} textAlign="center" style={{ width: '100%' }} />
 ```
 
+In a right-to-left layout the prefix sits at the right edge and the suffix at
+the left, plain or morphed; the digits keep reading left to right.
+
 Whatever the keyboard's decimal key produces (`.` or `,`) counts as the
 decimal separator; nobody types a grouping separator on purpose. The rules
 follow what a well-behaved amount field does: a decimal typed in the integer
@@ -406,7 +409,7 @@ rather than renumbering the columns.
 | `fontWeight` | `TextStyle['fontWeight']` | `'normal'` | |
 | `fontFamily` | `string` | system | Resolved like `Text`. |
 | `color` | `ColorValue` | label color | Text color. |
-| `textAlign` | `'left' \| 'center' \| 'right'` | `'left'` | Alignment inside a wider frame. |
+| `textAlign` | `'auto' \| 'left' \| 'center' \| 'right'` | `'auto'` | Alignment inside a wider frame. `'auto'` is the start edge of the layout direction, as `TextInput`; `'left'` and `'right'` are absolute. |
 | `lineHeight` | `number` | the font's own | The CSS meaning: the total height a line occupies. Honoured in both directions, including tighter than the font. |
 | `multiline` | `boolean` | `false` | Wraps. Always drawn by the system view and always `'text'` mode; `morph`, `'number'` and `'mask'` are ignored with it. |
 | `numberOfLines` / `rows` | `number` | `0` | `multiline`: lines tall before it scrolls; `0` grows with the content. |

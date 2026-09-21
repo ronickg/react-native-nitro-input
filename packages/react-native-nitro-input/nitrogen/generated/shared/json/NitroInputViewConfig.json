@@ -47,6 +47,7 @@
     "fontFamily": true,
     "color": true,
     "textAlign": true,
+    "rightToLeft": true,
     "caretColor": true,
     "selectionColor": true,
     "caretHidden": true,

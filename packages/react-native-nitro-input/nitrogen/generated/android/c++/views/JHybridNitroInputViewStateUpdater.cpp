@@ -269,6 +269,11 @@ void JHybridNitroInputViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCla
     hybridView->setTextAlign(newProps->textAlign.get());
   }
   if (oldProps == nullptr
+        ? newProps->rightToLeft.isProvided()
+        : !newProps->rightToLeft.hasSameValue(oldProps->rightToLeft)) {
+    hybridView->setRightToLeft(newProps->rightToLeft.get());
+  }
+  if (oldProps == nullptr
         ? newProps->caretColor.isProvided()
         : !newProps->caretColor.hasSameValue(oldProps->caretColor)) {
     hybridView->setCaretColor(newProps->caretColor.get());
