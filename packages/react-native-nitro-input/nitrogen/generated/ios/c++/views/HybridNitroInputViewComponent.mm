@@ -266,6 +266,12 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.affixAlign.hasSameValue(oldViewProps->affixAlign)) {
       swiftPart.setAffixAlign(static_cast<int>(newViewProps.affixAlign.get()));
     }
+    // signPlacement: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.signPlacement.isProvided()
+          : !newViewProps.signPlacement.hasSameValue(oldViewProps->signPlacement)) {
+      swiftPart.setSignPlacement(static_cast<int>(newViewProps.signPlacement.get()));
+    }
     // prefixAlign: enum
     if (oldViewProps == nullptr
           ? newViewProps.prefixAlign.isProvided()

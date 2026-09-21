@@ -645,8 +645,12 @@ function MorphInputDemo() {
           testID="morph-plain-negative"
           mode="number"
           prefix="$"
+          // The other placement: a symbol styled as an ornament reads better
+          // with the sign against the digits.
+          signPlacement="afterAffix"
+          morph
           variant="outlined"
-          label="Plain amount"
+          label="signPlacement afterAffix"
           fontSize={17}
           strokeColor="#94a3b8"
           cornerRadius={10}

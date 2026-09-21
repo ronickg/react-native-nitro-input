@@ -38,6 +38,7 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   var prefixFontSize: Double { get set }
   var suffixFontSize: Double { get set }
   var affixAlign: NitroInputAffixAlign { get set }
+  var signPlacement: NitroInputSignPlacement { get set }
   var prefixAlign: NitroInputAffixAlign { get set }
   var suffixAlign: NitroInputAffixAlign { get set }
   var placeholder: String { get set }

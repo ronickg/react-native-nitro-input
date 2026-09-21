@@ -435,6 +435,17 @@ open class HybridNitroInputViewSpec_cxx {
     }
   }
   
+  public final var signPlacement: Int32 {
+    @inline(__always)
+    get {
+      return self.__implementation.signPlacement.rawValue
+    }
+    @inline(__always)
+    set {
+      self.__implementation.signPlacement = margelo.nitro.nitroinput.NitroInputSignPlacement(rawValue: newValue)!
+    }
+  }
+  
   public final var prefixAlign: Int32 {
     @inline(__always)
     get {

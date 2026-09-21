@@ -57,6 +57,8 @@ final class NitroInputView: UIView {
     var decimalSeparator: String = "."
     var prefix: String = ""
     var suffix: String = ""
+    /// Where a negative amount's sign sits relative to `prefix`.
+    var signPlacement: SignPlacement = .beforeAffix
     var placeholder: String = ""
     /// Text mode only; 0 = unlimited.
     var maxLength: Int = 0
@@ -67,6 +69,9 @@ final class NitroInputView: UIView {
   enum AffixAlign {
     case baseline, center, top, bottom
   }
+
+  /// Where a negative amount's sign sits relative to the prefix.
+  enum SignPlacement: Equatable { case beforeAffix, afterAffix }
 
   enum Variant: Equatable { case none, outlined, filled }
   enum LabelBehavior: Equatable { case float, always }
@@ -1220,7 +1225,8 @@ final class NitroInputView: UIView {
     // order they are added - and is only laid out ahead of the prefix.
     var rest = Array(bodyText.unicodeScalars)
     let sign: Unicode.Scalar? =
-      !showPlaceholder && !format.prefix.isEmpty && rest.first.map(Self.isSign) == true
+      format.signPlacement == .beforeAffix && !showPlaceholder && !format.prefix.isEmpty
+        && rest.first.map(Self.isSign) == true
         ? rest.removeFirst()
         : nil
     if let sign {

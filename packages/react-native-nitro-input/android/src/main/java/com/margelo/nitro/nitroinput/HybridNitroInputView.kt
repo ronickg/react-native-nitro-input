@@ -94,6 +94,7 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
   override var suffixFontSize: Double = Double.NaN
     set(v) { field = v; markConfigDirty() }
   override var affixAlign: NitroInputAffixAlign = NitroInputAffixAlign.BASELINE
+  override var signPlacement: NitroInputSignPlacement = NitroInputSignPlacement.BEFOREAFFIX
     set(v) { field = v; markConfigDirty() }
   override var prefixAlign: NitroInputAffixAlign = NitroInputAffixAlign.BASELINE
     set(v) { field = v; markConfigDirty() }
@@ -315,6 +316,7 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     prefixFontSize = Double.NaN
     suffixFontSize = Double.NaN
     affixAlign = NitroInputAffixAlign.BASELINE
+    signPlacement = NitroInputSignPlacement.BEFOREAFFIX
     prefixAlign = NitroInputAffixAlign.BASELINE
     suffixAlign = NitroInputAffixAlign.BASELINE
     placeholder = ""
@@ -502,6 +504,7 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
       decimalSeparator = decimalSeparator,
       prefix = prefix,
       suffix = suffix,
+      signBeforeAffix = signPlacement != NitroInputSignPlacement.AFTERAFFIX,
       placeholder = placeholder,
     )
     inputView.typography = NitroInputView.Typography(

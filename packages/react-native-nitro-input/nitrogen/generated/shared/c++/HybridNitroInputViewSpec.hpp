@@ -23,6 +23,8 @@ namespace margelo::nitro::nitroinput { enum class NitroInputVariant; }
 namespace margelo::nitro::nitroinput { enum class NitroInputLabelBehavior; }
 // Forward declaration of `NitroInputAffixAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputAffixAlign; }
+// Forward declaration of `NitroInputSignPlacement` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputSignPlacement; }
 // Forward declaration of `NitroInputEasing` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputEasing; }
 // Forward declaration of `NitroInputEffect` to properly resolve imports.
@@ -49,6 +51,7 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardAppearance; 
 #include "NitroInputVariant.hpp"
 #include "NitroInputLabelBehavior.hpp"
 #include "NitroInputAffixAlign.hpp"
+#include "NitroInputSignPlacement.hpp"
 #include "NitroInputEasing.hpp"
 #include "NitroInputEffect.hpp"
 #include "NitroInputTextAlign.hpp"
@@ -144,6 +147,8 @@ namespace margelo::nitro::nitroinput {
       virtual void setSuffixFontSize(double suffixFontSize) = 0;
       virtual NitroInputAffixAlign getAffixAlign() = 0;
       virtual void setAffixAlign(NitroInputAffixAlign affixAlign) = 0;
+      virtual NitroInputSignPlacement getSignPlacement() = 0;
+      virtual void setSignPlacement(NitroInputSignPlacement signPlacement) = 0;
       virtual NitroInputAffixAlign getPrefixAlign() = 0;
       virtual void setPrefixAlign(NitroInputAffixAlign prefixAlign) = 0;
       virtual NitroInputAffixAlign getSuffixAlign() = 0;

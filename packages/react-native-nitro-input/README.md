@@ -404,6 +404,7 @@ rather than renumbering the columns.
 | `onChangeText` | `(text) => void` | – | After every edit, the formatted text. A `'worklet'` runs on the UI thread. |
 | `onChangeValue` | `(value) => void` | – | `number` mode: the numeric value, `NaN` while empty. A `'worklet'` runs on the UI thread. |
 | `onChangeMask` | `(formatted, extracted, tail, complete) => void` | – | `mask` mode: the formatted text, the characters the user contributed, what is still missing, and whether every mandatory slot is filled. |
+| `signPlacement` | `'beforeAffix' \| 'afterAffix'` | `'beforeAffix'` | Where a negative amount's sign sits relative to `prefix`: `-$1,234.56` or `$-1,234.56`. Morph only — a plain field's affixes are accessory views outside the text. |
 | `onFocus` / `onBlur` | `(event) => void` | – | Carries `text`, `eventCount` and `target`. |
 | `onSubmitEditing` | `(event) => void` | – | Return key pressed (the field then blurs). |
 | `onEndEditing` | `(event) => void` | – | Editing finished. |

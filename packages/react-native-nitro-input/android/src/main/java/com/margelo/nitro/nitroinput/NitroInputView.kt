@@ -102,6 +102,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val decimalSeparator: String = ".",
     val prefix: String = "",
     val suffix: String = "",
+    /** Where a negative amount's sign sits relative to `prefix`. */
+    val signBeforeAffix: Boolean = true,
     val placeholder: String = "",
   )
 
@@ -1334,7 +1336,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     // to the amount, not to the digits after the symbol. It stays a *body*
     // glyph - it is part of the text, and the caret counts body glyphs in the
     // order they are added - and is only laid out ahead of the prefix.
-    val signed = !showPlaceholder && format.prefix.isNotEmpty() && shown.isNotEmpty() && isSign(shown[0])
+    val signed = format.signBeforeAffix && !showPlaceholder && format.prefix.isNotEmpty() &&
+      shown.isNotEmpty() && isSign(shown[0])
     if (signed) addRun(shown.substring(0, 1), Role.BODY, f, placeholder = false)
     addRun(format.prefix, Role.PREFIX, f, placeholder = false)
     addRun(if (signed) shown.substring(1) else shown, Role.BODY, f, placeholder = showPlaceholder)

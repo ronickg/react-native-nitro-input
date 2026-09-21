@@ -22,6 +22,8 @@ namespace margelo::nitro::nitroinput { enum class NitroInputVariant; }
 namespace margelo::nitro::nitroinput { enum class NitroInputLabelBehavior; }
 // Forward declaration of `NitroInputAffixAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputAffixAlign; }
+// Forward declaration of `NitroInputSignPlacement` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputSignPlacement; }
 // Forward declaration of `NitroInputEasing` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputEasing; }
 // Forward declaration of `NitroInputEffect` to properly resolve imports.
@@ -48,6 +50,7 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardAppearance; 
 #include "NitroInputVariant.hpp"
 #include "NitroInputLabelBehavior.hpp"
 #include "NitroInputAffixAlign.hpp"
+#include "NitroInputSignPlacement.hpp"
 #include "NitroInputEasing.hpp"
 #include "NitroInputEffect.hpp"
 #include "NitroInputTextAlign.hpp"
@@ -285,6 +288,13 @@ namespace margelo::nitro::nitroinput {
     }
     inline void setAffixAlign(NitroInputAffixAlign affixAlign) noexcept override {
       _swiftPart.setAffixAlign(static_cast<int>(affixAlign));
+    }
+    inline NitroInputSignPlacement getSignPlacement() noexcept override {
+      auto __result = _swiftPart.getSignPlacement();
+      return static_cast<NitroInputSignPlacement>(__result);
+    }
+    inline void setSignPlacement(NitroInputSignPlacement signPlacement) noexcept override {
+      _swiftPart.setSignPlacement(static_cast<int>(signPlacement));
     }
     inline NitroInputAffixAlign getPrefixAlign() noexcept override {
       auto __result = _swiftPart.getPrefixAlign();
