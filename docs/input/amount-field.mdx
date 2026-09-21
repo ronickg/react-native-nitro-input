@@ -50,3 +50,19 @@ Keep the field uncontrolled and read `onChangeValue` (the number) or `onChangeTe
 />`}>
   <NitroInputEuroDemo />
 </Example>
+
+## Negative amounts
+
+The sign belongs to the amount, not to the digits after the currency symbol, so the morph draws `-$1,234.56`: the way every locale that leads with its symbol writes it. A symbol styled as an ornament, small, raised and in another colour like the one above, can read better with the sign against the digits. `signPlacement="afterAffix"` gives `$-1,234.56`.
+
+```tsx
+<MorphInput
+  mode="number"
+  prefix="$"
+  prefixFontSize={28}
+  affixAlign="top"
+  signPlacement="afterAffix"
+/>
+```
+
+Only the morph can choose. A plain [`NitroInput`](/input/plain-field)'s affixes are real accessory views that sit outside the text, so it always draws `$-1,234.56`.
