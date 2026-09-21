@@ -79,10 +79,14 @@ export function ParityScreen() {
           }}
           onFocus={() => push('morph', 'onFocus')}
           onBlur={() => push('morph', 'onBlur')}
-          onSubmitEditing={t => push('morph', `onSubmitEditing "${t}"`)}
-          onEndEditing={t => push('morph', `onEndEditing "${t}"`)}
-          onSelectionChange={sel => push('morph', `onSelectionChange ${sel.start}-${sel.end}`)}
-          onKeyPress={k => push('morph', `onKeyPress "${k}"`)}
+          // Deliberately the same handler bodies as the TextInput below, down to
+          // reaching through `nativeEvent`: what a drop-in has to mean is that
+          // this code does not change when the component does. (`({ text }) =>`
+          // works too - see the mask field on the Demo screen.)
+          onSubmitEditing={e => push('morph', `onSubmitEditing "${e.nativeEvent.text}"`)}
+          onEndEditing={e => push('morph', `onEndEditing "${e.nativeEvent.text}"`)}
+          onSelectionChange={e => push('morph', `onSelectionChange ${e.nativeEvent.selection.start}-${e.nativeEvent.selection.end}`)}
+          onKeyPress={e => push('morph', `onKeyPress "${e.nativeEvent.key}"`)}
         />
         <FieldLabel>TextInput</FieldLabel>
         <TextInput

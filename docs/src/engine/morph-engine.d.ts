@@ -61,6 +61,30 @@ export interface AmountFormatter extends ClassHandle {
   kindOf(_0: number): number;
 }
 
+export type Segment = {
+  verb: number,
+  x: number,
+  y: number,
+  radius: number,
+  startAngle: number,
+  sweepAngle: number
+};
+
+export interface SegmentList extends ClassHandle, Iterable<Segment> {
+  push_back(_0: Segment): void;
+  resize(_0: number, _1: Segment): void;
+  size(): number;
+  get(_0: number): Segment | undefined;
+  set(_0: number, _1: Segment): boolean;
+}
+
+export type Rect = {
+  x: number,
+  y: number,
+  width: number,
+  height: number
+};
+
 interface EmbindModule {
   MorphEngine: {
     new(): MorphEngine;
@@ -69,6 +93,11 @@ interface EmbindModule {
     new(): AmountFormatter;
     codePointCount(_0: EmbindString): number;
   };
+  SegmentList: {
+    new(): SegmentList;
+  };
+  outlinePath(_0: number, _1: number, _2: number, _3: number, _4: number, _5: number, _6: number, _7: number, _8: number): SegmentList;
+  lerpRect(_0: number, _1: number, _2: number, _3: number, _4: number, _5: number, _6: number, _7: number, _8: number): Rect;
 }
 
 export type MainModule = WasmModule & EmbindModule;

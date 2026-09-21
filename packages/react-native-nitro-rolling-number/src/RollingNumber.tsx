@@ -397,7 +397,7 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
         easing={easing ?? 'easeInOut'}
         bounce={bounce ?? 0.15}
         stagger={stagger ?? 0}
-        direction={direction ?? 'auto'}
+        rollDirection={direction ?? 'auto'}
         revealState={reveal === undefined ? 0 : reveal ? 2 : 1}
         revealStyle={revealStyle ?? 'count'}
         revealDuration={revealDuration ?? 2200}

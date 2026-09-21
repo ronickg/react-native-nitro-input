@@ -14,13 +14,25 @@ import {
   RollingNumber,
   type RollingNumberHandle,
 } from 'react-native-nitro-rolling-number'
-import { MorphInput, type MorphInputHandle, type NitroInputTransform } from 'react-native-nitro-input'
+import {
+  MorphInput,
+  NitroInput,
+  type MorphInputHandle,
+  type NitroInputTransform,
+} from 'react-native-nitro-input'
 import { NumberFlow } from 'number-flow-react-native'
 import { SkiaNumberFlow } from 'number-flow-react-native/skia'
 import { Canvas, matchFont } from '@shopify/react-native-skia'
 import AnimatedNumbers from 'react-native-animated-numbers'
 import Animated, { useAnimatedStyle, useFrameCallback, useSharedValue } from 'react-native-reanimated'
 import { AsYouType } from 'libphonenumber-js/min'
+
+type MaskReadout = { formatted: string; extracted: string; tail: string; complete: boolean }
+const EMPTY_MASK: MaskReadout = { formatted: '', extracted: '', tail: '', complete: false }
+/** A custom slot character: `H` accepts one hex digit. Defined once so the prop stays stable. */
+const HEX_NOTATION = [
+  { character: 'H', characterSet: '0123456789abcdefABCDEF', isOptional: false },
+]
 
 // React Native exposes performance.now() at runtime; the RN types omit the DOM lib.
 declare const performance: { now(): number }
@@ -187,6 +199,7 @@ function BenchItem({
           color="#111"
           duration={500}
           loading={shimmer}
+          direction="up"
           testID="bench-nitro"
         />
       )
@@ -492,6 +505,12 @@ function MorphInputDemo() {
   const [amountValue, setAmountValue] = useState(NaN)
   const [note, setNote] = useState('')
   const [focused, setFocused] = useState(false)
+  const maskPhoneRef = useRef<MorphInputHandle>(null)
+  const [maskSel, setMaskSel] = useState('-')
+  const [outlinedText, setOutlinedText] = useState('')
+  const [multilineText, setMultilineText] = useState('')
+  const [maskPhone, setMaskPhone] = useState(EMPTY_MASK)
+  const [maskHex, setMaskHex] = useState(EMPTY_MASK)
   return (
     <Section title="Morph input" hint="A native input whose text morphs as you type. The amount is formatted natively, caret and all, with no JS round trip.">
       <View style={styles.morphAmountBox}>
@@ -519,10 +538,173 @@ function MorphInputDemo() {
       <View style={styles.row}>
         <Button title="Set 1,234.56" testID="morph-set" onPress={() => amountRef.current?.setValue(1234.56)} />
         <Button title="Set 98,765" testID="morph-set-2" onPress={() => amountRef.current?.setValue(98765)} />
+        <Button title="Set -1,234.56" testID="morph-set-negative" onPress={() => amountRef.current?.setValue(-1234.56)} />
         <Button title="Clear" testID="morph-clear" onPress={() => amountRef.current?.clear()} />
         <Button title="Focus" testID="morph-focus" onPress={() => amountRef.current?.focus()} />
         <Button title="Blur" testID="morph-blur" onPress={() => amountRef.current?.blur()} />
       </View>
+      <Text style={styles.morphReadout}>
+        Below: NitroInput (no glyph engine, so typing is instant) with the
+        outlined and filled frames. The notch is a real hole in the stroke.
+      </Text>
+      <View style={styles.outlineFields}>
+        <NitroInput
+          testID="morph-outlined"
+          variant="outlined"
+          label="Email address"
+          placeholder="you@example.com"
+          fontSize={17}
+          strokeColor="#94a3b8"
+          focusedStrokeColor="#2563eb"
+          cornerRadius={10}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          style={styles.outlineField}
+          onChangeText={setOutlinedText}
+        />
+        <NitroInput
+          testID="morph-outlined-always"
+          variant="outlined"
+          label="Always floated"
+          labelBehavior="always"
+          prefix="$ "
+          fontSize={17}
+          strokeColor="#94a3b8"
+          focusedStrokeColor="#16a34a"
+          labelColor="#b45309"
+          labelFocusedColor="#16a34a"
+          labelFontSize={11}
+          cornerRadius={10}
+          style={styles.outlineField}
+        />
+        <NitroInput
+          testID="morph-filled"
+          variant="filled"
+          label="Filled variant"
+          placeholder="type here"
+          fontSize={17}
+          fillColor="#e2e8f0"
+          strokeColor="#475569"
+          focusedStrokeColor="#7c3aed"
+          cornerRadius={10}
+          style={styles.outlineField}
+        />
+      </View>
+      <View style={styles.outlineFields}>
+        {/* No `style` at all: a drop-in has to take its width from its parent,
+            the way a TextInput does, rather than sizing to its content. */}
+        <NitroInput testID="morph-stretch" placeholder="No style — should fill the row" fontSize={15} />
+        {/* Wrapping. Grows with its text until `numberOfLines`, then scrolls. */}
+        <NitroInput
+          testID="morph-multiline"
+          multiline
+          numberOfLines={4}
+          variant="outlined"
+          label="Notes"
+          placeholder="Type a few lines…"
+          fontSize={15}
+          strokeColor="#94a3b8"
+          focusedStrokeColor="#2563eb"
+          cornerRadius={10}
+          onChangeText={setMultilineText}
+        />
+        <Text style={styles.morphReadout} testID="morph-multiline-readout">
+          multiline {JSON.stringify(multilineText)}
+        </Text>
+        {/* lineHeight, both directions. 34 is looser than the font's own line
+            box at 15pt, 14 is tighter — the case RN's correction skips, which
+            is why a compressed lineHeight rides off-centre on a TextInput. */}
+        <NitroInput
+          testID="morph-lineheight-loose"
+          multiline
+          numberOfLines={3}
+          lineHeight={34}
+          variant="outlined"
+          label="lineHeight 34 (loose)"
+          fontSize={15}
+          strokeColor="#94a3b8"
+          cornerRadius={10}
+          defaultValue={'One line\nTwo lines\nThree lines'}
+        />
+        <NitroInput
+          testID="morph-lineheight-tight"
+          multiline
+          numberOfLines={3}
+          lineHeight={14}
+          variant="outlined"
+          label="lineHeight 14 (tight)"
+          fontSize={15}
+          strokeColor="#94a3b8"
+          cornerRadius={10}
+          defaultValue={'One line\nTwo lines\nThree lines'}
+        />
+      </View>
+      <Text style={styles.morphReadout} testID="morph-outlined-readout">
+        outlined "{outlinedText}"
+      </Text>
+      <View style={styles.morphTextBox}>
+        <MorphInput
+          ref={maskPhoneRef}
+          testID="morph-mask-phone"
+          mode="mask"
+          mask="+1 ([000]) [000]-[0000]"
+          placeholder="+1 (000) 000-0000"
+          fontSize={22}
+          maskAutoSkip
+          keyboardType="number-pad"
+          style={styles.morphText}
+          onSelectionChange={({ start, end }) => setMaskSel(`${start}-${end}`)}
+          onChangeMask={(formatted, extracted, tail, complete) =>
+            setMaskPhone({ formatted, extracted, tail, complete })
+          }
+        />
+      </View>
+      <View style={styles.row}>
+        <Button
+          title="Select 4-7"
+          testID="morph-mask-select"
+          onPress={() => {
+            // Tapping a button dismisses the keyboard, and a blurred field has
+            // no selection to move - focus first, as a real caller would.
+            maskPhoneRef.current?.focus()
+            maskPhoneRef.current?.setSelection(4, 7)
+          }}
+        />
+        <Button
+          title="Caret 4"
+          testID="morph-mask-caret"
+          onPress={() => {
+            maskPhoneRef.current?.focus()
+            maskPhoneRef.current?.setSelection(4)
+          }}
+        />
+      </View>
+      <Text style={styles.morphReadout} testID="morph-mask-sel-readout">
+        selection {maskSel}
+      </Text>
+      <Text style={styles.morphReadout} testID="morph-mask-phone-readout">
+        extracted "{maskPhone.extracted}" · tail "{maskPhone.tail}" ·{' '}
+        {maskPhone.complete ? 'complete' : 'incomplete'}
+      </Text>
+      <View style={styles.morphTextBox}>
+        <MorphInput
+          testID="morph-mask-hex"
+          mode="mask"
+          mask="#[HHHHHH]"
+          maskNotations={HEX_NOTATION}
+          placeholder="#HHHHHH"
+          fontSize={22}
+          autoCapitalize="none"
+          style={styles.morphText}
+          onChangeMask={(formatted, extracted, tail, complete) =>
+            setMaskHex({ formatted, extracted, tail, complete })
+          }
+        />
+      </View>
+      <Text style={styles.morphReadout} testID="morph-mask-hex-readout">
+        extracted "{maskHex.extracted}" · tail "{maskHex.tail}" ·{' '}
+        {maskHex.complete ? 'complete' : 'incomplete'}
+      </Text>
       <View style={styles.morphTextBox}>
         <MorphInput
           testID="morph-text"
@@ -1146,6 +1328,9 @@ export function DemoScreen() {
 }
 
 const styles = StyleSheet.create({
+  outlineFields: { marginTop: 8, paddingVertical: 8, gap: 18 },
+  outlineField: { width: '100%', height: 52 },
+
   root: { flex: 1, backgroundColor: '#F2F2F7' },
   rootDark: { backgroundColor: '#000' },
   content: { padding: 16, gap: 16 },

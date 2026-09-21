@@ -15,6 +15,12 @@
 
 // Forward declaration of `NitroInputMode` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputMode; }
+// Forward declaration of `NitroInputNotation` to properly resolve imports.
+namespace margelo::nitro::nitroinput { struct NitroInputNotation; }
+// Forward declaration of `NitroInputVariant` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputVariant; }
+// Forward declaration of `NitroInputLabelBehavior` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputLabelBehavior; }
 // Forward declaration of `NitroInputAffixAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputAffixAlign; }
 // Forward declaration of `NitroInputEasing` to properly resolve imports.
@@ -29,6 +35,8 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardType; }
 namespace margelo::nitro::nitroinput { enum class NitroInputReturnKeyType; }
 // Forward declaration of `NitroInputAutoCapitalize` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputAutoCapitalize; }
+// Forward declaration of `NitroInputTextAlignVertical` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputTextAlignVertical; }
 // Forward declaration of `NitroInputSubmitBehavior` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputSubmitBehavior; }
 // Forward declaration of `NitroInputKeyboardAppearance` to properly resolve imports.
@@ -36,6 +44,10 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardAppearance; 
 
 #include <string>
 #include "NitroInputMode.hpp"
+#include "NitroInputNotation.hpp"
+#include <vector>
+#include "NitroInputVariant.hpp"
+#include "NitroInputLabelBehavior.hpp"
 #include "NitroInputAffixAlign.hpp"
 #include "NitroInputEasing.hpp"
 #include "NitroInputEffect.hpp"
@@ -43,6 +55,7 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardAppearance; 
 #include "NitroInputKeyboardType.hpp"
 #include "NitroInputReturnKeyType.hpp"
 #include "NitroInputAutoCapitalize.hpp"
+#include "NitroInputTextAlignVertical.hpp"
 #include "NitroInputSubmitBehavior.hpp"
 #include "NitroInputKeyboardAppearance.hpp"
 #include <functional>
@@ -87,10 +100,40 @@ namespace margelo::nitro::nitroinput {
       virtual void setFractionDigits(double fractionDigits) = 0;
       virtual double getMaxIntegerDigits() = 0;
       virtual void setMaxIntegerDigits(double maxIntegerDigits) = 0;
+      virtual std::string getMask() = 0;
+      virtual void setMask(const std::string& mask) = 0;
+      virtual std::vector<NitroInputNotation> getMaskNotations() = 0;
+      virtual void setMaskNotations(const std::vector<NitroInputNotation>& maskNotations) = 0;
+      virtual bool getMaskAutocomplete() = 0;
+      virtual void setMaskAutocomplete(bool maskAutocomplete) = 0;
+      virtual bool getMaskAutoSkip() = 0;
+      virtual void setMaskAutoSkip(bool maskAutoSkip) = 0;
       virtual std::string getGroupingSeparator() = 0;
       virtual void setGroupingSeparator(const std::string& groupingSeparator) = 0;
       virtual std::string getDecimalSeparator() = 0;
       virtual void setDecimalSeparator(const std::string& decimalSeparator) = 0;
+      virtual NitroInputVariant getVariant() = 0;
+      virtual void setVariant(NitroInputVariant variant) = 0;
+      virtual std::string getLabel() = 0;
+      virtual void setLabel(const std::string& label) = 0;
+      virtual NitroInputLabelBehavior getLabelBehavior() = 0;
+      virtual void setLabelBehavior(NitroInputLabelBehavior labelBehavior) = 0;
+      virtual double getLabelColor() = 0;
+      virtual void setLabelColor(double labelColor) = 0;
+      virtual double getLabelFocusedColor() = 0;
+      virtual void setLabelFocusedColor(double labelFocusedColor) = 0;
+      virtual double getLabelFontSize() = 0;
+      virtual void setLabelFontSize(double labelFontSize) = 0;
+      virtual double getStrokeColor() = 0;
+      virtual void setStrokeColor(double strokeColor) = 0;
+      virtual double getFocusedStrokeColor() = 0;
+      virtual void setFocusedStrokeColor(double focusedStrokeColor) = 0;
+      virtual double getStrokeWidth() = 0;
+      virtual void setStrokeWidth(double strokeWidth) = 0;
+      virtual double getCornerRadius() = 0;
+      virtual void setCornerRadius(double cornerRadius) = 0;
+      virtual double getFillColor() = 0;
+      virtual void setFillColor(double fillColor) = 0;
       virtual std::string getPrefix() = 0;
       virtual void setPrefix(const std::string& prefix) = 0;
       virtual std::string getSuffix() = 0;
@@ -119,6 +162,8 @@ namespace margelo::nitro::nitroinput {
       virtual void setEffect(NitroInputEffect effect) = 0;
       virtual double getFontSize() = 0;
       virtual void setFontSize(double fontSize) = 0;
+      virtual double getLineHeight() = 0;
+      virtual void setLineHeight(double lineHeight) = 0;
       virtual double getFontWeight() = 0;
       virtual void setFontWeight(double fontWeight) = 0;
       virtual std::string getFontFamily() = 0;
@@ -151,6 +196,14 @@ namespace margelo::nitro::nitroinput {
       virtual void setAutoCorrect(bool autoCorrect) = 0;
       virtual bool getEditable() = 0;
       virtual void setEditable(bool editable) = 0;
+      virtual bool getMultiline() = 0;
+      virtual void setMultiline(bool multiline) = 0;
+      virtual double getNumberOfLines() = 0;
+      virtual void setNumberOfLines(double numberOfLines) = 0;
+      virtual NitroInputTextAlignVertical getTextAlignVertical() = 0;
+      virtual void setTextAlignVertical(NitroInputTextAlignVertical textAlignVertical) = 0;
+      virtual bool getScrollEnabled() = 0;
+      virtual void setScrollEnabled(bool scrollEnabled) = 0;
       virtual bool getAutoFocus() = 0;
       virtual void setAutoFocus(bool autoFocus) = 0;
       virtual std::string getFieldTestID() = 0;
@@ -191,6 +244,8 @@ namespace margelo::nitro::nitroinput {
       virtual void setOnChangeValueWorklet(double onChangeValueWorklet) = 0;
       virtual std::optional<std::function<void(const std::string& /* text */, double /* eventCount */)>> getOnChangeText() = 0;
       virtual void setOnChangeText(const std::optional<std::function<void(const std::string& /* text */, double /* eventCount */)>>& onChangeText) = 0;
+      virtual std::optional<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>> getOnChangeMask() = 0;
+      virtual void setOnChangeMask(const std::optional<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>>& onChangeMask) = 0;
       virtual std::optional<std::function<void(double /* value */)>> getOnChangeValue() = 0;
       virtual void setOnChangeValue(const std::optional<std::function<void(double /* value */)>>& onChangeValue) = 0;
       virtual std::optional<std::function<void(bool /* focused */)>> getOnFocusChange() = 0;
@@ -216,6 +271,7 @@ namespace margelo::nitro::nitroinput {
       virtual std::string currentText() = 0;
       virtual double getValue() = 0;
       virtual bool isFocused() = 0;
+      virtual void setSelection(double start, double end) = 0;
 
     protected:
       // Hybrid Setup

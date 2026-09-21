@@ -17,6 +17,7 @@
 
 #include "JHybridNitroInputViewSpec.hpp"
 #include "JFunc_void_std__string_double.hpp"
+#include "JFunc_void_std__string_std__string_std__string_bool.hpp"
 #include "JFunc_void_double.hpp"
 #include "JFunc_void_bool.hpp"
 #include "JFunc_void_std__string.hpp"
@@ -49,6 +50,7 @@ void registerAllNatives() {
   // Register native JNI methods
   margelo::nitro::nitroinput::JHybridNitroInputViewSpec::CxxPart::registerNatives();
   margelo::nitro::nitroinput::JFunc_void_std__string_double_cxx::registerNatives();
+  margelo::nitro::nitroinput::JFunc_void_std__string_std__string_std__string_bool_cxx::registerNatives();
   margelo::nitro::nitroinput::JFunc_void_double_cxx::registerNatives();
   margelo::nitro::nitroinput::JFunc_void_bool_cxx::registerNatives();
   margelo::nitro::nitroinput::JFunc_void_std__string_cxx::registerNatives();

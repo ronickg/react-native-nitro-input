@@ -30,9 +30,9 @@ namespace margelo::nitro::nitroinput {
    */
   enum class NitroInputAffixAlign {
     CENTER      SWIFT_NAME(center) = 0,
-    BASELINE      SWIFT_NAME(baseline) = 1,
-    TOP      SWIFT_NAME(top) = 2,
-    BOTTOM      SWIFT_NAME(bottom) = 3,
+    TOP      SWIFT_NAME(top) = 1,
+    BOTTOM      SWIFT_NAME(bottom) = 2,
+    BASELINE      SWIFT_NAME(baseline) = 3,
   } CLOSED_ENUM;
 
 } // namespace margelo::nitro::nitroinput
@@ -46,9 +46,9 @@ namespace margelo::nitro {
       std::string unionValue = JSIConverter<std::string>::fromJSI(runtime, arg);
       switch (hashString(unionValue.c_str(), unionValue.size())) {
         case hashString("center"): return margelo::nitro::nitroinput::NitroInputAffixAlign::CENTER;
-        case hashString("baseline"): return margelo::nitro::nitroinput::NitroInputAffixAlign::BASELINE;
         case hashString("top"): return margelo::nitro::nitroinput::NitroInputAffixAlign::TOP;
         case hashString("bottom"): return margelo::nitro::nitroinput::NitroInputAffixAlign::BOTTOM;
+        case hashString("baseline"): return margelo::nitro::nitroinput::NitroInputAffixAlign::BASELINE;
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert \"" + unionValue + "\" to enum NitroInputAffixAlign - invalid value!");
       }
@@ -56,9 +56,9 @@ namespace margelo::nitro {
     static inline jsi::Value toJSI(jsi::Runtime& runtime, margelo::nitro::nitroinput::NitroInputAffixAlign arg) {
       switch (arg) {
         case margelo::nitro::nitroinput::NitroInputAffixAlign::CENTER: return JSIConverter<std::string>::toJSI(runtime, "center");
-        case margelo::nitro::nitroinput::NitroInputAffixAlign::BASELINE: return JSIConverter<std::string>::toJSI(runtime, "baseline");
         case margelo::nitro::nitroinput::NitroInputAffixAlign::TOP: return JSIConverter<std::string>::toJSI(runtime, "top");
         case margelo::nitro::nitroinput::NitroInputAffixAlign::BOTTOM: return JSIConverter<std::string>::toJSI(runtime, "bottom");
+        case margelo::nitro::nitroinput::NitroInputAffixAlign::BASELINE: return JSIConverter<std::string>::toJSI(runtime, "baseline");
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert NitroInputAffixAlign to JS - invalid value: "
                                     + std::to_string(static_cast<int>(arg)) + "!");
@@ -71,9 +71,9 @@ namespace margelo::nitro {
       std::string unionValue = JSIConverter<std::string>::fromJSI(runtime, value);
       switch (hashString(unionValue.c_str(), unionValue.size())) {
         case hashString("center"):
-        case hashString("baseline"):
         case hashString("top"):
         case hashString("bottom"):
+        case hashString("baseline"):
           return true;
         default:
           return false;

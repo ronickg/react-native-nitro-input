@@ -17,7 +17,8 @@ import com.facebook.proguard.annotations.DoNotStrip
 @Keep
 enum class NitroInputMode(@DoNotStrip @Keep val value: Int) {
   NUMBER(0),
-  TEXT(1);
+  TEXT(1),
+  MASK(2);
 
   companion object
 }

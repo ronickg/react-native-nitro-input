@@ -6,9 +6,23 @@ import type {
 
 /**
  * What the field holds. `'number'` formats natively as you type (grouping,
- * decimal, currency affixes); `'text'` is a plain single-line field.
+ * decimal, currency affixes); `'mask'` applies a fixed pattern (`mask`);
+ * `'text'` is a plain single-line field.
  */
-export type NitroInputMode = 'text' | 'number'
+export type NitroInputMode = 'text' | 'number' | 'mask'
+
+/**
+ * A caller-defined slot character for `mask`, beyond the built-in
+ * `0 9 A a _ - …`. `characterSet` lists every character the slot accepts.
+ */
+export interface NitroInputNotation {
+  /** The character that stands for this slot in the mask, e.g. `'H'`. */
+  character: string
+  /** Every accepted character, e.g. `'0123456789abcdef'`. */
+  characterSet: string
+  /** An optional slot may be skipped; a mandatory one must be filled. */
+  isOptional: boolean
+}
 
 /**
  * Timing curve of the morph. `'expo'` is Torph's default
@@ -28,8 +42,27 @@ export type NitroInputEasing =
  */
 export type NitroInputEffect = 'auto' | 'slide' | 'fade'
 
+/**
+ * The field's frame. `'none'` draws nothing, leaving the border to the host
+ * view's own `style` as before. `'outlined'` strokes a rounded rectangle whose
+ * top edge is notched around the floating label - a real hole in the path, so
+ * whatever is behind the field shows through it. `'filled'` tints the box and
+ * underlines it instead, with the label floating inside.
+ */
+export type NitroInputVariant = 'none' | 'outlined' | 'filled'
+
+/**
+ * Where the label sits. `'float'` is the Material behaviour: inline while the
+ * field is empty and unfocused, floating once it is focused or has text.
+ * `'always'` keeps it floated.
+ */
+export type NitroInputLabelBehavior = 'float' | 'always'
+
 /** Horizontal alignment of the text inside the view's frame. */
 export type NitroInputTextAlign = 'left' | 'center' | 'right'
+
+/** Where the text sits in a field taller than one line. */
+export type NitroInputTextAlignVertical = 'auto' | 'top' | 'center' | 'bottom'
 
 /** How a prefix/suffix drawn at a different size lines up with the text. */
 export type NitroInputAffixAlign = 'baseline' | 'center' | 'top' | 'bottom'
@@ -84,7 +117,7 @@ export interface NitroInputProps extends HybridViewProps {
    * React Native's own `TextInput`.
    */
   mostRecentEventCount: number
-  /** `'text'` or `'number'`. Default: `'text'`. */
+  /** `'text'`, `'number'` or `'mask'`. Default: `'text'`. */
   mode: NitroInputMode
   /**
    * Draw the text with the system field itself and skip the morph overlay
@@ -99,10 +132,64 @@ export interface NitroInputProps extends HybridViewProps {
   fractionDigits: number
   /** `'number'`: most integer digits accepted. Default: `15`. */
   maxIntegerDigits: number
+  /**
+   * `'mask'`: the pattern, e.g. `'+1 ([000]) [000]-[0000]'`.
+   *
+   * `[0]` mandatory digit, `[9]` optional digit, `[A]` mandatory letter,
+   * `[a]` optional letter, `[_]` mandatory alphanumeric, `[-]` optional
+   * alphanumeric, `[…]` an unbounded run of the preceding type. `{…}` is a
+   * fixed block whose characters count towards the extracted value; a literal
+   * outside brackets is shown but not extracted. `\\` escapes.
+   *
+   * An invalid pattern leaves the field unmasked rather than breaking it.
+   * Default: `''`.
+   */
+  mask: string
+  /** `'mask'`: extra slot characters beyond the built-in ones. Default: none. */
+  maskNotations: NitroInputNotation[]
+  /**
+   * `'mask'`: fill in the pattern's constant characters as soon as the caret
+   * reaches them, so typing `212` into `'+1 ([000]) [000]'` leaves
+   * `'+1 (212) '`. Default: `true`.
+   */
+  maskAutocomplete: boolean
+  /**
+   * `'mask'`: backspacing at the end of a run walks back over the constants
+   * `maskAutocomplete` added, instead of stopping in front of them.
+   * Default: `false`.
+   */
+  maskAutoSkip: boolean
   /** `'number'`: inserted between every three integer digits; empty disables grouping. Default: `','`. */
   groupingSeparator: string
   /** `'number'`: between the integer and fraction digits. Default: `'.'`. */
   decimalSeparator: string
+  /** The field's frame. Default: `'none'` - the host view's `style` draws the border. */
+  variant: NitroInputVariant
+  /** Floating label. Empty draws none (and leaves the outline unbroken). Default: `''`. */
+  label: string
+  /** Whether the label floats on focus or stays floated. Default: `'float'`. */
+  labelBehavior: NitroInputLabelBehavior
+  /** Label colour at rest, as a processed ARGB integer; `NaN` follows `placeholderColor`. */
+  labelColor: number
+  /** Label colour while focused; `NaN` follows `focusedStrokeColor`. */
+  labelFocusedColor: number
+  /** Label size when floated, in points; `0` derives it from `fontSize`. */
+  labelFontSize: number
+  /**
+   * Frame colour, as a processed ARGB integer; `NaN` = a platform hairline grey.
+   *
+   * Not `outlineColor`: React Native owns that name as a CSS-outline style prop
+   * on every view, and would draw its own square outline over this one.
+   */
+  strokeColor: number
+  /** Outline colour while focused; `NaN` follows `strokeColor`. */
+  focusedStrokeColor: number
+  /** Outline stroke width in points. Widened while focused, as Material does. Default: `1`. */
+  strokeWidth: number
+  /** Corner radius of the frame, clamped to half the shorter side. Default: `8`. */
+  cornerRadius: number
+  /** `'filled'`: the box tint, as a processed ARGB integer; `NaN` = a platform default. */
+  fillColor: number
   /** Static text drawn before the field's text (e.g. `'$'`). Default: `''`. */
   prefix: string
   /** Static text drawn after the field's text (e.g. `' USD'`). Default: `''`. */
@@ -131,6 +218,19 @@ export interface NitroInputProps extends HybridViewProps {
   effect: NitroInputEffect
   /** Font size of the text in points. Default: `32`. */
   fontSize: number
+  /**
+   * Height of the line box in points — the CSS meaning: the total height a
+   * line occupies, not extra leading. `0` (the default) uses the font's own.
+   *
+   * Both platforms add the difference *above* the line, so the glyphs have to
+   * be nudged back down by half of it or they ride high in the box. We apply
+   * that whatever the value, including a line height *tighter* than the font —
+   * which is the case React Native skips
+   * (`RCTApplyBaselineOffsetForRange` returns early when
+   * `lineHeight < font.lineHeight`), and the reason a compressed `lineHeight`
+   * renders off-centre on a `TextInput`.
+   */
+  lineHeight: number
   /** Numeric font weight, `100`–`900`. Default: `400`. */
   fontWeight: number
   /** Font family name; empty = system font. */
@@ -163,6 +263,29 @@ export interface NitroInputProps extends HybridViewProps {
   autoCorrect: boolean
   /** Whether the user can edit the field. Default: `true`. */
   editable: boolean
+  /**
+   * Let the text wrap onto more than one line.
+   *
+   * A multiline field is always drawn by the system view — the glyph engine
+   * lays one run out on one baseline, so it cannot morph wrapped text — and it
+   * is always `'text'` mode, since an amount and a mask are single-line ideas.
+   * Setting `morph`, `'number'` or `'mask'` alongside it is ignored, with a
+   * warning. Default: `false`.
+   */
+  multiline: boolean
+  /**
+   * `multiline`: how many lines tall the field is before it scrolls. `0` (the
+   * default) lets it grow with its content; the height it wants is reported
+   * through `onSizeChange`.
+   */
+  numberOfLines: number
+  /** `multiline`: where the text sits in the box. Default: `'auto'` (top). */
+  textAlignVertical: NitroInputTextAlignVertical
+  /**
+   * `multiline`: whether the field scrolls once the text is taller than it.
+   * Turning it off lets a growing field drive its own height. Default: `true`.
+   */
+  scrollEnabled: boolean
   /** Focus the field when it mounts. Default: `false`. */
   autoFocus: boolean
   /**
@@ -220,6 +343,12 @@ export interface NitroInputProps extends HybridViewProps {
    * `mostRecentEventCount`.
    */
   onChangeText?: (text: string, eventCount: number) => void
+  /**
+   * `'mask'` mode: called after every edit with the masked text, the characters
+   * the user actually contributed, what is still missing, and whether every
+   * mandatory slot is filled.
+   */
+  onChangeMask?: (formatted: string, extracted: string, tailPlaceholder: string, complete: boolean) => void
   /** `'number'` mode: called after every edit with the numeric value, `NaN` when the field is empty. */
   onChangeValue?: (value: number) => void
   /**
@@ -262,6 +391,11 @@ export interface NitroInputMethods extends HybridViewMethods {
   /** `'number'` mode: the field's numeric value, `NaN` when empty. */
   getValue(): number
   isFocused(): boolean
+  /**
+   * Moves the caret / selection, in code points into the (formatted) text.
+   * `end` defaults to `start` for a plain caret move; both are clamped.
+   */
+  setSelection(start: number, end: number): void
 }
 
 export type NitroInputView = HybridView<NitroInputProps, NitroInputMethods>

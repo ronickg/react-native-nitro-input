@@ -365,11 +365,11 @@ open class HybridRollingNumberViewSpec_cxx {
     }
   }
   
-  public final var direction: bridge.std__optional_RollingNumberDirection_ {
+  public final var rollDirection: bridge.std__optional_RollingNumberDirection_ {
     @inline(__always)
     get {
       return { () -> bridge.std__optional_RollingNumberDirection_ in
-        if let __unwrappedValue = self.__implementation.direction {
+        if let __unwrappedValue = self.__implementation.rollDirection {
           return bridge.create_std__optional_RollingNumberDirection_(__unwrappedValue)
         } else {
           return .init()
@@ -378,7 +378,7 @@ open class HybridRollingNumberViewSpec_cxx {
     }
     @inline(__always)
     set {
-      self.__implementation.direction = newValue.value
+      self.__implementation.rollDirection = newValue.value
     }
   }
   

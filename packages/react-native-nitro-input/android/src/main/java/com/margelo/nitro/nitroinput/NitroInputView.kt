@@ -5,7 +5,9 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.Rect
+import android.graphics.RectF
 import android.graphics.Typeface
 import android.os.Build
 import android.os.SystemClock
@@ -20,10 +22,13 @@ import android.view.Choreographer
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
+import android.view.animation.PathInterpolator
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.FrameLayout
+import android.widget.TextView
 import androidx.appcompat.widget.AppCompatEditText
+import androidx.core.widget.TextViewCompat
 import com.facebook.react.common.assets.ReactFontManager
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -45,17 +50,52 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
   // region Configuration
 
-  enum class Mode { TEXT, NUMBER }
+  enum class Mode { TEXT, NUMBER, MASK }
   enum class AffixAlign { BASELINE, CENTER, TOP, BOTTOM }
   enum class Alignment { LEFT, CENTER, RIGHT }
+  enum class TextAlignVertical { AUTO, TOP, CENTER, BOTTOM }
   enum class Easing(val raw: Int) { EXPO(0), EASE_OUT(1), EASE_IN_OUT(2), LINEAR(3), SPRING(4) }
   enum class Effect(val raw: Int) { AUTO(0), SLIDE(1), FADE(2) }
   enum class KeyboardType { DEFAULT, NUMBER_PAD, DECIMAL_PAD, NUMERIC, EMAIL_ADDRESS, PHONE_PAD, URL, ASCII_CAPABLE, NUMBERS_AND_PUNCTUATION }
   enum class ReturnKeyType { DEFAULT, DONE, GO, NEXT, SEARCH, SEND }
   enum class AutoCapitalize { NONE, SENTENCES, WORDS, CHARACTERS }
+  enum class Variant { NONE, OUTLINED, FILLED }
+  enum class LabelBehavior { FLOAT, ALWAYS }
+
+  /** A caller-defined slot character for [Format.mask]. */
+  data class MaskNotation(val character: String, val characterSet: String, val isOptional: Boolean)
+
+  /**
+   * The frame the view draws for itself: the outline (or fill) and the floating
+   * label. Separate from [Format] because it changes independently. Lengths are
+   * dp, like the rest of the props; the view scales them by density.
+   *
+   * Mirrors `Frame` in `NitroInputView.swift`.
+   */
+  data class Frame(
+    val variant: Variant = Variant.NONE,
+    val label: String = "",
+    val labelBehavior: LabelBehavior = LabelBehavior.FLOAT,
+    val labelColor: Int? = null,
+    val labelFocusedColor: Int? = null,
+    val labelFontSize: Float = 0f,
+    val strokeColor: Int? = null,
+    val focusedStrokeColor: Int? = null,
+    val strokeWidth: Float = 1f,
+    val cornerRadius: Float = 8f,
+    val fillColor: Int? = null,
+  ) {
+    val draws: Boolean get() = variant != Variant.NONE
+    val hasLabel: Boolean get() = draws && label.isNotEmpty()
+  }
 
   data class Format(
     val mode: Mode = Mode.TEXT,
+    /** Mask mode: the pattern, e.g. "+1 ([000]) [000]-[0000]". */
+    val mask: String = "",
+    val maskNotations: List<MaskNotation> = emptyList(),
+    val maskAutocomplete: Boolean = true,
+    val maskAutoSkip: Boolean = false,
     val fractionDigits: Int = 2,
     val maxIntegerDigits: Int = 15,
     val groupingSeparator: String = ",",
@@ -79,6 +119,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val minimumFontScale: Float = 0.5f,
     val allowFontScaling: Boolean = false,
     val maxFontSizeMultiplier: Float = 0f,
+    /** Line box height in px; `0` uses the font's own. */
+    val lineHeightPx: Float = 0f
   )
 
   data class Timing(
@@ -115,6 +157,16 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val accessibilityLabel: String? = null,
     /** `NitroInput`: the EditText draws its own text and the overlay is off. */
     val plain: Boolean = false,
+    /**
+     * Wrapping field. Always plain and always text - the JS side drops `morph`
+     * and any non-text mode before it gets here - so nothing below has to
+     * reconcile a wrapped run with the glyph engine.
+     */
+    val multiline: Boolean = false,
+    /** `multiline`: lines before it scrolls; `0` grows with the content. */
+    val numberOfLines: Int = 0,
+    val textAlignVertical: TextAlignVertical = TextAlignVertical.AUTO,
+    val scrollEnabled: Boolean = true,
   )
 
   data class Caret(
@@ -138,15 +190,24 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       val old = field
       field = value
       formatter.setFormat(value.fractionDigits, value.maxIntegerDigits, value.groupingSeparator, value.decimalSeparator)
+      if (value.mode == Mode.MASK &&
+        (old.mode != Mode.MASK || old.mask != value.mask || old.maskNotations != value.maskNotations)
+      ) {
+        maskEngine.clearNotations()
+        value.maskNotations.forEach { maskEngine.addNotation(it.character, it.characterSet, it.isOptional) }
+        // A bad pattern leaves the engine inactive; the field then behaves as
+        // plain text rather than refusing every keystroke.
+        maskEngine.setFormat(value.mask)
+      }
       if (old.mode != value.mode) {
         rebuildFonts()
         applyKeyboard()
       }
       applyEditTextLayout()
-      editText.hint = value.placeholder
-      if (value.mode == Mode.NUMBER) {
+      applyHint()
+      if (value.mode == Mode.NUMBER || value.mode == Mode.MASK) {
         // The field's own format changed: what it holds must follow it.
-        val next = formatter.normalize(text)
+        val next = conform(text)
         if (next != text) {
           setProgrammatic(next, notify = true)
           return
@@ -173,8 +234,20 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   var keyboard: Keyboard = Keyboard()
     set(value) {
       if (field == value) return
+      val wasMultiline = field.multiline
+      val wasLines = field.numberOfLines
       field = value
       applyKeyboard()
+      // How tall the field wants to be depends on `multiline` and
+      // `numberOfLines`, and this prop lands *after* `typography` — whose
+      // `rebuildFonts` is the usual reporter. Without this a wrapping field
+      // reported a single line and stayed one line tall.
+      if (value.multiline != wasMultiline || value.numberOfLines != wasLines) {
+        // The padding is `multiline`'s too — a wrapping field pays for both
+        // edges — and it is read back below, so it has to be applied first.
+        if (value.multiline != wasMultiline) applyEditTextLayout()
+        reportIntrinsicSize()
+      }
       maybeAutoFocus()
     }
 
@@ -195,8 +268,40 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       overlay.invalidate()
     }
 
+  /** The outline / fill and floating label this view draws for itself. */
+  var inputFrame: Frame = Frame()
+    set(value) {
+      if (field == value) return
+      val wasDrawing = field.draws
+      field = value
+      // A FrameLayout draws nothing by default; the frame goes in our own
+      // onDraw, which runs before the children, so the text stays on top.
+      setWillNotDraw(!value.draws)
+      rebuildLabelPaint()
+      applyEditTextLayout()
+      // The label is also the field's accessible name when nothing else gives
+      // it one, so a change to it has to reach TalkBack.
+      syncAccessibilityFromHost()
+      // A label resting inside the field hides the placeholder, and gaining or
+      // losing one changes that. `syncLabelProgress` only reports a *change*,
+      // and on mount there is none - the label starts resting - so the hint has
+      // to be refreshed here or the two draw on top of each other.
+      applyHint()
+      if (!wasDrawing || !value.draws) {
+        labelAnimator?.cancel()
+        notchAnimator?.cancel()
+        focusAnimator?.cancel()
+      }
+      syncLabelProgress(animated = false)
+      syncFocusProgress(animated = false)
+      invalidate()
+      overlay.invalidate()
+    }
+
   /** Called after every native-originated change (user edit, clear, setText, setValue) with the text and its value (NaN in text mode / empty). */
   var onTextChange: ((text: String, value: Double) -> Unit)? = null
+  /** Mask mode: formatted, extracted, tail placeholder, complete. */
+  var onMaskChange: ((formatted: String, extracted: String, tailPlaceholder: String, complete: Boolean) -> Unit)? = null
   var onFocusChange: ((focused: Boolean) -> Unit)? = null
   var onSubmit: ((text: String) -> Unit)? = null
   var onEndEditing: ((text: String) -> Unit)? = null
@@ -209,7 +314,12 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
   /** The field's current (formatted) text. */
   var text: String = ""
-    private set
+    private set(value) {
+      val wasEmpty = field.isEmpty()
+      field = value
+      // A label that floats on content follows the field going empty or not.
+      if (wasEmpty != value.isEmpty()) syncLabelProgress(animated = true)
+    }
 
   /** The numeric value of [text] in number mode; NaN otherwise or when empty. */
   fun currentValue(): Double = if (format.mode == Mode.NUMBER) formatter.value(text) else Double.NaN
@@ -282,6 +392,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
   private val engine = MorphEngine()
   private val formatter = AmountFormatter()
+  private val maskEngine = MaskEngine()
   private val density = context.resources.displayMetrics.density
   private var fonts: FontSet = FontSet(Typography())
   private val glyphs = ArrayList<Glyph>()
@@ -303,6 +414,26 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   private var blinkOn = true
   private val defaultHighlightColor: Int
   private val caretPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+  private val framePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+  private val labelPaint = TextPaint(Paint.ANTI_ALIAS_FLAG)
+  private val framePath = Path()
+  private val arcOval = RectF()
+  private val outlineGeometry = OutlineGeometry()
+  /** Reused per draw so tracing the frame never allocates; grown on demand. */
+  private var outlineBuffer = DoubleArray(OutlineGeometry.STRIDE * 16)
+  private val labelRect = DoubleArray(4)
+  /** 0 = label resting inside the field, 1 = floated onto the outline. */
+  private var labelProgress = 0f
+  private var labelAnimator: ValueAnimator? = null
+  /**
+   * The notch, on its own clock: it lags the label opening and leads it
+   * closing, so the hole is never open under a label that is not there yet.
+   */
+  private var notchProgress = 0f
+  private var notchAnimator: ValueAnimator? = null
+  /** 0 = blurred, 1 = focused. Blends the stroke rather than snapping it. */
+  private var focusProgress = 0f
+  private var focusAnimator: ValueAnimator? = null
   private val charCache = HashMap<Int, String>()
 
   private val frameCallback = Choreographer.FrameCallback { frameTimeNanos ->
@@ -334,6 +465,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     editText.addTextChangedListener(Watcher())
     editText.setOnFocusChangeListener { _, focused ->
       restartBlink()
+      syncLabelProgress(animated = true)
+      syncFocusProgress(animated = true)
       if (focused) {
         if (keyboard.clearTextOnFocus) {
           clear()
@@ -387,8 +520,17 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     private val prefixAlign = t.prefixAlign
     private val suffixAlign = t.suffixAlign
     private val bodyMetrics: Paint.FontMetrics = body.fontMetrics
-    /** Height of the line box (the body paint's line height), in px. */
-    val lineHeight: Float = ceil(bodyMetrics.descent - bodyMetrics.ascent)
+    /** The font's own line box, before any `lineHeight` override. */
+    val fontLineHeight: Float = ceil(bodyMetrics.descent - bodyMetrics.ascent)
+    /** Height of the line box in px: `lineHeight` when given, else the font's. */
+    val lineHeight: Float = if (t.lineHeightPx > 0f) t.lineHeightPx else fontLineHeight
+    /**
+     * How far to push the glyphs down inside the line box. The platform stacks
+     * the extra leading above the line, so without this the run rides high;
+     * with a line height *tighter* than the font it rides low, and the same
+     * halving corrects both. React Native skips the tighter case.
+     */
+    val baselineNudge: Float = (lineHeight - fontLineHeight) / 2f
     private val widthCaches = Array(3) { HashMap<Int, Float>() }
     private val capHeightCache = HashMap<Role, Float>()
     private val inkDescentCache = HashMap<String, Float>()
@@ -417,14 +559,18 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
     /** Baseline y for `role` drawing `text`, given the top of the body line box. */
     fun baseline(role: Role, text: String, lineTop: Float): Float {
-      val bodyBaseline = lineTop - bodyMetrics.ascent
+      // `baselineNudge` re-centres the run when `lineHeight` differs from the
+      // font's: the extra goes above the line, so the body sits that far lower.
+      // Everything pinned to the body follows it; `CENTER` does not, because it
+      // centres in the line box itself, which is already the new height.
+      val bodyBaseline = lineTop + baselineNudge - bodyMetrics.ascent
       if (role == Role.BODY) return bodyBaseline
       val p = paint(role)
       val m = p.fontMetrics
       return when (if (role == Role.PREFIX) prefixAlign else suffixAlign) {
         AffixAlign.BASELINE -> bodyBaseline
         AffixAlign.CENTER -> lineTop + (lineHeight - (m.descent - m.ascent)) / 2f - m.ascent
-        AffixAlign.TOP -> lineTop + (-bodyMetrics.ascent - capHeight(Role.BODY)) + capHeight(role)
+        AffixAlign.TOP -> bodyBaseline - capHeight(Role.BODY) + capHeight(role)
         // Pin the bottom of the ink, not of the line boxes: the digits' ink ends
         // on the baseline, so "USD" sits on it too instead of hanging down to
         // where a comma's tail reaches.
@@ -529,9 +675,40 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   private fun applyEditTextLayout() {
     val f = fonts
     editText.typeface = f.body.typeface
-    editText.setTextSize(TypedValue.COMPLEX_UNIT_PX, f.body.textSize)
-    editText.setPadding(f.width(format.prefix, Role.PREFIX).roundToInt(), 0, f.width(format.suffix, Role.SUFFIX).roundToInt(), 0)
-    editText.gravity = Gravity.CENTER_VERTICAL or when (alignment) {
+    // Not `setTextSize` directly: the platform ignores it while auto-sizing is
+    // on, which would leave the auto-size bounds stale after a font change.
+    applyAutoSize()
+    // TextViewCompat distributes the leading properly (and back-ports
+    // `setLineHeight` below API 28), so the plain path needs no nudge of its
+    // own - unlike the overlay, which positions its own glyphs.
+    if (typography.lineHeightPx > 0f) {
+      TextViewCompat.setLineHeight(editText, typography.lineHeightPx.roundToInt())
+    }
+    // An outlined or filled frame reserves room at the sides for its stroke and
+    // at the top for the floated label. A single line is centred in whatever
+    // height the caller gives it, so only the top is padded there - that moves
+    // the centred text down rather than leaving it put. A wrapping field
+    // reports its own height and starts at the top, so nothing else is going to
+    // put space between its first line and the stroke: it pays for both edges.
+    val side = frameSideInsetPx.roundToInt()
+    val framePadding = if (inputFrame.draws && keyboard.multiline) {
+      (FRAME_PADDING_DP * density).roundToInt()
+    } else {
+      0
+    }
+    editText.setPadding(
+      side + f.width(format.prefix, Role.PREFIX).roundToInt(),
+      frameTopInsetPx.roundToInt() + framePadding,
+      side + f.width(format.suffix, Role.SUFFIX).roundToInt(),
+      framePadding,
+    )
+    applyAffixes()
+    val vertical = if (!keyboard.multiline) Gravity.CENTER_VERTICAL else when (keyboard.textAlignVertical) {
+      TextAlignVertical.CENTER -> Gravity.CENTER_VERTICAL
+      TextAlignVertical.BOTTOM -> Gravity.BOTTOM
+      else -> Gravity.TOP
+    }
+    editText.gravity = vertical or when (alignment) {
       Alignment.LEFT -> Gravity.START
       Alignment.CENTER -> Gravity.CENTER_HORIZONTAL
       Alignment.RIGHT -> Gravity.END
@@ -576,9 +753,25 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       textType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
       rawType = null
     }
+    if (k.multiline) {
+      // TYPE_TEXT_FLAG_MULTI_LINE is what makes the IME offer a return key that
+      // inserts a newline rather than submitting.
+      textType = textType or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+    }
     editText.inputType = textType
     if (rawType != null) editText.setRawInputType(rawType)
-    editText.setSingleLine()
+    if (k.multiline) {
+      editText.setSingleLine(false)
+      editText.setHorizontallyScrolling(false)
+      editText.maxLines = if (k.numberOfLines > 0) k.numberOfLines else Int.MAX_VALUE
+      if (k.numberOfLines > 0) editText.minLines = k.numberOfLines
+      editText.isVerticalScrollBarEnabled = k.scrollEnabled
+      editText.movementMethod = android.text.method.ArrowKeyMovementMethod.getInstance()
+    } else {
+      editText.setSingleLine()
+      editText.maxLines = 1
+      editText.minLines = 1
+    }
     editText.imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI or when (k.returnKeyType) {
       ReturnKeyType.DEFAULT -> EditorInfo.IME_ACTION_UNSPECIFIED
       ReturnKeyType.DONE -> EditorInfo.IME_ACTION_DONE
@@ -621,9 +814,77 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     // React Native also keys the testID under its own id, which is what e2e
     // tooling reads; mirror both.
     runCatching { editText.setTag(com.facebook.react.R.id.react_test_id, testId) }
+    // A floating label is the field's visible name, but it is drawn on the
+    // canvas - TalkBack cannot see it. Without this a field whose only name is
+    // its `label` is announced as an unnamed edit box. An explicit
+    // `accessibilityLabel` still wins.
     val label: CharSequence? = keyboard.accessibilityLabel
       ?: (parent as? android.view.View)?.contentDescription
+      ?: inputFrame.label.ifEmpty { null }
     if (editText.contentDescription != label) editText.contentDescription = label
+  }
+
+  /**
+   * `adjustsFontSizeToFit` in plain mode. The overlay implements it by scaling
+   * the glyphs it draws, which is no help once the EditText is drawing itself,
+   * so the platform's own auto-sizing has to take over - iOS uses
+   * `adjustsFontSizeToFitWidth` for the same reason. Without this the prop was
+   * a silent no-op on Android for every `NitroInput`.
+   */
+  private var prefixView: TextView? = null
+  private var suffixView: TextView? = null
+
+  /**
+   * Prefix and suffix in plain mode. The overlay draws them as glyphs while it
+   * is up, which is no help once the EditText draws itself - iOS uses real
+   * `leftView` / `rightView` accessories for the same reason. Without these the
+   * EditText's padding reserved the space (see `applyEditTextLayout`) and
+   * nothing filled it, so a currency symbol was simply a gap.
+   */
+  private fun applyAffixes() {
+    prefixView = affixView(prefixView, format.prefix, Role.PREFIX, Gravity.START)
+    suffixView = affixView(suffixView, format.suffix, Role.SUFFIX, Gravity.END)
+  }
+
+  private fun affixView(existing: TextView?, affix: String, role: Role, edge: Int): TextView? {
+    if (!keyboard.plain || affix.isEmpty()) {
+      existing?.let { removeView(it) }
+      return null
+    }
+    val paint = fonts.paint(role)
+    val view = existing ?: TextView(context).also {
+      it.isClickable = false
+      it.isFocusable = false
+      it.includeFontPadding = false
+      it.importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
+      addView(it, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT))
+    }
+    val side = frameSideInsetPx.roundToInt()
+    (view.layoutParams as LayoutParams).gravity = edge or Gravity.CENTER_VERTICAL
+    view.setPadding(if (edge == Gravity.START) side else 0, frameTopInsetPx.roundToInt(),
+                    if (edge == Gravity.END) side else 0, 0)
+    view.gravity = Gravity.CENTER_VERTICAL
+    view.typeface = paint.typeface
+    view.setTextSize(TypedValue.COMPLEX_UNIT_PX, paint.textSize)
+    view.setTextColor(typography.color ?: defaultTextColor())
+    if (view.text?.toString() != affix) view.text = affix
+    return view
+  }
+
+  private fun applyAutoSize() {
+    val t = typography
+    // Only in plain mode: with the overlay up it scales the glyphs itself (see
+    // `contentLayout`), and the two would fight.
+    if (!keyboard.plain || !t.adjustsFontSizeToFit) {
+      TextViewCompat.setAutoSizeTextTypeWithDefaults(editText, TextViewCompat.AUTO_SIZE_TEXT_TYPE_NONE)
+      editText.setTextSize(TypedValue.COMPLEX_UNIT_PX, fonts.body.textSize)
+      return
+    }
+    val max = fonts.body.textSize.roundToInt().coerceAtLeast(2)
+    val min = (fonts.body.textSize * t.minimumFontScale).roundToInt().coerceIn(1, max - 1)
+    TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
+      editText, min, max, 1, TypedValue.COMPLEX_UNIT_PX,
+    )
   }
 
   /** Switches between "hidden EditText + overlay" and "the EditText draws itself". */
@@ -635,6 +896,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       editText.setTextColor(typography.color ?: defaultTextColor())
       editText.setHintTextColor(typography.placeholderColor ?: defaultPlaceholderColor())
       applyNativeCursor()
+      applyAutoSize()
+      applyAffixes()
       editText.textAlignment = when (alignment) {
         Alignment.CENTER -> TEXT_ALIGNMENT_CENTER
         Alignment.RIGHT -> TEXT_ALIGNMENT_VIEW_END
@@ -645,6 +908,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       editText.setTextColor(Color.TRANSPARENT)
       editText.setHintTextColor(Color.TRANSPARENT)
       applyNativeCursor()
+      applyAutoSize()
+      applyAffixes()
       editText.textAlignment = TEXT_ALIGNMENT_VIEW_START
     }
   }
@@ -754,6 +1019,12 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       Choreographer.getInstance().removeFrameCallback(frameCallback)
       frameScheduled = false
     }
+    labelAnimator?.cancel()
+    labelAnimator = null
+    notchAnimator?.cancel()
+    notchAnimator = null
+    focusAnimator?.cancel()
+    focusAnimator = null
   }
 
   /**
@@ -762,6 +1033,10 @@ class NitroInputView(context: Context) : FrameLayout(context) {
    */
   fun resetForRecycle() {
     worklets = Worklets()
+    inputFrame = Frame()
+    labelProgress = 0f
+    notchProgress = 0f
+    focusProgress = 0f
     stopAnimation()
     removeCallbacks(blink)
     blur()
@@ -822,6 +1097,9 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   /** Text mode truncates to `maxLength`; number mode formats. */
   private fun conform(value: String): String {
     if (format.mode == Mode.NUMBER) return formatter.normalize(value)
+    if (format.mode == Mode.MASK) {
+      return maskEngine.applyAll(value, value.codePointCount(0, value.length), true, format.maskAutocomplete, false)
+    }
     val limit = keyboard.maxLength
     if (limit <= 0) return value
     val end = utf16Index(value, limit)
@@ -853,6 +1131,12 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   private fun notifyChange() {
     if (worklets.onChangeText != 0) NitroInputWorklets.runChangeText(worklets.onChangeText, text)
     if (worklets.onChangeValue != 0 && format.mode == Mode.NUMBER) NitroInputWorklets.runChangeValue(worklets.onChangeValue, currentValue())
+    if (format.mode == Mode.MASK) {
+      // Derived from the settled text so every route reports the same thing:
+      // a keystroke, a programmatic set, a prop change or a transform worklet.
+      maskEngine.applyAll(text, text.codePointCount(0, text.length), true, format.maskAutocomplete, false)
+      onMaskChange?.invoke(text, maskEngine.lastExtracted(), maskEngine.lastTailPlaceholder(), maskEngine.lastComplete())
+    }
     onTextChange?.invoke(text, currentValue())
   }
 
@@ -900,7 +1184,25 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     previousSelectionEnd: Int,
   ) {
     var caretCodePoints: Int
-    if (format.mode == Mode.NUMBER) {
+    if (format.mode == Mode.MASK) {
+      val cpStart = codePointIndex(previous, start)
+      val cpEnd = codePointIndex(previous, start + count)
+      val next = maskEngine.applyEdit(
+        previous, cpStart, cpEnd, replacement, format.maskAutocomplete, format.maskAutoSkip,
+      )
+      val caret = maskEngine.lastCaret()
+      if (next != editable.toString()) {
+        setEditable(editable, next, caret)
+      } else {
+        val sel = utf16Index(next, caret)
+        if (editText.selectionStart != sel || editText.selectionEnd != sel) {
+          applying = true
+          Selection.setSelection(editable, sel)
+          applying = false
+        }
+      }
+      caretCodePoints = caret
+    } else if (format.mode == Mode.NUMBER) {
       val cpStart = codePointIndex(previous, start)
       val cpEnd = codePointIndex(previous, start + count)
       val next = formatter.applyEdit(previous, cpStart, cpEnd, replacement)
@@ -941,6 +1243,9 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     if (updated == text) return
     text = updated
     requestFeed(caretCodePoints)
+    // A wrapping field's height follows its text; the glyph engine is off, so
+    // nothing else would ask.
+    if (keyboard.multiline) post { reportIntrinsicSize() }
     notifyChange()
   }
 
@@ -977,11 +1282,12 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     engine.setReduceMotion(animationsDisabled())
     engine.beginText()
     addRun(format.prefix, Role.PREFIX, f, placeholder = false)
-    val showPlaceholder = text.isEmpty() && format.placeholder.isNotEmpty()
+    val hint = effectivePlaceholder
+    val showPlaceholder = text.isEmpty() && hint.isNotEmpty()
     // `secureTextEntry` masks what the overlay draws: the EditText keeps the
     // real text (the IME and autofill need it), every drawn glyph is a bullet.
     val body = if (keyboard.secureTextEntry) "\u2022".repeat(text.codePointCount(0, text.length)) else text
-    addRun(if (showPlaceholder) format.placeholder else body, Role.BODY, f, placeholder = showPlaceholder)
+    addRun(if (showPlaceholder) hint else body, Role.BODY, f, placeholder = showPlaceholder)
     addRun(format.suffix, Role.SUFFIX, f, placeholder = false)
     engine.commitText(caret, now())
     fed = true
@@ -1084,11 +1390,41 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
   // region Intrinsic size
 
+  /**
+   * One line, or - wrapping - as tall as the text actually is. `maxLines` caps
+   * it, so a field with `numberOfLines` stops growing and scrolls instead;
+   * without one it keeps growing and React follows through `onSizeChange`.
+   */
+  /** The height one line occupies: an explicit `lineHeight`, or the font's own. */
+  private val lineBoxPx: Float
+    get() = if (typography.lineHeightPx > 0f) typography.lineHeightPx else fonts.lineHeight
+
+  private fun intrinsicHeightPx(): Float {
+    if (!keyboard.multiline) return fonts.lineHeight
+    val layout = editText.layout ?: return fonts.lineHeight * maxOf(1, keyboard.numberOfLines)
+    val lines = if (keyboard.numberOfLines > 0) {
+      layout.lineCount.coerceAtMost(keyboard.numberOfLines).coerceAtLeast(keyboard.numberOfLines)
+    } else {
+      layout.lineCount.coerceAtLeast(1)
+    }
+    // With an explicit line height, compute the box rather than trusting
+    // `layout.height`: StaticLayout does not add the extra leading after the
+    // final line, so three lines at 34 measured 97.7dp instead of 102. Asking
+    // for `numberOfLines` x `lineHeight` and getting it is the contract worth
+    // having, and it keeps the two platforms agreeing.
+    val text = when {
+      typography.lineHeightPx > 0f -> fonts.lineHeight * lines
+      lines == layout.lineCount -> layout.height.toFloat()
+      else -> fonts.lineHeight * lines
+    }
+    return text + editText.paddingTop + editText.paddingBottom
+  }
+
   private fun reportIntrinsicSize() {
     // The reported size is always the full-size one: with shrink-to-fit the view
     // keeps its height and the scaled text is centred inside it when drawing.
     val widthDp = ceil(engine.targetWidth().toFloat() / density + 2f)
-    val heightDp = ceil(fonts.lineHeight / density)
+    val heightDp = ceil(intrinsicHeightPx() / density)
     if (abs(widthDp - lastReportedWidth) <= 0.01f && abs(heightDp - lastReportedHeight) <= 0.01f) {
       pendingSizeReport = false
       return
@@ -1164,7 +1500,11 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   private fun drawContent(canvas: Canvas, view: View) {
     syncFromEngine()
     val f = fonts
-    val layout = contentLayout(view.width, view.height, contentWidth, trackCaret = true)
+    val side = frameSideInsetPx
+    val top = frameTopInsetPx
+    val boxWidth = max(0, (view.width - side * 2f).roundToInt())
+    val boxHeight = max(0, (view.height - top).roundToInt())
+    val layout = contentLayout(boxWidth, boxHeight, contentWidth, trackCaret = true)
     val lineHeight = f.lineHeight
     val textColor = typography.color ?: defaultTextColor()
     val placeholderColor = typography.placeholderColor ?: defaultPlaceholderColor()
@@ -1173,10 +1513,10 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val outer = canvas.save()
     // Content wider than the view is scrolled and clipped to the view's edges
     // (like an EditText); otherwise glyphs may overhang while they move.
-    if (layout.originX < 0f || contentWidth * layout.fit > view.width + 0.5f) {
-      canvas.clipRect(0f, -1e5f, view.width.toFloat(), 1e5f)
+    if (layout.originX < 0f || contentWidth * layout.fit > boxWidth + 0.5f) {
+      canvas.clipRect(side, -1e5f, side + boxWidth, 1e5f)
     }
-    canvas.translate(layout.originX, layout.originY)
+    canvas.translate(side + layout.originX, top + layout.originY)
     canvas.scale(layout.fit, layout.fit)
 
     for (g in glyphs) {
@@ -1217,6 +1557,313 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     canvas.restoreToCount(outer)
   }
 
+  // endregion
+
+  // region Outlined / filled frame
+
+  /**
+   * How far in the label - and so the text under it - starts. Far enough past
+   * the corner that the notch never opens onto the arc itself.
+   */
+  private val labelInsetPx: Float
+    get() = max(LABEL_INSET_DP * density, inputFrame.cornerRadius * density + LABEL_CORNER_GAP_DP * density)
+
+  private val frameSideInsetPx: Float
+    get() = if (inputFrame.draws) labelInsetPx else 0f
+
+  /**
+   * Room at the top for the floated label - which only the filled variant
+   * needs. Its label floats inside the box, on its own line above the text. An
+   * outlined field's label sits *on* the stroke, outside the content box: it
+   * intrudes into the top of the frame but never onto the text's line, so the
+   * text stays centred the way it would with no label at all.
+   */
+  private val frameTopInsetPx: Float
+    get() {
+      if (!inputFrame.hasLabel || inputFrame.variant != Variant.FILLED) return 0f
+      // 1.4 is a fudge, not a Material metric - see the note on iOS.
+      return floatedLabelSizePx * 1.4f
+    }
+
+  private val restingLabelSizePx: Float get() = fonts.paint(Role.BODY).textSize
+
+  private val floatedLabelSizePx: Float
+    get() {
+      val explicit = inputFrame.labelFontSize
+      if (explicit > 0f) return explicit * density
+      return max(MIN_FLOATED_LABEL_DP * density, restingLabelSizePx * FLOATED_LABEL_RATIO)
+    }
+
+  /** The label floats once focused or holding text - or always, if asked. */
+  private val labelShouldFloat: Boolean
+    get() {
+      if (!inputFrame.hasLabel) return false
+      if (inputFrame.labelBehavior == LabelBehavior.ALWAYS) return true
+      return editText.hasFocus() || text.isNotEmpty()
+    }
+
+  /**
+   * A label resting inside the field already labels it, so the placeholder
+   * waits until the label has floated clear rather than printing over it.
+   */
+  private val effectivePlaceholder: String
+    get() = if (inputFrame.hasLabel && !labelShouldFloat) "" else format.placeholder
+
+  private fun resolvedStrokeColor(): Int {
+    val base = inputFrame.strokeColor ?: defaultPlaceholderColor()
+    return blend(base, inputFrame.focusedStrokeColor ?: base, focusProgress)
+  }
+
+  private fun resolvedLabelColor(): Int {
+    val resting = inputFrame.labelColor ?: defaultPlaceholderColor()
+    val focused = inputFrame.labelFocusedColor ?: inputFrame.focusedStrokeColor ?: resting
+    return blend(resting, focused, focusProgress)
+  }
+
+  /** Doubles while focused, the way the iOS frame thickens its stroke. */
+  private val strokeWidthPx: Float
+    get() = inputFrame.strokeWidth * density * (1f + focusProgress)
+
+  private fun blend(from: Int, to: Int, t: Float): Int {
+    if (t <= 0f || from == to) return from
+    if (t >= 1f) return to
+    fun mix(shift: Int): Int {
+      val a = (from shr shift) and 0xff
+      val b = (to shr shift) and 0xff
+      return (a + (b - a) * t).roundToInt().coerceIn(0, 255)
+    }
+    return Color.argb(mix(24), mix(16), mix(8), mix(0))
+  }
+
+  /**
+   * Runs the stroke to its focused colour and weight. Separate from the label:
+   * a field that already holds text does not move its label on focus, but the
+   * stroke still travels.
+   */
+  private fun syncFocusProgress(animated: Boolean) {
+    if (!inputFrame.draws) {
+      focusAnimator?.cancel()
+      focusAnimator = null
+      focusProgress = if (editText.hasFocus()) 1f else 0f
+      return
+    }
+    val target = if (editText.hasFocus()) 1f else 0f
+    if (focusAnimator == null && focusProgress == target) return
+    focusAnimator?.cancel()
+    focusAnimator = null
+    if (!animated || !isAttachedToWindow) {
+      focusProgress = target
+      invalidate()
+      return
+    }
+    focusAnimator = run(focusProgress, target, FRAME_ANIM_MS, 0L) { focusProgress = it }
+  }
+
+  private fun rebuildLabelPaint() {
+    val body = fonts.paint(Role.BODY)
+    labelPaint.typeface = body.typeface
+    labelPaint.textSize = restingLabelSizePx
+  }
+
+  /**
+   * Runs the label to where it belongs. The morph glyphs are laid out against
+   * the insets, and the placeholder appears only once the label is clear of it,
+   * so a change re-feeds the engine as well as redrawing.
+   */
+  private fun syncLabelProgress(animated: Boolean) {
+    if (!inputFrame.hasLabel) {
+      labelAnimator?.cancel()
+      labelAnimator = null
+      notchAnimator?.cancel()
+      notchAnimator = null
+      labelProgress = 0f
+      notchProgress = 0f
+      return
+    }
+    val target = if (labelShouldFloat) 1f else 0f
+    if (labelAnimator == null && labelProgress == target && notchProgress == target) return
+    labelAnimator?.cancel()
+    labelAnimator = null
+    notchAnimator?.cancel()
+    notchAnimator = null
+    if (!animated || !isAttachedToWindow) {
+      labelProgress = target
+      notchProgress = target
+      onLabelFloatChanged()
+      invalidate()
+      return
+    }
+    // The placeholder swaps at the start of the run, not the end: it is the
+    // floated label that frees the line for it.
+    onLabelFloatChanged()
+    labelAnimator = run(labelProgress, target, FRAME_ANIM_MS, 0L) { labelProgress = it }
+    // Staggered behind the label opening, ahead of it closing - the same shape
+    // MUI gives its notched outline. See the timing note in the companion.
+    val opening = target == 1f
+    notchAnimator = run(
+      notchProgress,
+      target,
+      if (opening) NOTCH_OPEN_MS else NOTCH_CLOSE_MS,
+      if (opening) NOTCH_OPEN_DELAY_MS else 0L,
+    ) { notchProgress = it }
+  }
+
+  /** One eased float animator, invalidating as it goes. */
+  private inline fun run(
+    from: Float,
+    to: Float,
+    durationMs: Long,
+    delayMs: Long,
+    crossinline apply: (Float) -> Unit,
+  ): ValueAnimator = ValueAnimator.ofFloat(from, to).apply {
+    duration = durationMs
+    startDelay = delayMs
+    interpolator = DECELERATE
+    addUpdateListener {
+      apply(it.animatedValue as Float)
+      invalidate()
+    }
+    start()
+  }
+
+  /** The placeholder waits for a resting label to float clear of the line. */
+  private fun applyHint() {
+    val hint = effectivePlaceholder
+    if (editText.hint?.toString() != hint) editText.hint = hint
+  }
+
+  /** Re-feeds the engine so the placeholder follows the label. */
+  private fun onLabelFloatChanged() {
+    applyHint()
+    requestFeed(-1)
+    overlay.invalidate()
+  }
+
+  override fun onDraw(canvas: Canvas) {
+    super.onDraw(canvas)
+    if (!inputFrame.draws || width <= 0 || height <= 0) return
+
+    val filled = inputFrame.variant == Variant.FILLED
+    val stroke = strokeWidthPx
+    val label = inputFrame.label
+    val floatedSize = floatedLabelSizePx
+    val restingSize = restingLabelSizePx
+
+    // The notch has to match the label at its floated size whatever the
+    // progress, so the two paths we tween between describe the same shape.
+    labelPaint.textSize = floatedSize
+    val floatedWidth = if (inputFrame.hasLabel) labelPaint.measureText(label) else 0f
+    labelPaint.textSize = restingSize
+    val restingWidth = if (inputFrame.hasLabel) labelPaint.measureText(label) else 0f
+
+    val inset = labelInsetPx
+    val floatedCentreY = if (filled) floatedSize * 0.9f else 0f
+    // Resting: on the text's own line. A single line is centred in the box, so
+    // that is the middle; a wrapping one starts at the top, and the label
+    // belongs where the first character will appear rather than halfway down
+    // an empty field.
+    val restingCentreY = if (keyboard.multiline) {
+      editText.paddingTop + lineBoxPx / 2f
+    } else {
+      height / 2f
+    }
+
+    outlineGeometry.lerp(
+      inset.toDouble(), restingCentreY.toDouble(), restingWidth.toDouble(), restingSize.toDouble(),
+      inset.toDouble(), floatedCentreY.toDouble(), floatedWidth.toDouble(), floatedSize.toDouble(),
+      labelProgress.toDouble(), labelRect,
+    )
+
+    // Filled is not stroked, so its path is the fill's own edge rather than the
+    // centre line of a stroke, and its bottom is square: that is the edge the
+    // indicator rule sits flush against. Only the outlined variant is notched.
+    val gapWidth = if (inputFrame.hasLabel && !filled) floatedWidth.toDouble() else 0.0
+    if (!buildOutlinePath(
+          width.toDouble(), height.toDouble(), inputFrame.cornerRadius * density.toDouble(),
+          if (filled) 0.0 else stroke.toDouble(), if (filled) 0.0 else -1.0,
+          inset.toDouble(), gapWidth, (LABEL_GAP_PADDING_DP * density).toDouble(), notchProgress.toDouble(),
+        )
+    ) {
+      return
+    }
+
+    if (filled) {
+      framePaint.style = Paint.Style.FILL
+      framePaint.color = inputFrame.fillColor ?: defaultFillColor()
+      canvas.drawPath(framePath, framePaint)
+      // The active indicator, along the square bottom edge.
+      framePaint.style = Paint.Style.FILL
+      framePaint.color = resolvedStrokeColor()
+      canvas.drawRect(0f, height - stroke, width.toFloat(), height.toFloat(), framePaint)
+    } else {
+      framePaint.style = Paint.Style.STROKE
+      framePaint.strokeWidth = stroke
+      framePaint.color = resolvedStrokeColor()
+      canvas.drawPath(framePath, framePaint)
+    }
+
+    if (!inputFrame.hasLabel) return
+    labelPaint.textSize = restingSize + (floatedSize - restingSize) * labelProgress
+    labelPaint.color = resolvedLabelColor()
+    val metrics = labelPaint.fontMetrics
+    // The rect's y is the label's vertical centre, as it is on iOS.
+    val baseline = labelRect[1].toFloat() - (metrics.ascent + metrics.descent) / 2f
+    canvas.drawText(label, labelRect[0].toFloat(), baseline, labelPaint)
+  }
+
+  /**
+   * Traces the shared geometry into [framePath]. False when the box is too
+   * small to have an outline at all.
+   */
+  private fun buildOutlinePath(
+    boxWidth: Double,
+    boxHeight: Double,
+    radius: Double,
+    stroke: Double,
+    bottomRadius: Double,
+    gapLeft: Double,
+    gapWidth: Double,
+    gapPadding: Double,
+    progress: Double,
+  ): Boolean {
+    var count = outlineGeometry.outline(
+      boxWidth, boxHeight, radius, stroke, bottomRadius, gapLeft, gapWidth, gapPadding, progress, outlineBuffer,
+    )
+    if (count < 0) {
+      // Only ever a handful of segments, but grow rather than guess.
+      outlineBuffer = DoubleArray(outlineBuffer.size * 2)
+      count = outlineGeometry.outline(
+        boxWidth, boxHeight, radius, stroke, bottomRadius, gapLeft, gapWidth, gapPadding, progress, outlineBuffer,
+      )
+    }
+    if (count <= 0) return false
+
+    framePath.rewind()
+    for (i in 0 until count) {
+      val base = i * OutlineGeometry.STRIDE
+      val x = outlineBuffer[base + 1].toFloat()
+      val y = outlineBuffer[base + 2].toFloat()
+      when (outlineBuffer[base].toInt()) {
+        OutlineGeometry.MOVE -> framePath.moveTo(x, y)
+        OutlineGeometry.LINE -> framePath.lineTo(x, y)
+        else -> {
+          // x/y is the arc's centre; the angles are the degrees `arcTo` takes.
+          val r = outlineBuffer[base + 3].toFloat()
+          arcOval.set(x - r, y - r, x + r, y + r)
+          framePath.arcTo(arcOval, outlineBuffer[base + 4].toFloat(), outlineBuffer[base + 5].toFloat())
+        }
+      }
+    }
+    return true
+  }
+
+  /** Matches iOS's `.secondarySystemFill`, which the filled variant defaults to. */
+  private fun defaultFillColor(): Int = Color.argb(0x1f, 0x78, 0x78, 0x80)
+
+  // endregion
+
+  // region Drawing
+
   private fun shouldShowCaret(): Boolean =
     isAttachedToWindow && editText.hasFocus() && !caret.hidden && editText.selectionStart == editText.selectionEnd
 
@@ -1237,6 +1884,36 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     private const val CARET_WIDTH_DP = 2f
     /** Fraction of the line height the caret leaves free (split between top and bottom). */
     private const val CARET_INSET = 0.1f
+    /** How far the label starts from the frame's left edge, at a minimum. */
+    private const val LABEL_INSET_DP = 16f
+    /**
+     * The room a framed field keeps above and below its text. Flat, unlike the
+     * side inset: that one grows with `cornerRadius` because the *label* has to
+     * clear the corner curve, which is a horizontal problem. The text sits in
+     * the middle of the box, so a rounder frame must not make the field taller.
+     */
+    private const val FRAME_PADDING_DP = 16f
+    /** Clearance the label keeps past the corner arc, so the notch opens onto the straight run. */
+    private const val LABEL_CORNER_GAP_DP = 8f
+    /** Breathing room the notch leaves on each side of the label. */
+    private const val LABEL_GAP_PADDING_DP = 4f
+    /** The floated label's size, as a fraction of the resting one. */
+    private const val FLOATED_LABEL_RATIO = 0.75f
+    private const val MIN_FLOATED_LABEL_DP = 9f
+    /**
+     * Taken from Material's own text fields. MUI's OutlinedInput runs the label
+     * 200ms on the standard decelerate curve and the legend's width 100ms after
+     * a 50ms delay when notching, 50ms flat when un-notching. Material
+     * Components Android runs label and cutout off one animator instead (167ms,
+     * or 400ms `motionDurationMedium4` under an M3 theme) and snaps the stroke;
+     * we animate the stroke with the label.
+     */
+    private const val FRAME_ANIM_MS = 200L
+    private const val NOTCH_OPEN_DELAY_MS = 50L
+    private const val NOTCH_OPEN_MS = 100L
+    private const val NOTCH_CLOSE_MS = 50L
+    /** Material's standard decelerate, the same curve the iOS side uses. */
+    private val DECELERATE = PathInterpolator(0f, 0f, 0.2f, 1f)
     private val ROLES = Role.values()
   }
 }

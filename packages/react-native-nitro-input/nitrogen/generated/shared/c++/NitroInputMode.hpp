@@ -31,6 +31,7 @@ namespace margelo::nitro::nitroinput {
   enum class NitroInputMode {
     NUMBER      SWIFT_NAME(number) = 0,
     TEXT      SWIFT_NAME(text) = 1,
+    MASK      SWIFT_NAME(mask) = 2,
   } CLOSED_ENUM;
 
 } // namespace margelo::nitro::nitroinput
@@ -45,6 +46,7 @@ namespace margelo::nitro {
       switch (hashString(unionValue.c_str(), unionValue.size())) {
         case hashString("number"): return margelo::nitro::nitroinput::NitroInputMode::NUMBER;
         case hashString("text"): return margelo::nitro::nitroinput::NitroInputMode::TEXT;
+        case hashString("mask"): return margelo::nitro::nitroinput::NitroInputMode::MASK;
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert \"" + unionValue + "\" to enum NitroInputMode - invalid value!");
       }
@@ -53,6 +55,7 @@ namespace margelo::nitro {
       switch (arg) {
         case margelo::nitro::nitroinput::NitroInputMode::NUMBER: return JSIConverter<std::string>::toJSI(runtime, "number");
         case margelo::nitro::nitroinput::NitroInputMode::TEXT: return JSIConverter<std::string>::toJSI(runtime, "text");
+        case margelo::nitro::nitroinput::NitroInputMode::MASK: return JSIConverter<std::string>::toJSI(runtime, "mask");
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert NitroInputMode to JS - invalid value: "
                                     + std::to_string(static_cast<int>(arg)) + "!");
@@ -66,6 +69,7 @@ namespace margelo::nitro {
       switch (hashString(unionValue.c_str(), unionValue.size())) {
         case hashString("number"):
         case hashString("text"):
+        case hashString("mask"):
           return true;
         default:
           return false;

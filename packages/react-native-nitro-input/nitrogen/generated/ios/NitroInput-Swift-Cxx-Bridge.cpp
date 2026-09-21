@@ -22,6 +22,14 @@ namespace margelo::nitro::nitroinput::bridge::swift {
     };
   }
   
+  // pragma MARK: std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>
+  Func_void_std__string_std__string_std__string_bool create_Func_void_std__string_std__string_std__string_bool(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroInput::Func_void_std__string_std__string_std__string_bool::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const std::string& formatted, const std::string& extracted, const std::string& tailPlaceholder, bool complete) mutable -> void {
+      swiftClosure.call(formatted, extracted, tailPlaceholder, complete);
+    };
+  }
+  
   // pragma MARK: std::function<void(double /* value */)>
   Func_void_double create_Func_void_double(void* NON_NULL swiftClosureWrapper) noexcept {
     auto swiftClosure = NitroInput::Func_void_double::fromUnsafe(swiftClosureWrapper);

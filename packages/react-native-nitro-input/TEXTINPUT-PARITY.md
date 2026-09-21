@@ -6,6 +6,13 @@ Measured on an iPhone 17 Pro simulator (iOS 26.4) and a Pixel 9 Pro emulator
 **Input parity** screens (`example/src/screens/`), which render a `NitroInput`
 and a `TextInput` side by side under identical props and log every callback.
 
+Everything here that can be checked without a device is also checked by
+`src/__tests__/TextInputParity.test.tsx`, which renders both components under
+the same props and asserts they agree. It un-mocks React Native's `TextInput`
+first - the jest preset replaces it with a stub, and asserting against that
+would prove nothing - and it reads the prop list out of RN's own `TextInput.d.ts`,
+so a prop added upstream fails the suite rather than going unnoticed.
+
 ## Summary
 
 NitroInput now behaves like `TextInput` for focus, routing, form sheets and
@@ -218,13 +225,38 @@ separately in an earlier session and is not re-measured here.
 | No `onEndEditing`, `onSelectionChange`, `onKeyPress` | Added on both platforms. |
 | Android fired a spurious `onKeyPress`/`onSelectionChange` on mount | `onKeyPress` only for real key events; the initial `0-0` caret is not a move. |
 
+## Events
+
+Every callback is handed a superset of what `TextInput` passes. `nativeEvent`
+is there with the same fields under the same names, so a handler written
+against a `TextInput` keeps working when the component is swapped:
+
+```tsx
+onSubmitEditing={e => search(e.nativeEvent.text)}   // unchanged from TextInput
+```
+
+and the same fields are repeated at the top level, so new code can destructure
+rather than reach through it:
+
+```tsx
+onSubmitEditing={({ text }) => search(text)}
+onSelectionChange={({ start, end }) => …}           // `nativeEvent.selection` also works
+```
+
+That applies to `onChange`, `onFocus`, `onBlur`, `onSubmitEditing`,
+`onEndEditing`, `onSelectionChange` and `onKeyPress`. `onChangeText` takes the
+text directly, as it does on a `TextInput`.
+
 ## Props added
 
 `submitBehavior` (+ `blurOnSubmit`), `secureTextEntry`, `keyboardAppearance`,
 `textContentType` / `autoComplete` (iOS content types and Android autofill
 hints), `enablesReturnKeyAutomatically`, `showSoftInputOnFocus`,
 `selectTextOnFocus`, `clearTextOnFocus`, `contextMenuHidden`, `spellCheck`,
-`readOnly`, `selection`; callbacks `onEndEditing`, `onSelectionChange`,
+`readOnly`, `selection`, `inputMode` / `enterKeyHint` (React Native's
+HTML-flavoured aliases, resolved with the same tables and the same precedence),
+`id` and `aria-label` (which a Nitro view receives unresolved, so this component
+resolves them itself); callbacks `onEndEditing`, `onSelectionChange`,
 `onKeyPress`.
 
 ## Keyboard across a navigation
@@ -327,25 +359,46 @@ Compose field.
    `NitroInput` measured 39 pt wide where a `TextInput` filled 340 pt. Give it a
    width to use it as a drop-in form field. (`alignSelf: 'stretch'` is not
    enough — auto-sizing only looks at `width`/`flex`.)
-2. **Single line by design.** `multiline`, `numberOfLines`, `rows`,
-   `scrollEnabled`, `textAlignVertical`, `inlineImage*`, `dataDetectorTypes`
-   and `clearButtonMode` do not apply.
-3. **Still missing:** `inputAccessoryViewID`, `passwordRules`,
+2. **The morph is single line.** `multiline`, `numberOfLines`, `rows`,
+   `scrollEnabled` and `textAlignVertical` are all supported, but a wrapping
+   field is drawn by the platform rather than by the glyph engine, which lays
+   one run out on one baseline. Setting `multiline` therefore forces `plain`,
+   and `mode`, `mask` and the affixes - all single-line ideas - warn and are
+   ignored. `inlineImage*`, `dataDetectorTypes` and `clearButtonMode` do not
+   apply at all.
+3. **Two narrower keyboard enums.** `inputMode="search"` gives the default
+   keyboard rather than iOS's `web-search`, and `enterKeyHint="previous"` the
+   default return key rather than Android's `previous`: neither value exists in
+   this component's `keyboardType` / `returnKeyType`. Both fall back rather
+   than fail.
+4. **Still missing:** `inputAccessoryViewID`, `passwordRules`,
    `smartInsertDelete`, `rejectResponderTermination`, `lineBreakStrategyIOS`,
    `disableFullscreenUI`, `underlineColorAndroid`, `selectionHandleColor`,
-   `disableKeyboardShortcuts`, `onPressIn`/`onPressOut`, `onScroll`,
-   `onContentSizeChange` (`onSizeChange` is the near equivalent), and the
-   `inputMode`/`enterKeyHint` aliases.
-4. **keyboard-controller `target`** is the react tag of the host view. That is
+   `disableKeyboardShortcuts`, `onPress`/`onPressIn`/`onPressOut`, `onScroll`,
+   and `onContentSizeChange` (the field reports its own intrinsic size and
+   sizes itself instead). The parity test keeps a reason for each.
+5. **`TextInput.State.focusTextInput` / `blurTextInput` bypass the JS routing.**
+   `TextInput.js` copies those two function references by value at module-eval
+   time (`TextInput.State = { focusTextInput: TextInputState.focusTextInput, … }`),
+   long before `patchRegistryOnce()` runs, so the patch is invisible to them.
+   `ref.focus()` and `Keyboard.dismiss()` are unaffected - both read
+   `TextInputState.*` live. On iOS the view-command category covers the gap; on
+   Android those two entry points do not reach a `MorphInput`.
+6. **keyboard-controller `target`** is the react tag of the host view. That is
    the right view to measure and scroll, but it is not the same tag a
    `TextInput` reports for itself.
-5. **`onKeyPress` with autocorrect** reports the whole replacement string (e.g.
+7. **`onKeyPress` with autocorrect** reports the whole replacement string (e.g.
    `"An"` when the keyboard corrects `"Ab"`), where RN reports single keys.
-6. **Not yet checked:** iOS edit-menu placement in an overflowed
-   right-aligned field, Android selection highlight when the field overflows,
-   and behaviour on a physical device (all simulator/emulator so far).
+8. **Not yet checked:** iOS edit-menu placement in an overflowed
+   right-aligned field, and Android selection highlight when the field
+   overflows. Everything else here is simulator and emulator except the
+   performance numbers above, which include an iPhone 13 Pro Max.
 
 ## Re-running the comparison
+
+`bun run test` in this package runs the side-by-side suite; the sections below
+are the parts that need a device.
+
 
 Open the example app → **Parity / all callbacks**, **Two-screen routing**,
 **In-screen state change**, **keyboard-controller**, **Mount / focus

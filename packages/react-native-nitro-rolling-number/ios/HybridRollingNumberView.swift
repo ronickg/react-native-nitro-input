@@ -53,7 +53,7 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
   var easing: RollingNumberEasing? { didSet { markConfigDirty() } }
   var bounce: Double? { didSet { markConfigDirty() } }
   var stagger: Double? { didSet { markConfigDirty() } }
-  var direction: RollingNumberDirection? { didSet { markConfigDirty() } }
+  var rollDirection: RollingNumberDirection? { didSet { markConfigDirty() } }
   var revealState: Double? { didSet { commitIfNeeded() } }
   var revealStyle: RollingNumberRevealStyle? { didSet { markConfigDirty() } }
   /// The tri-state `reveal` prop: nil = normal rolling, false = hold, true = play.
@@ -180,7 +180,7 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
     easing = nil
     bounce = nil
     stagger = nil
-    direction = nil
+    rollDirection = nil
     revealState = nil
     revealStyle = nil
     revealDuration = nil
@@ -290,7 +290,7 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
     timing.easing = Self.mapEasing(easing)
     timing.bounce = bounce ?? 0.15
     timing.stagger = max(0, (stagger ?? 0) / 1000)
-    timing.direction = Self.mapDirection(direction)
+    timing.direction = Self.mapDirection(rollDirection)
     timing.revealDuration = max(0, (revealDuration ?? 2200) / 1000)
     timing.revealBounce = min(1, max(0, revealBounce ?? 0.12))
     timing.revealGrow = min(1, max(0, revealGrow ?? 0.2))

@@ -19,12 +19,12 @@ public extension NitroInputAffixAlign {
     switch string {
       case "center":
         self = .center
-      case "baseline":
-        self = .baseline
       case "top":
         self = .top
       case "bottom":
         self = .bottom
+      case "baseline":
+        self = .baseline
       default:
         return nil
     }
@@ -37,12 +37,12 @@ public extension NitroInputAffixAlign {
     switch self {
       case .center:
         return "center"
-      case .baseline:
-        return "baseline"
       case .top:
         return "top"
       case .bottom:
         return "bottom"
+      case .baseline:
+        return "baseline"
     }
   }
 }

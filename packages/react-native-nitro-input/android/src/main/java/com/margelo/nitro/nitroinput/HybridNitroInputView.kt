@@ -43,6 +43,9 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
       onChangeText?.invoke(text, eventCount.toDouble())
       if (mode == NitroInputMode.NUMBER) onChangeValue?.invoke(value)
     }
+    inputView.onMaskChange = { formatted, extracted, tail, complete ->
+      onChangeMask?.invoke(formatted, extracted, tail, complete)
+    }
     inputView.onFocusChange = { focused ->
       cachedFocused = focused
       onFocusChange?.invoke(focused)
@@ -64,6 +67,14 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     set(v) { field = v; markTextDirty() }
   override var mostRecentEventCount: Double = 0.0
     set(v) { field = v; markTextDirty() }
+  override var mask: String = ""
+    set(value) { field = value; markConfigDirty() }
+  override var maskNotations: Array<NitroInputNotation> = emptyArray()
+    set(value) { field = value; markConfigDirty() }
+  override var maskAutocomplete: Boolean = true
+    set(value) { field = value; markConfigDirty() }
+  override var maskAutoSkip: Boolean = false
+    set(value) { field = value; markConfigDirty() }
   override var mode: NitroInputMode = NitroInputMode.TEXT
     set(v) { field = v; markConfigDirty() }
   override var fractionDigits: Double = 2.0
@@ -92,6 +103,28 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     set(v) { field = v; markConfigDirty() }
   override var placeholderColor: Double = Double.NaN
     set(v) { field = v; markConfigDirty() }
+  override var variant: NitroInputVariant = NitroInputVariant.NONE
+    set(v) { field = v; markConfigDirty() }
+  override var label: String = ""
+    set(v) { field = v; markConfigDirty() }
+  override var labelBehavior: NitroInputLabelBehavior = NitroInputLabelBehavior.FLOAT
+    set(v) { field = v; markConfigDirty() }
+  override var labelColor: Double = Double.NaN
+    set(v) { field = v; markConfigDirty() }
+  override var labelFocusedColor: Double = Double.NaN
+    set(v) { field = v; markConfigDirty() }
+  override var labelFontSize: Double = 0.0
+    set(v) { field = v; markConfigDirty() }
+  override var strokeColor: Double = Double.NaN
+    set(v) { field = v; markConfigDirty() }
+  override var focusedStrokeColor: Double = Double.NaN
+    set(v) { field = v; markConfigDirty() }
+  override var strokeWidth: Double = 1.0
+    set(v) { field = v; markConfigDirty() }
+  override var cornerRadius: Double = 8.0
+    set(v) { field = v; markConfigDirty() }
+  override var fillColor: Double = Double.NaN
+    set(v) { field = v; markConfigDirty() }
   override var duration: Double = 400.0
     set(v) { field = v; markConfigDirty() }
   override var easing: NitroInputEasing = NitroInputEasing.EXPO
@@ -101,6 +134,8 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
   override var effect: NitroInputEffect = NitroInputEffect.AUTO
     set(v) { field = v; markConfigDirty() }
   override var fontSize: Double = 32.0
+    set(v) { field = v; markConfigDirty() }
+  override var lineHeight: Double = 0.0
     set(v) { field = v; markConfigDirty() }
   override var fontWeight: Double = 400.0
     set(v) { field = v; markConfigDirty() }
@@ -133,6 +168,14 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
   override var autoCorrect: Boolean = true
     set(v) { field = v; markConfigDirty() }
   override var editable: Boolean = true
+    set(v) { field = v; markConfigDirty() }
+  override var multiline: Boolean = false
+    set(v) { field = v; markConfigDirty() }
+  override var numberOfLines: Double = 0.0
+    set(v) { field = v; markConfigDirty() }
+  override var textAlignVertical: NitroInputTextAlignVertical = NitroInputTextAlignVertical.AUTO
+    set(v) { field = v; markConfigDirty() }
+  override var scrollEnabled: Boolean = true
     set(v) { field = v; markConfigDirty() }
   override var autoFocus: Boolean = false
     set(v) { field = v; markConfigDirty() }
@@ -176,6 +219,7 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     set(v) { field = v; markConfigDirty() }
   override var onChangeText: ((text: String, eventCount: Double) -> Unit)? = null
   override var onChangeValue: ((value: Double) -> Unit)? = null
+  override var onChangeMask: ((formatted: String, extracted: String, tailPlaceholder: String, complete: Boolean) -> Unit)? = null
   override var onFocusChange: ((focused: Boolean) -> Unit)? = null
   override var onSubmitEditing: ((text: String) -> Unit)? = null
   override var onEndEditing: ((text: String) -> Unit)? = null
@@ -214,6 +258,17 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
 
   override fun getValue(): Double = cachedValue
 
+  override fun setSelection(start: Double, end: Double) {
+    onMain {
+      flushConfigIfNeeded()
+      flushTextIfNeeded()
+      val from = clampInt(start, 0, Int.MAX_VALUE, 0)
+      // `end` defaults to `start`: a NaN or a value behind it is a caret move.
+      val to = if (end.isFinite()) clampInt(end, 0, Int.MAX_VALUE, from) else from
+      inputView.setSelection(from, maxOf(from, to))
+    }
+  }
+
   override fun isFocused(): Boolean = cachedFocused
 
   // endregion
@@ -241,6 +296,10 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     isBatching = true
     text = ""
     mostRecentEventCount = 0.0
+    mask = ""
+    maskNotations = emptyArray()
+    maskAutocomplete = true
+    maskAutoSkip = false
     mode = NitroInputMode.TEXT
     fractionDigits = 2.0
     maxIntegerDigits = 15.0
@@ -255,11 +314,23 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     suffixAlign = NitroInputAffixAlign.BASELINE
     placeholder = ""
     placeholderColor = Double.NaN
+    variant = NitroInputVariant.NONE
+    label = ""
+    labelBehavior = NitroInputLabelBehavior.FLOAT
+    labelColor = Double.NaN
+    labelFocusedColor = Double.NaN
+    labelFontSize = 0.0
+    strokeColor = Double.NaN
+    focusedStrokeColor = Double.NaN
+    strokeWidth = 1.0
+    cornerRadius = 8.0
+    fillColor = Double.NaN
     duration = 400.0
     easing = NitroInputEasing.EXPO
     bounce = 0.15
     effect = NitroInputEffect.AUTO
     fontSize = 32.0
+    lineHeight = 0.0
     fontWeight = 400.0
     fontFamily = ""
     color = Double.NaN
@@ -276,6 +347,10 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     autoCapitalize = NitroInputAutoCapitalize.SENTENCES
     autoCorrect = true
     editable = true
+    multiline = false
+    numberOfLines = 0.0
+    textAlignVertical = NitroInputTextAlignVertical.AUTO
+    scrollEnabled = true
     autoFocus = false
     plain = false
     fieldTestID = ""
@@ -298,6 +373,7 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     onChangeValueWorklet = 0.0
     onChangeText = null
     onChangeValue = null
+    onChangeMask = null
     onFocusChange = null
     onSubmitEditing = null
     onEndEditing = null
@@ -399,7 +475,17 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
 
     val size = finite(fontSize, 32.0).toFloat()
     inputView.format = NitroInputView.Format(
-      mode = if (mode == NitroInputMode.NUMBER) NitroInputView.Mode.NUMBER else NitroInputView.Mode.TEXT,
+      mode = when (mode) {
+        NitroInputMode.NUMBER -> NitroInputView.Mode.NUMBER
+        NitroInputMode.MASK -> NitroInputView.Mode.MASK
+        else -> NitroInputView.Mode.TEXT
+      },
+      mask = mask,
+      maskNotations = maskNotations.map {
+        NitroInputView.MaskNotation(it.character, it.characterSet, it.isOptional)
+      },
+      maskAutocomplete = maskAutocomplete,
+      maskAutoSkip = maskAutoSkip,
       fractionDigits = clampInt(fractionDigits, 0, 9, 2),
       maxIntegerDigits = clampInt(maxIntegerDigits, 1, 30, 15),
       groupingSeparator = groupingSeparator,
@@ -410,6 +496,7 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     )
     inputView.typography = NitroInputView.Typography(
       fontSize = size,
+      lineHeightPx = (Math.max(0.0, finite(lineHeight, 0.0)) * inputView.resources.displayMetrics.density).toFloat(),
       prefixFontSize = finite(prefixFontSize, size.toDouble()).toFloat(),
       suffixFontSize = finite(suffixFontSize, size.toDouble()).toFloat(),
       fontWeight = clampInt(fontWeight, 100, 900, 400),
@@ -475,6 +562,15 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
       autoFocus = autoFocus,
       maxLength = clampInt(maxLength, 0, Int.MAX_VALUE, 0),
       plain = plain,
+      multiline = multiline,
+      numberOfLines = clampInt(numberOfLines, 0, 1000, 0),
+      textAlignVertical = when (textAlignVertical) {
+        NitroInputTextAlignVertical.TOP -> NitroInputView.TextAlignVertical.TOP
+        NitroInputTextAlignVertical.CENTER -> NitroInputView.TextAlignVertical.CENTER
+        NitroInputTextAlignVertical.BOTTOM -> NitroInputView.TextAlignVertical.BOTTOM
+        NitroInputTextAlignVertical.AUTO -> NitroInputView.TextAlignVertical.AUTO
+      },
+      scrollEnabled = scrollEnabled,
       testID = fieldTestID.ifEmpty { null },
       accessibilityLabel = fieldAccessibilityLabel.ifEmpty { null },
       blurOnSubmit = submitBehavior == NitroInputSubmitBehavior.BLURANDSUBMIT,
@@ -490,6 +586,26 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
       color = colorFromARGB(caretColor),
       selectionColor = colorFromARGB(selectionColor),
       hidden = caretHidden,
+    )
+    inputView.inputFrame = NitroInputView.Frame(
+      variant = when (variant) {
+        NitroInputVariant.OUTLINED -> NitroInputView.Variant.OUTLINED
+        NitroInputVariant.FILLED -> NitroInputView.Variant.FILLED
+        NitroInputVariant.NONE -> NitroInputView.Variant.NONE
+      },
+      label = label,
+      labelBehavior = when (labelBehavior) {
+        NitroInputLabelBehavior.ALWAYS -> NitroInputView.LabelBehavior.ALWAYS
+        NitroInputLabelBehavior.FLOAT -> NitroInputView.LabelBehavior.FLOAT
+      },
+      labelColor = colorFromARGB(labelColor),
+      labelFocusedColor = colorFromARGB(labelFocusedColor),
+      labelFontSize = Math.max(0.0, finite(labelFontSize, 0.0)).toFloat(),
+      strokeColor = colorFromARGB(strokeColor),
+      focusedStrokeColor = colorFromARGB(focusedStrokeColor),
+      strokeWidth = Math.max(0.0, finite(strokeWidth, 1.0)).toFloat(),
+      cornerRadius = Math.max(0.0, finite(cornerRadius, 8.0)).toFloat(),
+      fillColor = colorFromARGB(fillColor),
     )
     inputView.alignment = when (textAlign) {
       NitroInputTextAlign.CENTER -> NitroInputView.Alignment.CENTER

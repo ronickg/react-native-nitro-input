@@ -165,14 +165,14 @@ namespace margelo::nitro::nitrorollingnumber {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* stagger */)>("setStagger");
     method(_javaPart, stagger.has_value() ? jni::JDouble::valueOf(stagger.value()) : nullptr);
   }
-  std::optional<RollingNumberDirection> JHybridRollingNumberViewSpec::getDirection() {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JRollingNumberDirection>()>("getDirection");
+  std::optional<RollingNumberDirection> JHybridRollingNumberViewSpec::getRollDirection() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JRollingNumberDirection>()>("getRollDirection");
     auto __result = method(_javaPart);
     return __result != nullptr ? std::make_optional(__result->toCpp()) : std::nullopt;
   }
-  void JHybridRollingNumberViewSpec::setDirection(std::optional<RollingNumberDirection> direction) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JRollingNumberDirection> /* direction */)>("setDirection");
-    method(_javaPart, direction.has_value() ? JRollingNumberDirection::fromCpp(direction.value()) : nullptr);
+  void JHybridRollingNumberViewSpec::setRollDirection(std::optional<RollingNumberDirection> rollDirection) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JRollingNumberDirection> /* rollDirection */)>("setRollDirection");
+    method(_javaPart, rollDirection.has_value() ? JRollingNumberDirection::fromCpp(rollDirection.value()) : nullptr);
   }
   std::optional<double> JHybridRollingNumberViewSpec::getRevealState() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getRevealState");

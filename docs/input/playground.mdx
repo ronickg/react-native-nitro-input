@@ -1,0 +1,44 @@
+---
+sidebar_position: 1
+title: Playground
+description: A live NitroInput with every prop worth turning wired to a knob, and the JSX that would produce what you are looking at.
+hide_table_of_contents: true
+---
+
+import {Playground} from '@site/src/components/NitroInput/Playground';
+
+# Playground
+
+Turn the knobs and watch the field change. It is the real thing as far as the
+web can carry it: the amount formatting and the morph are the C++
+`AmountFormatter` and `MorphEngine` compiled to WebAssembly, and the gap under a
+floating label is cut by the same `OutlineGeometry` iOS and Android replay — a
+real hole in the stroked path rather than a patch of background painted over
+the line.
+
+The snippet underneath is generated from what you have set, and lists only the
+props you actually changed.
+
+<Playground />
+
+## Reading the panel
+
+Controls appear only when they apply. `label` needs a `variant` to sit on;
+`fractionDigits` and the separators are `mode="number"` only; `easing` and
+`effect` belong to the morph, so they disappear when you turn it off — and a
+`multiline` field is plain by definition, because the glyph engine lays one run
+out on one baseline and never sees a wrapped one.
+
+`lineHeight` is the CSS meaning: the total height a line occupies, honoured in
+both directions. Set it looser than the font and the room goes between the
+lines; set it tighter and the line box is compressed — the case React Native's
+own correction skips, which is why a compressed `lineHeight` rides off-centre on
+a `TextInput` and sits centred here.
+
+:::note
+The playground is a web port of the native views — a real `<input>` owns the
+keyboard and selection while a `<canvas>` draws the glyphs where the engine puts
+them. The shared C++ is genuinely shared; the drawing around it is not the same
+code as the Swift and Kotlin views, so treat it as a faithful preview rather
+than a pixel reference.
+:::

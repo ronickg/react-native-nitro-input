@@ -19,6 +19,10 @@
 
 #include <string>
 #include "NitroInputMode.hpp"
+#include "NitroInputNotation.hpp"
+#include <vector>
+#include "NitroInputVariant.hpp"
+#include "NitroInputLabelBehavior.hpp"
 #include "NitroInputAffixAlign.hpp"
 #include "NitroInputEasing.hpp"
 #include "NitroInputEffect.hpp"
@@ -26,6 +30,7 @@
 #include "NitroInputKeyboardType.hpp"
 #include "NitroInputReturnKeyType.hpp"
 #include "NitroInputAutoCapitalize.hpp"
+#include "NitroInputTextAlignVertical.hpp"
 #include "NitroInputSubmitBehavior.hpp"
 #include "NitroInputKeyboardAppearance.hpp"
 #include <functional>
@@ -59,8 +64,23 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<bool> plain;
     nitro::ReactProp<double> fractionDigits;
     nitro::ReactProp<double> maxIntegerDigits;
+    nitro::ReactProp<std::string> mask;
+    nitro::ReactProp<std::vector<NitroInputNotation>> maskNotations;
+    nitro::ReactProp<bool> maskAutocomplete;
+    nitro::ReactProp<bool> maskAutoSkip;
     nitro::ReactProp<std::string> groupingSeparator;
     nitro::ReactProp<std::string> decimalSeparator;
+    nitro::ReactProp<NitroInputVariant> variant;
+    nitro::ReactProp<std::string> label;
+    nitro::ReactProp<NitroInputLabelBehavior> labelBehavior;
+    nitro::ReactProp<double> labelColor;
+    nitro::ReactProp<double> labelFocusedColor;
+    nitro::ReactProp<double> labelFontSize;
+    nitro::ReactProp<double> strokeColor;
+    nitro::ReactProp<double> focusedStrokeColor;
+    nitro::ReactProp<double> strokeWidth;
+    nitro::ReactProp<double> cornerRadius;
+    nitro::ReactProp<double> fillColor;
     nitro::ReactProp<std::string> prefix;
     nitro::ReactProp<std::string> suffix;
     nitro::ReactProp<double> prefixFontSize;
@@ -75,6 +95,7 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<double> bounce;
     nitro::ReactProp<NitroInputEffect> effect;
     nitro::ReactProp<double> fontSize;
+    nitro::ReactProp<double> lineHeight;
     nitro::ReactProp<double> fontWeight;
     nitro::ReactProp<std::string> fontFamily;
     nitro::ReactProp<double> color;
@@ -91,6 +112,10 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<NitroInputAutoCapitalize> autoCapitalize;
     nitro::ReactProp<bool> autoCorrect;
     nitro::ReactProp<bool> editable;
+    nitro::ReactProp<bool> multiline;
+    nitro::ReactProp<double> numberOfLines;
+    nitro::ReactProp<NitroInputTextAlignVertical> textAlignVertical;
+    nitro::ReactProp<bool> scrollEnabled;
     nitro::ReactProp<bool> autoFocus;
     nitro::ReactProp<std::string> fieldTestID;
     nitro::ReactProp<std::string> fieldAccessibilityLabel;
@@ -111,6 +136,7 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<double> onChangeTextWorklet;
     nitro::ReactProp<double> onChangeValueWorklet;
     nitro::ReactProp<std::optional<std::function<void(const std::string& /* text */, double /* eventCount */)>>> onChangeText;
+    nitro::ReactProp<std::optional<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>>> onChangeMask;
     nitro::ReactProp<std::optional<std::function<void(double /* value */)>>> onChangeValue;
     nitro::ReactProp<std::optional<std::function<void(bool /* focused */)>>> onFocusChange;
     nitro::ReactProp<std::optional<std::function<void(const std::string& /* text */)>>> onSubmitEditing;
@@ -128,8 +154,23 @@ namespace margelo::nitro::nitroinput::views {
              plain.hasSameValue(other.plain) &&
              fractionDigits.hasSameValue(other.fractionDigits) &&
              maxIntegerDigits.hasSameValue(other.maxIntegerDigits) &&
+             mask.hasSameValue(other.mask) &&
+             maskNotations.hasSameValue(other.maskNotations) &&
+             maskAutocomplete.hasSameValue(other.maskAutocomplete) &&
+             maskAutoSkip.hasSameValue(other.maskAutoSkip) &&
              groupingSeparator.hasSameValue(other.groupingSeparator) &&
              decimalSeparator.hasSameValue(other.decimalSeparator) &&
+             variant.hasSameValue(other.variant) &&
+             label.hasSameValue(other.label) &&
+             labelBehavior.hasSameValue(other.labelBehavior) &&
+             labelColor.hasSameValue(other.labelColor) &&
+             labelFocusedColor.hasSameValue(other.labelFocusedColor) &&
+             labelFontSize.hasSameValue(other.labelFontSize) &&
+             strokeColor.hasSameValue(other.strokeColor) &&
+             focusedStrokeColor.hasSameValue(other.focusedStrokeColor) &&
+             strokeWidth.hasSameValue(other.strokeWidth) &&
+             cornerRadius.hasSameValue(other.cornerRadius) &&
+             fillColor.hasSameValue(other.fillColor) &&
              prefix.hasSameValue(other.prefix) &&
              suffix.hasSameValue(other.suffix) &&
              prefixFontSize.hasSameValue(other.prefixFontSize) &&
@@ -144,6 +185,7 @@ namespace margelo::nitro::nitroinput::views {
              bounce.hasSameValue(other.bounce) &&
              effect.hasSameValue(other.effect) &&
              fontSize.hasSameValue(other.fontSize) &&
+             lineHeight.hasSameValue(other.lineHeight) &&
              fontWeight.hasSameValue(other.fontWeight) &&
              fontFamily.hasSameValue(other.fontFamily) &&
              color.hasSameValue(other.color) &&
@@ -160,6 +202,10 @@ namespace margelo::nitro::nitroinput::views {
              autoCapitalize.hasSameValue(other.autoCapitalize) &&
              autoCorrect.hasSameValue(other.autoCorrect) &&
              editable.hasSameValue(other.editable) &&
+             multiline.hasSameValue(other.multiline) &&
+             numberOfLines.hasSameValue(other.numberOfLines) &&
+             textAlignVertical.hasSameValue(other.textAlignVertical) &&
+             scrollEnabled.hasSameValue(other.scrollEnabled) &&
              autoFocus.hasSameValue(other.autoFocus) &&
              fieldTestID.hasSameValue(other.fieldTestID) &&
              fieldAccessibilityLabel.hasSameValue(other.fieldAccessibilityLabel) &&
@@ -180,6 +226,7 @@ namespace margelo::nitro::nitroinput::views {
              onChangeTextWorklet.hasSameValue(other.onChangeTextWorklet) &&
              onChangeValueWorklet.hasSameValue(other.onChangeValueWorklet) &&
              onChangeText.hasSameValue(other.onChangeText) &&
+             onChangeMask.hasSameValue(other.onChangeMask) &&
              onChangeValue.hasSameValue(other.onChangeValue) &&
              onFocusChange.hasSameValue(other.onFocusChange) &&
              onSubmitEditing.hasSameValue(other.onSubmitEditing) &&
@@ -198,8 +245,23 @@ namespace margelo::nitro::nitroinput::views {
              plain.isProvided() ||
              fractionDigits.isProvided() ||
              maxIntegerDigits.isProvided() ||
+             mask.isProvided() ||
+             maskNotations.isProvided() ||
+             maskAutocomplete.isProvided() ||
+             maskAutoSkip.isProvided() ||
              groupingSeparator.isProvided() ||
              decimalSeparator.isProvided() ||
+             variant.isProvided() ||
+             label.isProvided() ||
+             labelBehavior.isProvided() ||
+             labelColor.isProvided() ||
+             labelFocusedColor.isProvided() ||
+             labelFontSize.isProvided() ||
+             strokeColor.isProvided() ||
+             focusedStrokeColor.isProvided() ||
+             strokeWidth.isProvided() ||
+             cornerRadius.isProvided() ||
+             fillColor.isProvided() ||
              prefix.isProvided() ||
              suffix.isProvided() ||
              prefixFontSize.isProvided() ||
@@ -214,6 +276,7 @@ namespace margelo::nitro::nitroinput::views {
              bounce.isProvided() ||
              effect.isProvided() ||
              fontSize.isProvided() ||
+             lineHeight.isProvided() ||
              fontWeight.isProvided() ||
              fontFamily.isProvided() ||
              color.isProvided() ||
@@ -230,6 +293,10 @@ namespace margelo::nitro::nitroinput::views {
              autoCapitalize.isProvided() ||
              autoCorrect.isProvided() ||
              editable.isProvided() ||
+             multiline.isProvided() ||
+             numberOfLines.isProvided() ||
+             textAlignVertical.isProvided() ||
+             scrollEnabled.isProvided() ||
              autoFocus.isProvided() ||
              fieldTestID.isProvided() ||
              fieldAccessibilityLabel.isProvided() ||
@@ -250,6 +317,7 @@ namespace margelo::nitro::nitroinput::views {
              onChangeTextWorklet.isProvided() ||
              onChangeValueWorklet.isProvided() ||
              onChangeText.isProvided() ||
+             onChangeMask.isProvided() ||
              onChangeValue.isProvided() ||
              onFocusChange.isProvided() ||
              onSubmitEditing.isProvided() ||

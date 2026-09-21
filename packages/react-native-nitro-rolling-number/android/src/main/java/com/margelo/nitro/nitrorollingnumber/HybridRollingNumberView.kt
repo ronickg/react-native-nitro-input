@@ -66,7 +66,7 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
     set(v) { field = v; markConfigDirty() }
   override var stagger: Double? = null
     set(v) { field = v; markConfigDirty() }
-  override var direction: RollingNumberDirection? = null
+  override var rollDirection: RollingNumberDirection? = null
     set(v) { field = v; markConfigDirty() }
   override var revealState: Double? = null
     set(v) { field = v; commitIfNeeded() }
@@ -229,7 +229,7 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
     easing = null
     bounce = null
     stagger = null
-    direction = null
+    rollDirection = null
     revealState = null
     revealStyle = null
     revealDuration = null
@@ -341,7 +341,7 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
       },
       bounce = bounce ?: 0.15,
       staggerMs = Math.max(0.0, stagger ?: 0.0).toLong(),
-      direction = when (direction) {
+      direction = when (rollDirection) {
         RollingNumberDirection.UP -> RollingNumberView.Direction.UP
         RollingNumberDirection.DOWN -> RollingNumberView.Direction.DOWN
         RollingNumberDirection.AUTO, null -> RollingNumberView.Direction.AUTO

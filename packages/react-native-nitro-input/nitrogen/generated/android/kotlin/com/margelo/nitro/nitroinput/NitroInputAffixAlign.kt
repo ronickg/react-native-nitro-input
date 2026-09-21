@@ -17,9 +17,9 @@ import com.facebook.proguard.annotations.DoNotStrip
 @Keep
 enum class NitroInputAffixAlign(@DoNotStrip @Keep val value: Int) {
   CENTER(0),
-  BASELINE(1),
-  TOP(2),
-  BOTTOM(3);
+  TOP(1),
+  BOTTOM(2),
+  BASELINE(3);
 
   companion object
 }

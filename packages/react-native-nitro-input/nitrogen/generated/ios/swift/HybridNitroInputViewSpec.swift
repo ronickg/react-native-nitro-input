@@ -16,8 +16,23 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   var plain: Bool { get set }
   var fractionDigits: Double { get set }
   var maxIntegerDigits: Double { get set }
+  var mask: String { get set }
+  var maskNotations: [NitroInputNotation] { get set }
+  var maskAutocomplete: Bool { get set }
+  var maskAutoSkip: Bool { get set }
   var groupingSeparator: String { get set }
   var decimalSeparator: String { get set }
+  var variant: NitroInputVariant { get set }
+  var label: String { get set }
+  var labelBehavior: NitroInputLabelBehavior { get set }
+  var labelColor: Double { get set }
+  var labelFocusedColor: Double { get set }
+  var labelFontSize: Double { get set }
+  var strokeColor: Double { get set }
+  var focusedStrokeColor: Double { get set }
+  var strokeWidth: Double { get set }
+  var cornerRadius: Double { get set }
+  var fillColor: Double { get set }
   var prefix: String { get set }
   var suffix: String { get set }
   var prefixFontSize: Double { get set }
@@ -32,6 +47,7 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   var bounce: Double { get set }
   var effect: NitroInputEffect { get set }
   var fontSize: Double { get set }
+  var lineHeight: Double { get set }
   var fontWeight: Double { get set }
   var fontFamily: String { get set }
   var color: Double { get set }
@@ -48,6 +64,10 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   var autoCapitalize: NitroInputAutoCapitalize { get set }
   var autoCorrect: Bool { get set }
   var editable: Bool { get set }
+  var multiline: Bool { get set }
+  var numberOfLines: Double { get set }
+  var textAlignVertical: NitroInputTextAlignVertical { get set }
+  var scrollEnabled: Bool { get set }
   var autoFocus: Bool { get set }
   var fieldTestID: String { get set }
   var fieldAccessibilityLabel: String { get set }
@@ -68,6 +88,7 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   var onChangeTextWorklet: Double { get set }
   var onChangeValueWorklet: Double { get set }
   var onChangeText: ((_ text: String, _ eventCount: Double) -> Void)? { get set }
+  var onChangeMask: ((_ formatted: String, _ extracted: String, _ tailPlaceholder: String, _ complete: Bool) -> Void)? { get set }
   var onChangeValue: ((_ value: Double) -> Void)? { get set }
   var onFocusChange: ((_ focused: Bool) -> Void)? { get set }
   var onSubmitEditing: ((_ text: String) -> Void)? { get set }
@@ -85,6 +106,7 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   func currentText() throws -> String
   func getValue() throws -> Double
   func isFocused() throws -> Bool
+  func setSelection(start: Double, end: Double) throws -> Void
 }
 
 public extension HybridNitroInputViewSpec_protocol {

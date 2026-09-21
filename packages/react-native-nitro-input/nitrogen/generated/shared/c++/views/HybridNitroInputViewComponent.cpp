@@ -26,8 +26,23 @@ namespace margelo::nitro::nitroinput::views {
     plain(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "plain", rawProps, sourceProps.plain)),
     fractionDigits(nitro::ReactProp<double>::fromRawValue("NitroInputView", "fractionDigits", rawProps, sourceProps.fractionDigits)),
     maxIntegerDigits(nitro::ReactProp<double>::fromRawValue("NitroInputView", "maxIntegerDigits", rawProps, sourceProps.maxIntegerDigits)),
+    mask(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "mask", rawProps, sourceProps.mask)),
+    maskNotations(nitro::ReactProp<std::vector<NitroInputNotation>>::fromRawValue("NitroInputView", "maskNotations", rawProps, sourceProps.maskNotations)),
+    maskAutocomplete(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "maskAutocomplete", rawProps, sourceProps.maskAutocomplete)),
+    maskAutoSkip(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "maskAutoSkip", rawProps, sourceProps.maskAutoSkip)),
     groupingSeparator(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "groupingSeparator", rawProps, sourceProps.groupingSeparator)),
     decimalSeparator(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "decimalSeparator", rawProps, sourceProps.decimalSeparator)),
+    variant(nitro::ReactProp<NitroInputVariant>::fromRawValue("NitroInputView", "variant", rawProps, sourceProps.variant)),
+    label(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "label", rawProps, sourceProps.label)),
+    labelBehavior(nitro::ReactProp<NitroInputLabelBehavior>::fromRawValue("NitroInputView", "labelBehavior", rawProps, sourceProps.labelBehavior)),
+    labelColor(nitro::ReactProp<double>::fromRawValue("NitroInputView", "labelColor", rawProps, sourceProps.labelColor)),
+    labelFocusedColor(nitro::ReactProp<double>::fromRawValue("NitroInputView", "labelFocusedColor", rawProps, sourceProps.labelFocusedColor)),
+    labelFontSize(nitro::ReactProp<double>::fromRawValue("NitroInputView", "labelFontSize", rawProps, sourceProps.labelFontSize)),
+    strokeColor(nitro::ReactProp<double>::fromRawValue("NitroInputView", "strokeColor", rawProps, sourceProps.strokeColor)),
+    focusedStrokeColor(nitro::ReactProp<double>::fromRawValue("NitroInputView", "focusedStrokeColor", rawProps, sourceProps.focusedStrokeColor)),
+    strokeWidth(nitro::ReactProp<double>::fromRawValue("NitroInputView", "strokeWidth", rawProps, sourceProps.strokeWidth)),
+    cornerRadius(nitro::ReactProp<double>::fromRawValue("NitroInputView", "cornerRadius", rawProps, sourceProps.cornerRadius)),
+    fillColor(nitro::ReactProp<double>::fromRawValue("NitroInputView", "fillColor", rawProps, sourceProps.fillColor)),
     prefix(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "prefix", rawProps, sourceProps.prefix)),
     suffix(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "suffix", rawProps, sourceProps.suffix)),
     prefixFontSize(nitro::ReactProp<double>::fromRawValue("NitroInputView", "prefixFontSize", rawProps, sourceProps.prefixFontSize)),
@@ -42,6 +57,7 @@ namespace margelo::nitro::nitroinput::views {
     bounce(nitro::ReactProp<double>::fromRawValue("NitroInputView", "bounce", rawProps, sourceProps.bounce)),
     effect(nitro::ReactProp<NitroInputEffect>::fromRawValue("NitroInputView", "effect", rawProps, sourceProps.effect)),
     fontSize(nitro::ReactProp<double>::fromRawValue("NitroInputView", "fontSize", rawProps, sourceProps.fontSize)),
+    lineHeight(nitro::ReactProp<double>::fromRawValue("NitroInputView", "lineHeight", rawProps, sourceProps.lineHeight)),
     fontWeight(nitro::ReactProp<double>::fromRawValue("NitroInputView", "fontWeight", rawProps, sourceProps.fontWeight)),
     fontFamily(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "fontFamily", rawProps, sourceProps.fontFamily)),
     color(nitro::ReactProp<double>::fromRawValue("NitroInputView", "color", rawProps, sourceProps.color)),
@@ -58,6 +74,10 @@ namespace margelo::nitro::nitroinput::views {
     autoCapitalize(nitro::ReactProp<NitroInputAutoCapitalize>::fromRawValue("NitroInputView", "autoCapitalize", rawProps, sourceProps.autoCapitalize)),
     autoCorrect(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "autoCorrect", rawProps, sourceProps.autoCorrect)),
     editable(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "editable", rawProps, sourceProps.editable)),
+    multiline(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "multiline", rawProps, sourceProps.multiline)),
+    numberOfLines(nitro::ReactProp<double>::fromRawValue("NitroInputView", "numberOfLines", rawProps, sourceProps.numberOfLines)),
+    textAlignVertical(nitro::ReactProp<NitroInputTextAlignVertical>::fromRawValue("NitroInputView", "textAlignVertical", rawProps, sourceProps.textAlignVertical)),
+    scrollEnabled(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "scrollEnabled", rawProps, sourceProps.scrollEnabled)),
     autoFocus(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "autoFocus", rawProps, sourceProps.autoFocus)),
     fieldTestID(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "fieldTestID", rawProps, sourceProps.fieldTestID)),
     fieldAccessibilityLabel(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "fieldAccessibilityLabel", rawProps, sourceProps.fieldAccessibilityLabel)),
@@ -78,6 +98,7 @@ namespace margelo::nitro::nitroinput::views {
     onChangeTextWorklet(nitro::ReactProp<double>::fromRawValue("NitroInputView", "onChangeTextWorklet", rawProps, sourceProps.onChangeTextWorklet)),
     onChangeValueWorklet(nitro::ReactProp<double>::fromRawValue("NitroInputView", "onChangeValueWorklet", rawProps, sourceProps.onChangeValueWorklet)),
     onChangeText(nitro::ReactProp<std::optional<std::function<void(const std::string& /* text */, double /* eventCount */)>>>::fromRawValue("NitroInputView", "onChangeText", rawProps, sourceProps.onChangeText)),
+    onChangeMask(nitro::ReactProp<std::optional<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>>>::fromRawValue("NitroInputView", "onChangeMask", rawProps, sourceProps.onChangeMask)),
     onChangeValue(nitro::ReactProp<std::optional<std::function<void(double /* value */)>>>::fromRawValue("NitroInputView", "onChangeValue", rawProps, sourceProps.onChangeValue)),
     onFocusChange(nitro::ReactProp<std::optional<std::function<void(bool /* focused */)>>>::fromRawValue("NitroInputView", "onFocusChange", rawProps, sourceProps.onFocusChange)),
     onSubmitEditing(nitro::ReactProp<std::optional<std::function<void(const std::string& /* text */)>>>::fromRawValue("NitroInputView", "onSubmitEditing", rawProps, sourceProps.onSubmitEditing)),
@@ -95,8 +116,23 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("plain"): return true;
       case hashString("fractionDigits"): return true;
       case hashString("maxIntegerDigits"): return true;
+      case hashString("mask"): return true;
+      case hashString("maskNotations"): return true;
+      case hashString("maskAutocomplete"): return true;
+      case hashString("maskAutoSkip"): return true;
       case hashString("groupingSeparator"): return true;
       case hashString("decimalSeparator"): return true;
+      case hashString("variant"): return true;
+      case hashString("label"): return true;
+      case hashString("labelBehavior"): return true;
+      case hashString("labelColor"): return true;
+      case hashString("labelFocusedColor"): return true;
+      case hashString("labelFontSize"): return true;
+      case hashString("strokeColor"): return true;
+      case hashString("focusedStrokeColor"): return true;
+      case hashString("strokeWidth"): return true;
+      case hashString("cornerRadius"): return true;
+      case hashString("fillColor"): return true;
       case hashString("prefix"): return true;
       case hashString("suffix"): return true;
       case hashString("prefixFontSize"): return true;
@@ -111,6 +147,7 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("bounce"): return true;
       case hashString("effect"): return true;
       case hashString("fontSize"): return true;
+      case hashString("lineHeight"): return true;
       case hashString("fontWeight"): return true;
       case hashString("fontFamily"): return true;
       case hashString("color"): return true;
@@ -127,6 +164,10 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("autoCapitalize"): return true;
       case hashString("autoCorrect"): return true;
       case hashString("editable"): return true;
+      case hashString("multiline"): return true;
+      case hashString("numberOfLines"): return true;
+      case hashString("textAlignVertical"): return true;
+      case hashString("scrollEnabled"): return true;
       case hashString("autoFocus"): return true;
       case hashString("fieldTestID"): return true;
       case hashString("fieldAccessibilityLabel"): return true;
@@ -147,6 +188,7 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("onChangeTextWorklet"): return true;
       case hashString("onChangeValueWorklet"): return true;
       case hashString("onChangeText"): return true;
+      case hashString("onChangeMask"): return true;
       case hashString("onChangeValue"): return true;
       case hashString("onFocusChange"): return true;
       case hashString("onSubmitEditing"): return true;
