@@ -1,0 +1,33 @@
+diff --git a/node_modules/react-native-nitro-modules/.bun-tag-ea43751af442b380 b/.bun-tag-ea43751af442b380
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/cpp/views/ViewComponentDescriptor.hpp b/cpp/views/ViewComponentDescriptor.hpp
+index a2d9f29a8758c54275429e4953347e6ebada933c..93e95447a8d011db2b63bbe978be73ddf449cb36 100644
+--- a/cpp/views/ViewComponentDescriptor.hpp
++++ b/cpp/views/ViewComponentDescriptor.hpp
+@@ -47,7 +47,24 @@ public:
+     // 1. Prepare raw props parser
+     rawProps.parse(this->rawPropsParser_);
+     // 2. Copy props with Nitro's cached copy constructor
+-    return TShadowNode::Props(context, /* & */ rawProps, props);
++    auto newProps = TShadowNode::Props(context, /* & */ rawProps, props);
++#ifdef RN_SERIALIZABLE_STATE
++    // 3. Fill `Props::rawProps`.
++    //
++    // On Android that `folly::dynamic` is what gets serialized to Java and
++    // handed to `ViewManager.updateProperties` - it is the only way a base
++    // `ViewProps` reaches the view.
++    //
++    // Up to React Native 0.85 this happened on its own: `Props::Props` called
++    // `Props::initialize`, which called `initializeDynamicProps`. RN 0.87
++    // removed that from the constructor, leaving
++    // `ConcreteComponentDescriptor::cloneProps` as the only caller - so
++    // overriding `cloneProps`, as Nitro does, now silently drops every base
++    // view prop on Android. Measured on RN 0.87.1: 0 props before this call,
++    // 102 after.
++    TShadowNode::initializeDynamicProps(newProps, rawProps, props);
++#endif
++    return newProps;
+   }
+ 
+ #ifdef ANDROID

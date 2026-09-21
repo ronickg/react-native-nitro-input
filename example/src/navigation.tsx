@@ -10,6 +10,7 @@ import { FormSheetScreen, NavAScreen, NavBScreen } from './screens/NavigationScr
 import { StateChangeScreen } from './screens/StateChangeScreen'
 import { KeyboardControllerScreen } from './screens/KeyboardControllerScreen'
 import { BenchScreen } from './screens/BenchScreen'
+import { ViewPropsReproScreen } from './screens/ViewPropsRepro'
 import {
   FlowAmountScreen,
   FlowEmailScreen,
@@ -32,9 +33,23 @@ export type RootStackParamList = {
   FlowAmount: { impl: Impl }
   FlowForm: { impl: Impl }
   FlowSheet: { impl: Impl }
+  ViewPropsRepro: undefined
 }
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
+
+/**
+ * The four onboarding steps share their chrome: no title (the progress rail on
+ * the screen says which step you are on), a hairline-free header that blends
+ * into the page, and a back chevron with no label to compete with the headline.
+ */
+const FLOW_STEP = {
+  title: '',
+  headerBackButtonDisplayMode: 'minimal' as const,
+  headerShadowVisible: false,
+  headerStyle: { backgroundColor: '#F7F8FA' },
+  headerTintColor: '#39414E',
+}
 
 function HomeScreen() {
   const nav = useNavigation<any>()
@@ -54,6 +69,7 @@ function HomeScreen() {
         hint="Four screens end to end — email, amount, a six-field form, then a search sheet. A run is built entirely from one component, so the keyboard behaviour you feel is that component's."
       >
         <Row>
+          <Btn testID="home-repro" title="Nitro view props (Android)" onPress={() => nav.navigate('ViewPropsRepro')} />
           <Btn testID="home-flow-ours" tone="primary" title="Run flow (NitroInput)" onPress={() => nav.navigate('FlowEmail', { impl: 'ours' })} />
           <Btn testID="home-flow-rn" tone="primary" title="Run flow (RN TextInput)" onPress={() => nav.navigate('FlowEmail', { impl: 'rn' })} />
         </Row>
@@ -87,10 +103,11 @@ export function RootNavigator() {
         <Stack.Screen name="StateChange" component={StateChangeScreen} options={{ title: 'State change' }} />
         <Stack.Screen name="KeyboardController" component={KeyboardControllerScreen} options={{ title: 'keyboard-controller' }} />
         <Stack.Screen name="Bench" component={BenchScreen} options={{ title: 'Benchmark' }} />
-        <Stack.Screen name="FlowEmail" component={FlowEmailScreen} options={{ title: '1 — Sign in' }} />
-        <Stack.Screen name="FlowAmount" component={FlowAmountScreen} options={{ title: '2 — Amount' }} />
-        <Stack.Screen name="FlowForm" component={FlowFormScreen} options={{ title: '3 — Details' }} />
+        <Stack.Screen name="FlowEmail" component={FlowEmailScreen} options={FLOW_STEP} />
+        <Stack.Screen name="FlowAmount" component={FlowAmountScreen} options={FLOW_STEP} />
+        <Stack.Screen name="FlowForm" component={FlowFormScreen} options={FLOW_STEP} />
         <Stack.Screen name="Demo" component={DemoScreen} options={{ title: 'Demo' }} />
+        <Stack.Screen name="ViewPropsRepro" component={ViewPropsReproScreen} options={{ title: 'View props' }} />
         <Stack.Screen
           name="FlowSheet"
           component={FlowSheetScreen}
@@ -99,7 +116,8 @@ export function RootNavigator() {
             sheetAllowedDetents: [0.6, 0.95],
             sheetGrabberVisible: true,
             sheetCornerRadius: 20,
-            title: '4 — Search',
+            title: '',
+            headerShown: false,
           }}
         />
         <Stack.Screen

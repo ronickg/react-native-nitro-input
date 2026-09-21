@@ -27,3 +27,10 @@ scripts/iosrec/IosRec.app/Contents/_CodeSignature/
 # not documentation of this library, so they are kept locally rather than
 # shipped and reviewed with it.
 *-INTERNALS.md
+
+# Screen recordings captured while driving the example app
+example/.recordings/
+
+# Native reference apps (UIKit / SwiftUI / Android) used to compare keyboard
+# behaviour against. Kept out of the PR like the other internals notes.
+native/
