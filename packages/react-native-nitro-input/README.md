@@ -1,10 +1,10 @@
 # react-native-nitro-input
 
-A native single-line **text input** for React Native, built with
+A native **text input** for React Native, built with
 [Nitro Modules](https://nitro.margelo.com). `NitroInput` is the component: a
 system text field (`UITextField` / `EditText`) that owns the keyboard, editing,
 selection, paste and accessibility, with native formatting, native masking and
-a Material-style outlined or filled frame on top of it.
+an outlined or filled frame with a floating label on top of it.
 
 ```tsx
 import { NitroInput } from 'react-native-nitro-input'
@@ -130,14 +130,35 @@ platforms replay as the same move / line / arc commands, and every path has the
 same verbs at every progress so Core Animation and `ValueAnimator` can
 interpolate between them.
 
-`variant="filled"` gives the Material filled field instead: a `fillColor`
+`variant="filled"` gives a filled field instead: a `fillColor`
 background with a square bottom and an indicator rule along it.
 
-Timings follow Material's: the label runs 200 ms on the standard decelerate
-curve, and the notch is staggered 50 ms behind it opening and closes in 50 ms,
+The label runs 200 ms on a decelerate curve, and the notch is staggered 50 ms behind it opening and closes in 50 ms,
 so the gap is never open under a label that has not arrived. All of it runs
 inside the view, off a native focus callback — there is no React state to
-declare and nothing crosses into JS per frame.
+declare and nothing crosses into JS per frame. That is the point of doing it
+natively: a floating label built in React Native is an `Animated.Text` over a
+`TextInput`, moved from focus and text state that reach JS after the field has
+changed, so it lands a frame late and stutters when the JS thread is busy.
+
+### A multiline field
+
+```tsx
+<NitroInput
+  multiline
+  numberOfLines={4}
+  placeholder="Tell us what happened"
+  style={{ width: '100%' }}
+/>
+```
+
+`multiline` lets the text wrap. With `numberOfLines` (or `rows`) the field is
+that many lines tall and scrolls past it; without it the field grows with its
+content, and `scrollEnabled={false}` hands the height to the content entirely.
+`textAlignVertical` says where the text sits in a taller box. A multiline field
+is always drawn by the system view and is always `mode="text"`: the glyph
+engine lays one run out on one baseline, so `morph`, `mode="number"` and
+`mode="mask"` are ignored alongside it, with one warning in development.
 
 ### An amount field (the morph)
 
@@ -386,6 +407,11 @@ rather than renumbering the columns.
 | `fontFamily` | `string` | system | Resolved like `Text`. |
 | `color` | `ColorValue` | label color | Text color. |
 | `textAlign` | `'left' \| 'center' \| 'right'` | `'left'` | Alignment inside a wider frame. |
+| `lineHeight` | `number` | the font's own | The CSS meaning: the total height a line occupies. Honoured in both directions, including tighter than the font. |
+| `multiline` | `boolean` | `false` | Wraps. Always drawn by the system view and always `'text'` mode; `morph`, `'number'` and `'mask'` are ignored with it. |
+| `numberOfLines` / `rows` | `number` | `0` | `multiline`: lines tall before it scrolls; `0` grows with the content. |
+| `textAlignVertical` | `'auto' \| 'top' \| 'center' \| 'bottom'` | `'auto'` | `multiline`: where the text sits in a taller box. |
+| `scrollEnabled` | `boolean` | `true` | `multiline`: scroll once the text outgrows the field; `false` lets a growing field drive its own height. |
 | `cursorColor` | `ColorValue` | platform tint | Caret color. |
 | `selectionColor` | `ColorValue` | platform tint | Selection highlight. |
 | `caretHidden` | `boolean` | `false` | |

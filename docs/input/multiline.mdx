@@ -1,0 +1,22 @@
+---
+sidebar_position: 5
+title: Multiline
+description: 'multiline: a field that wraps, grows with its content or scrolls past a number of lines.'
+---
+
+```tsx
+<NitroInput
+  multiline
+  numberOfLines={4}
+  placeholder="Tell us what happened"
+  style={{ width: '100%' }}
+/>
+```
+
+`multiline` lets the text wrap. With `numberOfLines` (or `rows`, the `TextInput` spelling) the field is that many lines tall and scrolls past it. Without it the field grows with its content, and `scrollEnabled={false}` hands the height to the content entirely, for a field inside a scroll view of its own. `textAlignVertical` says where the text sits in a box taller than it: `'auto'` (the top), `'top'`, `'center'` or `'bottom'`.
+
+`lineHeight` is the CSS meaning: the total height a line occupies, not extra leading, and it is honoured in both directions. Set it looser than the font and the room goes between the lines. Set it tighter and the line box is compressed, the case React Native's own correction skips, which is why a compressed `lineHeight` rides off-centre on a `TextInput` and sits centred here.
+
+## What a multiline field is not
+
+A multiline field is always drawn by the system view and is always `mode="text"`. The glyph engine lays one run out on one baseline, so it cannot morph wrapped text, and an amount or a mask is a single-line idea. `morph`, `mode="number"` and `mode="mask"` are ignored alongside `multiline`, with one warning in development. Everything else applies: a [frame](/input/frames) with a floating label, `maxLength`, autocorrect and the edit callbacks.

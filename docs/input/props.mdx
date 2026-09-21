@@ -1,5 +1,5 @@
 ---
-sidebar_position: 6
+sidebar_position: 7
 title: Props
 description: 'Every prop of NitroInput and MorphInput.'
 ---
@@ -8,15 +8,25 @@ The full table is in the package [README](https://github.com/ronickg/react-nativ
 
 | Prop | Default | |
 | --- | --- | --- |
-| `mode` | `'text'` | `'number'` formats as you type. |
+| `mode` | `'text'` | `'number'` formats as you type, `'mask'` applies a pattern. |
 | `fractionDigits`, `maxIntegerDigits` | `2`, `15` | Limits; digits past them are rejected. |
 | `groupingSeparator`, `decimalSeparator` | `','`, `'.'` | |
-| `prefix`, `suffix`, `affixAlign` | `''`, `''`, `'baseline'` | As on the rolling number. |
-| `placeholder` | `''` | Swapped for the first character, not morphed into it — see below. |
-| `duration`, `easing`, `effect` | `400`, `'expo'`, `'auto'` | The morph. |
+| `mask`, `maskNotations`, `maskAutocomplete`, `maskAutoSkip` | `''`, `[]`, `true`, `false` | `'mask'`: the pattern, your own slots, and how literals are inserted and deleted — see [A masked field](/input/masked-field). |
+| `prefix`, `suffix`, `affixAlign` | `''`, `''`, `'baseline'` | Drawn at `prefixFontSize` / `suffixFontSize`; `prefixAlign` / `suffixAlign` override one side. |
+| `placeholder`, `placeholderTextColor` | `''` | Shown instead of a value. |
+| `variant`, `label`, `labelBehavior` | `'none'`, `''`, `'float'` | A frame and a floating label — see [Frames](/input/frames). |
+| `strokeColor`, `focusedStrokeColor`, `strokeWidth`, `cornerRadius`, `fillColor` | | The frame's stroke, corners and fill. |
+| `multiline`, `numberOfLines`, `textAlignVertical`, `scrollEnabled` | `false`, `0`, `'auto'`, `true` | A wrapping field — see [Multiline](/input/multiline). |
+| `morph`, `duration`, `easing`, `bounce`, `effect` | `false`, `400`, `'expo'`, `0.15`, `'auto'` | The opt-in animation — see [The morph](/input/morph). |
+| `autoWidth` | `false` | `false` takes its width from the parent like a `TextInput`; `'auto'` sizes to the content (what `MorphInput` uses). |
+| `fontSize`, `fontWeight`, `fontFamily`, `color`, `lineHeight`, `textAlign` | | Typography, resolved like `Text`. |
+| `adjustsFontSizeToFit`, `minimumFontScale`, `allowFontScaling`, `maxFontSizeMultiplier` | `false`, `0.5`, `false`, `0` | Shrinking to fit a width, and following the system text size. |
+| `cursorColor`, `selectionColor`, `caretHidden` | | The caret and the selection. |
 | `keyboardType`, `returnKeyType`, `autoCapitalize`, `autoCorrect`, `maxLength`, `editable`, `autoFocus` | | Input traits. |
 | `transform` | | A worklet mask, run synchronously on the UI thread. |
 | `onChangeText`, `onChangeValue`, `onFocus`, `onBlur`, `onSubmitEditing`, `onEndEditing`, `onSelectionChange`, `onKeyPress` | | `TextInput`'s edit callbacks, plus `onChangeValue`. Any of them marked `'worklet'` runs on the UI thread instead of the JS one — see [Worklets](/input/worklets). |
+| `onChangeMask` | | `'mask'`: the formatted text, the extracted value, the missing tail and whether every mandatory slot is filled. |
+| `value`, `defaultValue` | | Controlled and uncontrolled text. A `value` with a stale `mostRecentEventCount` is ignored, like `TextInput`. |
 | `submitBehavior` | `'blurAndSubmit'` | `'submit'` keeps focus so a form can move to the next field itself. |
 | `secureTextEntry` | `false` | Draws bullets; the field keeps the real text for autofill. |
 | `textContentType` / `autoComplete` | `''` | Autofill: `'username'`, `'password'`, `'oneTimeCode'`, … |
