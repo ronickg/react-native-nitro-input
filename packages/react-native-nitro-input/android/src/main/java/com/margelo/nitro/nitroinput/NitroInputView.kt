@@ -299,6 +299,12 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       }
       syncLabelProgress(animated = false)
       syncFocusProgress(animated = false)
+      // A frame changes the padding (`applyEditTextLayout` above), and a
+      // wrapping field's height is that padding plus its lines. This prop lands
+      // after `keyboard`, so without this the box keeps the height it reported
+      // before it had a frame to make room for. `reportIntrinsicSize` compares
+      // against the last report, so calling it when nothing moved costs nothing.
+      reportIntrinsicSize()
       invalidate()
       overlay.invalidate()
     }
@@ -712,9 +718,21 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     } else {
       0
     }
+    // An outlined field's floated label straddles the top stroke, so half of it
+    // hangs back into the box. A single line is centred well below it; a
+    // wrapping field's first line starts at the top, right where the label is,
+    // so it has to be paid for - as it is on iOS, or the same props would give
+    // the two platforms different heights.
+    val labelOverhang = if (inputFrame.draws && keyboard.multiline &&
+      inputFrame.hasLabel && inputFrame.variant != Variant.FILLED
+    ) {
+      (floatedLabelSizePx / 2f).roundToInt()
+    } else {
+      0
+    }
     editText.setPadding(
       side + f.width(format.prefix, Role.PREFIX).roundToInt(),
-      frameTopInsetPx.roundToInt() + framePadding,
+      frameTopInsetPx.roundToInt() + framePadding + labelOverhang,
       side + f.width(format.suffix, Role.SUFFIX).roundToInt(),
       framePadding,
     )
@@ -1425,7 +1443,13 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
   private fun intrinsicHeightPx(): Float {
     if (!keyboard.multiline) return fonts.lineHeight
-    val layout = editText.layout ?: return fonts.lineHeight * maxOf(1, keyboard.numberOfLines)
+    // The frame's padding counts on both paths. Leaving it off this one was
+    // enough to lose it entirely: at mount there is no layout yet, so this
+    // branch answered, and by the time the frame arrived and set the padding
+    // the answer had not changed - so the report deduplicated itself away and
+    // the box kept a height with no room for its own stroke.
+    val padding = (editText.paddingTop + editText.paddingBottom).toFloat()
+    val layout = editText.layout ?: return fonts.lineHeight * maxOf(1, keyboard.numberOfLines) + padding
     val lines = if (keyboard.numberOfLines > 0) {
       layout.lineCount.coerceAtMost(keyboard.numberOfLines).coerceAtLeast(keyboard.numberOfLines)
     } else {
@@ -1441,7 +1465,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       lines == layout.lineCount -> layout.height.toFloat()
       else -> fonts.lineHeight * lines
     }
-    return text + editText.paddingTop + editText.paddingBottom
+    return text + padding
   }
 
   private fun reportIntrinsicSize() {
