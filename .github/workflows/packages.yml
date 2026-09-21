@@ -52,7 +52,11 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - uses: android-actions/setup-android@v3
+      # The runner image ships the SDK and accepted licenses; only the NDK the
+      # example pins is missing, and the Gradle plugin would otherwise fetch it
+      # mid-build without saying so.
+      - name: NDK
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;27.1.12297006" > /dev/null'
       - uses: gradle/actions/setup-gradle@v4
       # Both libraries' Kotlin and JNI, for the one ABI the emulators use. The
       # example app itself is not assembled: what this guards is that the
@@ -68,7 +72,9 @@ jobs:
 
   ios:
     name: iOS example
-    runs-on: macos-15
+    # Xcode 26 is the default here; macos-15 defaults to 16.4, whose SDK
+    # cannot resolve this workspace.
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -98,6 +104,7 @@ jobs:
           -configuration Debug
           -sdk iphonesimulator
           -destination 'generic/platform=iOS Simulator'
+          ARCHS=arm64
           ONLY_ACTIVE_ARCH=YES
           CODE_SIGNING_ALLOWED=NO
           build | xcbeautify --quiet
