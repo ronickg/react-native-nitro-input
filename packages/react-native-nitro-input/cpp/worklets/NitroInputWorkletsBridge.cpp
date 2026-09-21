@@ -21,6 +21,7 @@ namespace {
 
 using facebook::jsi::JSError;
 using facebook::jsi::JSIException;
+using facebook::jsi::Function;
 using facebook::jsi::Object;
 using facebook::jsi::Runtime;
 using facebook::jsi::String;
@@ -120,15 +121,22 @@ TransformResult runTransform(int id, const std::string& text, const std::string&
   });
 }
 
-void runChangeText(int id, const std::string& text) {
+namespace {
+
+/// Every notifying worklet is the same call: look the function up by id, build
+/// its arguments against the runtime it will run in, and let a throw inside it
+/// become a logged error rather than an exception crossing back into the view.
+/// `build` receives the runtime because a `jsi::String` cannot be made without
+/// one. Returns having done nothing when worklets are off or the id is unset.
+template <typename Build>
+void invoke(int id, Build&& build) {
   auto ui = runtime();
   if (!ui || id <= 0) return;
   ui->runSync([&](Runtime& rt) {
     try {
       const Value fn = lookup(rt, id);
-      if (fn.isObject() && fn.asObject(rt).isFunction(rt)) {
-        fn.asObject(rt).asFunction(rt).call(rt, String::createFromUtf8(rt, text));
-      }
+      if (!fn.isObject() || !fn.asObject(rt).isFunction(rt)) return;
+      build(rt, fn.asObject(rt).asFunction(rt));
     } catch (const JSError& error) {
       logError(rt, error.getMessage());
     } catch (const JSIException& error) {
@@ -137,21 +145,34 @@ void runChangeText(int id, const std::string& text) {
   });
 }
 
+} // namespace
+
+void runChangeText(int id, const std::string& text) {
+  invoke(id, [&](Runtime& rt, Function fn) { fn.call(rt, String::createFromUtf8(rt, text)); });
+}
+
 void runChangeValue(int id, double value) {
-  auto ui = runtime();
-  if (!ui || id <= 0) return;
-  ui->runSync([&](Runtime& rt) {
-    try {
-      const Value fn = lookup(rt, id);
-      if (fn.isObject() && fn.asObject(rt).isFunction(rt)) {
-        fn.asObject(rt).asFunction(rt).call(rt, Value(value));
-      }
-    } catch (const JSError& error) {
-      logError(rt, error.getMessage());
-    } catch (const JSIException& error) {
-      logError(rt, error.what());
-    }
-  });
+  invoke(id, [&](Runtime& rt, Function fn) { fn.call(rt, Value(value)); });
+}
+
+void runFocusChange(int id, bool focused, const std::string& text) {
+  invoke(id, [&](Runtime& rt, Function fn) { fn.call(rt, Value(focused), String::createFromUtf8(rt, text)); });
+}
+
+void runSelectionChange(int id, int start, int end) {
+  invoke(id, [&](Runtime& rt, Function fn) { fn.call(rt, Value(start), Value(end)); });
+}
+
+void runSubmitEditing(int id, const std::string& text) {
+  invoke(id, [&](Runtime& rt, Function fn) { fn.call(rt, String::createFromUtf8(rt, text)); });
+}
+
+void runEndEditing(int id, const std::string& text) {
+  invoke(id, [&](Runtime& rt, Function fn) { fn.call(rt, String::createFromUtf8(rt, text)); });
+}
+
+void runKeyPress(int id, const std::string& key) {
+  invoke(id, [&](Runtime& rt, Function fn) { fn.call(rt, String::createFromUtf8(rt, key)); });
 }
 
 } // namespace margelo::nitro::nitroinput::nitroinputworklets
@@ -181,6 +202,16 @@ TransformResult runTransform(int, const std::string&, const std::string&, int, i
 void runChangeText(int, const std::string&) {}
 
 void runChangeValue(int, double) {}
+
+void runFocusChange(int, bool, const std::string&) {}
+
+void runSelectionChange(int, int, int) {}
+
+void runSubmitEditing(int, const std::string&) {}
+
+void runEndEditing(int, const std::string&) {}
+
+void runKeyPress(int, const std::string&) {}
 
 } // namespace margelo::nitro::nitroinput::nitroinputworklets
 

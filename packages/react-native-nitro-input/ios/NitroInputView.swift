@@ -224,6 +224,11 @@ final class NitroInputView: UIView {
     var transform = 0
     var onChangeText = 0
     var onChangeValue = 0
+    var onFocusChange = 0
+    var onSelectionChange = 0
+    var onSubmitEditing = 0
+    var onEndEditing = 0
+    var onKeyPress = 0
   }
 
   var worklets = Worklets()
@@ -1870,6 +1875,9 @@ extension NitroInputView: UITextFieldDelegate {
   func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
     // Like React Native's `onKeyPress`: fires before the text changes, with
     // 'Backspace' for a deletion and the inserted string otherwise.
+    if worklets.onKeyPress != 0 {
+      margelo.nitro.nitroinput.nitroinputworklets.runKeyPress(Int32(worklets.onKeyPress), std.string(string.isEmpty ? "Backspace" : string))
+    }
     if let onKeyPress {
       onKeyPress(string.isEmpty ? "Backspace" : string)
     }
@@ -1979,6 +1987,9 @@ extension NitroInputView: UITextFieldDelegate {
     }
     if contentOverflows { render() }
     updateCaret(restartBlink: true)
+    if worklets.onFocusChange != 0 {
+      margelo.nitro.nitroinput.nitroinputworklets.runFocusChange(Int32(worklets.onFocusChange), true, std.string(text))
+    }
     onFocusChange?(true)
     if wantsFrameDrawing { layoutFrame(animated: true) }
   }
@@ -1986,6 +1997,12 @@ extension NitroInputView: UITextFieldDelegate {
   func textFieldDidEndEditing(_ textField: UITextField) {
     if contentOverflows { render() }
     updateCaret()
+    if worklets.onFocusChange != 0 {
+      margelo.nitro.nitroinput.nitroinputworklets.runFocusChange(Int32(worklets.onFocusChange), false, std.string(text))
+    }
+    if worklets.onEndEditing != 0 {
+      margelo.nitro.nitroinput.nitroinputworklets.runEndEditing(Int32(worklets.onEndEditing), std.string(text))
+    }
     onFocusChange?(false)
     onEndEditing?(text)
     if wantsFrameDrawing { layoutFrame(animated: true) }
@@ -2001,6 +2018,12 @@ extension NitroInputView: UITextFieldDelegate {
   }
 
   func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+    if worklets.onKeyPress != 0 {
+      margelo.nitro.nitroinput.nitroinputworklets.runKeyPress(Int32(worklets.onKeyPress), std.string("Enter"))
+    }
+    if worklets.onSubmitEditing != 0 {
+      margelo.nitro.nitroinput.nitroinputworklets.runSubmitEditing(Int32(worklets.onSubmitEditing), std.string(text))
+    }
     onKeyPress?("Enter")
     onSubmit?(text)
     // `submitBehavior: 'submit'` keeps focus so a form can move on itself.
@@ -2012,11 +2035,17 @@ extension NitroInputView: UITextFieldDelegate {
 
   /// Reports the caret/selection in code points, and only when it moved.
   private func reportSelection() {
-    guard let onSelectionChange, field.selectedTextRange != nil else { return }
+    // A worklet handler counts as a listener too - guarding on the JS one
+    // alone would make a field with only a worklet report nothing.
+    guard onSelectionChange != nil || worklets.onSelectionChange != 0 else { return }
+    guard field.selectedTextRange != nil else { return }
     let (start, end) = selectionCodePoints()
     guard lastReportedSelection == nil || lastReportedSelection! != (start, end) else { return }
     lastReportedSelection = (start, end)
-    onSelectionChange(start, end)
+    if worklets.onSelectionChange != 0 {
+      margelo.nitro.nitroinput.nitroinputworklets.runSelectionChange(Int32(worklets.onSelectionChange), Int32(start), Int32(end))
+    }
+    onSelectionChange?(start, end)
   }
 }
 

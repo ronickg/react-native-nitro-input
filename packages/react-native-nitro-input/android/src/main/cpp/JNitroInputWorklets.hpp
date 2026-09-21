@@ -30,6 +30,12 @@ struct JNitroInputWorklets final : public jni::JavaClass<JNitroInputWorklets> {
   static jint lastSelectionEnd(jni::alias_ref<jni::JClass>);
   static void runChangeText(jni::alias_ref<jni::JClass>, jint id, jni::alias_ref<jni::JString> text);
   static void runChangeValue(jni::alias_ref<jni::JClass>, jint id, jdouble value);
+  static void runFocusChange(jni::alias_ref<jni::JClass>, jint id, jboolean focused,
+                             jni::alias_ref<jni::JString> text);
+  static void runSelectionChange(jni::alias_ref<jni::JClass>, jint id, jint start, jint end);
+  static void runSubmitEditing(jni::alias_ref<jni::JClass>, jint id, jni::alias_ref<jni::JString> text);
+  static void runEndEditing(jni::alias_ref<jni::JClass>, jint id, jni::alias_ref<jni::JString> text);
+  static void runKeyPress(jni::alias_ref<jni::JClass>, jint id, jni::alias_ref<jni::JString> key);
 };
 
 } // namespace margelo::nitro::nitroinput

@@ -252,11 +252,43 @@ const progress = useSharedValue(0)
   the edit as is. Without a `selection` the caret keeps its place relative to
   the edit. In `mode="number"` it runs after the native formatter. Create it
   once (module scope or `useCallback`); a new function re-registers the worklet.
-- `onChangeText` / `onChangeValue` marked `'worklet'` run on the UI thread
-  instead of the JS thread, the way Expo UI's worklet callbacks do; plain
-  functions keep working as before.
+- **Every event callback** marked `'worklet'` runs on the UI thread instead of
+  the JS thread: `onChangeText`, `onChangeValue`, `onFocus`, `onBlur`,
+  `onSelectionChange`, `onSubmitEditing`, `onEndEditing` and `onKeyPress`. A
+  worklet handler is not also called on the JS thread. Plain functions keep
+  working as before, so this is opt-in per handler.
+- Worklet handlers get the same event objects as the JS ones, except `target`
+  is always `0` and `eventCount` `0` where native does not send one: both are
+  JS-thread bookkeeping with nothing to read on the UI runtime.
 - Everything degrades cleanly: without `react-native-worklets` the props are
   ignored with one console warning, and the native code compiles without it.
+
+### The field's state as shared values
+
+`useNitroInputState` wires those worklet callbacks into shared values, so an
+animation can read the field on the UI thread without a single re-render.
+Reanimated is not a dependency — pass its `useSharedValue` in:
+
+```tsx
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
+import { NitroInput, useNitroInputState } from 'react-native-nitro-input'
+
+function Field() {
+  const field = useNitroInputState(useSharedValue)
+  const ring = useAnimatedStyle(() => ({
+    borderColor: withTiming(field.focused.value ? '#16a34a' : 'transparent'),
+  }))
+  return (
+    <Animated.View style={[styles.ring, ring]}>
+      <NitroInput variant="outlined" label="Worklet driven" {...field.handlers} />
+    </Animated.View>
+  )
+}
+```
+
+`field.text`, `field.value`, `field.focused` and `field.selection` are shared
+values; `field.handlers` are the worklets that keep them current. Typing in
+that field runs nothing on the JS thread and re-renders nothing.
 
 A worklet can only reach what it closes over, unless worklets run in
 [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/),

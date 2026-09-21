@@ -168,6 +168,16 @@ namespace margelo::nitro::nitroinput {
       prototype.registerHybridSetter("onChangeTextWorklet", &HybridNitroInputViewSpec::setOnChangeTextWorklet);
       prototype.registerHybridGetter("onChangeValueWorklet", &HybridNitroInputViewSpec::getOnChangeValueWorklet);
       prototype.registerHybridSetter("onChangeValueWorklet", &HybridNitroInputViewSpec::setOnChangeValueWorklet);
+      prototype.registerHybridGetter("onFocusChangeWorklet", &HybridNitroInputViewSpec::getOnFocusChangeWorklet);
+      prototype.registerHybridSetter("onFocusChangeWorklet", &HybridNitroInputViewSpec::setOnFocusChangeWorklet);
+      prototype.registerHybridGetter("onSelectionChangeWorklet", &HybridNitroInputViewSpec::getOnSelectionChangeWorklet);
+      prototype.registerHybridSetter("onSelectionChangeWorklet", &HybridNitroInputViewSpec::setOnSelectionChangeWorklet);
+      prototype.registerHybridGetter("onSubmitEditingWorklet", &HybridNitroInputViewSpec::getOnSubmitEditingWorklet);
+      prototype.registerHybridSetter("onSubmitEditingWorklet", &HybridNitroInputViewSpec::setOnSubmitEditingWorklet);
+      prototype.registerHybridGetter("onEndEditingWorklet", &HybridNitroInputViewSpec::getOnEndEditingWorklet);
+      prototype.registerHybridSetter("onEndEditingWorklet", &HybridNitroInputViewSpec::setOnEndEditingWorklet);
+      prototype.registerHybridGetter("onKeyPressWorklet", &HybridNitroInputViewSpec::getOnKeyPressWorklet);
+      prototype.registerHybridSetter("onKeyPressWorklet", &HybridNitroInputViewSpec::setOnKeyPressWorklet);
       prototype.registerHybridGetter("onChangeText", &HybridNitroInputViewSpec::getOnChangeText);
       prototype.registerHybridSetter("onChangeText", &HybridNitroInputViewSpec::setOnChangeText);
       prototype.registerHybridGetter("onChangeMask", &HybridNitroInputViewSpec::getOnChangeMask);

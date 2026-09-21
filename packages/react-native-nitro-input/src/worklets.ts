@@ -19,6 +19,39 @@ export interface NitroInputSelection {
   end: number
 }
 
+/**
+ * What a worklet handler is given. The same shape the JS handler gets, except
+ * `target` is always 0 and `eventCount` 0 where native does not send one: both
+ * are JS-thread bookkeeping with nothing to read on the UI runtime.
+ */
+export interface WorkletTextEvent {
+  text: string
+  target: number
+  nativeEvent: { text: string; target: number }
+}
+
+export interface WorkletFocusEvent {
+  text: string
+  target: number
+  eventCount: number
+  nativeEvent: { text: string; target: number; eventCount: number }
+}
+
+export interface WorkletSelectionEvent {
+  selection: NitroInputSelection
+  start: number
+  end: number
+  target: number
+  nativeEvent: { selection: NitroInputSelection; target: number }
+}
+
+export interface WorkletKeyPressEvent {
+  key: string
+  eventCount: number
+  target: number
+  nativeEvent: { key: string; eventCount: number; target: number }
+}
+
 /** A worklet that rewrites the text (and optionally the selection) after every edit. */
 export type NitroInputTransform = (input: {
   text: string
@@ -177,6 +210,76 @@ export function registerCallback(callback: (arg: never) => void, id: number): vo
   worklets.executeOnUIRuntimeSync(() => {
     'worklet'
     globalThis.__nitroInputWorklets?.set(id, callback as (...args: never[]) => unknown)
+  })()
+}
+
+/**
+ * Registers the pair of focus worklets under one id: native reports a single
+ * focus change, and the wrapper picks the handler. Built on the UI runtime -
+ * like `registerTransform` - so it needs no Babel pass of its own, and the
+ * handlers it captures must themselves be worklets.
+ *
+ * The event is the one the JS handlers get, minus `target`: a react tag is a
+ * JS-thread notion and there is nothing on the UI runtime to ask for it.
+ */
+export function registerFocusChange(
+  onFocus: ((event: WorkletFocusEvent) => void) | undefined,
+  onBlur: ((event: WorkletFocusEvent) => void) | undefined,
+  id: number
+): void {
+  if (id === 0 || !ensureWorkletsInstalled()) return
+  const worklets = loadWorklets()!
+  worklets.executeOnUIRuntimeSync(() => {
+    'worklet'
+    const wrapper = (focused: boolean, text: string) => {
+      const event = { text, target: 0, eventCount: 0, nativeEvent: { text, target: 0, eventCount: 0 } }
+      if (focused) onFocus?.(event)
+      else onBlur?.(event)
+    }
+    globalThis.__nitroInputWorklets?.set(id, wrapper as (...args: never[]) => unknown)
+  })()
+}
+
+/** Registers an `onSelectionChange` worklet, given the two scalars native sends. */
+export function registerSelectionChange(
+  handler: (event: WorkletSelectionEvent) => void,
+  id: number
+): void {
+  if (id === 0 || !ensureWorkletsInstalled()) return
+  const worklets = loadWorklets()!
+  worklets.executeOnUIRuntimeSync(() => {
+    'worklet'
+    const wrapper = (start: number, end: number) => {
+      const selection = { start, end }
+      handler({ selection, start, end, target: 0, nativeEvent: { selection, target: 0 } })
+    }
+    globalThis.__nitroInputWorklets?.set(id, wrapper as (...args: never[]) => unknown)
+  })()
+}
+
+/** Registers an `onSubmitEditing` / `onEndEditing` worklet, given the text. */
+export function registerTextEvent(handler: (event: WorkletTextEvent) => void, id: number): void {
+  if (id === 0 || !ensureWorkletsInstalled()) return
+  const worklets = loadWorklets()!
+  worklets.executeOnUIRuntimeSync(() => {
+    'worklet'
+    const wrapper = (text: string) => {
+      handler({ text, target: 0, nativeEvent: { text, target: 0 } })
+    }
+    globalThis.__nitroInputWorklets?.set(id, wrapper as (...args: never[]) => unknown)
+  })()
+}
+
+/** Registers an `onKeyPress` worklet, given the key. */
+export function registerKeyPress(handler: (event: WorkletKeyPressEvent) => void, id: number): void {
+  if (id === 0 || !ensureWorkletsInstalled()) return
+  const worklets = loadWorklets()!
+  worklets.executeOnUIRuntimeSync(() => {
+    'worklet'
+    const wrapper = (key: string) => {
+      handler({ key, eventCount: 0, target: 0, nativeEvent: { key, eventCount: 0, target: 0 } })
+    }
+    globalThis.__nitroInputWorklets?.set(id, wrapper as (...args: never[]) => unknown)
   })()
 }
 

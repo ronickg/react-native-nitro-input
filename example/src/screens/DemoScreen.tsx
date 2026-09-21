@@ -20,6 +20,7 @@ import {
   type MorphInputHandle,
   type NitroInputTransform,
 } from 'react-native-nitro-input'
+import { useNitroInputState } from 'react-native-nitro-input'
 import { NumberFlow } from 'number-flow-react-native'
 import { SkiaNumberFlow } from 'number-flow-react-native/skia'
 import { Canvas, matchFont } from '@shopify/react-native-skia'
@@ -638,6 +639,7 @@ function MorphInputDemo() {
           cornerRadius={10}
           defaultValue={'One line\nTwo lines\nThree lines'}
         />
+        <WorkletVsJsThread />
       </View>
       <Text style={styles.morphReadout} testID="morph-outlined-readout">
         outlined "{outlinedText}"
@@ -1327,9 +1329,77 @@ export function DemoScreen() {
   )
 }
 
+/**
+ * The claim is that a worklet handler runs on the UI thread. A green ring on
+ * focus does not show that - a JS handler would look the same. Blocking the JS
+ * thread does: while it is wedged, the worklet field still rings and the JS
+ * one cannot, because the render that would colour it never runs.
+ *
+ * Both fields are otherwise identical. The only difference is which thread
+ * their `onFocus` lands on.
+ */
+function WorkletVsJsThread() {
+  const field = useNitroInputState(useSharedValue)
+  const workletRing = useAnimatedStyle(() => ({
+    borderColor: field.focused.value ? '#16a34a' : 'transparent',
+  }))
+  const [jsFocused, setJsFocused] = useState(false)
+
+  // A busy loop, not a sleep: the JS thread has to be unable to run a render,
+  // which an await would not prevent.
+  const freeze = useCallback(() => {
+    const until = Date.now() + 4000
+    // eslint-disable-next-line no-empty
+    while (Date.now() < until) {}
+  }, [])
+
+  return (
+    <View style={styles.threadProbe}>
+      <Button testID="worklet-freeze-js" title="Freeze JS 4s" onPress={freeze} />
+      <Animated.View testID="worklet-ring" style={[styles.workletRing, workletRing]}>
+        <NitroInput
+          testID="morph-worklet"
+          variant="outlined"
+          label="Worklet onFocus"
+          placeholder="rings while JS is frozen"
+          // No keyboard: it would cover the rings this probe exists to show.
+          showSoftInputOnFocus={false}
+          fontSize={15}
+          strokeColor="#94a3b8"
+          // Deliberately the same focused and unfocused: the field's own frame
+          // must not change colour, or there is no telling the native stroke
+          // from the ring the shared value drives.
+          focusedStrokeColor="#94a3b8"
+          cornerRadius={10}
+          {...field.handlers}
+        />
+      </Animated.View>
+      <View
+        testID="js-ring"
+        style={[styles.workletRing, { borderColor: jsFocused ? '#dc2626' : 'transparent' }]}>
+        <NitroInput
+          testID="morph-jsthread"
+          variant="outlined"
+          label="JS onFocus"
+          placeholder="cannot ring while JS is frozen"
+          showSoftInputOnFocus={false}
+          fontSize={15}
+          strokeColor="#94a3b8"
+          focusedStrokeColor="#94a3b8"
+          cornerRadius={10}
+          onFocus={() => setJsFocused(true)}
+          onBlur={() => setJsFocused(false)}
+        />
+      </View>
+    </View>
+  )
+}
+
 const styles = StyleSheet.create({
   outlineFields: { marginTop: 8, paddingVertical: 8, gap: 18 },
   outlineField: { width: '100%', height: 52 },
+  workletRing: { width: '100%', borderWidth: 2, borderRadius: 14, borderColor: 'transparent', padding: 4 },
+  threadProbe: { width: '100%', gap: 10 },
 
   root: { flex: 1, backgroundColor: '#F2F2F7' },
   rootDark: { backgroundColor: '#000' },

@@ -192,6 +192,62 @@ describe('MorphInput', () => {
     warn.mockRestore()
   })
 
+  it('sends no worklet id for any of the event handlers when worklets are unavailable', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+    const worklet = () => Object.assign(() => {}, { __workletHash: 3 })
+    const props = nativeProps(
+      render(
+        <MorphInput
+          onFocus={worklet()}
+          onBlur={worklet()}
+          onSelectionChange={worklet()}
+          onSubmitEditing={worklet()}
+          onEndEditing={worklet()}
+          onKeyPress={worklet()}
+        />
+      )
+    )
+    for (const key of [
+      'onFocusChangeWorklet',
+      'onSelectionChangeWorklet',
+      'onSubmitEditingWorklet',
+      'onEndEditingWorklet',
+      'onKeyPressWorklet',
+    ]) {
+      expect(props[key]).toBe(0)
+    }
+    warn.mockRestore()
+  })
+
+  it('does not call a worklet handler on the JS thread as well', () => {
+    // A worklet already ran on the UI runtime; calling it here would fire it
+    // twice, and on the wrong thread.
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+    const onSubmitEditing = Object.assign(jest.fn(), { __workletHash: 4 })
+    const onKeyPress = Object.assign(jest.fn(), { __workletHash: 5 })
+    const renderer = render(<MorphInput onSubmitEditing={onSubmitEditing} onKeyPress={onKeyPress} />)
+    const props = nativeProps(renderer)
+    act(() => {
+      ;(props.onSubmitEditing as { f: (t: string) => void }).f('done')
+      ;(props.onKeyPress as { f: (k: string) => void }).f('a')
+    })
+    expect(onSubmitEditing).not.toHaveBeenCalled()
+    expect(onKeyPress).not.toHaveBeenCalled()
+    warn.mockRestore()
+  })
+
+  it('still calls a plain handler on the JS thread', () => {
+    const onSubmitEditing = jest.fn()
+    const renderer = render(<MorphInput onSubmitEditing={onSubmitEditing} />)
+    const props = nativeProps(renderer)
+    act(() => {
+      ;(props.onSubmitEditing as { f: (t: string) => void }).f('done')
+    })
+    expect(onSubmitEditing).toHaveBeenCalledWith(
+      expect.objectContaining({ text: 'done', nativeEvent: expect.objectContaining({ text: 'done' }) })
+    )
+  })
+
   it('exposes a handle whose methods are no-ops before mount', () => {
     const ref = createRef<MorphInputHandle>()
     render(<MorphInput ref={ref} defaultValue="abc" />)

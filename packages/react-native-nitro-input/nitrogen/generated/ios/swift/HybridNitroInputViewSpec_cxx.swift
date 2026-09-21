@@ -974,6 +974,61 @@ open class HybridNitroInputViewSpec_cxx {
     }
   }
   
+  public final var onFocusChangeWorklet: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.onFocusChangeWorklet
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onFocusChangeWorklet = newValue
+    }
+  }
+  
+  public final var onSelectionChangeWorklet: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.onSelectionChangeWorklet
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onSelectionChangeWorklet = newValue
+    }
+  }
+  
+  public final var onSubmitEditingWorklet: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.onSubmitEditingWorklet
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onSubmitEditingWorklet = newValue
+    }
+  }
+  
+  public final var onEndEditingWorklet: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.onEndEditingWorklet
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onEndEditingWorklet = newValue
+    }
+  }
+  
+  public final var onKeyPressWorklet: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.onKeyPressWorklet
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onKeyPressWorklet = newValue
+    }
+  }
+  
   public final var onChangeText: bridge.std__optional_std__function_void_const_std__string_____text_____double____eventCount______ {
     @inline(__always)
     get {

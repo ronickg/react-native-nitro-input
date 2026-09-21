@@ -153,6 +153,11 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var transformWorklet: Double = 0 { didSet { markConfigDirty() } }
   var onChangeTextWorklet: Double = 0 { didSet { markConfigDirty() } }
   var onChangeValueWorklet: Double = 0 { didSet { markConfigDirty() } }
+  var onFocusChangeWorklet: Double = 0 { didSet { markConfigDirty() } }
+  var onSelectionChangeWorklet: Double = 0 { didSet { markConfigDirty() } }
+  var onSubmitEditingWorklet: Double = 0 { didSet { markConfigDirty() } }
+  var onEndEditingWorklet: Double = 0 { didSet { markConfigDirty() } }
+  var onKeyPressWorklet: Double = 0 { didSet { markConfigDirty() } }
   var onChangeText: ((String, Double) -> Void)?
   var onChangeValue: ((Double) -> Void)?
   var onChangeMask: ((String, String, String, Bool) -> Void)?
@@ -324,6 +329,11 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     transformWorklet = 0
     onChangeTextWorklet = 0
     onChangeValueWorklet = 0
+    onFocusChangeWorklet = 0
+    onSelectionChangeWorklet = 0
+    onSubmitEditingWorklet = 0
+    onEndEditingWorklet = 0
+    onKeyPressWorklet = 0
     onChangeText = nil
     onChangeValue = nil
     onChangeMask = nil
@@ -525,6 +535,11 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     worklets.transform = Self.clampInt(transformWorklet, 0, Int(Int32.max), fallback: 0)
     worklets.onChangeText = Self.clampInt(onChangeTextWorklet, 0, Int(Int32.max), fallback: 0)
     worklets.onChangeValue = Self.clampInt(onChangeValueWorklet, 0, Int(Int32.max), fallback: 0)
+    worklets.onFocusChange = Self.clampInt(onFocusChangeWorklet, 0, Int(Int32.max), fallback: 0)
+    worklets.onSelectionChange = Self.clampInt(onSelectionChangeWorklet, 0, Int(Int32.max), fallback: 0)
+    worklets.onSubmitEditing = Self.clampInt(onSubmitEditingWorklet, 0, Int(Int32.max), fallback: 0)
+    worklets.onEndEditing = Self.clampInt(onEndEditingWorklet, 0, Int(Int32.max), fallback: 0)
+    worklets.onKeyPress = Self.clampInt(onKeyPressWorklet, 0, Int(Int32.max), fallback: 0)
 
     inputView.typography = typography
     var inputFrame = NitroInputView.Frame()

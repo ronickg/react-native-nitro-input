@@ -242,6 +242,16 @@ namespace margelo::nitro::nitroinput {
       virtual void setOnChangeTextWorklet(double onChangeTextWorklet) = 0;
       virtual double getOnChangeValueWorklet() = 0;
       virtual void setOnChangeValueWorklet(double onChangeValueWorklet) = 0;
+      virtual double getOnFocusChangeWorklet() = 0;
+      virtual void setOnFocusChangeWorklet(double onFocusChangeWorklet) = 0;
+      virtual double getOnSelectionChangeWorklet() = 0;
+      virtual void setOnSelectionChangeWorklet(double onSelectionChangeWorklet) = 0;
+      virtual double getOnSubmitEditingWorklet() = 0;
+      virtual void setOnSubmitEditingWorklet(double onSubmitEditingWorklet) = 0;
+      virtual double getOnEndEditingWorklet() = 0;
+      virtual void setOnEndEditingWorklet(double onEndEditingWorklet) = 0;
+      virtual double getOnKeyPressWorklet() = 0;
+      virtual void setOnKeyPressWorklet(double onKeyPressWorklet) = 0;
       virtual std::optional<std::function<void(const std::string& /* text */, double /* eventCount */)>> getOnChangeText() = 0;
       virtual void setOnChangeText(const std::optional<std::function<void(const std::string& /* text */, double /* eventCount */)>>& onChangeText) = 0;
       virtual std::optional<std::function<void(const std::string& /* formatted */, const std::string& /* extracted */, const std::string& /* tailPlaceholder */, bool /* complete */)>> getOnChangeMask() = 0;

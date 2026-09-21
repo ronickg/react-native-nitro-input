@@ -28,4 +28,9 @@ object NitroInputWorklets {
   @JvmStatic external fun lastSelectionEnd(): Int
   @JvmStatic external fun runChangeText(id: Int, text: String)
   @JvmStatic external fun runChangeValue(id: Int, value: Double)
+  @JvmStatic external fun runFocusChange(id: Int, focused: Boolean, text: String)
+  @JvmStatic external fun runSelectionChange(id: Int, start: Int, end: Int)
+  @JvmStatic external fun runSubmitEditing(id: Int, text: String)
+  @JvmStatic external fun runEndEditing(id: Int, text: String)
+  @JvmStatic external fun runKeyPress(id: Int, key: String)
 }

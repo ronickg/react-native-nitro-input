@@ -560,6 +560,36 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.onChangeValueWorklet.hasSameValue(oldViewProps->onChangeValueWorklet)) {
       swiftPart.setOnChangeValueWorklet(newViewProps.onChangeValueWorklet.get());
     }
+    // onFocusChangeWorklet: number
+    if (oldViewProps == nullptr
+          ? newViewProps.onFocusChangeWorklet.isProvided()
+          : !newViewProps.onFocusChangeWorklet.hasSameValue(oldViewProps->onFocusChangeWorklet)) {
+      swiftPart.setOnFocusChangeWorklet(newViewProps.onFocusChangeWorklet.get());
+    }
+    // onSelectionChangeWorklet: number
+    if (oldViewProps == nullptr
+          ? newViewProps.onSelectionChangeWorklet.isProvided()
+          : !newViewProps.onSelectionChangeWorklet.hasSameValue(oldViewProps->onSelectionChangeWorklet)) {
+      swiftPart.setOnSelectionChangeWorklet(newViewProps.onSelectionChangeWorklet.get());
+    }
+    // onSubmitEditingWorklet: number
+    if (oldViewProps == nullptr
+          ? newViewProps.onSubmitEditingWorklet.isProvided()
+          : !newViewProps.onSubmitEditingWorklet.hasSameValue(oldViewProps->onSubmitEditingWorklet)) {
+      swiftPart.setOnSubmitEditingWorklet(newViewProps.onSubmitEditingWorklet.get());
+    }
+    // onEndEditingWorklet: number
+    if (oldViewProps == nullptr
+          ? newViewProps.onEndEditingWorklet.isProvided()
+          : !newViewProps.onEndEditingWorklet.hasSameValue(oldViewProps->onEndEditingWorklet)) {
+      swiftPart.setOnEndEditingWorklet(newViewProps.onEndEditingWorklet.get());
+    }
+    // onKeyPressWorklet: number
+    if (oldViewProps == nullptr
+          ? newViewProps.onKeyPressWorklet.isProvided()
+          : !newViewProps.onKeyPressWorklet.hasSameValue(oldViewProps->onKeyPressWorklet)) {
+      swiftPart.setOnKeyPressWorklet(newViewProps.onKeyPressWorklet.get());
+    }
     // onChangeText: optional
     if (oldViewProps == nullptr
           ? newViewProps.onChangeText.isProvided()

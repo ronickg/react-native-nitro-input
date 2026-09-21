@@ -489,6 +489,36 @@ abstract class HybridNitroInputViewSpec: HybridView() {
   @set:Keep
   abstract var onChangeValueWorklet: Double
   
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var onFocusChangeWorklet: Double
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var onSelectionChangeWorklet: Double
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var onSubmitEditingWorklet: Double
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var onEndEditingWorklet: Double
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var onKeyPressWorklet: Double
+  
   abstract var onChangeText: ((text: String, eventCount: Double) -> Unit)?
   
   private var onChangeText_cxx: Func_void_std__string_double?

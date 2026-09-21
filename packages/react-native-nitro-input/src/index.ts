@@ -4,6 +4,10 @@ export {
   type NitroInputProps,
   type NitroInputHandle,
   type NitroInputRef,
+  type NitroInputTextEvent,
+  type NitroInputFocusEvent,
+  type NitroInputSelectionEvent,
+  type NitroInputKeyPressEvent,
 } from './NitroInput'
 export {
   MorphInput,
@@ -15,7 +19,16 @@ export {
   isWorklet,
   type NitroInputSelection,
   type NitroInputTransform,
+  type WorkletTextEvent,
+  type WorkletFocusEvent,
+  type WorkletSelectionEvent,
+  type WorkletKeyPressEvent,
 } from './worklets'
+export {
+  useNitroInputState,
+  type NitroInputState,
+  type SharedValueLike,
+} from './useNitroInputState'
 
 export type {
   NitroInputLabelBehavior,
