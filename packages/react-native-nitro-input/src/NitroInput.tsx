@@ -74,8 +74,18 @@ interface TextInputCommands {
 
 const textInputRegistry: (TextInputRegistry & Partial<TextInputCommands>) | null = (() => {
   try {
+    // The registry has no public surface: `TextInput.State` exposes the focus
+    // commands but not `registerInput`, and registering is the whole point -
+    // it is how `ref.focus()`, `Keyboard.dismiss()` and a ScrollView's
+    // `keyboardShouldPersistTaps` recognise a text input at all. React Native's
+    // Babel preset logs a deprecation for every *literal* `react-native/...`
+    // import, in every app that bundles this package, and the guard around
+    // this call already is the deprecation policy: a version that moves the
+    // module degrades to plain focus rather than throwing. A template literal
+    // says the same path; Metro evaluates it, the warning plugin only matches
+    // string literals.
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const mod = require('react-native/Libraries/Components/TextInput/TextInputState')
+    const mod = require(`react-native/Libraries/Components/TextInput/TextInputState`)
     const state = (mod?.default ?? mod) as Partial<TextInputRegistry> | undefined
     return typeof state?.focusInput === 'function' && typeof state?.blurInput === 'function'
       ? (state as TextInputRegistry & Partial<TextInputCommands>)

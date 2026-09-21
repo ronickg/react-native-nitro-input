@@ -8,12 +8,18 @@ import { Card, FieldLabel, styles } from '../harness'
  * alignment, a prefix and a suffix (plain and morphed), a floating label and
  * its notch - with React Native's own TextInput beside the first for the
  * reference. Flip the direction from Home; the app reloads.
+ *
+ * The cards are keyed. Without keys a reorder makes React reuse the field
+ * instances by position, and `defaultValue` is initial-only - the "Start edge"
+ * instance became the amount field and normalised to nothing in number mode.
+ * A recycled *native* view is not the problem: `prepareForRecycle` zeroes the
+ * edit count, so the next element's first text lands.
  */
 export function RtlScreen() {
   const dir = I18nManager.isRTL ? 'right-to-left' : 'left-to-right'
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Card title="Affixes" hint="A prefix belongs at the start edge and a suffix at the end edge, so both mirror with the direction.">
+      <Card key="affixes" title="Affixes" hint="A prefix belongs at the start edge and a suffix at the end edge, so both mirror with the direction.">
         <FieldLabel>PLAIN, PREFIX + SUFFIX</FieldLabel>
         <NitroInput testID="rtl-plain-amount" mode="number" prefix="$" suffix=" USD" defaultValue="1234.56" style={styles.field} />
         <FieldLabel>PLAIN, THIS FIELD THE OTHER WAY (STYLE.DIRECTION)</FieldLabel>
@@ -30,7 +36,7 @@ export function RtlScreen() {
         <FieldLabel>MORPH, NEGATIVE</FieldLabel>
         <MorphInput testID="rtl-morph-negative" mode="number" prefix="$" defaultValue="-1234.56" fontSize={22} style={{ width: '100%' }} />
       </Card>
-      <Card title="Frame" hint="The label and the notch sit at the start edge.">
+      <Card key="frame" title="Frame" hint="The label and the notch sit at the start edge.">
         <NitroInput
           testID="rtl-frame"
           variant="outlined"
@@ -40,7 +46,7 @@ export function RtlScreen() {
           style={{ width: '100%', height: 52 }}
         />
       </Card>
-      <Card title={`Layout direction: ${dir}`} hint="textAlign defaults to 'auto', the start edge - what TextInput does. 'left' and 'right' are absolute.">
+      <Card key="alignment" title={`Layout direction: ${dir}`} hint="textAlign defaults to 'auto', the start edge - what TextInput does. 'left' and 'right' are absolute.">
         <FieldLabel>NITROINPUT, AUTO</FieldLabel>
         <NitroInput testID="rtl-auto" defaultValue="Start edge" style={styles.field} />
         <FieldLabel>TEXTINPUT, DEFAULT</FieldLabel>
