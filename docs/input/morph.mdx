@@ -1,0 +1,48 @@
+---
+sidebar_position: 6
+title: The morph
+description: 'Opt in with `morph`: characters glide to their new place, digits roll and separators slide. Off by default.'
+---
+
+import {Example} from '@site/src/components/Demo/Demo';
+import {NitroInputTextDemo} from '@site/src/components/NitroInput/NitroInputDemo';
+
+By default the field draws its text the instant you type it, the way a `TextInput` does. `morph` turns on the glyph engine: the system field still owns the keyboard, editing, selection and accessibility, but a layer on top draws the glyphs, and each edit animates from the old text to the new one. Characters that stay glide to their new place, new ones slide or fade in, removed ones leave with their neighbours. It is an effect, and it is off unless you ask for it.
+
+```tsx
+<NitroInput mode="number" prefix="$" fontSize={48} morph style={{ width: '100%' }} />
+```
+
+`MorphInput` is the same thing spelled shorter: `NitroInput` with `morph` on and `autoWidth="auto"`, so the box grows as digits arrive. Reach for it where the animation is the point, which in practice means an amount. For an ordinary form field, an email or a name, use `NitroInput` as it comes. The animation would be noise there, and the plain field costs no more to mount than a bare `UITextField` / `EditText`.
+
+## On an amount
+
+In `mode="number"` the morph and the formatting are the same event: the formatter runs in C++ on the keystroke, and the morph animates from what was there to what it produced. Type `1234` and the `1` slides over to make room as the comma arrives from below; the `4` drops in from above. Backspace over the comma and it takes the digit before it with it. The [amount field](/input/amount-field) page has it live, behind the **Morph** switch.
+
+## On text
+
+<Example
+  code={`<NitroInput
+  morph
+  placeholder="Your name"
+  fontSize={22}
+  autoCapitalize="words"
+  style={{ width: '100%', height: 44, paddingHorizontal: 12 }}
+/>`}>
+  <NitroInputTextDemo />
+</Example>
+
+In `mode="text"` characters fade and scale in and out, and a run that persists keeps its shape: `Continue → Confirm` keeps `Con`. Digits and separators slide only in `mode="number"`, unless `effect="slide"` or `effect="fade"` forces one style for everything.
+
+## Tuning it
+
+| Prop | Default | |
+| --- | --- | --- |
+| `duration` | `400` | Milliseconds per morph. |
+| `easing` | `'expo'` | `'expo'`, `'easeOut'`, `'easeInOut'`, `'linear'` or `'spring'`. |
+| `bounce` | | `'spring'` only: how far it overshoots, `0` to `1`. |
+| `effect` | `'auto'` | `'auto'` slides digits and fades text; `'slide'` or `'fade'` applies one style to everything. |
+
+A placeholder is not a value but what the field shows instead of one, so trading it for a value snaps rather than morphs. Reduce Motion on iOS and "Remove animations" on Android snap everything. A [multiline](/input/multiline) field ignores `morph`: the engine lays one run out on one baseline and never sees a wrapped one.
+
+[How the morph works](/input/how-it-works) has the pairing rules: what decides which characters persist, enter and leave.

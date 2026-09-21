@@ -51,7 +51,7 @@ const FILL = [AUTO, '#e2e8f0', '#f1f5f9', '#ede9fe', '#dcfce7', '#fee2e2', '#fef
  * than hard-coded, and re-read when the theme toggle flips `data-theme`, so a
  * field with no colour of its own is legible in either theme.
  */
-function useThemeColors() {
+export function useThemeColors() {
   const [colors, setColors] = useState({ink: '#0f172a', fill: '#e2e8f0', muted: '#94a3b8'});
   useEffect(() => {
     const read = () => {

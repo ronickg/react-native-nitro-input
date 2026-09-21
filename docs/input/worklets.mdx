@@ -9,7 +9,7 @@ With [`react-native-worklets`](https://docs.swmansion.com/react-native-worklets/
 ## A mask written in JS
 
 ```tsx
-import { MorphInput, type NitroInputTransform } from 'react-native-nitro-input'
+import { NitroInput, type NitroInputTransform } from 'react-native-nitro-input'
 
 // Lowercase, no symbols, always led by "@".
 const usernameTransform: NitroInputTransform = ({ text }) => {
@@ -18,7 +18,7 @@ const usernameTransform: NitroInputTransform = ({ text }) => {
   return { text: cleaned ? '@' + cleaned : '' }
 }
 
-<MorphInput placeholder="@username" autoCapitalize="none" transform={usernameTransform} />
+<NitroInput placeholder="@username" autoCapitalize="none" transform={usernameTransform} />
 ```
 
 `transform` receives `{ text, previousText, selection, previousSelection }` (code point offsets) and returns `{ text?, selection? }`, or `null` to keep the edit as is. Without a `selection` the caret keeps its place relative to the edit. In `mode="number"` it runs after the native formatter. Create it once, at module scope or in `useCallback`: a new function re-registers the worklet on every render.
@@ -35,7 +35,7 @@ import { useSharedValue } from 'react-native-reanimated'
 const progress = useSharedValue(0)
 const focused = useSharedValue(false)
 
-<MorphInput
+<NitroInput
   mode="number"
   onChangeValue={(value) => {
     'worklet'
@@ -91,7 +91,7 @@ const phoneTransform: NitroInputTransform = ({ text }) => {
   return { text: new AsYouType('US').input(text) }
 }
 
-<MorphInput placeholder="(555) 555-5555" keyboardType="phone-pad" transform={phoneTransform} />
+<NitroInput placeholder="(555) 555-5555" keyboardType="phone-pad" transform={phoneTransform} />
 ```
 
 Bundle Mode needs three things, and the example app in the repo has all of them (`example/babel.config.js`, `example/metro.config.js`, `patches/`):
