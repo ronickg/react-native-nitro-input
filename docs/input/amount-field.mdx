@@ -8,11 +8,11 @@ import {Example} from '@site/src/components/Demo/Demo';
 import {NitroInputAmountDemo, NitroInputEuroDemo} from '@site/src/components/NitroInput/NitroInputDemo';
 
 <Example
-  code={`import { MorphInput } from 'react-native-nitro-input'
+  code={`import { NitroInput } from 'react-native-nitro-input'
 
 const [amount, setAmount] = useState(NaN)
 
-<MorphInput
+<NitroInput
   mode="number"
   prefix="$"
   prefixFontSize={28}
@@ -28,14 +28,49 @@ const [amount, setAmount] = useState(NaN)
   <NitroInputAmountDemo />
 </Example>
 
-Type `1234` and the field shows `$1,234`: the `1` slides over to make room as the comma arrives from below, the `4` drops in from above. Type `.5` and the decimal point and the `5` follow. Backspace over the comma and it takes the digit before it with it.
+Type `1234` and the field shows `$1,234`. Every keystroke goes through the same C++ formatter on both platforms before the field draws: grouping separators, one decimal separator, at most `fractionDigits` decimals, the caret kept where you typed, a digit too many rejected outright. The JS thread only learns about the result, so there is no flicker, no caret jump and no dropped keystroke, however busy React is.
 
-Keep the field uncontrolled and read `onChangeValue` (the number) or `onChangeText` (the formatted string), or pass `value` to drive it. A `value` that merely echoes `onChangeText` back never fights the user, native already shows it; a `value` that differs (a "Max" button, a clamp) is applied and morphs in.
+Keep the field uncontrolled and read `onChangeValue` (the number) or `onChangeText` (the formatted string), or pass `value` to drive it. A `value` that merely echoes `onChangeText` back never fights the user, native already shows it; a `value` that differs (a "Max" button, a clamp) is applied. A `value` carrying a stale `mostRecentEventCount` (the user typed since) is ignored, like React Native's own `TextInput`.
+
+The comma appears where it belongs, as it would in any formatted field. Turn on the [morph](/input/morph) and it slides there instead, with the digit it displaced making room. That is what the **Morph** switch in the demo adds, and an amount is the screen the morph was built for.
+
+## What the keyboard types
+
+Whatever the keyboard's decimal key produces (`.` or `,`) counts as the decimal separator; nobody types a grouping separator on purpose. The rules follow what a well-behaved amount field does: a decimal typed in the integer part moves the decimal point (`1,234.5` with the caret after the `1` becomes `1.23`), one typed inside the fraction is ignored, a leading `.5` stays `.5` while typing (`setValue(0.5)` shows `0.5`), a digit typed in front of a lone `0` replaces it, and deleting the decimal point merges the fraction into the integer part (`1,234.56` becomes `123,456`).
+
+## Limits
+
+```tsx
+// whole numbers only (no decimal key accepted), at most six digits
+<NitroInput mode="number" fractionDigits={0} maxIntegerDigits={6} />
+```
+
+`fractionDigits={0}` disables the decimal and picks the number pad over the decimal pad. `maxIntegerDigits` (default `15`) rejects the digit that would exceed it.
+
+## Currency layouts
+
+```tsx
+// "$" smaller than the amount, aligned to the top of the digits
+<NitroInput mode="number" prefix="$" prefixFontSize={22} affixAlign="top" fontSize={44} />
+
+// currency code after the amount, smaller and sitting on the baseline of the digits' ink
+<NitroInput mode="number" suffix=" USD" suffixFontSize={18} suffixAlign="bottom" />
+```
+
+`prefix` and `suffix` are drawn at their own sizes and pinned to the `top`, `bottom`, `baseline` or `center` of the digits with `affixAlign`, or one side at a time with `prefixAlign` and `suffixAlign`.
+
+## A big amount that shrinks
+
+```tsx
+<NitroInput mode="number" fontSize={64} adjustsFontSizeToFit minimumFontScale={0.4} textAlign="center" style={{ width: '100%' }} />
+```
+
+`adjustsFontSizeToFit` scales the text down once it is wider than the view, no further than `minimumFontScale` (default `0.5`). It needs a width to fit into, so give the field one in `style`.
 
 ## Other currencies
 
 <Example
-  code={`<MorphInput
+  code={`<NitroInput
   mode="number"
   groupingSeparator="."
   decimalSeparator=","
@@ -65,4 +100,4 @@ The sign belongs to the amount, not to the digits after the currency symbol, so 
 />
 ```
 
-Only the morph can choose. A plain [`NitroInput`](/input/plain-field)'s affixes are real accessory views that sit outside the text, so it always draws `$-1,234.56`.
+Only the morph can choose. A plain [`NitroInput`](/input/morph)'s affixes are real accessory views that sit outside the text, so it always draws `$-1,234.56`.

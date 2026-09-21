@@ -2,26 +2,20 @@
 slug: /
 sidebar_position: 1
 title: Getting started
-description: Install react-native-nitro-input and render your first morphing field.
+description: Install react-native-nitro-input and render a native field with formatting, masking and a frame. Nothing animates unless you ask.
 ---
 
 import {Frame} from '@site/src/components/Demo/Demo';
-import {NitroInputTextDemo} from '@site/src/components/NitroInput/NitroInputDemo';
+import {NitroInputPlainDemo} from '@site/src/components/NitroInput/NitroInputDemo';
 
 # Getting started
 
-`react-native-nitro-input` is a **native single-line text and amount input** for React Native, built with [Nitro Modules](https://nitro.margelo.com). A system text field owns the keyboard, editing, selection and accessibility; a morph layer on top draws its glyphs, so characters glide to their new place instead of being redrawn where they land.
+`react-native-nitro-input` is a **native text input** for React Native, built with [Nitro Modules](https://nitro.margelo.com). `NitroInput` is the component: a system text field (`UITextField` / `EditText`) that owns the keyboard, editing, selection, paste and accessibility, with native amount formatting, native masking, and an outlined or filled frame with a floating label, all done on the native side.
 
-It ships two components over that one native field:
+Nothing animates unless you ask. The field draws its text the instant you type it, the way a `TextInput` does. The [morph](/input/morph), which makes characters glide and digits roll, is an effect you turn on for the one screen where it is the point.
 
-- **`NitroInput`** — a plain native input. The system field draws its own text, so it
-  costs no more to mount than a bare `UITextField` / `EditText`. This is the one you
-  reach for by default.
-- **`MorphInput`** — the same field with the morph on, for the screens where the
-  animation is the point (in practice, amounts).
-
-<Frame caption="Live, in your browser: the same C++ engine the native views use, compiled to WebAssembly.">
-  <NitroInputTextDemo />
+<Frame caption="Live, in your browser: the plain field. Type into it. It costs no more to mount than a bare system input.">
+  <NitroInputPlainDemo />
 </Frame>
 
 ## Requirements
@@ -46,37 +40,57 @@ With Expo, add both packages, then run `npx expo prebuild` (or a dev client buil
 ## First field
 
 ```tsx
-import { MorphInput } from 'react-native-nitro-input'
+import { NitroInput } from 'react-native-nitro-input'
 
-export function AmountField({ onChange }: { onChange: (value: number) => void }) {
-  return (
-    <MorphInput
-      mode="number"
-      prefix="$"
-      fractionDigits={2}
-      groupingSeparator=","
-      placeholder="0"
-      fontSize={48}
-      fontWeight="700"
-      textAlign="center"
-      style={{ width: '100%' }}
-      onChangeValue={onChange}
-    />
-  )
-}
+<NitroInput
+  placeholder="Your name"
+  autoCapitalize="words"
+  returnKeyType="done"
+  onSubmitEditing={({ text }) => save(text)}
+  style={{ width: '100%', height: 44, paddingHorizontal: 12, backgroundColor: '#F2F2F7', borderRadius: 10 }}
+/>
 ```
 
-Type `1234` and the field shows `$1,234`: the formatter runs in C++ on the keystroke, before the field draws, so the comma arrives in the same frame as the digit that displaced it. `onChangeValue` hands you the number (`NaN` while the field is empty), `onChangeText` the formatted string.
+It takes `TextInput`'s props: keyboard types, the return key, auto-capitalisation, `maxLength`, `secureTextEntry`, `selection` and the edit callbacks. It sits in React Native's text-input registry, so `Keyboard.dismiss()`, `keyboardShouldPersistTaps` and keyboard-controller treat it as the text input it is. Like a `TextInput`, it takes its width from its parent.
 
-Unlike `TextInput`, the field sizes itself to its content. Give it a `width` (or `flex`) in `style` to make it fill its parent; without one it hugs the text and grows as you type.
+## An amount
 
-Reach for [`NitroInput`](/input/plain-field) instead when you want the same native field without the morph — an email or a name, where the animation would be noise.
+```tsx
+const [amount, setAmount] = useState(NaN)
+
+<NitroInput
+  mode="number"
+  prefix="$"
+  fractionDigits={2}
+  placeholder="0"
+  fontSize={32}
+  fontWeight="700"
+  style={{ width: '100%' }}
+  onChangeValue={setAmount}   // 1234.5, or NaN while empty
+/>
+```
+
+Type `1234` and the field shows `$1,234`: the formatter runs in C++ on the keystroke, before the field draws, so the comma arrives in the same frame as the digit that displaced it. `onChangeValue` hands you the number, `onChangeText` the formatted string. Nothing here animates. Add `morph` when you want the comma to slide into place rather than appear there.
+
+## A frame
+
+```tsx
+<NitroInput
+  variant="outlined"
+  label="Email address"
+  keyboardType="email-address"
+  style={{ width: '100%', height: 52 }}
+/>
+```
+
+The label floats onto the top edge on focus and the outline opens a real notch for it, inside the view rather than with an animated label over a `TextInput`. [Frames](/input/frames) has the rest.
 
 ## Where to next
 
-- [An amount field](/input/amount-field): grouping, decimals, currency affixes and other locales.
-- [Text](/input/text): the morph on plain strings.
-- [A plain field](/input/plain-field): the same input with the morph off.
+- [An amount field](/input/amount-field): grouping, decimals, currency affixes, limits and other locales.
+- [A masked field](/input/masked-field): a phone number or a card number, with the pattern applied in C++.
+- [Frames](/input/frames): outlined and filled, the floating label and the notch.
+- [Multiline](/input/multiline): a field that wraps and grows.
+- [The morph](/input/morph): the opt-in animation, and when to want it.
 - [Worklets](/input/worklets): masks, event handlers and the field's state on the UI thread.
 - [Props](/input/props): the full reference.
-- [How the morph works](/input/how-it-works): what moves on an edit, and why.

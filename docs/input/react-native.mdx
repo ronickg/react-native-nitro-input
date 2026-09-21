@@ -4,7 +4,7 @@ title: Working with React Native
 description: 'The text-input registry, focus commands, keyboard handling and accessibility.'
 ---
 
-`MorphInput` registers itself in React Native's text-input registry, so the
+`NitroInput` registers itself in React Native's text-input registry, so the
 things that act on "the focused input" work on it as they do on `TextInput`:
 
 - `Keyboard.dismiss()`, `TextInput.State.currentlyFocusedInput()` and
@@ -18,9 +18,9 @@ things that act on "the focused input" work on it as they do on `TextInput`:
 
 React Native focuses an input by dispatching a codegen `focus` / `blur` **view
 command**. A Nitro view has no such command on Android, so that call would be
-dropped and the keyboard would stay up. `MorphInput` therefore wraps
+dropped and the keyboard would stay up. `NitroInput` therefore wraps
 `TextInput.State.focusTextInput` / `blurTextInput` once and routes a
-`MorphInput` to its own native focus and blur; every other input is passed
+`NitroInput` to its own native focus and blur; every other input is passed
 straight through untouched.
 
 Two consequences worth knowing:
@@ -39,7 +39,21 @@ the element VoiceOver, TalkBack and e2e tools actually interact with — and the
 `placeholder` is exposed as its accessibility value while the field is empty.
 
 :::note Layout
-Unlike `TextInput`, `MorphInput` sizes itself to its content. Give it a
-`width` (or `flex`) in `style` to make it fill its parent the way a `TextInput`
-does; without one it hugs the text and grows as you type.
+`NitroInput` takes its width from its parent the way a `TextInput` does. `MorphInput`
+sets `autoWidth="auto"` instead and sizes itself to its content, growing as you
+type; give it a `width` (or `flex`) in `style` to make it fill its parent.
 :::
+
+## Threading and motion
+
+- Every keystroke is handled on the main thread: the formatter or the mask runs,
+  the field is updated, and the morph starts if it is on. `onChangeText` reaches
+  JS afterwards; nothing the user sees waits for it.
+- A `value` prop carrying a stale `mostRecentEventCount` (the user typed since it
+  was rendered) is ignored, like React Native's own `TextInput`.
+- The system field remains the accessibility element, with the formatted text
+  (`$1,234.50 USD` reads as such). VoiceOver, TalkBack, autofill, the paste menu
+  and selection all work as in a plain input.
+- Reduce Motion on iOS and "Remove animations" on Android snap the morph and the
+  floating label.
+- The view implements Nitro's `RecyclableView`.

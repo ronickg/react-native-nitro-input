@@ -48,7 +48,7 @@ export interface NitroInputFramedProps extends NitroInputCanvasProps {
   morph?: boolean;
 }
 
-/** Material's own: 200ms on the standard decelerate curve, notch staggered behind. */
+/** The native views' timings: 200ms on a decelerate curve, notch staggered behind. */
 const LABEL_MS = 200;
 const NOTCH_DELAY_MS = 50;
 const NOTCH_OPEN_MS = 100;
@@ -303,7 +303,7 @@ export const NitroInputFramed = forwardRef<NitroInputFramedHandle, NitroInputFra
       variant,
     ]);
 
-    /** Runs the label and the notch to `to`, on Material's timings. */
+    /** Runs the label and the notch to `to`, on the native views' timings. */
     const animateTo = useCallback(
       (to: number, animated: boolean) => {
         if (!animated) {

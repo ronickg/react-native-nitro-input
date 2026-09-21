@@ -1,6 +1,8 @@
 import React, {useRef, useState} from 'react';
 import {Btn, Controls, Frame, Stage} from '../Demo/Demo';
 import {NitroInputCanvas, type NitroInputCanvasHandle} from './NitroInputCanvas';
+import {NitroInputFramed} from './NitroInputFramed';
+import {useThemeColors} from './Playground';
 
 const SPEEDS = [
   {label: 'Default', duration: 400},
@@ -21,18 +23,63 @@ const LOCALES = [
 ] as const;
 const DECIMALS = [0, 2] as const;
 
-/** The amount field: prefix, grouping, decimals, placeholder, and the knobs to feel each one. */
+/** The field as it comes: no morph. The text appears the instant it is typed. */
+export function NitroInputPlainDemo() {
+  const theme = useThemeColors();
+  return (
+    <Stage height={80}>
+      <div style={{width: '100%', padding: '12px 16px 4px'}}>
+        <div style={{background: theme.fill, borderRadius: 10, padding: '10px 12px'}}>
+          <NitroInputCanvas placeholder="Your name" fontSize={22} fontWeight={500} duration={0} />
+        </div>
+      </div>
+    </Stage>
+  );
+}
+
+/** Outlined and filled: the label floats and the notch opens, inside the view. No morph. */
+export function NitroInputFramesDemo() {
+  const theme = useThemeColors();
+  const [variant, setVariant] = useState<'outlined' | 'filled'>('outlined');
+  return (
+    <Frame caption="Focus the field: the label floats and the outline opens a notch for it. The notch is a hole in the stroke, so the page shows through it.">
+      <Stage height={110}>
+        <div style={{width: '100%', padding: '12px 16px 4px'}}>
+          <NitroInputFramed
+            morph={false}
+            variant={variant}
+            label="Email address"
+            placeholder="you@example.com"
+            cornerRadius={10}
+            strokeColor={theme.muted}
+            focusedStrokeColor="#2563eb"
+            fillColor={theme.fill}
+            color={theme.ink}
+            fontSize={17}
+          />
+        </div>
+      </Stage>
+      <Controls>
+        <Btn selected={variant === 'outlined'} onClick={() => setVariant('outlined')}>outlined</Btn>
+        <Btn selected={variant === 'filled'} onClick={() => setVariant('filled')}>filled</Btn>
+      </Controls>
+    </Frame>
+  );
+}
+
+/** The amount field: prefix, grouping, decimals, placeholder, and the knobs to feel each one. The morph is a switch, off. */
 export function NitroInputAmountDemo() {
   const ref = useRef<NitroInputCanvasHandle>(null);
   const [text, setText] = useState('');
   const [value, setValue] = useState(NaN);
+  const [morph, setMorph] = useState(false);
   const [speed, setSpeed] = useState(0);
   const [easing, setEasing] = useState(0);
   const [align, setAlign] = useState(1);
   const [locale, setLocale] = useState(0);
   const [decimals, setDecimals] = useState(1);
   return (
-    <Frame caption="Click the field and type, and turn the knobs while you do. The amount is formatted by the C++ formatter before the input shows a frame; the morph is the C++ engine, both compiled to WebAssembly.">
+    <Frame caption="Click the field and type, and turn the knobs while you do. The amount is formatted by the C++ formatter before the input shows a frame. Switch Morph on to see what the `morph` prop adds: the C++ engine, compiled to WebAssembly like the formatter.">
       <Stage height={120}>
         <div style={{width: '100%'}}>
         <div style={{padding: '12px 16px 4px'}}>
@@ -46,7 +93,7 @@ export function NitroInputAmountDemo() {
             fontSize={56}
             fontWeight={800}
             textAlign={ALIGNS[align].value}
-            duration={SPEEDS[speed].duration}
+            duration={morph ? SPEEDS[speed].duration : 0}
             easing={EASINGS[easing]}
             fractionDigits={DECIMALS[decimals]}
             groupingSeparator={LOCALES[locale].grouping}
@@ -61,10 +108,12 @@ export function NitroInputAmountDemo() {
         </div>
       </Stage>
       <Controls>
-        {SPEEDS.map((s, i) => (
+        <Btn selected={!morph} onClick={() => setMorph(false)}>Plain</Btn>
+        <Btn selected={morph} onClick={() => setMorph(true)}>Morph</Btn>
+        {morph && SPEEDS.map((s, i) => (
           <Btn key={s.label} selected={speed === i} onClick={() => setSpeed(i)}>{s.label}</Btn>
         ))}
-        {EASINGS.map((e, i) => (
+        {morph && EASINGS.map((e, i) => (
           <Btn key={e} selected={easing === i} onClick={() => setEasing(i)}>{e}</Btn>
         ))}
       </Controls>
@@ -90,11 +139,11 @@ export function NitroInputAmountDemo() {
   );
 }
 
-/** A plain text field: characters fade and scale, and a word that shrinks stays one shape. */
+/** The morph on text: characters fade and scale, and a word that shrinks stays one shape. */
 export function NitroInputTextDemo() {
   const ref = useRef<NitroInputCanvasHandle>(null);
   return (
-    <Frame caption='Text mode: every character fades and scales in and out. Try "Continue" then "Confirm".'>
+    <Frame caption='With `morph` on, in text mode: every character fades and scales in and out. Try "Continue" then "Confirm".'>
       <Stage height={80}>
         <div style={{width: '100%', padding: '12px 16px 4px'}}>
           <NitroInputCanvas ref={ref} placeholder="Type something" fontSize={34} fontWeight={600} />
@@ -127,6 +176,7 @@ export function NitroInputEuroDemo() {
             fontSize={48}
             fontWeight={700}
             textAlign="center"
+            duration={0}
           />
         </div>
       </Stage>

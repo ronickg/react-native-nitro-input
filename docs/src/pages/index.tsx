@@ -83,7 +83,7 @@ function Hero() {
 
 export default function Home(): ReactNode {
   return (
-    <Layout title="Native React Native components" description="Two native components for React Native, built with Nitro Modules: a rolling number (odometer / ticker) and a text and amount input whose characters morph as you type. One C++ engine each, iOS and Android.">
+    <Layout title="Native React Native components" description="Two native components for React Native, built with Nitro Modules: a rolling number (odometer / ticker) and a native text input with amount formatting, masking and a floating label done natively, and a morph you can turn on. One C++ engine each, iOS and Android.">
       <Hero />
       <main>
         <section className={styles.section}>
@@ -125,9 +125,9 @@ export default function Home(): ReactNode {
                 <div className={styles.productName}>react-native-nitro-input</div>
                 <Heading as="h3">Text Input</Heading>
                 <p>
-                  A native single-line text and amount field. The system keyboard and
-                  accessibility stay; the glyphs morph as you type, and amounts are
-                  formatted in C++ before a frame is drawn.
+                  A native text input. The system keyboard and accessibility stay; amounts
+                  are formatted and masks applied in C++ before a frame is drawn, the
+                  floating label is native, and the morph is there when you turn it on.
                 </p>
                 <span className={styles.productLink}>Get started →</span>
               </Link>
@@ -182,7 +182,7 @@ export default function Home(): ReactNode {
           <div className="container">
             <span className={styles.kicker}>react-native-nitro-input</span>
             <Heading as="h2" className={styles.sectionTitle}>
-              A field that morphs as you type
+              A native field, formatted before it draws
             </Heading>
             <p className={styles.sectionLead}>
               The second package: a native single-line input. The amount is formatted in C++ before the field shows a frame — grouping, decimals, caret and all — so a digit you type and the comma it displaces move in the same frame, with no JavaScript in between.

@@ -3,11 +3,13 @@ import type { NitroInputWorklets } from './specs/NitroInputWorklets.nitro'
 
 /**
  * Optional integration with `react-native-worklets`: a `transform` worklet
- * and worklet `onChangeText` / `onChangeValue` handlers run synchronously on
- * the UI thread while the native input handles an edit (the way Expo UI's
- * worklet callbacks and react-native-transformer-text-input do), so a mask
- * written in JS applies before a frame is drawn and a shared value can be
- * updated without the JS thread.
+ * and any event handler marked `'worklet'` (`onChangeText`, `onChangeValue`,
+ * `onFocus`, `onBlur`, `onSelectionChange`, `onSubmitEditing`, `onEndEditing`,
+ * `onKeyPress`) run synchronously on the UI thread while the native input
+ * handles an edit (the way Expo UI's worklet callbacks and
+ * react-native-transformer-text-input do), so a mask written in JS applies
+ * before a frame is drawn and a shared value can be updated without the JS
+ * thread. `useNitroInputState` is built from the same handlers.
  *
  * The native side gets the worklets UI runtime once (`install`), JS keeps the
  * registered worklets in a `Map` on that runtime under `__nitroInputWorklets`,
