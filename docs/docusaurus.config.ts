@@ -104,6 +104,10 @@ const config: Config = {
           // /input opened on an overview page for one deploy, with getting
           // started a page of its own. They are the same page now.
           {from: '/input/getting-started', to: '/input'},
+          // The plain field is the default story now, told on getting started,
+          // and the text-morph page became the page about the morph itself.
+          {from: '/input/plain-field', to: '/input'},
+          {from: '/input/text', to: '/input/morph'},
           // Usage was one page of loosely related sections; it is three
           // topic pages now, the way the other Nitro libraries do it.
           {from: '/docs/usage', to: '/rolling-number/rolling-and-timing'},

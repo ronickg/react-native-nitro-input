@@ -11,23 +11,21 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Concepts',
+      label: 'The field',
       collapsed: false,
-      items: ['how-it-works'],
+      items: ['amount-field', 'masked-field', 'frames', 'multiline'],
     },
     {
       type: 'category',
-      label: 'Topics',
+      label: 'Opt-in effects',
       collapsed: false,
-      items: [
-        'amount-field',
-        'masked-field',
-        'text',
-        'plain-field',
-        'worklets',
-        'react-native',
-        'benchmarks',
-      ],
+      items: ['morph', 'how-it-works'],
+    },
+    {
+      type: 'category',
+      label: 'Integration',
+      collapsed: false,
+      items: ['worklets', 'react-native', 'benchmarks'],
     },
     {
       type: 'category',
