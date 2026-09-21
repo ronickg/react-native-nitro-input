@@ -1204,9 +1204,6 @@ final class NitroInputView: UIView {
     guard !traits.plain else { return }
     engine.setReduceMotion(UIAccessibility.isReduceMotionEnabled)
     engine.beginText()
-    for scalar in format.prefix.unicodeScalars {
-      engine.addGlyph(scalar.value, Role.prefix, Kind.text, Double(fonts.width(of: String(scalar), role: .prefix)), false)
-    }
     // `secureTextEntry` masks what the overlay draws: the hidden field keeps
     // the real text (UIKit needs it for editing and autofill), but every glyph
     // the user sees is a bullet.
@@ -1216,7 +1213,24 @@ final class NitroInputView: UIView {
     let showPlaceholder = body.isEmpty && !effectivePlaceholder.isEmpty
     let bodyText = showPlaceholder ? effectivePlaceholder : body
     let numberKinds = format.mode == .number
-    for scalar in bodyText.unicodeScalars {
+
+    // A negative amount reads "-$1,234.56", not "$-1,234.56": the sign belongs
+    // to the amount, not to the digits after the symbol. It stays a *body*
+    // glyph - it is part of the text, and the caret counts body glyphs in the
+    // order they are added - and is only laid out ahead of the prefix.
+    var rest = Array(bodyText.unicodeScalars)
+    let sign: Unicode.Scalar? =
+      !showPlaceholder && !format.prefix.isEmpty && rest.first.map(Self.isSign) == true
+        ? rest.removeFirst()
+        : nil
+    if let sign {
+      let kind = numberKinds ? formatter.kindOf(sign.value) : Kind.text
+      engine.addGlyph(sign.value, Role.body, kind, Double(fonts.width(of: String(sign), role: .body)), false)
+    }
+    for scalar in format.prefix.unicodeScalars {
+      engine.addGlyph(scalar.value, Role.prefix, Kind.text, Double(fonts.width(of: String(scalar), role: .prefix)), false)
+    }
+    for scalar in rest {
       let kind = numberKinds ? formatter.kindOf(scalar.value) : Kind.text
       engine.addGlyph(scalar.value, Role.body, kind, Double(fonts.width(of: String(scalar), role: .body)), showPlaceholder)
     }
@@ -1245,6 +1259,11 @@ final class NitroInputView: UIView {
   }
 
   // MARK: - Offsets (UTF-16 ↔ code points)
+
+  /// A leading minus, in either the keyboard's spelling or the typographic one.
+  static func isSign(_ scalar: Unicode.Scalar) -> Bool {
+    scalar == "-" || scalar.value == 0x2212
+  }
 
   static func codePointOffset(in string: String, utf16 offset: Int) -> Int {
     let utf16 = string.utf16

@@ -1323,13 +1323,21 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val f = fonts
     engine.setReduceMotion(animationsDisabled())
     engine.beginText()
-    addRun(format.prefix, Role.PREFIX, f, placeholder = false)
     val hint = effectivePlaceholder
     val showPlaceholder = text.isEmpty() && hint.isNotEmpty()
     // `secureTextEntry` masks what the overlay draws: the EditText keeps the
     // real text (the IME and autofill need it), every drawn glyph is a bullet.
     val body = if (keyboard.secureTextEntry) "\u2022".repeat(text.codePointCount(0, text.length)) else text
-    addRun(if (showPlaceholder) hint else body, Role.BODY, f, placeholder = showPlaceholder)
+    val shown = if (showPlaceholder) hint else body
+
+    // A negative amount reads "-$1,234.56", not "$-1,234.56": the sign belongs
+    // to the amount, not to the digits after the symbol. It stays a *body*
+    // glyph - it is part of the text, and the caret counts body glyphs in the
+    // order they are added - and is only laid out ahead of the prefix.
+    val signed = !showPlaceholder && format.prefix.isNotEmpty() && shown.isNotEmpty() && isSign(shown[0])
+    if (signed) addRun(shown.substring(0, 1), Role.BODY, f, placeholder = false)
+    addRun(format.prefix, Role.PREFIX, f, placeholder = false)
+    addRun(if (signed) shown.substring(1) else shown, Role.BODY, f, placeholder = showPlaceholder)
     addRun(format.suffix, Role.SUFFIX, f, placeholder = false)
     engine.commitText(caret, now())
     fed = true
@@ -1337,6 +1345,9 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     scheduleFrameIfNeeded()
     overlay.invalidate()
   }
+
+  /** A leading minus, in either the keyboard's spelling or the typographic one. */
+  private fun isSign(c: Char): Boolean = c == '-' || c == '\u2212'
 
   private fun addRun(s: String, role: Role, f: FontSet, placeholder: Boolean) {
     val numberKinds = role == Role.BODY && format.mode == Mode.NUMBER
