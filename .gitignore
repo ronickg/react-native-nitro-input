@@ -46,3 +46,5 @@ example/modules/*/android/.cxx/
 
 # React Native Harness cache and crash reports (example/__tests__/*.harness.tsx runs)
 example/.harness/
+scripts/bench/results/heap/
+__pycache__/
