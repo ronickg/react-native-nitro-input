@@ -317,9 +317,10 @@ export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' 
   /** `'mask'`: backspace walks back over autocompleted constants. Default: `false`. */
   maskAutoSkip?: boolean
   /**
-   * `'mask'` mode: called after every edit with the masked text, the characters
-   * the user contributed, what is still missing, and whether every mandatory
-   * slot is filled.
+   * `'mask'` mode: called whenever the text changes, from a keystroke,
+   * `setText` / `clear` or the `value` prop alike, with the masked text, the
+   * characters the user contributed, what is still missing, and whether every
+   * mandatory slot is filled. A mount with an unchanged text does not report.
    */
   onChangeMask?: (
     formatted: string,
