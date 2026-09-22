@@ -357,7 +357,14 @@ describe('MorphInput', () => {
   it('morphs an amount and sizes to it', async () => {
     const ref = createRef<MorphInputHandle>()
     const { state, onLayout } = layoutOf()
-    await render(<MorphInput ref={ref} mode="number" prefix="$" fontSize={40} onLayout={onLayout} />)
+    // `flex-start` keeps the box content-sized from the first layout. Left to
+    // stretch, the first `onLayout` can carry the parent's full width before
+    // the native measurement lands, and "wider than empty" never holds.
+    await render(
+      <View style={{ alignSelf: 'flex-start' }}>
+        <MorphInput ref={ref} mode="number" prefix="$" fontSize={40} onLayout={onLayout} />
+      </View>
+    )
     await waitFor(() => expect(ref.current?.native).not.toBeNull())
     await waitFor(() => expect(state.current?.width ?? 0).toBeGreaterThan(0))
     const empty = state.current!.width
