@@ -193,12 +193,6 @@ abstract class HybridNitroInputViewSpec: HybridView() {
   @get:Keep
   @set:DoNotStrip
   @set:Keep
-  abstract var affixAlign: NitroInputAffixAlign
-  
-  @get:DoNotStrip
-  @get:Keep
-  @set:DoNotStrip
-  @set:Keep
   abstract var signPlacement: NitroInputSignPlacement
   
   @get:DoNotStrip

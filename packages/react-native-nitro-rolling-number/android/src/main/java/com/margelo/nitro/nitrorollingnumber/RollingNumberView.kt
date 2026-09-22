@@ -2,9 +2,12 @@ package com.margelo.nitro.nitrorollingnumber
 
 import android.animation.ValueAnimator
 import android.content.Context
+import android.content.res.Configuration
+import android.database.ContentObserver
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
@@ -12,11 +15,15 @@ import android.graphics.Rect
 import android.graphics.Shader
 import android.graphics.Typeface
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
+import android.provider.Settings
 import android.text.TextPaint
 import android.util.TypedValue
 import android.view.Choreographer
 import android.view.View
+import android.view.accessibility.AccessibilityEvent
 import com.facebook.react.common.assets.ReactFontManager
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -104,6 +111,7 @@ class RollingNumberView(context: Context) : View(context) {
     set(value) {
       if (field == value) return
       field = value
+      affixBlocksDirty = true
       engine.setFormat(value.fractionDigits, value.minimumIntegerDigits)
       if (engine.hasShownValue()) reportIntrinsicSize()
       invalidate()
@@ -148,7 +156,7 @@ class RollingNumberView(context: Context) : View(context) {
       field = value
       engine.setReduceMotion(animationsDisabled())
       engine.setLoading(value, now())
-      updateAccessibility()
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) stateDescription = if (value) "Loading" else null
       scheduleFrameIfNeeded()
       invalidate()
     }
@@ -294,6 +302,17 @@ class RollingNumberView(context: Context) : View(context) {
   private class Wheel(var position: Double = 0.0, var width: Double = 1.0, var linear: Boolean = false, var blankZero: Boolean = false)
 
   private val engine = RollingEngine()
+  /** Reused every frame so the draw path stops allocating once warm. */
+  private val frameElements = ElementList()
+  private val settledElements = ElementList()
+  private val settledWheels = ArrayList<Wheel>()
+  /** The affixes split from the space they keep against the digits (RTL only). */
+  private var affixBlocksDirty = true
+  private var affixRtl = false
+  private var prefixInk = ""
+  private var prefixGap = ""
+  private var suffixInk = ""
+  private var suffixGap = ""
   private val density = context.resources.displayMetrics.density
   private var fonts: FontSet = FontSet(Typography())
   private var fontScale = 1f
@@ -327,6 +346,12 @@ class RollingNumberView(context: Context) : View(context) {
   private val shimmerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
     xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP)
   }
+  /** The glint's gradient, rebuilt only when its colors or the content width change; a frame just slides it. */
+  private var shimmerGradient: LinearGradient? = null
+  private var shimmerGradientWidth = -1f
+  private var shimmerGradientBase = 0
+  private var shimmerGradientHighlight = 0
+  private val shimmerMatrix = Matrix()
 
   init {
     importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
@@ -366,7 +391,6 @@ class RollingNumberView(context: Context) : View(context) {
     // onIntrinsicSizeChange, onRevealEnd and onRevealMilestone are the hybrid's
     // wiring, not the element's props: they stay across recycling (the hybrid
     // clears its own callback props).
-    contentDescription = null
     invalidate()
   }
 
@@ -427,12 +451,28 @@ class RollingNumberView(context: Context) : View(context) {
 
   override fun onDetachedFromWindow() {
     stopAnimation()
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+      context.contentResolver.unregisterContentObserver(animatorScaleObserver)
+    }
     super.onDetachedFromWindow()
   }
 
   override fun onAttachedToWindow() {
     super.onAttachedToWindow()
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+      animatorScale = -1f
+      context.contentResolver.registerContentObserver(
+        Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE), false, animatorScaleObserver,
+      )
+    }
     scheduleFrameIfNeeded()
+  }
+
+  override fun onConfigurationChanged(newConfig: Configuration?) {
+    super.onConfigurationChanged(newConfig)
+    // The paints resolve the theme's text color and the system font scale when
+    // they are built; a light/dark switch or a text-size change rebuilds them.
+    rebuildFonts()
   }
 
   // endregion
@@ -448,12 +488,27 @@ class RollingNumberView(context: Context) : View(context) {
     }
   }
 
+  /**
+   * The animator duration scale on API < 33, read once and refreshed by
+   * [animatorScaleObserver] (a settings query per `animateTo` was a binder
+   * call on every value update). -1 = not read yet.
+   */
+  private var animatorScale = -1f
+  private val animatorScaleObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+    override fun onChange(selfChange: Boolean) {
+      animatorScale = -1f
+    }
+  }
+
   /** True when the user removed animations (Android's animator scale is 0), the equivalent of Reduce Motion. */
   private fun animationsDisabled(): Boolean {
     val scale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
       ValueAnimator.getDurationScale()
     } else {
-      android.provider.Settings.Global.getFloat(context.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+      if (animatorScale < 0f) {
+        animatorScale = Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+      }
+      animatorScale
     }
     return scale <= 0f
   }
@@ -509,23 +564,54 @@ class RollingNumberView(context: Context) : View(context) {
 
   // region Layout
 
-  private class Element(
-    val wheelIndex: Int, // -1 for glyph elements
-    val text: String?,
-    val role: GlyphRole,
-    val width: Float,
-    val fullWidth: Float,
-    val factor: Double,
-  )
+  private class Element {
+    var wheelIndex = -1 // -1 for glyph elements
+    var text: String? = null
+    var role = GlyphRole.DIGIT
+    var width = 0f
+    var fullWidth = 0f
+    var factor = 0.0
+  }
 
-  private fun buildElements(fonts: FontSet, wheels: List<Wheel>, signFactor: Double): List<Element> {
-    val elements = ArrayList<Element>(wheels.size * 2 + 4)
+  /** A list of pooled [Element]s: filling it allocates nothing once it has grown to the run's length. */
+  private class ElementList {
+    private val items = ArrayList<Element>()
+    var size = 0
+      private set
+
+    fun clear() {
+      size = 0
+    }
+
+    fun next(): Element {
+      if (size == items.size) items.add(Element())
+      return items[size++]
+    }
+
+    operator fun get(index: Int): Element = items[index]
+
+    fun totalWidth(): Float {
+      var total = 0f
+      for (i in 0 until size) total += items[i].width
+      return total
+    }
+  }
+
+  /** Lays the run out into [out] (emptied first). */
+  private fun buildElements(fonts: FontSet, wheels: List<Wheel>, signFactor: Double, out: ElementList) {
+    out.clear()
     val fd = format.fractionDigits
 
     fun addGlyph(text: String, role: GlyphRole, factor: Double) {
       if (text.isEmpty() || factor <= 0.0) return
       val width = fonts.width(text, role)
-      elements.add(Element(-1, text, role, (width * factor).toFloat(), width, factor))
+      val e = out.next()
+      e.wheelIndex = -1
+      e.text = text
+      e.role = role
+      e.width = (width * factor).toFloat()
+      e.fullWidth = width
+      e.factor = factor
     }
 
     // Under a right-to-left layout the prefix belongs at the start edge - the
@@ -535,32 +621,47 @@ class RollingNumberView(context: Context) : View(context) {
     // space an affix keeps against the digits stays against them: " USD" after
     // the number is "USD " before it.
     val rtl = isRtl
-    val prefix = if (rtl) splitAffix(format.prefix, spaceAtEnd = true) else Pair(format.prefix, "")
-    val suffix = if (rtl) splitAffix(format.suffix, spaceAtEnd = false) else Pair(format.suffix, "")
+    if (affixBlocksDirty || affixRtl != rtl) updateAffixBlocks(rtl)
     if (rtl) {
-      addGlyph(suffix.first, GlyphRole.SUFFIX, 1.0)
-      addGlyph(suffix.second, GlyphRole.SUFFIX, 1.0)
+      addGlyph(suffixInk, GlyphRole.SUFFIX, 1.0)
+      addGlyph(suffixGap, GlyphRole.SUFFIX, 1.0)
     } else {
       // Sign first, then the currency prefix: "-$1,234.50".
       addGlyph("-", GlyphRole.DIGIT, signFactor)
-      addGlyph(prefix.first, GlyphRole.PREFIX, 1.0)
+      addGlyph(prefixInk, GlyphRole.PREFIX, 1.0)
     }
     for (power in wheels.indices.reversed()) {
       val wheel = wheels[power]
       if (wheel.width > 0.0) {
-        elements.add(Element(power, null, GlyphRole.DIGIT, (fonts.digitWidth * wheel.width).toFloat(), fonts.digitWidth, wheel.width))
+        val e = out.next()
+        e.wheelIndex = power
+        e.text = null
+        e.role = GlyphRole.DIGIT
+        e.width = (fonts.digitWidth * wheel.width).toFloat()
+        e.fullWidth = fonts.digitWidth
+        e.factor = wheel.width
       }
       if (power > fd && (power - fd) % 3 == 0) addGlyph(format.groupingSeparator, GlyphRole.DIGIT, wheel.width)
       if (fd > 0 && power == fd) addGlyph(format.decimalSeparator, GlyphRole.DIGIT, 1.0)
     }
     if (rtl) {
-      addGlyph(prefix.second, GlyphRole.PREFIX, 1.0)
-      addGlyph(prefix.first, GlyphRole.PREFIX, 1.0)
+      addGlyph(prefixGap, GlyphRole.PREFIX, 1.0)
+      addGlyph(prefixInk, GlyphRole.PREFIX, 1.0)
       addGlyph("-", GlyphRole.DIGIT, signFactor)
     } else {
-      addGlyph(suffix.first, GlyphRole.SUFFIX, 1.0)
+      addGlyph(suffixInk, GlyphRole.SUFFIX, 1.0)
     }
-    return elements
+  }
+
+  private fun updateAffixBlocks(rtl: Boolean) {
+    val prefix = if (rtl) splitAffix(format.prefix, spaceAtEnd = true) else Pair(format.prefix, "")
+    val suffix = if (rtl) splitAffix(format.suffix, spaceAtEnd = false) else Pair(format.suffix, "")
+    prefixInk = prefix.first
+    prefixGap = prefix.second
+    suffixInk = suffix.first
+    suffixGap = suffix.second
+    affixRtl = rtl
+    affixBlocksDirty = false
   }
 
   /** Whether this view is laid out right-to-left. The hybrid sets it from the `rightToLeft` prop. */
@@ -590,10 +691,11 @@ class RollingNumberView(context: Context) : View(context) {
   }
 
   private fun settledWidth(): Float {
-    val settled = List(engine.settledPowerCount()) { Wheel() }
-    var width = 0f
-    for (element in buildElements(fonts, settled, if (engine.settledNegative()) 1.0 else 0.0)) width += element.width
-    return width
+    val count = engine.settledPowerCount()
+    while (settledWheels.size < count) settledWheels.add(Wheel())
+    while (settledWheels.size > count) settledWheels.removeAt(settledWheels.size - 1)
+    buildElements(fonts, settledWheels, if (engine.settledNegative()) 1.0 else 0.0, settledElements)
+    return settledElements.totalWidth()
   }
 
   /** Formats the target the way it is displayed, for TalkBack. */
@@ -611,18 +713,19 @@ class RollingNumberView(context: Context) : View(context) {
     return sb.toString()
   }
 
-  private fun updateAccessibility() {
-    contentDescription = if (loading) accessibleText() + ", loading" else accessibleText()
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-      stateDescription = if (loading) "Loading" else null
-    }
+  // TalkBack reads the settled figure when it asks for it, so a value update
+  // (which can come every frame) formats nothing.
+  override fun getContentDescription(): CharSequence? {
+    if (!engine.hasShownValue()) return null
+    return if (loading) accessibleText() + ", loading" else accessibleText()
   }
 
   /** A narrower settled size waiting for the current roll to finish before it is reported. */
   private var pendingSizeReport = false
 
   private fun reportIntrinsicSize() {
-    updateAccessibility()
+    // A no-op unless an accessibility service is on; then a focused figure re-announces.
+    sendAccessibilityEvent(AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED)
     // The reported size is always the full-size one: with shrink-to-fit the view
     // keeps its height and the scaled number is centred inside it when drawing.
     val widthDp = ceil(settledWidth() / density)
@@ -655,9 +758,9 @@ class RollingNumberView(context: Context) : View(context) {
     if (!engine.hasShownValue()) return
     syncFromEngine()
     val fonts = this.fonts
-    val elements = buildElements(fonts, wheels, signFactor)
-    var total = 0f
-    for (element in elements) total += element.width
+    val elements = frameElements
+    buildElements(fonts, wheels, signFactor, elements)
+    val total = elements.totalWidth()
     updateFontScale(total)
     val fit = fontScale
 
@@ -683,11 +786,13 @@ class RollingNumberView(context: Context) : View(context) {
     // Everything drawn in this layer is what the sweep gets composited onto.
     val layer = if (dim > 0f) canvas.saveLayer(-1f, -1f, total + 1f, fonts.lineHeight + 1f, null) else -1
     var x = 0f
-    for (element in elements) {
+    for (i in 0 until elements.size) {
+      val element = elements[i]
+      val text = element.text
       if (element.wheelIndex >= 0) {
         drawWheel(canvas, fonts, wheels[element.wheelIndex], x, element.width)
-      } else if (element.text != null) {
-        drawGlyph(canvas, fonts, element.text, element.role, x, element.width, element.fullWidth, element.factor)
+      } else if (text != null) {
+        drawGlyph(canvas, fonts, text, element.role, x, element.width, element.fullWidth, element.factor)
       }
       x += element.width
     }
@@ -711,10 +816,20 @@ class RollingNumberView(context: Context) : View(context) {
     val progress = SHIMMER_SEED + (1f - SHIMMER_SEED) * phase
     // Core at width * (2p - 0.5): enters at the left edge, exits past the right.
     val startX = contentWidth * (2f * progress - 1f)
-    shimmerPaint.shader = LinearGradient(
-      startX, 0f, startX + contentWidth, SHIMMER_SLANT * contentWidth,
-      intArrayOf(base, highlight, base), floatArrayOf(0.1f, 0.5f, 0.9f), Shader.TileMode.CLAMP,
-    )
+    var gradient = shimmerGradient
+    if (gradient == null || shimmerGradientWidth != contentWidth || shimmerGradientBase != base || shimmerGradientHighlight != highlight) {
+      gradient = LinearGradient(
+        0f, 0f, contentWidth, SHIMMER_SLANT * contentWidth,
+        intArrayOf(base, highlight, base), floatArrayOf(0.1f, 0.5f, 0.9f), Shader.TileMode.CLAMP,
+      )
+      shimmerGradient = gradient
+      shimmerGradientWidth = contentWidth
+      shimmerGradientBase = base
+      shimmerGradientHighlight = highlight
+      shimmerPaint.shader = gradient
+    }
+    shimmerMatrix.setTranslate(startX, 0f)
+    gradient.setLocalMatrix(shimmerMatrix)
     shimmerPaint.alpha = (dim * 255f).toInt().coerceIn(0, 255)
     canvas.drawRect(-1f, -1f, contentWidth + 1f, fonts.lineHeight + 1f, shimmerPaint)
   }

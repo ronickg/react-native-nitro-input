@@ -183,12 +183,10 @@ static void completeTracksMandatorySlots() {
 
 static void tailPlaceholderShowsWhatIsMissing() {
   const MaskEngine phone = make("+1 ([000]) [000]-[0000]");
-  CHECK_EQ_STR(phone.placeholder(), "+1 (000) 000-0000");
   CHECK_EQ_STR(type(phone, "212").tailPlaceholder, "000-0000");
   CHECK_EQ_STR(type(phone, "2125551234").tailPlaceholder, "");
 
   const MaskEngine date = make("[00]{/}[00]");
-  CHECK_EQ_STR(date.placeholder(), "00/00");
   CHECK_EQ_STR(type(date, "12").tailPlaceholder, "00");
 }
 
@@ -228,9 +226,7 @@ static void deletingPullsTheCaretBack() {
 static void blocksAreNormalized() {
   // Optional digits sort behind mandatory ones: [9900] means [0099].
   const MaskEngine engine = make("[9900]");
-  // The placeholder shows the class, so all four read "0"; that the two
-  // mandatory slots came first is what `complete` proves.
-  CHECK_EQ_STR(engine.placeholder(), "0000");
+  // That the two mandatory slots came first is what `complete` proves.
   CHECK(type(engine, "12").complete);
   CHECK(!make("[0099]").isActive() == false);
 
@@ -267,7 +263,6 @@ static void customNotations() {
   const MaskEngine engine = make("#[HHHHHH]", {hex});
   CHECK_EQ_STR(type(engine, "1a2b3c").formattedText, "#1a2b3c");
   CHECK_EQ_STR(type(engine, "1z2").formattedText, "#12");
-  CHECK_EQ_STR(engine.placeholder(), "#HHHHHH");
 
   // An optional custom notation may be skipped.
   MaskEngine::Notation maybe{'h', {'x', 'y'}, true};
@@ -335,7 +330,6 @@ static void copiesShareTheCompiledMask() {
   CHECK(copy.isActive());
   CHECK_EQ_STR(type(copy, "ab").formattedText, "ab");
   CHECK_EQ_STR(type(copy, "az").formattedText, "a");
-  CHECK_EQ_STR(copy.placeholder(), "HH");
 
   // Re-compiling one does not disturb the other.
   MaskEngine other = copy;

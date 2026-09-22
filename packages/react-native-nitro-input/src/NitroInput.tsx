@@ -34,6 +34,7 @@ import type {
   NitroInputReturnKeyType,
   NitroInputSubmitBehavior,
   NitroInputTextAlign,
+  NitroInputTextAlignVertical,
   NitroInputSignPlacement,
   NitroInputVariant,
   NitroInputNotation,
@@ -48,6 +49,7 @@ import {
   registerCallback,
   registerTransform,
   unregisterWorklet,
+  type NitroInputSelection,
   type NitroInputTransform,
 } from './worklets'
 
@@ -95,7 +97,6 @@ const textInputRegistry: (TextInputRegistry & Partial<TextInputCommands>) | null
   }
 })()
 
-/** Mounted fields, by the host instance React Native's registry stores. */
 /** React Native's `inputMode`, the HTML-aligned alias for `keyboardType`. */
 export type InputMode =
   | 'none'
@@ -150,17 +151,25 @@ function reactTagOf(host: unknown): number {
 
 const EMPTY_NOTATIONS: NitroInputNotation[] = []
 
+/** Mounted fields, by the host instance React Native's registry stores. */
 const mountedFields = new WeakMap<object, { focus(): void; blur(): void }>()
 let patchedRegistry = false
 
 /**
- * `TextInput.State.focusTextInput` / `blurTextInput` — and therefore
+ * `TextInputState.focusTextInput` / `blurTextInput` — which is how
  * `Keyboard.dismiss()`, `keyboardShouldPersistTaps` and a ScrollView's
- * auto-blur — reach a text input by dispatching a codegen `focus` / `blur`
+ * auto-blur reach the focused input — dispatch a codegen `focus` / `blur`
  * *view command*. A Nitro view has no such command on Android, so the call
- * would be dropped and the keyboard would stay up. These two functions are
- * wrapped once to route a NitroInput to its own native focus/blur; every other
- * input is passed straight through untouched.
+ * would be dropped and the keyboard would stay up. The two functions are
+ * wrapped once, on the registry module, to route a NitroInput to its own
+ * native focus/blur; every other input is passed straight through untouched.
+ *
+ * The wrap reaches every caller that reads the two off the module at call
+ * time, which `Keyboard.dismiss()` and `ScrollView` do. It does not reach
+ * `TextInput.State.focusTextInput` / `blurTextInput`: `TextInput.js` copies
+ * those references when it is evaluated, before this runs, so a call through
+ * them still dispatches the view command. On iOS `ios/NitroInputCommands.mm`
+ * answers that command; on Android it is dropped.
  */
 function patchRegistryOnce() {
   if (patchedRegistry || textInputRegistry == null) return
@@ -219,11 +228,6 @@ export interface NitroInputFocusEvent extends NitroInputTextEvent {
   nativeEvent: { text: string; target: number; eventCount: number }
 }
 
-export interface NitroInputSelection {
-  start: number
-  end: number
-}
-
 export interface NitroInputSelectionEvent {
   /** The selection, in code points. */
   selection: NitroInputSelection
@@ -253,11 +257,6 @@ export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' 
   /** The initial text (uncontrolled). */
   defaultValue?: string
   /**
-   * `'number'` formats natively as you type: grouping separators, one decimal
-   * separator, up to `fractionDigits` decimals, a currency `prefix` /
-   * `suffix`. `'text'` is a plain single-line field. Default: `'text'`.
-   */
-  /**
    * The field's frame. `'outlined'` strokes a rounded rectangle notched around
    * the floating label - the notch is a real hole in the path, so whatever is
    * behind the field shows through. `'filled'` tints the box instead.
@@ -284,6 +283,12 @@ export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' 
   cornerRadius?: number
   /** `'filled'`: the box tint. */
   fillColor?: ColorValue
+  /**
+   * What the field holds. `'number'` formats natively as you type: grouping
+   * separators, one decimal separator, up to `fractionDigits` decimals, a
+   * currency `prefix` / `suffix`. `'mask'` applies a fixed pattern (`mask`).
+   * `'text'` is a plain field. Default: `'text'`.
+   */
   mode?: NitroInputMode
   /**
    * React Native's alias for `keyboardType`, following the HTML attribute.
@@ -428,7 +433,9 @@ export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' 
    * A multiline field is always drawn by the system view and is always
    * `'text'` mode: the glyph engine lays one run out on one baseline, so it
    * cannot morph wrapped text, and an amount or a mask is a single-line idea.
-   * `morph`, `mode="number"` and `mode="mask"` are ignored alongside it.
+   * `morph`, `mode="number"`, `mode="mask"` and the `prefix` / `suffix`
+   * affixes are ignored alongside it, with one warning each in development.
+   * The return key inserts a line break unless `submitBehavior` says otherwise.
    */
   multiline?: boolean
   /** `multiline`: lines tall before it scrolls. Omit to grow with the content. */
@@ -436,18 +443,25 @@ export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' 
   /** Alias for {@link numberOfLines}, matching `TextInput`. */
   rows?: number
   /** `multiline`: where the text sits in the box. Default: `'auto'` (top). */
-  textAlignVertical?: 'auto' | 'top' | 'center' | 'bottom'
+  textAlignVertical?: NitroInputTextAlignVertical
   /** `multiline`: whether it scrolls once the text outgrows it. Default: `true`. */
   scrollEnabled?: boolean
   /** Focus the field when it mounts. Default: `false`. */
   autoFocus?: boolean
   /**
-   * What the return key does: `'blurAndSubmit'` (default) fires
-   * `onSubmitEditing` and dismisses the keyboard, `'submit'` fires it and keeps
-   * focus so a form can move to the next field itself.
+   * What the return key does. `'blurAndSubmit'` fires `onSubmitEditing` and
+   * dismisses the keyboard; `'submit'` fires it and keeps focus, so a form can
+   * move to the next field itself; `'newline'` inserts a line break instead
+   * (`multiline` only). Defaults as `TextInput`'s: `'blurAndSubmit'` for a
+   * single-line field, `'newline'` for a multiline one.
    */
   submitBehavior?: NitroInputSubmitBehavior
-  /** Deprecated alias of `submitBehavior`, like React Native's. `false` means `'submit'`. */
+  /**
+   * Deprecated alias of `submitBehavior`, resolved the way `TextInput` resolves
+   * it: `false` means `'submit'` on a single-line field, and `true` means
+   * `'blurAndSubmit'` on a multiline one (whose return key otherwise inserts a
+   * line break). Ignored when `submitBehavior` is given.
+   */
   blurOnSubmit?: boolean
   /** Masks the drawn glyphs with bullets and turns off autocorrect. Default: `false`. */
   secureTextEntry?: boolean
@@ -560,6 +574,9 @@ export interface NitroInputHandle {
   readonly native: NitroInputRef | null
 }
 
+// shared-helpers:start
+// Kept byte-for-byte identical with packages/react-native-nitro-rolling-number/src/RollingNumber.tsx
+// (a test compares the two blocks); change both together.
 const FONT_WEIGHTS: Record<string, number> = {
   normal: 400,
   regular: 400,
@@ -588,34 +605,39 @@ function toProcessedColor(color: ColorValue | undefined): number | undefined {
   const processed = processColor(color)
   return typeof processed === 'number' ? processed : undefined
 }
+// shared-helpers:end
 
 interface Size {
   width: number
   height: number
 }
 
-/**
- * A native single-line input whose text morphs as you type: characters that
- * stay glide to their new place, new ones slide or fade in, removed ones leave
- * alongside their neighbours. In `'number'` mode the amount is formatted on
- * the native side as it is typed (grouping, decimal, currency affixes), with
- * the caret kept in place, so there is never an unformatted frame and never a
- * round trip through JS.
- *
- * The view sizes itself to its content unless `style` gives it a width.
- */
 const warnedIncompatible = new Set<string>()
 /** Once per offending prop, not once per render. */
 function warnIncompatible(what: string): void {
   if (warnedIncompatible.has(what)) return
   warnedIncompatible.add(what)
   console.warn(
-    `[NitroInput] \`${what}\` is ignored on a multiline field: the glyph ` +
-      'engine draws one run on one baseline, and amounts and masks are ' +
-      'single-line. Drop one of the two.'
+    `[NitroInput] \`${what}\` is ignored on a multiline field: a wrapping ` +
+      'field is drawn by the system view, and an amount, a mask and their ' +
+      'affixes are single-line. Drop one of the two.'
   )
 }
 
+/**
+ * A native text input: a system field (`UITextField` / `EditText`) that owns
+ * the keyboard, editing, selection, paste and accessibility, with native
+ * formatting (`mode="number"`), native masking (`mode="mask"`), an outlined
+ * or filled frame with a floating label, and optionally the glyph engine
+ * (`morph`), under which characters that stay glide to their new place, new
+ * ones slide or fade in and removed ones leave alongside their neighbours.
+ * In `'number'` mode every edit is formatted on the native side before a
+ * frame is drawn, with the caret kept in place, so there is never an
+ * unformatted frame and never a round trip through JS.
+ *
+ * Like a `TextInput`, it takes its width from its parent; `autoWidth`
+ * (`'auto'` in {@link MorphInput}) sizes it to its content instead.
+ */
 export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
   function NitroInput(
     {
@@ -789,8 +811,14 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     )
     // The latest native event count JS has processed: sent back with `text` so
     // native can tell a stale controlled value (the user typed since) from a
-    // deliberate change.
-    const [eventCount, setEventCount] = useState(0)
+    // deliberate change. It lives in `eventCountRef` and is read from there at
+    // render; only a controlled field takes the state update that forces one,
+    // because only a controlled field's `text` prop can ever change. So an
+    // uncontrolled (or worklet-driven) field never re-renders on a keystroke,
+    // and a field made controlled later reads the fresh count on that render.
+    const [, setEventCountState] = useState(0)
+    const controlledRef = useRef(value != null)
+    controlledRef.current = value != null
     // The initial text of an uncontrolled field never changes afterwards, so
     // native applies it exactly once.
     const [initialText] = useState(() => defaultValue ?? '')
@@ -826,9 +854,13 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
 
     // A field with a width of its own (the usual case) never needs a React
     // commit per keystroke: only the height (font-dependent) is taken from native.
-    const flat = StyleSheet.flatten(style) as
-      | { width?: unknown; flex?: unknown; height?: unknown; direction?: unknown }
-      | undefined
+    const flat = useMemo(
+      () =>
+        StyleSheet.flatten(style) as
+          | { width?: unknown; flex?: unknown; height?: unknown; direction?: unknown }
+          | undefined,
+      [style]
+    )
     // The layout direction, resolved the way React Native resolves it for its
     // own views: the field's `style.direction` if it says, else the app's.
     // Fabric does not hand a Hybrid View its resolved direction, so native is
@@ -869,9 +901,9 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     const onChangeTextCallback = useMemo(
       () =>
         callback((text: string, count: number) => {
-          setEventCount(count)
           textRef.current = text
           eventCountRef.current = count
+          if (controlledRef.current) setEventCountState(count)
           const handler = latest.current.onChangeText
           // A worklet handler already ran on the UI thread.
           if (handler && !isWorklet(handler)) handler(text)
@@ -972,6 +1004,8 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       []
     )
 
+    // One handle for the component's lifetime: everything it reads goes
+    // through a ref, so a value change never hands the parent a new object.
     useImperativeHandle(
       ref,
       () => ({
@@ -980,7 +1014,9 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         clear: () => nativeRef.current?.clear(),
         setText: (text) => nativeRef.current?.replaceText(text),
         setValue: (next) => nativeRef.current?.setValue(next),
-        getText: () => nativeRef.current?.currentText() ?? value ?? initialText,
+        // Before the native view attaches, `textRef` is a controlled field's
+        // `value` and an uncontrolled one's initial text.
+        getText: () => nativeRef.current?.currentText() ?? textRef.current,
         getValue: () => nativeRef.current?.getValue() ?? NaN,
         // The native view is the truth once there is one - it knows whether it
         // actually holds first responder. Before it attaches, fall back to the
@@ -996,7 +1032,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
           return nativeRef.current
         },
       }),
-      [value, initialText]
+      []
     )
 
     // Every native prop is sent with an explicit value: an optional prop that
@@ -1016,6 +1052,17 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       () => toProcessedColor(selectionColor) ?? NaN,
       [selectionColor]
     )
+    const processedLabelColor = useMemo(() => toProcessedColor(labelColor) ?? NaN, [labelColor])
+    const processedLabelFocusedColor = useMemo(
+      () => toProcessedColor(labelFocusedColor) ?? NaN,
+      [labelFocusedColor]
+    )
+    const processedStrokeColor = useMemo(() => toProcessedColor(strokeColor) ?? NaN, [strokeColor])
+    const processedFocusedStrokeColor = useMemo(
+      () => toProcessedColor(focusedStrokeColor) ?? NaN,
+      [focusedStrokeColor]
+    )
+    const processedFillColor = useMemo(() => toProcessedColor(fillColor) ?? NaN, [fillColor])
     const numericWeight = toNumericWeight(fontWeight) ?? 400
     const resolvedFontSize = fontSize ?? 32
     const resolvedAffixAlign = affixAlign ?? 'baseline'
@@ -1029,9 +1076,27 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         warnIncompatible(`mode="${mode}"`)
       }
       if (morph) warnIncompatible('morph')
+      if (prefix) warnIncompatible('prefix')
+      if (suffix) warnIncompatible('suffix')
     }
     const resolvedMode = isMultiline ? 'text' : (mode ?? 'text')
     const resolvedMorph = isMultiline ? false : (morph ?? false)
+    // The affixes are accessory views beside one line of text; a wrapping text
+    // view has no slot for them, so they go with the mode rather than being
+    // half-drawn on one platform and not the other.
+    const resolvedPrefix = isMultiline ? '' : (prefix ?? '')
+    const resolvedSuffix = isMultiline ? '' : (suffix ?? '')
+    // A new `maskNotations` literal each render must not re-set the native
+    // prop, so it is keyed on its contents. Always an array (empty = none):
+    // removing the prop would reach native as `null`, which Nitro's array
+    // parser rejects.
+    const notationsKey =
+      maskNotations != null && maskNotations.length > 0 ? JSON.stringify(maskNotations) : ''
+    const stableNotations = useMemo(
+      () => (notationsKey !== '' && maskNotations ? [...maskNotations] : EMPTY_NOTATIONS),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [notationsKey]
+    )
     const resolvedFractionDigits = fractionDigits ?? 2
     const resolvedKeyboardType =
       keyboardType ??
@@ -1087,18 +1152,17 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         style={[autoSize, style]}
         hybridRef={hybridRef}
         text={value ?? initialText}
-        mostRecentEventCount={eventCount}
+        mostRecentEventCount={eventCountRef.current}
         mode={resolvedMode}
         plain={!resolvedMorph}
         fractionDigits={resolvedFractionDigits}
         maxIntegerDigits={maxIntegerDigits ?? 15}
         groupingSeparator={groupingSeparator ?? ','}
         decimalSeparator={decimalSeparator ?? '.'}
-        prefix={prefix ?? ''}
-        suffix={suffix ?? ''}
+        prefix={resolvedPrefix}
+        suffix={resolvedSuffix}
         prefixFontSize={prefixFontSize ?? resolvedFontSize}
         suffixFontSize={suffixFontSize ?? resolvedFontSize}
-        affixAlign={resolvedAffixAlign}
         signPlacement={signPlacement ?? 'beforeAffix'}
         prefixAlign={prefixAlign ?? resolvedAffixAlign}
         suffixAlign={suffixAlign ?? resolvedAffixAlign}
@@ -1125,16 +1189,16 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         variant={variant ?? 'none'}
         label={label ?? ''}
         labelBehavior={labelBehavior ?? 'float'}
-        labelColor={toProcessedColor(labelColor) ?? NaN}
-        labelFocusedColor={toProcessedColor(labelFocusedColor) ?? NaN}
+        labelColor={processedLabelColor}
+        labelFocusedColor={processedLabelFocusedColor}
         labelFontSize={labelFontSize ?? 0}
-        strokeColor={toProcessedColor(strokeColor) ?? NaN}
-        focusedStrokeColor={toProcessedColor(focusedStrokeColor) ?? NaN}
+        strokeColor={processedStrokeColor}
+        focusedStrokeColor={processedFocusedStrokeColor}
         strokeWidth={strokeWidth ?? 1}
         cornerRadius={cornerRadius ?? 8}
-        fillColor={toProcessedColor(fillColor) ?? NaN}
+        fillColor={processedFillColor}
         mask={resolvedMode === 'mask' ? (mask ?? '') : ''}
-        maskNotations={maskNotations ?? EMPTY_NOTATIONS}
+        maskNotations={stableNotations}
         maskAutocomplete={maskAutocomplete ?? true}
         maskAutoSkip={maskAutoSkip ?? false}
         onChangeMask={onChangeMaskCallback}
@@ -1150,7 +1214,18 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         autoFocus={autoFocus ?? false}
         fieldTestID={viewProps.testID ?? ''}
         fieldAccessibilityLabel={resolvedAccessibilityLabel ?? ''}
-        submitBehavior={submitBehavior ?? (blurOnSubmit === false ? 'submit' : 'blurAndSubmit')}
+        submitBehavior={
+          submitBehavior ??
+          // As `TextInput` resolves the legacy `blurOnSubmit`: a multiline
+          // field's return key inserts a line break unless told to blur.
+          (multiline
+            ? blurOnSubmit === true
+              ? 'blurAndSubmit'
+              : 'newline'
+            : blurOnSubmit === false
+              ? 'submit'
+              : 'blurAndSubmit')
+        }
         secureTextEntry={secureTextEntry ?? false}
         keyboardAppearance={keyboardAppearance ?? 'default'}
         textContentType={textContentType ?? autoComplete ?? ''}
@@ -1193,6 +1268,19 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
  * StrictMode, or a concurrent render that loses) would otherwise leave an entry
  * on the UI runtime that no cleanup ever removes.
  */
+function useWorkletId<T extends (...args: never[]) => unknown>(
+  fn: T | undefined,
+  register: (fn: T, id: number) => void
+): number {
+  const id = useMemo(() => (fn ? allocateWorkletId() : 0), [fn])
+  useEffect(() => {
+    if (id === 0 || !fn) return
+    register(fn, id)
+    return () => unregisterWorklet(id)
+  }, [id, fn, register])
+  return id
+}
+
 /**
  * The same, for the focus pair: native reports one focus change, so the two
  * handlers share an id and the wrapper picks between them.
@@ -1208,18 +1296,5 @@ function useWorkletPairId<T extends (...args: never[]) => unknown>(
     register(onFocus, onBlur, id)
     return () => unregisterWorklet(id)
   }, [id, onFocus, onBlur, register])
-  return id
-}
-
-function useWorkletId<T extends (...args: never[]) => unknown>(
-  fn: T | undefined,
-  register: (fn: T, id: number) => void
-): number {
-  const id = useMemo(() => (fn ? allocateWorkletId() : 0), [fn])
-  useEffect(() => {
-    if (id === 0 || !fn) return
-    register(fn, id)
-    return () => unregisterWorklet(id)
-  }, [id, fn, register])
   return id
 }

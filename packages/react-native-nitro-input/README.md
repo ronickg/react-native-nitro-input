@@ -157,8 +157,11 @@ that many lines tall and scrolls past it; without it the field grows with its
 content, and `scrollEnabled={false}` hands the height to the content entirely.
 `textAlignVertical` says where the text sits in a taller box. A multiline field
 is always drawn by the system view and is always `mode="text"`: the glyph
-engine lays one run out on one baseline, so `morph`, `mode="number"` and
-`mode="mask"` are ignored alongside it, with one warning in development.
+engine lays one run out on one baseline, and an amount, a mask and their
+affixes are single-line ideas, so `morph`, `mode="number"`, `mode="mask"`,
+`prefix` and `suffix` are ignored alongside it, with one warning each in
+development. Its return key inserts a line break, as a `TextInput`'s does;
+`submitBehavior="blurAndSubmit"` (or `blurOnSubmit`) makes it submit instead.
 
 ### An amount field (the morph)
 
@@ -411,7 +414,7 @@ rather than renumbering the columns.
 | `color` | `ColorValue` | label color | Text color. |
 | `textAlign` | `'auto' \| 'left' \| 'center' \| 'right'` | `'auto'` | Alignment inside a wider frame. `'auto'` is the start edge of the layout direction, as `TextInput`; `'left'` and `'right'` are absolute. |
 | `lineHeight` | `number` | the font's own | The CSS meaning: the total height a line occupies. Honoured in both directions, including tighter than the font. |
-| `multiline` | `boolean` | `false` | Wraps. Always drawn by the system view and always `'text'` mode; `morph`, `'number'` and `'mask'` are ignored with it. |
+| `multiline` | `boolean` | `false` | Wraps. Always drawn by the system view and always `'text'` mode; `morph`, `'number'`, `'mask'` and the affixes are ignored with it, and the return key inserts a line break unless `submitBehavior` says otherwise. |
 | `numberOfLines` / `rows` | `number` | `0` | `multiline`: lines tall before it scrolls; `0` grows with the content. |
 | `textAlignVertical` | `'auto' \| 'top' \| 'center' \| 'bottom'` | `'auto'` | `multiline`: where the text sits in a taller box. |
 | `scrollEnabled` | `boolean` | `true` | `multiline`: scroll once the text outgrows the field; `false` lets a growing field drive its own height. |
@@ -423,24 +426,41 @@ rather than renumbering the columns.
 | `allowFontScaling` | `boolean` | `false` | Follow the system text size like `Text`. |
 | `maxFontSizeMultiplier` | `number` | `0` | Cap for `allowFontScaling`; `0` = none. |
 | `keyboardType` | see below | mode-dependent | `number` mode defaults to `decimal-pad` (`number-pad` when `fractionDigits` is `0`). |
+| `inputMode` | `'none' \| 'text' \| 'decimal' \| 'numeric' \| 'tel' \| 'search' \| 'email' \| 'url'` | – | React Native's HTML-style alias for `keyboardType`, mapped with its table; `keyboardType` wins. `'none'` focuses without a keyboard. `'search'` falls back to the default keyboard. |
 | `returnKeyType` | `'default' \| 'done' \| 'go' \| 'next' \| 'search' \| 'send'` | `'default'` | |
+| `enterKeyHint` | `'enter' \| 'done' \| 'go' \| 'next' \| 'previous' \| 'search' \| 'send'` | – | HTML-style alias for `returnKeyType`; `returnKeyType` wins. `'previous'` falls back to the default key. |
+| `submitBehavior` | `'blurAndSubmit' \| 'submit' \| 'newline'` | `'blurAndSubmit'`, `'newline'` when `multiline` | What the return key does: fire `onSubmitEditing` and dismiss the keyboard, fire it and keep focus (a form moving to its next field), or insert a line break (`multiline` only). Defaults as `TextInput`'s. |
+| `blurOnSubmit` | `boolean` | – | Deprecated alias, resolved like `TextInput`'s: `false` means `'submit'` on one line, `true` means `'blurAndSubmit'` on many. `submitBehavior` wins. |
+| `enablesReturnKeyAutomatically` | `boolean` | `false` | Disables the return key until the field has text. |
 | `autoCapitalize` | `'none' \| 'sentences' \| 'words' \| 'characters'` | `'sentences'` | `text` mode. |
 | `autoCorrect` | `boolean` | `true` | `text` mode. |
+| `spellCheck` | `boolean` | `autoCorrect` | `text` mode. |
+| `secureTextEntry` | `boolean` | `false` | Draws bullets and turns off autocorrect; the field keeps the real text for autofill. |
+| `keyboardAppearance` | `'default' \| 'light' \| 'dark'` | `'default'` | iOS: a light or dark keyboard. |
+| `textContentType` / `autoComplete` | `string` | `''` | Autofill: iOS content types and Android hints by their React Native names (`'username'`, `'password'`, `'oneTimeCode'`, `'telephoneNumber'`, …). `textContentType` wins. |
+| `showSoftInputOnFocus` | `boolean` | `true` | `false` focuses, with the caret, but shows no keyboard. |
+| `selectTextOnFocus` | `boolean` | `false` | Select everything when the field gains focus. |
+| `clearTextOnFocus` | `boolean` | `false` | Empty the field when it gains focus. |
+| `contextMenuHidden` | `boolean` | `false` | Hides the Cut / Copy / Paste menu. |
 | `editable` | `boolean` | `true` | |
+| `readOnly` | `boolean` | `false` | Alias of `editable={false}`, as on `TextInput`. |
 | `autoFocus` | `boolean` | `false` | |
+| `selection` | `{ start, end? }` | – | The caret or selection to apply, in code points into the (formatted) text. |
 | `maxLength` | `number` | unlimited | `text` mode. |
 | `transform` | `NitroInputTransform` | – | A `'worklet'` that rewrites text and selection after every edit, synchronously on the UI thread (needs `react-native-worklets`). |
 | `onChangeText` | `(text) => void` | – | After every edit, the formatted text. A `'worklet'` runs on the UI thread. |
+| `onChange` | `(event) => void` | – | Fired alongside `onChangeText` with the same text; `nativeEvent.eventCount` is the native edit counter, as on `TextInput`. |
 | `onChangeValue` | `(value) => void` | – | `number` mode: the numeric value, `NaN` while empty. A `'worklet'` runs on the UI thread. |
 | `onChangeMask` | `(formatted, extracted, tail, complete) => void` | – | `mask` mode: the formatted text, the characters the user contributed, what is still missing, and whether every mandatory slot is filled. |
 | `signPlacement` | `'beforeAffix' \| 'afterAffix'` | `'beforeAffix'` | Where a negative amount's sign sits relative to `prefix`: `-$1,234.56` or `$-1,234.56`. Morph only — a plain field's affixes are accessory views outside the text. |
 | `onFocus` / `onBlur` | `(event) => void` | – | Carries `text`, `eventCount` and `target`. |
-| `onSubmitEditing` | `(event) => void` | – | Return key pressed (the field then blurs). |
+| `onSubmitEditing` | `(event) => void` | – | Return key pressed; what happens next is `submitBehavior`. |
 | `onEndEditing` | `(event) => void` | – | Editing finished. |
 | `onSelectionChange` | `(event) => void` | – | The caret or selection moved, in code points. |
 | `onKeyPress` | `(event) => void` | – | Before the text changes: the character, `'Backspace'` or `'Enter'`. |
 | `onNativeRef` | `(ref) => void` | – | Receives the Nitro object on mount. |
-| `style`, `testID`, … | `ViewProps` | – | Regular view props. Give the field a `width` (or `flex`) in `style`; without one it sizes itself to its text. |
+| `id` / `aria-label` | `string` | – | React Native's HTML-style aliases for `nativeID` / `accessibilityLabel`, resolved here because a Nitro view is handed the raw props; each wins over the older spelling. |
+| `style`, `testID`, … | `ViewProps` | – | Regular view props. `testID` and the accessibility label are forwarded to the system field, the element VoiceOver, TalkBack and e2e tools interact with. The field takes its width from its parent like a `TextInput`; see `autoWidth`. |
 
 `keyboardType`: `'default' | 'number-pad' | 'decimal-pad' | 'numeric' | 'email-address' | 'phone-pad' | 'url' | 'ascii-capable' | 'numbers-and-punctuation'`.
 

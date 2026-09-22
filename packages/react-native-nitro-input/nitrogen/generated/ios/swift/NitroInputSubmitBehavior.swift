@@ -21,6 +21,8 @@ public extension NitroInputSubmitBehavior {
         self = .submit
       case "blurAndSubmit":
         self = .blurandsubmit
+      case "newline":
+        self = .newline
       default:
         return nil
     }
@@ -35,6 +37,8 @@ public extension NitroInputSubmitBehavior {
         return "submit"
       case .blurandsubmit:
         return "blurAndSubmit"
+      case .newline:
+        return "newline"
     }
   }
 }

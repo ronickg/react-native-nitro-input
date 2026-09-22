@@ -39,6 +39,9 @@ jobs:
       # The shared engines are host-side clang++ binaries: no toolchain to set up.
       - name: C++ engines
         run: bun run test:cpp
+      # The published lib/: ES modules, CommonJS and the declarations, for both packages.
+      - name: Build
+        run: bun run build
 
   android:
     name: Android libraries

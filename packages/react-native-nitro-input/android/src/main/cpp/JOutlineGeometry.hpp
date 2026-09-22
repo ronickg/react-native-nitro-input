@@ -7,8 +7,10 @@
 //
 //  Segments come back in a caller-owned `double[]`, six doubles each - verb, x,
 //  y, radius, startAngle, sweepAngle - rather than as objects: the view reuses
-//  one array, so redrawing the frame allocates nothing, the same trick
-//  JMorphEngine uses for its glyphs.
+//  one array, and the geometry is traced into a vector this object keeps (the
+//  `std::vector<double>` overload of `OutlineGeometry::outline`), so redrawing
+//  the frame allocates nothing on either side, the same trick JMorphEngine
+//  uses for its glyphs.
 //
 //  `gapFor` needs no bridge. It only clamps, and `outline` already treats a
 //  non-finite left as 0 and a non-positive width as no gap, so the caller
@@ -19,6 +21,7 @@
 
 #include "OutlineGeometry.hpp"
 #include <fbjni/fbjni.h>
+#include <vector>
 
 namespace margelo::nitro::nitroinput {
 
@@ -45,8 +48,8 @@ private:
   friend HybridBase;
   JOutlineGeometry() = default;
 
-  /// Reused between calls so the geometry's own vector is not reallocated.
-  std::vector<OutlineGeometry::Segment> scratch_;
+  /// The flat segments, kept between calls so a redraw reallocates nothing.
+  std::vector<double> flat_;
 };
 
 } // namespace margelo::nitro::nitroinput

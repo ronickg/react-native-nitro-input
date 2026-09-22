@@ -281,9 +281,6 @@ void MorphEngine::commitText(int caretIndex, double now) {
   // A run of adjacent glyphs that are wholly replaced — no survivor inside it —
   // recedes as one shape instead of each glyph sliding a line box on its own. A
   // survivor breaks the run: it is right there to animate against.
-  // A run of adjacent glyphs that are wholly replaced — no survivor inside it —
-  // recedes as one shape instead of each glyph sliding a line box on its own. A
-  // survivor breaks the run: it is right there to animate against.
   const auto closeRun = [&](const auto& extent) {
     if (runBuf_.size() >= static_cast<size_t>(kGroupMin)) {
       double lo = 0, hi = 0;
@@ -822,10 +819,21 @@ void MorphEngine::publish() {
   glyphs_.clear();
   glyphs_.reserve(slots_.size());
   for (const auto& s : slots_) glyphs_.push_back(s.g);
+  caretBlocks_ = CaretBlocks{};
   if (!rightToLeft_ || glyphs_.empty()) return;
   const Blocks b = blocksOf(glyphs_);
   const double total = contentWidth_;
   for (auto& g : glyphs_) g.x = mirrored(g.x, b.of(g), total);
+  // The caret lives among the live glyphs alone - one on its way out is drawn
+  // but is not part of the text - so its blocks are measured over those, from
+  // the slots' left-to-right positions, and kept for `caretX`.
+  liveBuf_.clear();
+  for (const auto& s : slots_) {
+    if (!s.g.exiting) liveBuf_.push_back(s.g);
+  }
+  const Blocks live = blocksOf(liveBuf_);
+  caretBlocks_.sign = Extent{live.sign.start, live.sign.end, live.sign.any};
+  caretBlocks_.rest = Extent{live.rest.start, live.rest.end, live.rest.any};
 }
 
 void MorphEngine::setRightToLeft(bool rightToLeft) {
@@ -853,16 +861,11 @@ double MorphEngine::caretX(int index) const {
   if (!rightToLeft_) return x;
   // The caret lives in the body's block - the sign's for index 0 when the sign
   // is laid out ahead of the prefix - and moves with it. An empty body has no
-  // block, and its caret is a point: mirror the point.
-  std::vector<Glyph> live;
-  live.reserve(slots_.size());
-  for (const auto& s : slots_) {
-    if (!s.g.exiting) live.push_back(s.g);
-  }
-  const Blocks b = blocksOf(live);
-  const Block& block = (index == 0 && b.sign.any) ? b.sign : b.rest;
+  // block, and its caret is a point: mirror the point. The blocks were
+  // measured when the frame was published (see `publish`).
+  const Extent& block = (index == 0 && caretBlocks_.sign.any) ? caretBlocks_.sign : caretBlocks_.rest;
   if (!block.any) return contentWidth_ - x;
-  return mirrored(x, block, contentWidth_);
+  return contentWidth_ - block.end + (x - block.start);
 }
 
 void MorphEngine::reset() {
@@ -873,6 +876,7 @@ void MorphEngine::reset() {
   pending_.clear();
   slots_.clear();
   glyphs_.clear();
+  caretBlocks_ = CaretBlocks{};
   committed_ = false;
   animating_ = false;
   contentWidth_ = targetWidth_ = widthFrom_ = 0;

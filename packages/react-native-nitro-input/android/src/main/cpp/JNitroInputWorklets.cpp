@@ -17,7 +17,6 @@ int gLastSelectionEnd = 0;
 
 void JNitroInputWorklets::registerNatives() {
   javaClassStatic()->registerNatives({
-      makeNativeMethod("isReady", JNitroInputWorklets::isReady),
       makeNativeMethod("runTransform", JNitroInputWorklets::runTransform),
       makeNativeMethod("lastSelectionStart", JNitroInputWorklets::lastSelectionStart),
       makeNativeMethod("lastSelectionEnd", JNitroInputWorklets::lastSelectionEnd),
@@ -29,10 +28,6 @@ void JNitroInputWorklets::registerNatives() {
       makeNativeMethod("runEndEditing", JNitroInputWorklets::runEndEditing),
       makeNativeMethod("runKeyPress", JNitroInputWorklets::runKeyPress),
   });
-}
-
-jboolean JNitroInputWorklets::isReady(jni::alias_ref<jni::JClass>) {
-  return nitroinputworklets::isReady();
 }
 
 jni::local_ref<jni::JString> JNitroInputWorklets::runTransform(jni::alias_ref<jni::JClass>, jint id,

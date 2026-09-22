@@ -20,7 +20,7 @@
  */
 import { readFileSync } from 'fs'
 import { dirname, join } from 'path'
-import React, { createRef } from 'react'
+import React, { createRef, Profiler } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { NitroInput, type NitroInputHandle } from '../NitroInput'
 
@@ -108,8 +108,9 @@ function both(props: Record<string, unknown> = {}) {
   const rnRef = createRef<any>()
   const ourRef = createRef<NitroInputHandle>()
   const rn = render(<TextInput ref={rnRef} {...props} />)
-  // Ours sizes to content unless told otherwise; a width makes the two layouts
-  // comparable and is what a drop-in would be given (see `autoWidth`).
+  // A width, as a form field is usually given. Not needed for the comparison
+  // - `NitroInput` takes its width from its parent like a `TextInput` - but it
+  // keeps the `autoWidth` inference out of the picture.
   const ours = render(<NitroInput ref={ourRef} style={{ width: 200 }} {...props} />)
   return {
     rn: { renderer: rn, ref: rnRef, host: () => rnHost(rn), drive: rnDriver(rn) },
@@ -260,6 +261,29 @@ describe('aliases resolve the same way', () => {
     const { rn, ours } = both({ submitBehavior: 'submit', blurOnSubmit: true })
     expect(rn.host().submitBehavior).toBe('submit')
     expect(ours.host().submitBehavior).toBe('submit')
+  })
+
+  it('submitBehavior defaults the same way: blurAndSubmit on one line, newline on many', () => {
+    const single = both()
+    expect(single.rn.host().submitBehavior).toBe('blurAndSubmit')
+    expect(single.ours.host().submitBehavior).toBe('blurAndSubmit')
+    const multi = both({ multiline: true })
+    expect(multi.rn.host().submitBehavior).toBe('newline')
+    expect(multi.ours.host().submitBehavior).toBe('newline')
+  })
+
+  it('blurOnSubmit on a multiline field maps the same way on both', () => {
+    // `true` is the one value that changes anything on a multiline field: the
+    // return key blurs instead of inserting a line break. `false` is the default.
+    const blur = both({ multiline: true, blurOnSubmit: true })
+    expect(blur.rn.host().submitBehavior).toBe('blurAndSubmit')
+    expect(blur.ours.host().submitBehavior).toBe('blurAndSubmit')
+    const newline = both({ multiline: true, blurOnSubmit: false })
+    expect(newline.rn.host().submitBehavior).toBe('newline')
+    expect(newline.ours.host().submitBehavior).toBe('newline')
+    const single = both({ blurOnSubmit: true })
+    expect(single.rn.host().submitBehavior).toBe('blurAndSubmit')
+    expect(single.ours.host().submitBehavior).toBe('blurAndSubmit')
   })
 
   it('inputMode maps onto keyboardType the same way', () => {
@@ -509,7 +533,10 @@ describe('mostRecentEventCount', () => {
   })
 
   it('advances to the count the native side reported, on both', () => {
-    const { rn, ours } = both({ onChangeText: () => {} })
+    // A controlled field: the count is what lets native tell a stale `value`
+    // from a deliberate one. An uncontrolled field of ours keeps it in a ref
+    // and does not render for it - see the deliberate differences.
+    const { rn, ours } = both({ value: 'a', onChangeText: () => {} })
     rn.drive.type('a', 1)
     ours.drive.type('a', 1)
     expect(rn.drive.eventCount()).toBe(1)
@@ -664,14 +691,71 @@ describe('the TextInput.State registry', () => {
 // ---------------------------------------------------------------------------
 
 describe('deliberate differences', () => {
-  it('sizes itself to its content, where TextInput stretches to its parent', () => {
-    // `TextInput` has no intrinsic width; ours measures its text, which is what
-    // makes an amount field possible. `style` with a width turns it off, which
-    // is what a drop-in form field wants - see `autoWidth`.
-    const auto = ourHost(render(<NitroInput />))
-    const fixed = ourHost(render(<NitroInput style={{ width: 200 }} />))
-    expect(auto.style).toBeDefined()
-    expect(JSON.stringify(fixed.style)).toContain('200')
+  it('sizes itself to its content only when asked, where TextInput never does', () => {
+    // `TextInput` has no intrinsic width. Ours measures its text, which is what
+    // makes an amount field possible, but only under `autoWidth`: `false` (the
+    // default) takes no width of its own, so flexbox stretches the field like
+    // a `TextInput`; `'auto'` (what `MorphInput` uses) infers it unless `style`
+    // gives a `width` or `flex`; `true` always sizes to content. The measured
+    // size is the first entry of the host's `style`, ahead of the caller's.
+    const measured = (renderer: ReactTestRenderer) => {
+      const onSizeChange = ourHost(renderer).onSizeChange as { f: (w: number, h: number) => void }
+      act(() => onSizeChange.f(120, 48))
+      return (ourHost(renderer).style as unknown[])[0]
+    }
+    expect(measured(render(<NitroInput />))).toEqual({ height: 48 })
+    expect(measured(render(<NitroInput style={{ width: 200 }} />))).toEqual({ height: 48 })
+    expect(measured(render(<NitroInput autoWidth="auto" />))).toEqual({ width: 120, height: 48 })
+    expect(measured(render(<NitroInput autoWidth="auto" style={{ width: 200 }} />))).toEqual({ height: 48 })
+    expect(measured(render(<NitroInput autoWidth="auto" style={{ flex: 1 }} />))).toEqual({ height: 48 })
+    expect(measured(render(<NitroInput autoWidth />))).toEqual({ width: 120, height: 48 })
+    expect(measured(render(<NitroInput autoWidth style={{ width: 200 }} />))).toEqual({ width: 120, height: 48 })
+    // A box pinned on both axes never takes the measurement: `style` would win
+    // anyway, and the state update would be a wasted commit per field.
+    expect(measured(render(<NitroInput style={{ width: 200, height: 40 }} />))).toEqual({ height: 40 })
+  })
+
+  it('does not re-render an uncontrolled field on a keystroke, where TextInput does', () => {
+    // React Native's `TextInput` keeps `mostRecentEventCount` in state and sets
+    // it on every change, so even an uncontrolled field re-renders per key.
+    // Ours keeps the count in a ref and only takes the state update when
+    // `value` is given - the one case native needs the count, since only a
+    // controlled field's `text` prop can change. That is what lets a
+    // worklet-driven field run nothing on the JS thread while typing.
+    const rnRenders = jest.fn()
+    const ourRenders = jest.fn()
+    const rn = render(
+      <Profiler id="rn" onRender={rnRenders}>
+        <TextInput onChangeText={() => {}} />
+      </Profiler>
+    )
+    const ours = render(
+      <Profiler id="ours" onRender={ourRenders}>
+        <NitroInput onChangeText={() => {}} />
+      </Profiler>
+    )
+    expect(ourRenders).toHaveBeenCalledTimes(1)
+    const rnBefore = rnRenders.mock.calls.length
+    const ourPropsBefore = ourHost(ours)
+    rnDriver(rn).type('a', 1)
+    ourDriver(ours).type('a', 1)
+    expect(rnRenders.mock.calls.length).toBeGreaterThan(rnBefore)
+    expect(ourRenders).toHaveBeenCalledTimes(1)
+    expect(ourHost(ours)).toBe(ourPropsBefore)
+
+    // The count was still tracked: making the field controlled later sends
+    // the fresh one, so the new `value` is not taken for a stale one.
+    act(() => {
+      ours.update(
+        <Profiler id="ours" onRender={ourRenders}>
+          <NitroInput value="a" onChangeText={() => {}} />
+        </Profiler>
+      )
+    })
+    expect(ourHost(ours).mostRecentEventCount).toBe(1)
+    expect(ourHost(ours).text).toBe('a')
+    ourDriver(ours).type('ab', 2)
+    expect(ourHost(ours).mostRecentEventCount).toBe(2)
   })
 
   it('multiline turns the morph off, because one run cannot wrap', () => {

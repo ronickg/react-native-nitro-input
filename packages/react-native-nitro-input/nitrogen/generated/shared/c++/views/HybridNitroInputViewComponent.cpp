@@ -47,7 +47,6 @@ namespace margelo::nitro::nitroinput::views {
     suffix(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "suffix", rawProps, sourceProps.suffix)),
     prefixFontSize(nitro::ReactProp<double>::fromRawValue("NitroInputView", "prefixFontSize", rawProps, sourceProps.prefixFontSize)),
     suffixFontSize(nitro::ReactProp<double>::fromRawValue("NitroInputView", "suffixFontSize", rawProps, sourceProps.suffixFontSize)),
-    affixAlign(nitro::ReactProp<NitroInputAffixAlign>::fromRawValue("NitroInputView", "affixAlign", rawProps, sourceProps.affixAlign)),
     signPlacement(nitro::ReactProp<NitroInputSignPlacement>::fromRawValue("NitroInputView", "signPlacement", rawProps, sourceProps.signPlacement)),
     prefixAlign(nitro::ReactProp<NitroInputAffixAlign>::fromRawValue("NitroInputView", "prefixAlign", rawProps, sourceProps.prefixAlign)),
     suffixAlign(nitro::ReactProp<NitroInputAffixAlign>::fromRawValue("NitroInputView", "suffixAlign", rawProps, sourceProps.suffixAlign)),
@@ -144,7 +143,6 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("suffix"): return true;
       case hashString("prefixFontSize"): return true;
       case hashString("suffixFontSize"): return true;
-      case hashString("affixAlign"): return true;
       case hashString("signPlacement"): return true;
       case hashString("prefixAlign"): return true;
       case hashString("suffixAlign"): return true;

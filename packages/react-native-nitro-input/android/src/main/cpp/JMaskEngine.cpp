@@ -23,14 +23,12 @@ void JMaskEngine::registerNatives() {
       makeNativeMethod("clearNotations", JMaskEngine::clearNotations),
       makeNativeMethod("addNotation", JMaskEngine::addNotation),
       makeNativeMethod("setFormat", JMaskEngine::setFormat),
-      makeNativeMethod("isActive", JMaskEngine::isActive),
       makeNativeMethod("applyEdit", JMaskEngine::applyEdit),
       makeNativeMethod("applyAll", JMaskEngine::applyAll),
       makeNativeMethod("lastCaret", JMaskEngine::lastCaret),
       makeNativeMethod("lastExtracted", JMaskEngine::lastExtracted),
       makeNativeMethod("lastTailPlaceholder", JMaskEngine::lastTailPlaceholder),
       makeNativeMethod("lastComplete", JMaskEngine::lastComplete),
-      makeNativeMethod("placeholder", JMaskEngine::placeholder),
   });
 }
 
@@ -49,10 +47,6 @@ void JMaskEngine::addNotation(jni::alias_ref<jni::JString> character, jni::alias
 
 bool JMaskEngine::setFormat(jni::alias_ref<jni::JString> format) {
   return engine_.setFormat(str(format));
-}
-
-bool JMaskEngine::isActive() {
-  return engine_.isActive();
 }
 
 jni::local_ref<jni::JString> JMaskEngine::applyEdit(jni::alias_ref<jni::JString> current, int start, int end,
@@ -82,10 +76,6 @@ jni::local_ref<jni::JString> JMaskEngine::lastTailPlaceholder() {
 
 bool JMaskEngine::lastComplete() {
   return last_.complete;
-}
-
-jni::local_ref<jni::JString> JMaskEngine::placeholder() {
-  return jni::make_jstring(engine_.placeholder());
 }
 
 } // namespace margelo::nitro::nitroinput

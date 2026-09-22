@@ -189,11 +189,6 @@ void JHybridNitroInputViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCla
     hybridView->setSuffixFontSize(newProps->suffixFontSize.get());
   }
   if (oldProps == nullptr
-        ? newProps->affixAlign.isProvided()
-        : !newProps->affixAlign.hasSameValue(oldProps->affixAlign)) {
-    hybridView->setAffixAlign(newProps->affixAlign.get());
-  }
-  if (oldProps == nullptr
         ? newProps->signPlacement.isProvided()
         : !newProps->signPlacement.hasSameValue(oldProps->signPlacement)) {
     hybridView->setSignPlacement(newProps->signPlacement.get());

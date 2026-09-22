@@ -52,6 +52,10 @@ public:
 
   /// Shows `value` immediately with continuously positioned wheels (odometer
   /// carry rule). Cancels any running roll.
+  ///
+  /// Both this and `animateTo` work on |value| × 10^fractionDigits, clamped to
+  /// `kMaxMagnitude` (10^17, 18 wheels at most); a double only carries exact
+  /// integers up to 2^53, so figures beyond that lose their low digits either way.
   void setValue(double value);
   /// Rolls every wheel to `value` (shortest path in the roll direction,
   /// blank↔digit for appearing/disappearing wheels). Snaps when nothing has
@@ -164,6 +168,8 @@ private:
     double start = 0;
     double duration = 0;
     std::vector<double> delays; // per wheel, least significant first
+    /// The largest entry of `delays`, so a tick needn't scan them.
+    double maxDelay = 0;
     std::vector<WheelTransition> wheels;
     double signFrom = 0;
     double signTo = 0;
@@ -215,8 +221,6 @@ private:
   void applyRevealSpin(double elapsed);
   /// A punch `tau` seconds after its kick: one overshoot peaking at `overshoot`, then settling.
   static double punch(double tau, double overshoot);
-  /// The reveal's count as a fraction of the target at clock fraction `t`.
-  static double revealFraction(double t, double magnitude);
   /// One tally run: constant-rate count with a ramp in and a brake out.
   static double tally(double t, double rampIn, double rampOut);
   double ease(double t) const;

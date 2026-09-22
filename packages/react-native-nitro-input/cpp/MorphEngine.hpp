@@ -89,7 +89,6 @@ public:
   /// same way in every script). Applied to the published frames and `caretX`;
   /// the layout itself is always computed left-to-right.
   void setRightToLeft(bool rightToLeft);
-  bool rightToLeft() const { return rightToLeft_; }
 
   // MARK: Text
 
@@ -171,6 +170,25 @@ private:
   int slotIndexOf(int64_t id) const;
   /// Copies the slots' frames into `glyphs_`, mirrored when right-to-left.
   void publish();
+
+  /// The horizontal extent of one block of the run (see `Blocks` in the .cpp).
+  struct Extent {
+    double start = 0;
+    double end = 0;
+    bool any = false;
+  };
+  /// The two blocks a caret can sit in - a sign laid out ahead of the prefix,
+  /// and the rest of the body - measured over the live glyphs each time a
+  /// frame is published, so `caretX` under right-to-left neither allocates
+  /// nor re-measures the run on every call.
+  struct CaretBlocks {
+    Extent sign;
+    Extent rest;
+  };
+  CaretBlocks caretBlocks_;
+  /// Scratch for measuring the live glyphs in `publish`, kept so a frame
+  /// allocates nothing once it has grown.
+  std::vector<Glyph> liveBuf_;
 
   double duration_ = 0.4;
   int easing_ = 0;

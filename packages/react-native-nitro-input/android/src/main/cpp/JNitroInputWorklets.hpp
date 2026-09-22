@@ -19,7 +19,6 @@ struct JNitroInputWorklets final : public jni::JavaClass<JNitroInputWorklets> {
 
   static void registerNatives();
 
-  static jboolean isReady(jni::alias_ref<jni::JClass>);
   /// The transformed text, or null when the worklet did not apply. The
   /// selection it chose is read with `lastSelectionStart` / `lastSelectionEnd`.
   static jni::local_ref<jni::JString> runTransform(jni::alias_ref<jni::JClass>, jint id, jni::alias_ref<jni::JString> text,

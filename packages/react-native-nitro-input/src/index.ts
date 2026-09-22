@@ -8,6 +8,8 @@ export {
   type NitroInputFocusEvent,
   type NitroInputSelectionEvent,
   type NitroInputKeyPressEvent,
+  type InputMode,
+  type EnterKeyHint,
 } from './NitroInput'
 export {
   MorphInput,
@@ -38,7 +40,9 @@ export type {
   NitroInputEasing,
   NitroInputEffect,
   NitroInputTextAlign,
+  NitroInputTextAlignVertical,
   NitroInputAffixAlign,
+  NitroInputSignPlacement,
   NitroInputKeyboardType,
   NitroInputReturnKeyType,
   NitroInputAutoCapitalize,

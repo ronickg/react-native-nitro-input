@@ -151,7 +151,6 @@ final class RollingNumberView: UIView {
       guard loading != oldValue else { return }
       engine.setReduceMotion(UIAccessibility.isReduceMotionEnabled)
       engine.setLoading(loading, CACurrentMediaTime())
-      updateAccessibility()
       updateDisplayLinkNeed()
       render()
     }
@@ -191,11 +190,18 @@ final class RollingNumberView: UIView {
     case digit, prefix, suffix
   }
 
+  private struct GlyphKey: Hashable {
+    let text: String
+    let role: GlyphRole
+  }
+
   /// Digit / prefix / suffix fonts with per-glyph caches.
   private final class FontSet {
     let digit: UIFont
     let prefix: UIFont
     let suffix: UIFont
+    /// The text color resolved for the view's traits: the glyph images bake it
+    /// in, and `.label` is dynamic (see `traitCollectionDidChange`).
     let color: UIColor
     let prefixAlign: AffixAlign
     let suffixAlign: AffixAlign
@@ -203,22 +209,26 @@ final class RollingNumberView: UIView {
     let lineHeight: CGFloat
     /// Width of the widest digit glyph.
     private(set) var digitWidth: CGFloat = 0
-    private var glyphCache: [String: NSAttributedString] = [:]
-    private var widthCache: [String: CGFloat] = [:]
-    private var imageCache: [String: UIImage] = [:]
-    private var inkDescentCache: [String: CGFloat] = [:]
+    // Keyed by a value type rather than a concatenated string: a lookup on the
+    // frame path must not allocate.
+    private var glyphCache: [GlyphKey: NSAttributedString] = [:]
+    private var widthCache: [GlyphKey: CGFloat] = [:]
+    private var imageCache: [GlyphKey: UIImage] = [:]
+    private var stripCache: [Bool: UIImage] = [:]
+    private var inkDescentCache: [GlyphKey: CGFloat] = [:]
     /// Pixel density the glyph images are rendered at.
     let renderScale: CGFloat
     /// Slots in a wheel strip: index -1 (blank) through 10 (the 0 after 9).
     static let stripSlots = 12
 
-    init(_ t: Typography) {
-      renderScale = max(1, UIScreen.main.scale)
+    init(_ t: Typography, traits: UITraitCollection) {
+      // The view's own display, not the main screen's (deprecated, and absent on visionOS).
+      renderScale = max(1, traits.displayScale)
       let scale = RollingNumberView.systemFontMultiplier(t)
       digit = RollingNumberView.makeFont(size: t.fontSize * scale, weight: t.fontWeight, family: t.fontFamily)
       prefix = RollingNumberView.makeFont(size: (t.prefixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily)
       suffix = RollingNumberView.makeFont(size: (t.suffixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily)
-      color = t.color
+      color = t.color.resolvedColor(with: traits)
       prefixAlign = t.prefixAlign
       suffixAlign = t.suffixAlign
       lineHeight = ceil(digit.lineHeight)
@@ -234,7 +244,7 @@ final class RollingNumberView: UIView {
     }
 
     func attributed(_ text: String, role: GlyphRole) -> NSAttributedString {
-      let key = cacheKey(text, role)
+      let key = GlyphKey(text: text, role: role)
       if let cached = glyphCache[key] { return cached }
       let string = NSAttributedString(string: text, attributes: [
         .font: font(for: role),
@@ -245,7 +255,7 @@ final class RollingNumberView: UIView {
     }
 
     func width(of text: String, role: GlyphRole) -> CGFloat {
-      let key = cacheKey(text, role)
+      let key = GlyphKey(text: text, role: role)
       if let cached = widthCache[key] { return cached }
       let width = attributed(text, role: role).size().width
       widthCache[key] = width
@@ -257,7 +267,7 @@ final class RollingNumberView: UIView {
     /// rasterization pass per glyph. Profiling 24 rolling views showed the
     /// per-glyph `NSAttributedString.draw` dominating the main thread.
     func image(_ text: String, role: GlyphRole) -> UIImage? {
-      let key = cacheKey(text, role)
+      let key = GlyphKey(text: text, role: role)
       if let cached = imageCache[key] { return cached }
       let string = attributed(text, role: role)
       let size = string.size()
@@ -278,8 +288,7 @@ final class RollingNumberView: UIView {
     /// digit centred in `digitWidth`. A wheel layer shows one slot-high window
     /// of it and just moves the strip, so a roll is a position change.
     func strip(blankZero: Bool) -> UIImage? {
-      let key = blankZero ? "strip|blank0" : "strip"
-      if let cached = imageCache[key] { return cached }
+      if let cached = stripCache[blankZero] { return cached }
       guard digitWidth > 0, lineHeight > 0 else { return nil }
       let format = UIGraphicsImageRendererFormat()
       format.scale = renderScale
@@ -294,13 +303,13 @@ final class RollingNumberView: UIView {
           attributed(text, role: .digit).draw(at: CGPoint(x: (digitWidth - w) / 2, y: CGFloat(slot) * lineHeight))
         }
       }
-      imageCache[key] = image
+      stripCache[blankZero] = image
       return image
     }
 
     /// How far `text`'s ink hangs below the baseline (0 for digits and capitals).
     func inkDescent(_ text: String, role: GlyphRole) -> CGFloat {
-      let key = "ink|" + cacheKey(text, role)
+      let key = GlyphKey(text: text, role: role)
       if let cached = inkDescentCache[key] { return cached }
       let line = CTLineCreateWithAttributedString(attributed(text, role: role))
       let bounds = CTLineGetImageBounds(line, nil)
@@ -328,21 +337,21 @@ final class RollingNumberView: UIView {
         return affixBaseline - f.ascender
       }
     }
-
-    private func cacheKey(_ text: String, _ role: GlyphRole) -> String {
-      switch role {
-      case .digit: return "d|" + text
-      case .prefix: return "p|" + text
-      case .suffix: return "s|" + text
-      }
-    }
   }
 
   // MARK: - State
 
   private var engine = Engine()
-  private var fonts: FontSet
+  private lazy var fonts = FontSet(Typography(), traits: traitCollection)
   private var fontScale: CGFloat = 1
+  /// Reused every frame so the render path stops allocating once warm.
+  private var wheelBuffer: [Engine.Wheel] = []
+  private var elementBuffer: [Element] = []
+  private var settledWheels: [Engine.Wheel] = []
+  private var settledBuffer: [Element] = []
+  /// The affixes split from the space they keep against the digits (RTL only),
+  /// recomputed when the format or the direction changes.
+  private var affixBlocks = AffixBlocks(prefix: "", suffix: "", rtl: false)
   private var displayLink: CADisplayLink?
   private var lastReportedSize: CGSize = .zero
 
@@ -363,12 +372,35 @@ final class RollingNumberView: UIView {
     var layer: CALayer
     /// Wheels only: which strip variant the layer currently shows.
     var blankZero: Bool
+    /// Glyphs only: the image's top within the line box, fixed for the font set.
+    var glyphTop: CGFloat
+  }
+
+  private struct AffixBlocks {
+    let prefix: String
+    let suffix: String
+    let rtl: Bool
+    let prefixInk: String
+    let prefixGap: String
+    let suffixInk: String
+    let suffixGap: String
+
+    init(prefix: String, suffix: String, rtl: Bool) {
+      self.prefix = prefix
+      self.suffix = suffix
+      self.rtl = rtl
+      let p = rtl ? RollingNumberView.splitAffix(prefix, spaceAtEnd: true) : (ink: prefix, gap: "")
+      let s = rtl ? RollingNumberView.splitAffix(suffix, spaceAtEnd: false) : (ink: suffix, gap: "")
+      prefixInk = p.ink
+      prefixGap = p.gap
+      suffixInk = s.ink
+      suffixGap = s.gap
+    }
   }
 
   // MARK: - Lifecycle
 
   override init(frame: CGRect) {
-    fonts = FontSet(Typography())
     super.init(frame: frame)
     isOpaque = false
     backgroundColor = .clear
@@ -404,6 +436,17 @@ final class RollingNumberView: UIView {
     render()
   }
 
+  override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+    super.traitCollectionDidChange(previousTraitCollection)
+    // The glyph images bake the resolved text color and the pixel density in:
+    // a light/dark switch (`.label` is dynamic) or a move to another display
+    // re-rasterizes them.
+    let resolved = typography.color.resolvedColor(with: traitCollection)
+    if resolved != fonts.color || max(1, traitCollection.displayScale) != fonts.renderScale {
+      rebuildFonts()
+    }
+  }
+
   @objc private func contentSizeCategoryDidChange() {
     guard typography.allowFontScaling else { return }
     rebuildFonts()
@@ -430,8 +473,6 @@ final class RollingNumberView: UIView {
     // `onIntrinsicSizeChange`, `onRevealEnd` and `onRevealMilestone` are the
     // hybrid's wiring, not the element's props: they stay across recycling
     // (the hybrid clears its own callback props).
-    accessibilityLabel = nil
-    accessibilityValue = nil
     clearSlots()
     layer.contents = nil
     usesBitmap = false
@@ -546,7 +587,8 @@ final class RollingNumberView: UIView {
   // MARK: - Typography
 
   private func rebuildFonts() {
-    fonts = FontSet(typography)
+    fonts = FontSet(typography, traits: traitCollection)
+    contentLayer.contentsScale = fonts.renderScale
     fontScale = 1
     // Every cached glyph image belongs to the old font set.
     clearSlots()
@@ -631,13 +673,19 @@ final class RollingNumberView: UIView {
     var factor: Double
   }
 
-  private func currentWheels() -> [Engine.Wheel] {
+  /// Pulls the engine's wheels into `wheelBuffer`.
+  private func syncWheels() {
+    wheelBuffer.removeAll(keepingCapacity: true)
     let count = Int(engine.wheelCount())
-    return (0..<count).map { engine.wheelAt(Int32($0)) }
+    for index in 0..<count {
+      wheelBuffer.append(engine.wheelAt(Int32(index)))
+    }
   }
 
-  private func buildElements(wheels: [Engine.Wheel], signFactor: Double) -> [Element] {
-    var elements: [Element] = []
+  /// Lays the run out into `elements` (emptied first, capacity kept).
+  private func buildElements(into elements: inout [Element], wheels: [Engine.Wheel], signFactor: Double) {
+    elements.removeAll(keepingCapacity: true)
+    let fonts = self.fonts
     let fd = format.fractionDigits
 
     func addGlyph(_ text: String, role: GlyphRole, factor: Double) {
@@ -653,15 +701,17 @@ final class RollingNumberView: UIView {
     // space an affix keeps against the digits stays against them: " USD" after
     // the number is "USD " before it.
     let rtl = isRTL
-    let prefix = rtl ? Self.splitAffix(format.prefix, spaceAtEnd: true) : (ink: format.prefix, gap: "")
-    let suffix = rtl ? Self.splitAffix(format.suffix, spaceAtEnd: false) : (ink: format.suffix, gap: "")
+    if affixBlocks.rtl != rtl || affixBlocks.prefix != format.prefix || affixBlocks.suffix != format.suffix {
+      affixBlocks = AffixBlocks(prefix: format.prefix, suffix: format.suffix, rtl: rtl)
+    }
+    let affixes = affixBlocks
     if rtl {
-      addGlyph(suffix.ink, role: .suffix, factor: 1)
-      addGlyph(suffix.gap, role: .suffix, factor: 1)
+      addGlyph(affixes.suffixInk, role: .suffix, factor: 1)
+      addGlyph(affixes.suffixGap, role: .suffix, factor: 1)
     } else {
       // Sign first, then the currency prefix: "-$1,234.50".
       addGlyph("-", role: .digit, factor: signFactor)
-      addGlyph(prefix.ink, role: .prefix, factor: 1)
+      addGlyph(affixes.prefixInk, role: .prefix, factor: 1)
     }
     var power = wheels.count - 1
     while power >= 0 {
@@ -678,13 +728,12 @@ final class RollingNumberView: UIView {
       power -= 1
     }
     if rtl {
-      addGlyph(prefix.gap, role: .prefix, factor: 1)
-      addGlyph(prefix.ink, role: .prefix, factor: 1)
+      addGlyph(affixes.prefixGap, role: .prefix, factor: 1)
+      addGlyph(affixes.prefixInk, role: .prefix, factor: 1)
       addGlyph("-", role: .digit, factor: signFactor)
     } else {
-      addGlyph(suffix.ink, role: .suffix, factor: 1)
+      addGlyph(affixes.suffixInk, role: .suffix, factor: 1)
     }
-    return elements
   }
 
   /// The layout direction this view is in. The hybrid sets
@@ -717,8 +766,12 @@ final class RollingNumberView: UIView {
 
   private func settledWidth() -> CGFloat {
     let count = Int(engine.settledPowerCount())
-    let settled = (0..<count).map { _ in Engine.Wheel(position: 0, width: 1, linear: false, blankZero: false) }
-    return buildElements(wheels: settled, signFactor: engine.settledNegative() ? 1 : 0).reduce(CGFloat(0)) { $0 + $1.width }
+    settledWheels.removeAll(keepingCapacity: true)
+    for _ in 0..<count {
+      settledWheels.append(Engine.Wheel(position: 0, width: 1, linear: false, blankZero: false))
+    }
+    buildElements(into: &settledBuffer, wheels: settledWheels, signFactor: engine.settledNegative() ? 1 : 0)
+    return settledBuffer.reduce(CGFloat(0)) { $0 + $1.width }
   }
 
   /// Formats the target the way it is displayed, for VoiceOver.
@@ -739,16 +792,22 @@ final class RollingNumberView: UIView {
     return (engine.settledNegative() ? "-" : "") + format.prefix + digits + format.suffix
   }
 
-  private func updateAccessibility() {
-    accessibilityLabel = accessibleText()
-    accessibilityValue = loading ? "Loading" : nil
+  // VoiceOver reads the settled figure when it asks for it, so a value update
+  // (which can come every frame) formats nothing.
+  override var accessibilityLabel: String? {
+    get { engine.hasShownValue() ? accessibleText() : nil }
+    set {}
+  }
+
+  override var accessibilityValue: String? {
+    get { loading ? "Loading" : nil }
+    set {}
   }
 
   /// A narrower settled size waiting for the current roll to finish before it is reported.
   private var pendingSizeReport = false
 
   private func reportIntrinsicSize() {
-    updateAccessibility()
     // The reported size is always the full-size one: with shrink-to-fit the view
     // keeps its height and the scaled number is centred inside it when drawing.
     let size = CGSize(width: ceil(settledWidth()), height: fonts.lineHeight)
@@ -803,8 +862,10 @@ final class RollingNumberView: UIView {
 
   private func renderLayers() {
     let fonts = self.fonts
-    let wheels = currentWheels()
-    let elements = buildElements(wheels: wheels, signFactor: engine.signFactor())
+    syncWheels()
+    buildElements(into: &elementBuffer, wheels: wheelBuffer, signFactor: engine.signFactor())
+    let wheels = wheelBuffer
+    let elements = elementBuffer
     let total = elements.reduce(CGFloat(0)) { $0 + $1.width }
     updateFontScale(contentWidth: total)
     let placement = contentPlacement(total: total, lineHeight: fonts.lineHeight)
@@ -841,12 +902,12 @@ final class RollingNumberView: UIView {
             height: strip.bounds.height
           )
         }
-      case .glyph(let text, let role):
+      case .glyph:
         slot.layer.opacity = Float(element.factor)
         if let image = slot.layer.sublayers?.first {
           image.frame = CGRect(
             x: element.width - element.fullWidth,
-            y: fonts.top(for: role, text: text, lineTop: 0),
+            y: slot.glyphTop,
             width: image.bounds.width,
             height: image.bounds.height
           )
@@ -859,16 +920,10 @@ final class RollingNumberView: UIView {
   /// Makes `slots` match `elements` one to one; layers are only rebuilt when
   /// the element kinds change (a wheel appearing or disappearing).
   private func syncSlots(with elements: [Element], wheels: [Engine.Wheel], fonts: FontSet) {
-    let kinds: [LayerKind] = elements.map { element in
-      switch element.kind {
-      case .wheel: return .wheel
-      case .glyph(let text, let role): return .glyph(text, role)
-      }
-    }
-    if kinds == slots.map(\.kind) { return }
+    if slotsMatch(elements) { return }
     clearSlots()
     slots.reserveCapacity(elements.count)
-    for (i, element) in elements.enumerated() {
+    for element in elements {
       let container = CALayer()
       container.masksToBounds = true
       let inner = CALayer()
@@ -882,7 +937,7 @@ final class RollingNumberView: UIView {
         }
         container.addSublayer(inner)
         contentLayer.addSublayer(container)
-        slots.append(ElementLayer(kind: kinds[i], layer: container, blankZero: blankZero))
+        slots.append(ElementLayer(kind: .wheel, layer: container, blankZero: blankZero, glyphTop: 0))
       case .glyph(let text, let role):
         if let image = fonts.image(text, role: role) {
           inner.contents = image.cgImage
@@ -890,9 +945,26 @@ final class RollingNumberView: UIView {
         }
         container.addSublayer(inner)
         contentLayer.addSublayer(container)
-        slots.append(ElementLayer(kind: kinds[i], layer: container, blankZero: false))
+        slots.append(ElementLayer(kind: .glyph(text, role), layer: container, blankZero: false, glyphTop: fonts.top(for: role, text: text, lineTop: 0)))
       }
     }
+  }
+
+  /// Whether the layers already match `elements` one to one. Compared in
+  /// place: this runs every frame, so it builds nothing to compare.
+  private func slotsMatch(_ elements: [Element]) -> Bool {
+    guard elements.count == slots.count else { return false }
+    for index in elements.indices {
+      switch (elements[index].kind, slots[index].kind) {
+      case (.wheel, .wheel):
+        continue
+      case (.glyph(let text, let role), .glyph(let slotText, let slotRole)) where text == slotText && role == slotRole:
+        continue
+      default:
+        return false
+      }
+    }
+    return true
   }
 
   private static func wrap10(_ position: Double) -> Double {
@@ -925,8 +997,10 @@ final class RollingNumberView: UIView {
   override func draw(_ rect: CGRect) {
     guard usesBitmap, engine.hasShownValue(), let ctx = UIGraphicsGetCurrentContext() else { return }
     let fonts = self.fonts
-    let wheels = currentWheels()
-    let elements = buildElements(wheels: wheels, signFactor: engine.signFactor())
+    syncWheels()
+    buildElements(into: &elementBuffer, wheels: wheelBuffer, signFactor: engine.signFactor())
+    let wheels = wheelBuffer
+    let elements = elementBuffer
     let total = elements.reduce(CGFloat(0)) { $0 + $1.width }
     updateFontScale(contentWidth: total)
     let placement = contentPlacement(total: total, lineHeight: fonts.lineHeight)

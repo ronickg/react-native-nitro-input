@@ -13,6 +13,11 @@ namespace margelo::nitro::nitrorollingnumber {
 namespace {
 
 constexpr int kMaxPowerCount = 18;
+/// Upper bound of |value| × 10^fractionDigits, shared by `setValue` and
+/// `animateTo` so a jump and a roll to the same figure show the same digits.
+/// 10^17 still fits the 18 wheels; beyond 2^53 a double has no exact integers
+/// anyway.
+constexpr double kMaxMagnitude = 1e17;
 constexpr double kLoadingFadeSeconds = 0.25;
 constexpr double kPi = 3.14159265358979323846;
 
@@ -111,7 +116,7 @@ RollingEngine::Target RollingEngine::makeTarget(double value) const {
   if (!std::isfinite(scaled)) {
     scaled = 0;
   }
-  uint64_t magnitude = static_cast<uint64_t>(std::min(scaled, 1e17));
+  uint64_t magnitude = static_cast<uint64_t>(std::min(scaled, kMaxMagnitude));
   uint64_t integerPart = magnitude / kPow10[fractionDigits_];
   int intDigits = std::max(minimumIntegerDigits_, digitCount(integerPart));
   return Target{magnitude, value < 0 && magnitude > 0, std::min(kMaxPowerCount, intDigits + fractionDigits_)};
@@ -167,7 +172,7 @@ void RollingEngine::setValue(double value) {
   if (!std::isfinite(scaled)) {
     scaled = 0;
   }
-  scaled = std::min(scaled, 1e15);
+  scaled = std::min(scaled, kMaxMagnitude);
   const double whole = std::floor(scaled);
   const uint64_t integerPart = static_cast<uint64_t>(whole) / kPow10[fd];
   const int needed = std::min(kMaxPowerCount, std::max(minimumIntegerDigits_, digitCount(integerPart)) + fd);
@@ -278,6 +283,7 @@ void RollingEngine::animateTo(double value, double now) {
       delay = std::min(delay, pending);
     }
     next.delays.push_back(delay);
+    next.maxDelay = std::max(next.maxDelay, delay);
   }
   next.signFrom = signFactor_;
   next.signTo = target.negative ? 1.0 : 0.0;
@@ -506,10 +512,6 @@ double RollingEngine::tally(double t, double rampIn, double rampOut) {
   return distance / area;
 }
 
-double RollingEngine::revealFraction(double t, double /* magnitude */) {
-  return tally(t, kTallyRampIn, kTallyFinalRampOut);
-}
-
 void RollingEngine::applyReveal(double elapsed) {
   const bool spin = revealStyle_ == 1 && !reveal_.holding;
   // The scale: the figure's size as the count grows, times the punches. A
@@ -638,12 +640,7 @@ void RollingEngine::applyRevealSpin(double elapsed) {
 
 void RollingEngine::apply(double elapsed) {
   const Transition& tr = transition_;
-  if (wheels_.size() != tr.wheels.size()) {
-    wheels_.resize(tr.wheels.size());
-    for (size_t i = 0; i < tr.wheels.size(); i++) {
-      wheels_[i] = tr.wheels[i].from;
-    }
-  }
+  wheels_.resize(tr.wheels.size());
   for (size_t i = 0; i < tr.wheels.size(); i++) {
     const WheelTransition& wt = tr.wheels[i];
     const double delay = i < tr.delays.size() ? tr.delays[i] : 0;
@@ -669,11 +666,7 @@ void RollingEngine::finish() {
 bool RollingEngine::tick(double now) {
   if (transition_.active) {
     const double elapsed = now - transition_.start;
-    double maxDelay = 0;
-    for (double d : transition_.delays) {
-      maxDelay = std::max(maxDelay, d);
-    }
-    if (elapsed >= transition_.duration + maxDelay) {
+    if (elapsed >= transition_.duration + transition_.maxDelay) {
       finish();
     } else {
       apply(elapsed);

@@ -424,17 +424,6 @@ open class HybridNitroInputViewSpec_cxx {
     }
   }
   
-  public final var affixAlign: Int32 {
-    @inline(__always)
-    get {
-      return self.__implementation.affixAlign.rawValue
-    }
-    @inline(__always)
-    set {
-      self.__implementation.affixAlign = margelo.nitro.nitroinput.NitroInputAffixAlign(rawValue: newValue)!
-    }
-  }
-  
   public final var signPlacement: Int32 {
     @inline(__always)
     get {

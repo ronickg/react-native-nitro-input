@@ -48,6 +48,8 @@ export interface RollingNumberProps extends Omit<ViewProps, 'children'> {
   /**
    * The number to display. Every change rolls each digit natively to its new
    * glyph, in the direction of the change. The first value is shown instantly.
+   * At most 18 digits are shown: `|value| × 10^fractionDigits` is clamped at
+   * 10^17, and a JS number carries exact integers only up to 2^53.
    */
   value: number
   /** Digits shown after the decimal separator. Default: `0`. */
@@ -198,6 +200,9 @@ export interface RollingNumberHandle {
   readonly native: RollingNumberRef | null
 }
 
+// shared-helpers:start
+// Kept byte-for-byte identical with packages/react-native-nitro-input/src/NitroInput.tsx
+// (a test compares the two blocks); change both together.
 const FONT_WEIGHTS: Record<string, number> = {
   normal: 400,
   regular: 400,
@@ -226,6 +231,7 @@ function toProcessedColor(color: ColorValue | undefined): number | undefined {
   const processed = processColor(color)
   return typeof processed === 'number' ? processed : undefined
 }
+// shared-helpers:end
 
 interface Size {
   width: number
@@ -296,6 +302,8 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
     latestOnRevealEnd.current = onRevealEnd
     const latestOnRevealMilestone = useRef(onRevealMilestone)
     latestOnRevealMilestone.current = onRevealMilestone
+    const latestValue = useRef(value)
+    latestValue.current = value
 
     const [size, setSize] = useState<Size | null>(null)
 
@@ -349,18 +357,20 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
       [milestonesKey]
     )
 
+    // One handle for the component's lifetime: `getValue` reads the latest
+    // prop through a ref, so a value change doesn't hand the parent a new object.
     useImperativeHandle(
       ref,
       () => ({
         jumpTo: (next) => nativeRef.current?.jumpTo(next),
         animateTo: (next) => nativeRef.current?.animateTo(next),
         revealTo: (next) => nativeRef.current?.revealTo(next),
-        getValue: () => nativeRef.current?.value ?? value,
+        getValue: () => nativeRef.current?.value ?? latestValue.current,
         get native() {
           return nativeRef.current
         },
       }),
-      [value]
+      []
     )
 
     // Every native prop is sent with an explicit value: an optional prop that
@@ -387,7 +397,10 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
     // The layout direction, resolved the way React Native resolves it for its
     // own views: the view's `style.direction` if it says, else the app's. Fabric
     // does not hand a Hybrid View its resolved direction, so native is told.
-    const layoutDirection = (StyleSheet.flatten(style) as { direction?: unknown } | undefined)?.direction
+    const layoutDirection = useMemo(
+      () => (StyleSheet.flatten(style) as { direction?: unknown } | undefined)?.direction,
+      [style]
+    )
     const rightToLeft = layoutDirection === 'rtl' || (layoutDirection !== 'ltr' && I18nManager.isRTL)
 
     return (

@@ -5,14 +5,7 @@
 
 #include "JOutlineGeometry.hpp"
 
-#include <vector>
-
 namespace margelo::nitro::nitroinput {
-
-namespace {
-/// verb, x, y, radius, startAngle, sweepAngle.
-constexpr size_t kPerSegment = 6;
-} // namespace
 
 jni::local_ref<JOutlineGeometry::jhybriddata> JOutlineGeometry::initHybrid(jni::alias_ref<jhybridobject>) {
   return makeCxxInstance();
@@ -41,24 +34,14 @@ int JOutlineGeometry::outline(double width, double height, double radius, double
   gap.width = gapWidth;
   gap.padding = gapPadding;
 
-  scratch_ = OutlineGeometry::outline(box, gap, progress);
-  const size_t count = scratch_.size();
-  const size_t needed = count * kPerSegment;
+  // Traced straight into the flat form, into a vector this object keeps: once
+  // it has grown to fit, a redraw allocates nothing on either side of the JNI.
+  const size_t count = OutlineGeometry::outline(box, gap, progress, flat_);
+  const size_t needed = count * OutlineGeometry::kFlatStride;
   if (static_cast<size_t>(out->size()) < needed) {
     return -1;
   }
-
-  std::vector<double> flat(needed);
-  size_t i = 0;
-  for (const auto& segment : scratch_) {
-    flat[i++] = static_cast<double>(static_cast<int32_t>(segment.verb));
-    flat[i++] = segment.point.x;
-    flat[i++] = segment.point.y;
-    flat[i++] = segment.radius;
-    flat[i++] = segment.startAngle;
-    flat[i++] = segment.sweepAngle;
-  }
-  if (needed > 0) out->setRegion(0, needed, flat.data());
+  if (needed > 0) out->setRegion(0, needed, flat_.data());
   return static_cast<int>(count);
 }
 

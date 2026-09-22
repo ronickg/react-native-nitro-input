@@ -41,13 +41,47 @@ OutlineGeometry::Gap OutlineGeometry::gapFor(const Rect& floatedLabel, double pa
   return gap;
 }
 
-std::vector<OutlineGeometry::Segment> OutlineGeometry::outline(const Box& box, const Gap& gap, double progress) {
-  std::vector<Segment> path;
+namespace {
 
+using Box = OutlineGeometry::Box;
+using Gap = OutlineGeometry::Gap;
+using Verb = OutlineGeometry::Verb;
+
+/// Appends `Segment`s to a vector: the form iOS and the docs consume.
+struct SegmentSink {
+  std::vector<OutlineGeometry::Segment>& path;
+  void move(double x, double y) { path.push_back({Verb::Move, {x, y}, 0, 0, 0}); }
+  void line(double x, double y) { path.push_back({Verb::Line, {x, y}, 0, 0, 0}); }
+  void arc(double cx, double cy, double r, double start, double sweep) {
+    path.push_back({Verb::Arc, {cx, cy}, r, start, sweep});
+  }
+};
+
+/// Appends `kFlatStride` doubles per segment: the form the Android bridge
+/// copies straight into a `double[]`.
+struct FlatSink {
+  std::vector<double>& out;
+  void emit(Verb verb, double x, double y, double r, double start, double sweep) {
+    out.push_back(static_cast<double>(static_cast<int32_t>(verb)));
+    out.push_back(x);
+    out.push_back(y);
+    out.push_back(r);
+    out.push_back(start);
+    out.push_back(sweep);
+  }
+  void move(double x, double y) { emit(Verb::Move, x, y, 0, 0, 0); }
+  void line(double x, double y) { emit(Verb::Line, x, y, 0, 0, 0); }
+  void arc(double cx, double cy, double r, double start, double sweep) { emit(Verb::Arc, cx, cy, r, start, sweep); }
+};
+
+/// The one tracing of the outline; the public overloads only differ in the
+/// sink the segments land in.
+template <typename Sink>
+void trace(const Box& box, const Gap& gap, double progress, Sink& sink) {
   const double width = std::max(0.0, finite(box.width, 0));
   const double height = std::max(0.0, finite(box.height, 0));
   const double stroke = std::max(0.0, finite(box.strokeWidth, 0));
-  if (width <= stroke || height <= stroke) return path;
+  if (width <= stroke || height <= stroke) return;
 
   // The path runs down the middle of the stroke, so it is inset by half of it.
   const double inset = stroke / 2;
@@ -82,34 +116,44 @@ std::vector<OutlineGeometry::Segment> OutlineGeometry::outline(const Box& box, c
     }
   }
 
-  const auto line = [&](double x, double y) { path.push_back(Segment{Verb::Line, Point{x, y}, 0, 0, 0}); };
-  const auto arc = [&](double cx, double cy, double r, double start, double sweep) {
-    path.push_back(Segment{Verb::Arc, Point{cx, cy}, r, start, sweep});
-  };
-
   // The gap is always expressed, even when it is zero wide, so the path has the
   // same verbs and the same point count at every progress. That is what lets
   // Core Animation and ValueAnimator interpolate between two of them: a path
   // that changed shape mid-animation could not be tweened, and would need a
   // display link redrawing it every frame instead.
   if (gapWidth <= 0) gapStart = straightStart;
-  path.push_back(Segment{Verb::Move, Point{gapStart + gapWidth, top}, 0, 0, 0});
-  line(straightEnd, top);
+  sink.move(gapStart + gapWidth, top);
+  sink.line(straightEnd, top);
 
   // Clockwise from the top-right corner. Angles are measured from the positive
   // x axis with y growing downwards, which is what both platforms use.
-  if (topRadius > 0) arc(straightEnd, top + topRadius, topRadius, -90, 90);
-  line(right, bottom - bottomRadius);
-  if (bottomRadius > 0) arc(bottomEnd, bottom - bottomRadius, bottomRadius, 0, 90);
-  line(bottomStart, bottom);
-  if (bottomRadius > 0) arc(bottomStart, bottom - bottomRadius, bottomRadius, 90, 90);
-  line(left, top + topRadius);
-  if (topRadius > 0) arc(straightStart, top + topRadius, topRadius, 180, 90);
+  if (topRadius > 0) sink.arc(straightEnd, top + topRadius, topRadius, -90, 90);
+  sink.line(right, bottom - bottomRadius);
+  if (bottomRadius > 0) sink.arc(bottomEnd, bottom - bottomRadius, bottomRadius, 0, 90);
+  sink.line(bottomStart, bottom);
+  if (bottomRadius > 0) sink.arc(bottomStart, bottom - bottomRadius, bottomRadius, 90, 90);
+  sink.line(left, top + topRadius);
+  if (topRadius > 0) sink.arc(straightStart, top + topRadius, topRadius, 180, 90);
 
   // Back to the near edge of the gap - the same point we started from when the
   // gap is closed, so the rectangle reads as unbroken.
-  line(gapStart, top);
+  sink.line(gapStart, top);
+}
+
+} // namespace
+
+std::vector<OutlineGeometry::Segment> OutlineGeometry::outline(const Box& box, const Gap& gap, double progress) {
+  std::vector<Segment> path;
+  SegmentSink sink{path};
+  trace(box, gap, progress, sink);
   return path;
+}
+
+size_t OutlineGeometry::outline(const Box& box, const Gap& gap, double progress, std::vector<double>& out) {
+  out.clear();
+  FlatSink sink{out};
+  trace(box, gap, progress, sink);
+  return out.size() / kFlatStride;
 }
 
 } // namespace margelo::nitro::nitroinput

@@ -283,11 +283,6 @@ bool MaskEngine::isActive() const {
   return compiled_ != nullptr && compiled_->initial != nullptr;
 }
 
-const std::string& MaskEngine::format() const {
-  static const std::string empty;
-  return compiled_ != nullptr ? compiled_->format : empty;
-}
-
 namespace {
 const MaskEngine::State* makeState(std::vector<std::unique_ptr<MaskEngine::State>>& arena, MaskEngine::State state) {
   arena.push_back(std::make_unique<MaskEngine::State>(state));
@@ -422,7 +417,6 @@ bool MaskEngine::setFormat(const std::string& format, const std::vector<Notation
   if (!ok || initial == nullptr) return false;
 
   next->initial = initial;
-  next->format = format;
   compiled_ = std::move(next);
   return true;
 }
@@ -590,45 +584,6 @@ MaskEngine::Result MaskEngine::applyEdit(const std::string& current, int start, 
   // auto-skip. Doing both at once would fight itself.
   const bool deleting = inserted.empty();
   return apply(AmountFormatter::encode(spliced), caret, !deleting, !deleting && autocomplete, deleting && autoSkip);
-}
-
-// MARK: - Introspection
-
-std::string MaskEngine::placeholder() const {
-  if (!isActive()) return "";
-  CodePoints out;
-  for (const State* s = compiled_->initial; s != nullptr;) {
-    if (s->slot == Slot::EndOfLine) break;
-    if (s->slot == Slot::Free || s->slot == Slot::Fixed) {
-      out.push_back(s->ownCharacter);
-    } else if (s->elliptical) {
-      break;
-    } else {
-      out.push_back(s->placeholderCharacter());
-    }
-    s = s->child;
-  }
-  return AmountFormatter::encode(out);
-}
-
-int MaskEngine::totalTextLength() const {
-  if (!isActive()) return 0;
-  int length = 0;
-  for (const State* s = compiled_->initial; s != nullptr && s->slot != Slot::EndOfLine; s = s->child) {
-    length += 1;
-    if (s->elliptical) break;
-  }
-  return length;
-}
-
-int MaskEngine::totalValueLength() const {
-  if (!isActive()) return 0;
-  int length = 0;
-  for (const State* s = compiled_->initial; s != nullptr && s->slot != Slot::EndOfLine; s = s->child) {
-    if (s->slot != Slot::Free) length += 1;
-    if (s->elliptical) break;
-  }
-  return length;
 }
 
 } // namespace margelo::nitro::nitroinput

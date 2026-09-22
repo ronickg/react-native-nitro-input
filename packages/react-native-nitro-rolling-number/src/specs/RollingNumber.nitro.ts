@@ -48,6 +48,10 @@ export interface RollingNumberProps extends HybridViewProps {
    *
    * Reading it on the hybrid ref returns the value the view is currently
    * showing or rolling towards (also after `jumpTo` / `animateTo`).
+   *
+   * At most 18 digits are shown: `|value| × 10^fractionDigits` is clamped at
+   * 10^17 (the same limit for a jump and a roll), and a JS number carries exact
+   * integers only up to 2^53.
    */
   value: number
   /** Digits shown after the decimal separator. Default: `0`. */

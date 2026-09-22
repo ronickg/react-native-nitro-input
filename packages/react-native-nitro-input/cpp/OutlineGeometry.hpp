@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -76,6 +77,17 @@ public:
   /// it fully. A zero-width gap, or one that cannot fit between the corners,
   /// also yields an unbroken rectangle.
   static std::vector<Segment> outline(const Box& box, const Gap& gap, double progress);
+
+  /// Doubles per segment in the flat form below: verb, x, y, radius,
+  /// startAngle, sweepAngle.
+  static constexpr size_t kFlatStride = 6;
+
+  /// The same outline, flattened into a caller-owned vector - `kFlatStride`
+  /// doubles per segment, the verb as its integer value - and the number of
+  /// segments written. `out` is cleared and refilled, never shrunk, so a
+  /// caller that keeps one vector allocates nothing once it has grown to fit:
+  /// that is the form the Android bridge redraws from every frame.
+  static size_t outline(const Box& box, const Gap& gap, double progress, std::vector<double>& out);
 
   /// Linear interpolation of a rectangle, for animating the label between its
   /// resting place inside the field and its floated place on the outline.

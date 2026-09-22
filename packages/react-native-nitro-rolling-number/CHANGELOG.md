@@ -1,13 +1,44 @@
 # Changelog
 
-## Unreleased
+## 0.1.0 (unreleased)
+
+- `jumpTo` and `animateTo` now agree on large figures: `jumpTo` clamped the
+  scaled magnitude at 10^15 while a roll clamped at 10^17, so with 9 fraction
+  digits any value above 10^6 jumped to "1,000,000" but rolled to the right
+  digits. Both paths share one limit (10^17, the 18 wheels); a double has no
+  exact integers past 2^53 either way.
+- The digits follow a light/dark switch again when no `color` is set. iOS
+  rasterizes the glyphs with the resolved label color and re-rasterizes on a
+  trait change (also when the view moves to a display with another scale, and
+  the pixel density now comes from the view's traits instead of the deprecated
+  `UIScreen.main`); Android rebuilds its paints on a configuration change.
+- Less work per frame: iOS reuses its wheel and element buffers, keys the
+  glyph caches by a value type and compares layers in place instead of
+  building arrays to compare; Android pools its layout elements, splits the
+  affixes once per format and slides one cached shimmer gradient instead of
+  allocating one per frame. Both platforms format the accessibility text only
+  when VoiceOver / TalkBack asks for it, instead of on every value update.
+- Android reads the animator duration scale once (refreshed by a settings
+  observer) instead of querying the settings provider on every `animateTo`
+  below API 33.
+- The `ref` handle is created once per mount; `getValue()` reads the latest
+  prop through a ref instead of the handle being rebuilt on every value change.
+- Packaging: `lib/` now ships an ES module build (`lib/module`), a CommonJS
+  build (`lib/commonjs`) and the declarations (`lib/typescript`), with
+  `import` / `require` conditions in `exports`; the previous output was ES
+  modules only, which a CommonJS consumer could not load. `@types/node` and
+  `@types/react-test-renderer` are declared instead of relying on hoisting.
+- Android build: the Android Gradle plugin is only pinned when the library
+  builds on its own (an app's root project already provides it), Java 17
+  source/target, an unused `kotlinVersion` property removed, and
+  `cmake_minimum_required` before `project()`.
+- Removed dead code: the engine's unused `revealFraction`, the allocating
+  `frame()` JNI method (the view uses `frameInto`).
 
 - The native prop behind `direction` is now `rollDirection`. The public prop is
   unchanged — the wrapper maps it — but `direction` is Yoga's layout property,
   and because a Hybrid View's props derive from `ViewProps` React Native parsed
   ours too, logging `Could not parse yoga::Direction: up` on every update.
-
-## 0.1.0 (2026-09-18)
 
 - Initial release: native rolling number view (iOS + Android) built with Nitro Modules.
 - `value`-driven digit roll with easing/spring, `stagger` and `direction`.

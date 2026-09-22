@@ -23,8 +23,8 @@
 #include <vector>
 #include "NitroInputVariant.hpp"
 #include "NitroInputLabelBehavior.hpp"
-#include "NitroInputAffixAlign.hpp"
 #include "NitroInputSignPlacement.hpp"
+#include "NitroInputAffixAlign.hpp"
 #include "NitroInputEasing.hpp"
 #include "NitroInputEffect.hpp"
 #include "NitroInputTextAlign.hpp"
@@ -86,7 +86,6 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<std::string> suffix;
     nitro::ReactProp<double> prefixFontSize;
     nitro::ReactProp<double> suffixFontSize;
-    nitro::ReactProp<NitroInputAffixAlign> affixAlign;
     nitro::ReactProp<NitroInputSignPlacement> signPlacement;
     nitro::ReactProp<NitroInputAffixAlign> prefixAlign;
     nitro::ReactProp<NitroInputAffixAlign> suffixAlign;
@@ -183,7 +182,6 @@ namespace margelo::nitro::nitroinput::views {
              suffix.hasSameValue(other.suffix) &&
              prefixFontSize.hasSameValue(other.prefixFontSize) &&
              suffixFontSize.hasSameValue(other.suffixFontSize) &&
-             affixAlign.hasSameValue(other.affixAlign) &&
              signPlacement.hasSameValue(other.signPlacement) &&
              prefixAlign.hasSameValue(other.prefixAlign) &&
              suffixAlign.hasSameValue(other.suffixAlign) &&
@@ -281,7 +279,6 @@ namespace margelo::nitro::nitroinput::views {
              suffix.isProvided() ||
              prefixFontSize.isProvided() ||
              suffixFontSize.isProvided() ||
-             affixAlign.isProvided() ||
              signPlacement.isProvided() ||
              prefixAlign.isProvided() ||
              suffixAlign.isProvided() ||

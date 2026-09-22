@@ -93,7 +93,6 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     set(v) { field = v; markConfigDirty() }
   override var suffixFontSize: Double = Double.NaN
     set(v) { field = v; markConfigDirty() }
-  override var affixAlign: NitroInputAffixAlign = NitroInputAffixAlign.BASELINE
   override var signPlacement: NitroInputSignPlacement = NitroInputSignPlacement.BEFOREAFFIX
     set(v) { field = v; markConfigDirty() }
   override var prefixAlign: NitroInputAffixAlign = NitroInputAffixAlign.BASELINE
@@ -218,11 +217,19 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     set(v) { field = v; markConfigDirty() }
   override var onChangeTextWorklet: Double = 0.0
     set(v) { field = v; markConfigDirty() }
+  // Every worklet id reaches the view through the config flush: JS hands out a
+  // new id whenever a handler's identity changes and unregisters the old one,
+  // so an id that never landed would leave the view calling a dead worklet.
   override var onChangeValueWorklet: Double = 0.0
+    set(v) { field = v; markConfigDirty() }
   override var onFocusChangeWorklet: Double = 0.0
+    set(v) { field = v; markConfigDirty() }
   override var onSelectionChangeWorklet: Double = 0.0
+    set(v) { field = v; markConfigDirty() }
   override var onSubmitEditingWorklet: Double = 0.0
+    set(v) { field = v; markConfigDirty() }
   override var onEndEditingWorklet: Double = 0.0
+    set(v) { field = v; markConfigDirty() }
   override var onKeyPressWorklet: Double = 0.0
     set(v) { field = v; markConfigDirty() }
   override var onChangeText: ((text: String, eventCount: Double) -> Unit)? = null
@@ -317,7 +324,6 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     suffix = ""
     prefixFontSize = Double.NaN
     suffixFontSize = Double.NaN
-    affixAlign = NitroInputAffixAlign.BASELINE
     signPlacement = NitroInputSignPlacement.BEFOREAFFIX
     prefixAlign = NitroInputAffixAlign.BASELINE
     suffixAlign = NitroInputAffixAlign.BASELINE
@@ -594,7 +600,11 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
       scrollEnabled = scrollEnabled,
       testID = fieldTestID.ifEmpty { null },
       accessibilityLabel = fieldAccessibilityLabel.ifEmpty { null },
-      blurOnSubmit = submitBehavior == NitroInputSubmitBehavior.BLURANDSUBMIT,
+      submitBehavior = when (submitBehavior) {
+        NitroInputSubmitBehavior.SUBMIT -> NitroInputView.SubmitBehavior.SUBMIT
+        NitroInputSubmitBehavior.BLURANDSUBMIT -> NitroInputView.SubmitBehavior.BLUR_AND_SUBMIT
+        NitroInputSubmitBehavior.NEWLINE -> NitroInputView.SubmitBehavior.NEWLINE
+      },
       secureTextEntry = secureTextEntry,
       autofillHint = autofillHintFor(textContentType),
       showSoftInputOnFocus = showSoftInputOnFocus,

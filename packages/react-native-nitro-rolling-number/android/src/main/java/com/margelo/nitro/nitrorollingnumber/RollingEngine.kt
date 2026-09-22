@@ -37,9 +37,11 @@ class RollingEngine {
   external fun setRevealMilestoneHold(holdSeconds: Double)
   external fun revealMilestonesReached(): Int
   external fun revealMilestoneValue(index: Int): Double
-  /** `[signFactor, loadingProgress, revealScale, wheelCount, (position, width, linear, blankZero)…]` */
-  external fun frame(): DoubleArray
-  /** Allocation-free [frame]: fills [out] and returns the number of doubles written, or -1 if it is too small. */
+  /**
+   * Fills [out] with the render state without allocating:
+   * `[signFactor, loadingProgress, revealScale, wheelCount, (position, width, linear, blankZero)…]`.
+   * Returns the number of doubles written, or -1 if [out] is too small.
+   */
   external fun frameInto(out: DoubleArray): Int
   external fun shimmerPhase(now: Double, periodSeconds: Double): Double
   external fun targetValue(): Double

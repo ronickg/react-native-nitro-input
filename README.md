@@ -114,8 +114,9 @@ import { NitroInput } from 'react-native-nitro-input'
 ```sh
 bun install                 # hoisted linker, see bunfig.toml
 bun specs                   # re-run nitrogen after editing src/specs/*.nitro.ts
-bun test                    # jest tests for the JS wrapper
-bun --cwd packages/react-native-nitro-rolling-number run test:cpp   # engine tests (same for packages/react-native-nitro-input)
+bun run test                # jest tests for the JS wrappers (plain `bun test` would run Bun's own runner against them)
+bun run test:cpp            # C++ engine tests for both packages (host clang++)
+bun run build               # lib/ for both packages: ES modules, CommonJS and declarations
 bun example ios             # or: bun example android
 cd docs && npm install && npm start                                  # docs site
 ```
@@ -123,6 +124,10 @@ cd docs && npm install && npm start                                  # docs site
 Releasing: `bun --cwd packages/<package> release <patch|minor|major>` runs the typecheck, the Jest and engine tests, bumps the version, commits and tags `v<version>`, publishes to npm and creates the GitHub release (needs `npm login` and a `GITHUB_TOKEN`).
 
 The example's Android Gradle files point at the workspace root `node_modules`, and Metro watches the whole repo.
+
+## Known issue: view props on Android
+
+Nitro Modules 0.37 never fills a Hybrid View's raw props on Android from React Native 0.86 on, so `backgroundColor`, `border*`, `opacity`, `transform`, `testID` and the accessibility props you pass to `<RollingNumber>` or `<NitroInput>` are silently ignored there. iOS is unaffected. The fix is filed upstream as [margelo/nitro#1655](https://github.com/margelo/nitro/pull/1655) (issue [#1656](https://github.com/margelo/nitro/issues/1656)); until a Nitro release carries it, apply the patch this repo uses: copy [`patches/react-native-nitro-modules@0.37.1.patch`](patches/react-native-nitro-modules@0.37.1.patch) into your app and register it under `patchedDependencies` in `package.json` (Bun) or with [patch-package](https://github.com/ds300/patch-package) (npm / Yarn).
 
 ## Credits
 

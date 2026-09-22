@@ -33,7 +33,7 @@ formatting on top. The differences that remain are listed at the end.
 | `autoFocus` inside `presentation: 'formSheet'` | ✅ (sheet lifts, caret visible) | ✅ |
 | `TextInput.State.currentlyFocusedInput()` | ✅ | ✅ |
 | `Keyboard.dismiss()` | ✅ | ✅ |
-| `TextInput.State.blurTextInput()` | ✅ | ✅ |
+| `TextInput.State.blurTextInput()` / `focusTextInput()` | ✅ iOS (via the Fabric view command) · ✗ Android — see difference 6 | ✅ |
 | ScrollView `keyboardShouldPersistTaps` auto-blur | ✅ | ✅ |
 | testID / a11y label / placeholder on the real input element | ✅ | ✅ |
 | `secureTextEntry` | ✅ (bullets drawn; real text kept for autofill) | ✅ |
@@ -221,7 +221,7 @@ separately in an earlier session and is not re-measured here.
 | `currentlyFocusedInput()` returned `null`; `Keyboard.dismiss()` was a no-op, so was `keyboardShouldPersistTaps` | `NitroInput` registers in RN's text-input registry and routes the registry's `focusTextInput`/`blurTextInput` to its own native focus/blur (`src/NitroInput.tsx`). RN reaches an input through a codegen **view command**, which a Nitro view does not implement — on iOS a category now handles it (`ios/NitroInputCommands.mm`), and the JS routing covers both platforms. |
 | testID never reached the field; an empty field had no accessibility element at all | `testID` and `accessibilityLabel` are forwarded as explicit props (`fieldTestID`, `fieldAccessibilityLabel`) onto the hidden field, and the `placeholder` is exposed as its accessibility value. The label is no longer left on the host view as well, so there is one element, not two. |
 | keyboard-controller reported `target 0` | The react tag is copied onto the view KC reads (`firstResponder.superview.tag`). |
-| Return always dismissed the keyboard | `submitBehavior` (`'submit'` / `'blurAndSubmit'`), plus the `blurOnSubmit` alias. |
+| Return always dismissed the keyboard | `submitBehavior` (`'submit'` / `'blurAndSubmit'` / `'newline'`), with the `blurOnSubmit` alias resolved the way `TextInput` resolves it: `'blurAndSubmit'` on a single-line field, `'newline'` on a multiline one. |
 | No `onEndEditing`, `onSelectionChange`, `onKeyPress` | Added on both platforms. |
 | Android fired a spurious `onKeyPress`/`onSelectionChange` on mount | `onKeyPress` only for real key events; the initial `0-0` caret is not a move. |
 
@@ -354,18 +354,22 @@ Compose field.
 
 ## Differences that remain
 
-1. **Layout.** `TextInput` stretches to its parent; `NitroInput` sizes itself to
-   its content unless `style` sets `width` or `flex`. In a plain column a
-   `NitroInput` measured 39 pt wide where a `TextInput` filled 340 pt. Give it a
-   width to use it as a drop-in form field. (`alignSelf: 'stretch'` is not
-   enough — auto-sizing only looks at `width`/`flex`.)
+1. **Layout, for `MorphInput` only.** `NitroInput` takes its width from its
+   parent the way a `TextInput` does: `autoWidth` defaults to `false`, so it
+   has no width of its own and flexbox stretches it. `MorphInput` sets
+   `autoWidth="auto"` and sizes itself to its content unless `style` sets
+   `width` or `flex`; in a plain column it measured 39 pt wide where a
+   `TextInput` filled 340 pt. Give it a width to make it fill its parent.
+   (`alignSelf: 'stretch'` is not enough — the inference only looks at
+   `width`/`flex`.)
 2. **The morph is single line.** `multiline`, `numberOfLines`, `rows`,
    `scrollEnabled` and `textAlignVertical` are all supported, but a wrapping
    field is drawn by the platform rather than by the glyph engine, which lays
-   one run out on one baseline. Setting `multiline` therefore forces `plain`,
-   and `mode`, `mask` and the affixes - all single-line ideas - warn and are
-   ignored. `inlineImage*`, `dataDetectorTypes` and `clearButtonMode` do not
-   apply at all.
+   one run out on one baseline. Setting `multiline` therefore forces plain
+   drawing, and `morph`, a non-text `mode` (and with it `mask`) and the
+   `prefix` / `suffix` affixes - all single-line ideas - warn once in
+   development and are ignored. `inlineImage*`, `dataDetectorTypes` and
+   `clearButtonMode` do not apply at all.
 3. **A plain field always puts a negative sign after a `prefix`.**
    The morph takes `signPlacement`: `'beforeAffix'` (the default) draws
    `-$1,234.56`, `'afterAffix'` draws `$-1,234.56`. A plain field cannot
@@ -387,9 +391,10 @@ Compose field.
    `TextInput.js` copies those two function references by value at module-eval
    time (`TextInput.State = { focusTextInput: TextInputState.focusTextInput, … }`),
    long before `patchRegistryOnce()` runs, so the patch is invisible to them.
-   `ref.focus()` and `Keyboard.dismiss()` are unaffected - both read
-   `TextInputState.*` live. On iOS the view-command category covers the gap; on
-   Android those two entry points do not reach a `MorphInput`.
+   `ref.focus()`, `Keyboard.dismiss()` and a ScrollView's auto-blur are
+   unaffected - they read `TextInputState.*` live. On iOS the view-command
+   category (`ios/NitroInputCommands.mm`) covers the gap, so both entry points
+   work there; on Android they do not reach a `NitroInput`.
 7. **keyboard-controller `target`** is the react tag of the host view. That is
    the right view to measure and scroll, but it is not the same tag a
    `TextInput` reports for itself.

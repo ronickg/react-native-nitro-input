@@ -104,8 +104,6 @@ namespace margelo::nitro::nitroinput {
     void setPrefixFontSize(double prefixFontSize) override;
     double getSuffixFontSize() override;
     void setSuffixFontSize(double suffixFontSize) override;
-    NitroInputAffixAlign getAffixAlign() override;
-    void setAffixAlign(NitroInputAffixAlign affixAlign) override;
     NitroInputSignPlacement getSignPlacement() override;
     void setSignPlacement(NitroInputSignPlacement signPlacement) override;
     NitroInputAffixAlign getPrefixAlign() override;

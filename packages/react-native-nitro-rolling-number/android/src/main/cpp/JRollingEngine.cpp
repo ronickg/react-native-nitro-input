@@ -34,7 +34,6 @@ void JRollingEngine::registerNatives() {
       makeNativeMethod("setRevealMilestoneHold", JRollingEngine::setRevealMilestoneHold),
       makeNativeMethod("revealMilestonesReached", JRollingEngine::revealMilestonesReached),
       makeNativeMethod("revealMilestoneValue", JRollingEngine::revealMilestoneValue),
-      makeNativeMethod("frame", JRollingEngine::frame),
       makeNativeMethod("frameInto", JRollingEngine::frameInto),
       makeNativeMethod("shimmerPhase", JRollingEngine::shimmerPhase),
       makeNativeMethod("targetValue", JRollingEngine::targetValue),
@@ -123,26 +122,6 @@ int JRollingEngine::revealMilestonesReached() {
 
 double JRollingEngine::revealMilestoneValue(int index) {
   return engine_.revealMilestoneValue(index);
-}
-
-jni::local_ref<jni::JArrayDouble> JRollingEngine::frame() {
-  const auto& wheels = engine_.wheels();
-  const size_t count = wheels.size();
-  std::vector<double> data;
-  data.reserve(4 + count * 4);
-  data.push_back(engine_.signFactor());
-  data.push_back(engine_.loadingProgress());
-  data.push_back(engine_.revealScale());
-  data.push_back(static_cast<double>(count));
-  for (const auto& w : wheels) {
-    data.push_back(w.position);
-    data.push_back(w.width);
-    data.push_back(w.linear ? 1.0 : 0.0);
-    data.push_back(w.blankZero ? 1.0 : 0.0);
-  }
-  auto array = jni::JArrayDouble::newArray(data.size());
-  array->setRegion(0, data.size(), data.data());
-  return array;
 }
 
 int JRollingEngine::frameInto(jni::alias_ref<jni::JArrayDouble> out) {
