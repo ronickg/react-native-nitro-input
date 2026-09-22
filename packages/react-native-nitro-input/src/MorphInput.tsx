@@ -27,3 +27,4 @@ export const MorphInput = forwardRef<MorphInputHandle, MorphInputProps>(
     return <NitroInput {...props} autoWidth={autoWidth} ref={ref} morph />
   }
 )
+MorphInput.displayName = 'MorphInput'

@@ -30,6 +30,20 @@ suites. The device defaults are a stock Xcode simulator (`iPhone 17`, iOS
 variables in the config override them, and CI (`.github/workflows/harness.yml`)
 sets them to what its images have.
 
+## What React Native's own TextInput tests check
+
+React Native 0.87 tests its `TextInput` in a Fantom integration suite
+(`packages/react-native/Libraries/Components/TextInput/__tests__/TextInput-itest.js`).
+Every case there has a counterpart for `NitroInput`: the ones a device can
+observe are in `nitro-input.harness.tsx` (focus from a ref callback or an
+effect right after mount, focus taken from the field that had it, `blur()` on
+an unfocused field doing nothing, `isFocused()` after unmount, `clear()`,
+`setSelection()`, the change / focus / blur events), and the prop-level ones
+(`id` / `nativeID`, `testID`, `aria-label`, the `aria-*` state, `aria-hidden`,
+`accessibilityRole`, `style`, `selection`, `displayName`) are in the package's
+`src/__tests__/TextInputParity.test.tsx`, which renders `TextInput` itself
+next to ours and compares what reaches the host.
+
 ## Writing tests
 
 - **Set the tree up inline**, with the public components and props, the way

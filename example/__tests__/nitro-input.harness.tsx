@@ -5,7 +5,7 @@
  * program can do to the field is covered here, what a finger does stays in
  * the manual QA screens.
  */
-import React, { createRef } from 'react'
+import React, { createRef, useEffect, useRef } from 'react'
 import { View, type LayoutRectangle } from 'react-native'
 import { describe, expect, it, render, waitFor } from 'react-native-harness'
 import {
@@ -82,6 +82,86 @@ describe('NitroInput', () => {
     const blurEvent = await withTimeout(blurred.promise, 5000, 'onBlur')
     expect(blurEvent.text).toBe('hi')
     await waitFor(() => expect(ref.current!.isFocused()).toBe(false))
+  })
+
+  // React Native's own suite: a command sent from a ref callback, a layout
+  // effect or an effect must reach the view even though it was created a
+  // moment ago; the handle queues it until the native side is there.
+  it('takes focus() the moment it mounts, from a ref callback or an effect', async () => {
+    const focusEvents: string[] = []
+    function FocusOnMount({ how }: { how: 'ref' | 'effect' }) {
+      const ref = useRef<NitroInputHandle>(null)
+      useEffect(() => {
+        if (how === 'effect') ref.current?.focus()
+      }, [how])
+      return (
+        <NitroInput
+          ref={(handle) => {
+            ref.current = handle
+            if (how === 'ref') handle?.focus()
+          }}
+          defaultValue={how}
+          onFocus={(e) => focusEvents.push(e.text)}
+        />
+      )
+    }
+    const { rerender } = await render(<FocusOnMount how="effect" />)
+    await waitFor(() => expect(focusEvents).toEqual(['effect']), { timeout: 5000 })
+    await rerender(<View />)
+    await rerender(<FocusOnMount how="ref" />)
+    await waitFor(() => expect(focusEvents).toEqual(['effect', 'ref']), { timeout: 5000 })
+  })
+
+  it('takes focus away from the field that had it, like the system field it wraps', async () => {
+    const first = createRef<NitroInputHandle>()
+    const second = createRef<NitroInputHandle>()
+    const log: string[] = []
+    await render(
+      <View>
+        <NitroInput ref={first} defaultValue="first" onFocus={() => log.push('focus first')} onBlur={() => log.push('blur first')} />
+        <NitroInput ref={second} defaultValue="second" onFocus={() => log.push('focus second')} onBlur={() => log.push('blur second')} />
+      </View>,
+    )
+    await waitFor(() => expect(second.current?.native).not.toBeNull())
+    first.current!.focus()
+    await waitFor(() => expect(first.current!.isFocused()).toBe(true))
+    second.current!.focus()
+    await waitFor(() => expect(second.current!.isFocused()).toBe(true))
+    await waitFor(() => expect(first.current!.isFocused()).toBe(false))
+    await waitFor(() => expect(log).toEqual(['focus first', 'blur first', 'focus second']))
+    second.current!.blur()
+    await waitFor(() => expect(log).toEqual(['focus first', 'blur first', 'focus second', 'blur second']))
+  })
+
+  it('ignores blur() on a field that is not focused', async () => {
+    const ref = createRef<NitroInputHandle>()
+    let blurs = 0
+    await render(<NitroInput ref={ref} onBlur={() => (blurs += 1)} />)
+    await waitFor(() => expect(ref.current?.native).not.toBeNull())
+    ref.current!.blur()
+    await sleep(400)
+    expect(blurs).toBe(0)
+    expect(ref.current!.isFocused()).toBe(false)
+  })
+
+  it('reports no focus once unmounted, focused before or not', async () => {
+    const focused = createRef<NitroInputHandle>()
+    const untouched = createRef<NitroInputHandle>()
+    const { rerender } = await render(
+      <View>
+        <NitroInput ref={focused} defaultValue="a" />
+        <NitroInput ref={untouched} defaultValue="b" />
+      </View>,
+    )
+    await waitFor(() => expect(untouched.current?.native).not.toBeNull())
+    focused.current!.focus()
+    await waitFor(() => expect(focused.current!.isFocused()).toBe(true))
+    // The handles outlive the unmount for whoever still holds them.
+    const focusedHandle = focused.current!
+    const untouchedHandle = untouched.current!
+    await rerender(<View />)
+    await waitFor(() => expect(focusedHandle.isFocused()).toBe(false))
+    expect(untouchedHandle.isFocused()).toBe(false)
   })
 
   it('declines focus while not editable', async () => {

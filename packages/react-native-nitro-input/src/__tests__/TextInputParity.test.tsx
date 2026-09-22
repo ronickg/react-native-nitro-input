@@ -21,7 +21,9 @@
 import { readFileSync } from 'fs'
 import { dirname, join } from 'path'
 import React, { createRef, Profiler } from 'react'
+import { StyleSheet } from 'react-native'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
+import { MorphInput } from '../MorphInput'
 import { NitroInput, type NitroInputHandle } from '../NitroInput'
 
 jest.unmock('react-native/Libraries/Components/TextInput/TextInput')
@@ -343,6 +345,41 @@ describe('aliases resolve the same way', () => {
     const conflicting = both({ id: 'amount', nativeID: 'legacy' })
     expect(conflicting.rn.host().nativeID).toBe('amount')
     expect(conflicting.ours.host().nativeID).toBe('amount')
+  })
+
+  it('aria-* state props fold into accessibilityState on both, the aria spelling winning', () => {
+    const { rn, ours } = both({
+      'aria-busy': true,
+      'aria-disabled': true,
+      accessibilityState: { disabled: false, selected: true },
+    })
+    expect(ours.host().accessibilityState).toEqual(rn.host().accessibilityState)
+    expect(ours.host().accessibilityState).toEqual({ busy: true, disabled: true, selected: true })
+    // Nothing of the kind given: nothing sent, on both.
+    const none = both()
+    expect(none.ours.host().accessibilityState).toEqual(none.rn.host().accessibilityState)
+    expect(none.ours.host().accessibilityState).toBeUndefined()
+  })
+
+  it('aria-hidden hides the element on both', () => {
+    const { rn, ours } = both({ 'aria-hidden': true })
+    expect(ours.host().accessibilityElementsHidden).toEqual(rn.host().accessibilityElementsHidden)
+    expect(ours.host().accessibilityElementsHidden).toBe(true)
+  })
+
+  it('accessibilityRole and a style reach the host on both', () => {
+    const { rn, ours } = both({ accessibilityRole: 'search', style: { backgroundColor: 'rebeccapurple' } })
+    expect(ours.host().accessibilityRole).toEqual(rn.host().accessibilityRole)
+    expect(ours.host().accessibilityRole).toBe('search')
+    const flatten = (style: unknown) => StyleSheet.flatten(style as never) as { backgroundColor?: unknown }
+    expect(flatten(ours.host().style).backgroundColor).toEqual(flatten(rn.host().style).backgroundColor)
+    expect(flatten(ours.host().style).backgroundColor).toBe('rebeccapurple')
+  })
+
+  it('names itself for DevTools, as TextInput does', () => {
+    expect(TextInput.displayName).toBe('TextInput')
+    expect(NitroInput.displayName).toBe('NitroInput')
+    expect(MorphInput.displayName).toBe('MorphInput')
   })
 
   it('testID reaches the host on both', () => {
