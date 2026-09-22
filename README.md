@@ -83,6 +83,11 @@ The count follows how slot machines present a win: a constant-rate tally per tie
 
 Release builds on real phones, 24 copies fed a new value on every frame, frames per second the UI thread delivered and how many it missed in five seconds (the JS thread is the other half of the story: see the full tables):
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/static/img/bench/glance-dark.svg">
+  <img alt="Frames per second the main thread delivered with 24 rolling numbers updating every frame, on an iPhone 13 Pro Max, an iPhone 11 Pro and a Galaxy A22: both Nitro paths hold the panel's rate on every phone" src="docs/static/img/bench/glance-light.svg" width="754">
+</picture>
+
 | | iPhone 13 Pro Max (120 Hz) | iPhone 11 Pro (60 Hz) | Galaxy A22 (90 Hz, low-end) |
 | --- | --- | --- | --- |
 | **Nitro Rolling Number** (`value` prop) | 120 fps (0 dropped) | 59.9 fps (0 dropped) | 90.4 fps (0 dropped) |
@@ -95,7 +100,7 @@ Release builds on real phones, 24 copies fed a new value on every frame, frames 
 | react-native-animated-numbers | 116 fps (21 dropped) | 56.7 fps (16 dropped) | 51.2 fps (199 dropped) |
 | react-native-ticker | 11.8 fps (544 dropped) | 7.6 fps (258 dropped) | 12.6 fps (379 dropped) |
 
-Method, the JS-thread and CPU columns, the ten-a-second and one-copy cases, a scrolling list, mount cost and the Instruments cross-check: [BENCHMARKS.md](BENCHMARKS.md).
+Method, the JS-thread and CPU columns, the ten-a-second and one-copy cases, a scrolling list, mount cost and the Instruments cross-check: [BENCHMARKS.md](BENCHMARKS.md); the same tables as charts you can hover and switch between metrics: [the benchmark pages of the docs](https://ronickg.github.io/react-native-nitro-rolling-number/rolling-number/benchmarks).
 
 ## Also in this repo: a morphing input
 

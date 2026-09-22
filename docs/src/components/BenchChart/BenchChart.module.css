@@ -1,0 +1,309 @@
+/*
+ * One accent for this library's bars, one gray for everyone else's; the
+ * accent is the site's primary, the gray is stepped to hold 3:1 on both
+ * surfaces. Text is always ink, never a bar colour.
+ */
+.figure {
+  --bench-ours: #2563eb;
+  --bench-other: #8a8f99;
+  --bench-track: transparent;
+  position: relative;
+  margin: 0 0 1.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+:global([data-theme='dark']) .figure {
+  --bench-ours: #60a5fa;
+  --bench-other: #6b7280;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 6px;
+}
+
+.segments {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--nitro-border);
+  border-radius: 8px;
+  background: var(--nitro-bg-sunken);
+}
+
+.segment {
+  appearance: none;
+  border: 0;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 550;
+  line-height: 1.5;
+  color: var(--nitro-ink-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 140ms, color 140ms;
+}
+
+.segment:hover {
+  color: var(--ifm-font-color-base);
+}
+
+.segmentOn {
+  color: var(--ifm-font-color-base);
+  background: var(--nitro-bg-raised);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--nitro-ink-muted);
+}
+
+.legend span + span,
+.legend .swatchOther {
+  margin-left: 8px;
+}
+
+.swatchOurs,
+.swatchOther {
+  display: inline-block;
+  width: 12px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.swatchOurs {
+  background: var(--bench-ours);
+}
+
+.swatchOther {
+  background: var(--bench-other);
+}
+
+.axisTitle {
+  font-size: 0.83rem;
+  color: var(--nitro-ink-muted);
+  margin-bottom: 10px;
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.grid {
+  display: grid;
+  column-gap: 14px;
+  row-gap: 2px;
+  min-width: 620px;
+  align-items: center;
+}
+
+.corner {
+  height: 1px;
+}
+
+.head {
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--nitro-ink-muted);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--nitro-border);
+  margin-bottom: 4px;
+  align-self: end;
+  line-height: 1.3;
+}
+
+.hz {
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.label {
+  font-size: 0.84rem;
+  line-height: 1.25;
+  color: var(--nitro-ink-muted);
+  padding: 2px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.label code {
+  font-size: 85%;
+  padding: 0 0.25em;
+}
+
+.labelOurs {
+  color: var(--ifm-font-color-base);
+  font-weight: 600;
+}
+
+.cell {
+  display: grid;
+  grid-template-columns: 1fr 44px;
+  align-items: center;
+  column-gap: 6px;
+  height: 22px;
+  border-radius: 4px;
+  outline: none;
+}
+
+.cell:focus-visible {
+  box-shadow: 0 0 0 2px var(--ifm-color-primary);
+}
+
+.track {
+  position: relative;
+  height: 14px;
+  background: var(--bench-track);
+}
+
+/* The phone's refresh rate, the column's end: a hairline the best bars touch. */
+.rate {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  right: 0;
+  width: 1px;
+  background: var(--nitro-border-strong);
+}
+
+.zero {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: var(--nitro-border-strong);
+}
+
+.bar {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+  transition:
+    width 800ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    left 800ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    background-color 200ms;
+}
+
+.barNeg {
+  border-radius: 4px 0 0 4px;
+}
+
+.barOurs {
+  background: var(--bench-ours);
+}
+
+.barOther {
+  background: var(--bench-other);
+}
+
+.cell:hover .barOther {
+  filter: brightness(0.92);
+}
+
+.value {
+  font-size: 0.78rem;
+  color: var(--ifm-font-color-base);
+  text-align: left;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+.armed .value {
+  opacity: 1;
+}
+
+.missing {
+  font-size: 0.75rem;
+  font-style: italic;
+  color: var(--nitro-ink-muted);
+}
+
+.tip {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, calc(-100% - 8px));
+  min-width: 180px;
+  padding: 8px 10px;
+  border: 1px solid var(--nitro-border-strong);
+  border-radius: 8px;
+  background: var(--nitro-bg-raised);
+  box-shadow: var(--nitro-shadow);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  pointer-events: none;
+}
+
+.tipTitle {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.tipTitle code {
+  font-size: 85%;
+}
+
+.tipDevice {
+  font-weight: 500;
+  color: var(--nitro-ink-muted);
+  white-space: nowrap;
+}
+
+.tipList {
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: 14px;
+  row-gap: 1px;
+  margin: 0;
+}
+
+.tipList dt {
+  color: var(--nitro-ink-muted);
+  font-weight: 500;
+}
+
+.tipList dd {
+  margin: 0;
+  text-align: right;
+}
+
+.tipOn {
+  color: var(--ifm-font-color-base) !important;
+  font-weight: 650;
+}
+
+.caption {
+  margin-top: 10px;
+  font-size: 0.83rem;
+  line-height: 1.6;
+  color: var(--nitro-ink-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar,
+  .value,
+  .segment {
+    transition: none;
+  }
+}

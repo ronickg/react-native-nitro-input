@@ -4,6 +4,8 @@ title: Benchmarks
 description: Release-build measurements against every animated-number library on npm, on an iPhone 13 Pro Max, an iPhone 11 Pro and a Samsung Galaxy A22, with per-thread CPU, a scrolling list, mount cost, memory over time and Instruments cross-checks.
 ---
 
+import BenchChart from '@site/src/components/BenchChart';
+
 # Benchmarks
 
 Measured on 2026‑09‑22 on three phones with the example app's benchmark
@@ -22,6 +24,8 @@ matrix is in the package changelog, and everything here is measured after it.
 24 copies of a number, a new value pushed on every JS frame for five measured
 seconds. UI = main-thread frames per second and how many the main thread
 missed; JS = frames per second the JS thread still managed:
+
+<BenchChart group="stream|24|frame" metrics={['ui.fps', 'ui.dropped', 'js.fps', 'cpu.main', 'cpu.js']} caption="Hover a bar for every column of its row; the table has the same figures." />
 
 | Implementation | iPhone 13 Pro Max, 120 Hz | iPhone 11 Pro, 60 Hz | Galaxy A22, 90 Hz |
 | --- | --- | --- | --- |
@@ -402,6 +406,8 @@ NumberFlow View to 0.5–3 fps with a JS thread at 0.5–2 frames a second, and
 the Skia renderers to 35–60, because each row mounting on the way in is a
 whole digit tree or a canvas to create, on top of the updates.
 
+<BenchChart group="list|200|10" metrics={['ui.fps', 'ui.dropped', 'js.fps', 'cpu.main', 'cpu.js']} />
+
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
 | Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | runs |
@@ -480,6 +486,8 @@ mount time on an iPhone, once, and nothing after that. For a list that
 mounts rows as they scroll, the list section above is the measurement that
 matters, and there the same views are the ones that keep the list at the
 panel's rate.
+
+<BenchChart group="mount|24" metrics={['mountMs.p50', 'unmountMs.p50', 'mountMainMs', 'mountJsMs']} />
 
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
@@ -637,6 +645,8 @@ flatter.
 
 ### Mount and unmount cycles
 
+<BenchChart group="leak|24|40" metrics={['growthKbPerCycle']} caption="Growth per cycle of the footprint floor; a bar to the left of the line is a floor that fell." />
+
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
 | Implementation | footprint, start | footprint, end | peak | growth per cycle | malloc heap, start → end | runs |
@@ -689,6 +699,59 @@ flatter.
 | AnimatedNumbers | 421.0 MB | 538.2 MB | 680.4 MB | +2790.0 KB | 137.3 → 165.1 MB | 149 → 150 | 1 |
 
 ### A list scrolling for 30 seconds
+
+<BenchChart group="leaklist|200" metrics={['growthKbPerSecond']} caption="Footprint growth per second of scrolling, after the first six seconds; a bar to the left of the line is a footprint that fell." />
+
+#### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
+
+| Implementation | footprint, start | footprint, end | peak | growth per second | malloc heap, start → end | runs |
+| --- | --- | --- | --- | --- | --- | --- |
+| Text (no animation) | 300.1 MB | 306.7 MB | 319.1 MB | +71.3 KB | 159.8 → 159.9 MB | 1 |
+| AnimateableText (shared value) | 304.0 MB | 360.5 MB | 374.4 MB | +2067.0 KB | 218.6 → 202.0 MB | 1 |
+| **Nitro `value` prop** | 362.5 MB | 325.7 MB | 383.9 MB | -2328.9 KB | 206.8 → 230.4 MB | 1 |
+| **Nitro `jumpTo`** | 365.3 MB | 365.7 MB | 388.7 MB | -64.1 KB | 178.4 → 204.2 MB | 1 ‡ |
+| number-animation (native) | 348.8 MB | 343.6 MB | 399.5 MB | -537.1 KB | 234.1 → 228.3 MB | 1 |
+| animated-rolling-numbers | 450.4 MB | 561.7 MB | 616.0 MB | +4561.9 KB | 324.9 → 289.4 MB | 1 |
+| NumberFlow View | 570.7 MB | 446.3 MB | 802.5 MB | -10402.0 KB | 317.0 → 210.9 MB | 1 |
+| NumberFlow Skia | 394.2 MB | 394.2 MB | 666.4 MB | -1397.8 KB | 179.6 → 170.6 MB | 1 ‡ |
+| NumberFlow Skia sharedValue | 463.7 MB | 388.4 MB | 724.6 MB | -5875.5 KB | 192.2 → 175.4 MB | 1 ‡ |
+| NumberBloom (Skia) | 342.2 MB | 338.4 MB | 464.3 MB | -1492.1 KB | 161.3 → 160.8 MB | 1 |
+| react-native-ticker | 629.8 MB | 460.1 MB | 983.7 MB | -11461.7 KB | 408.4 → 277.3 MB | 1 |
+| AnimatedNumbers | 404.8 MB | 387.6 MB | 510.6 MB | -932.0 KB | 250.4 → 260.1 MB | 1 ‡ |
+
+#### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
+
+| Implementation | footprint, start | footprint, end | peak | growth per second | malloc heap, start → end | runs |
+| --- | --- | --- | --- | --- | --- | --- |
+| Text (no animation) | 281.4 MB | 284.6 MB | 289.2 MB | +88.2 KB | 191.4 → 183.1 MB | 1 |
+| AnimateableText (shared value) | 312.1 MB | 345.9 MB | 354.6 MB | +1870.7 KB | 199.6 → 199.9 MB | 1 |
+| **Nitro `value` prop** | 663.8 MB | 687.0 MB | 717.0 MB | -655.5 KB | 317.5 → 350.2 MB | 1 |
+| **Nitro `jumpTo`** | 361.0 MB | 360.5 MB | 368.1 MB | +32.9 KB | 183.3 → 172.0 MB | 1 ‡ |
+| number-animation (native) | 432.9 MB | 411.0 MB | 464.0 MB | -1673.6 KB | 269.4 → 245.9 MB | 1 |
+| animated-rolling-numbers | 526.9 MB | 444.6 MB | 579.5 MB | -5218.3 KB | 377.1 → 262.2 MB | 1 ‡ |
+| NumberFlow View | 805.2 MB | 930.2 MB | 930.2 MB | +4586.5 KB | 461.7 → 447.8 MB | 1 |
+| NumberFlow Skia | 382.9 MB | 372.4 MB | 559.1 MB | -1236.4 KB | 184.6 → 168.7 MB | 1 |
+| NumberFlow Skia sharedValue | 550.3 MB | 398.0 MB | 678.5 MB | -10975.2 KB | 234.4 → 178.6 MB | 1 ‡ |
+| NumberBloom (Skia) | 325.4 MB | 320.4 MB | 420.6 MB | -1949.8 KB | 162.5 → 161.9 MB | 1 |
+| react-native-ticker | 606.2 MB | 550.1 MB | 799.3 MB | -5832.2 KB | 379.2 → 317.0 MB | 1 |
+| AnimatedNumbers | 443.7 MB | 464.3 MB | 552.0 MB | -4199.6 KB | 278.3 → 256.8 MB | 1 ‡ |
+
+#### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+| Implementation | footprint, start | footprint, end | peak | growth per second | malloc heap, start → end | live Views, start → end | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Text (no animation) | 868.1 MB | 918.9 MB | 939.6 MB | +333.0 KB | 451.3 → 493.0 MB | 374 → 1517 | 1 |
+| AnimateableText (shared value) | 754.3 MB | 930.5 MB | 930.5 MB | +7205.2 KB | 329.9 → 531.7 MB | 550 → 1400 | 1 |
+| **Nitro `value` prop** | 1091.4 MB | 1268.8 MB | 1279.1 MB | +8104.0 KB | 637.5 → 946.0 MB | 366 → 227 | 1 |
+| **Nitro `jumpTo`** | 755.5 MB | 888.9 MB | 888.9 MB | +5377.8 KB | 331.1 → 472.8 MB | 228 → 209 | 1 |
+| number-animation (native) | 1310.1 MB | 1343.5 MB | 1370.2 MB | +341.8 KB | 958.4 → 1180.5 MB | 532 → 233 | 1 |
+| animated-rolling-numbers | 955.2 MB | 1064.9 MB | 1073.0 MB | +4605.3 KB | 432.2 → 606.0 MB | 2284 → 174 | 1 |
+| NumberFlow View | 1126.6 MB | 1077.2 MB | 1223.3 MB | -4864.0 KB | 667.2 → 576.7 MB | 3207 → 317 | 1 |
+| NumberFlow Skia | 689.5 MB | 710.8 MB | 724.1 MB | +861.6 KB | 235.4 → 281.1 MB | 227 → 188 | 1 |
+| NumberFlow Skia sharedValue | 847.8 MB | 839.6 MB | 978.3 MB | -648.9 KB | 283.5 → 292.3 MB | 233 → 608 | 1 |
+| NumberBloom (Skia) | 703.1 MB | 711.1 MB | 724.4 MB | +25.8 KB | 236.8 → 268.1 MB | 289 → 729 | 1 |
+| react-native-ticker | 1112.2 MB | 1265.2 MB | 1279.4 MB | +7224.1 KB | 661.5 → 888.1 MB | 2110 → 492 | 1 |
+| AnimatedNumbers | 915.5 MB | 892.6 MB | 1043.1 MB | -1868.4 KB | 393.8 → 323.3 MB | 1694 → 1088 | 1 |
 
 ### What one copy costs
 
@@ -767,8 +830,11 @@ node scripts/bench/run.mjs --ios <CoreDevice id> --android <adb serial> --build
 # a subset, or a quick look
 node scripts/bench/run.mjs --android <serial> --plan quick --impls text,nitro-prop,nitro-jump
 
-# the tables, from whatever is in scripts/bench/results/
+# the tables, from whatever is in scripts/bench/results/; --json is the same groups as data,
+# which the docs' charts read (docs/src/data/benchmarks.json), and chart.mjs draws the README's SVG from it
 node scripts/bench/report.mjs
+node scripts/bench/report.mjs --json > docs/src/data/benchmarks.json
+node scripts/bench/chart.mjs
 
 # the other plans: the fields, mount and unmount, the scrolling list, memory, what one copy costs, or everything
 node scripts/bench/run.mjs --ios <CoreDevice id> --android <adb serial> --plan inputs   # mount | list | leak | footprint | all
