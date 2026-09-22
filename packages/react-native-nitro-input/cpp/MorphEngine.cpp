@@ -204,6 +204,25 @@ static void classifyNumericBody(std::vector<MorphEngine::Input>& inputs) {
     const uint32_t c = in.character;
     in.kind = (c >= '0' && c <= '9') ? MorphEngine::Digit : MorphEngine::Separator;
   }
+  // A lone '.' or ',' is the decimal point: the pivot the digits pair around,
+  // part of the typed sequence like them, not a grouping separator that
+  // reflows with the magnitude. As a separator it was re-paired from the
+  // units end and, since the integer count then included the fraction
+  // digits, every keystroke after it read as a reshape: the point left
+  // downwards and rose again in the very same place. The last such character
+  // is the candidate ("1,234.56" keeps its comma as grouping), and only when
+  // it occurs once: "192.168.0.1" and "21.09.2026" are structure.
+  int decimal = -1;
+  for (size_t i = 0; i < inputs.size(); ++i) {
+    if (inputs[i].role != MorphEngine::Body) continue;
+    if (inputs[i].character == '.' || inputs[i].character == ',') decimal = static_cast<int>(i);
+  }
+  if (decimal < 0) return;
+  int occurrences = 0;
+  for (const auto& in : inputs) {
+    if (in.role == MorphEngine::Body && in.character == inputs[static_cast<size_t>(decimal)].character) ++occurrences;
+  }
+  if (occurrences == 1) inputs[static_cast<size_t>(decimal)].kind = MorphEngine::Decimal;
 }
 
 void MorphEngine::commitText(int caretIndex, double now) {
