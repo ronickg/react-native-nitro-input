@@ -15,13 +15,19 @@ function membersOfInterface(source: string, name: string): string[] {
   return [...new Set([...match[1]!.matchAll(/^ {2}(?:readonly )?([a-zA-Z][a-zA-Z0-9]*)\??[:(]/gm)].map((m) => m[1]!))]
 }
 
-/** Every backticked name in the first cell of a markdown table row. */
+/**
+ * Every name a page documents: the `name="…"` of each `<Prop>` block (several
+ * props may share one, comma-separated) and every backticked name in the first
+ * cell of a markdown table row (the methods table, the README).
+ */
 function documentedIn(markdown: string): Set<string> {
-  return new Set(
-    [...markdown.matchAll(/^\| ([^|]+) \|/gm)].flatMap((row) =>
-      [...row[1]!.matchAll(/`([a-zA-Z][a-zA-Z0-9-]*)/g)].map((m) => m[1]!)
-    )
+  const fromBlocks = [...markdown.matchAll(/<Prop name="([^"]+)"/g)].flatMap((m) =>
+    m[1]!.split(',').map((name) => name.trim())
   )
+  const fromTables = [...markdown.matchAll(/^\| ([^|]+) \|/gm)].flatMap((row) =>
+    [...row[1]!.matchAll(/`([a-zA-Z][a-zA-Z0-9-]*)/g)].map((m) => m[1]!)
+  )
+  return new Set([...fromBlocks, ...fromTables])
 }
 
 const source = readFileSync(join(__dirname, '..', 'NitroInput.tsx'), 'utf8')
