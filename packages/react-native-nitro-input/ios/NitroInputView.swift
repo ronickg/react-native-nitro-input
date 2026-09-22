@@ -886,7 +886,8 @@ final class NitroInputView: UIView {
     }
     // The first application always commits so the engine has the (possibly
     // empty) text and its placeholder to draw.
-    guard normalized != text || !engine.hasText() else { return false }
+    let changed = normalized != text
+    guard changed || !engine.hasText() else { return false }
     isSettingText = true
     if traits.multiline, didBuildTextView {
       // Multiline holds its own text; the formatter is single-line by
@@ -897,7 +898,7 @@ final class NitroInputView: UIView {
     field.text = normalized
     field.selectedTextRange = field.textRange(from: field.endOfDocument, to: field.endOfDocument)
     isSettingText = false
-    textDidChange(caret: -1, reason: reason)
+    textDidChange(caret: -1, reason: reason, changed: changed)
     return true
   }
 
@@ -1296,7 +1297,9 @@ final class NitroInputView: UIView {
 
   /// Every change to the field's text ends up here: the engine is fed the new
   /// glyph list and the change is reported.
-  private func textDidChange(caret: Int, reason: ChangeReason) {
+  /// `changed` is false only for the first, unchanged application of the
+  /// `text` prop (the engine still needs feeding); a keystroke always changes.
+  private func textDidChange(caret: Int, reason: ChangeReason, changed: Bool = true) {
     feedEngine(caret: caret)
     if reason != .prop {
       eventCount += 1
@@ -1308,9 +1311,10 @@ final class NitroInputView: UIView {
         margelo.nitro.nitroinput.nitroinputworklets.runChangeValue(Int32(worklets.onChangeValue), value)
       }
     }
-    if format.mode == .mask, let onMaskChange {
+    if format.mode == .mask, changed, let onMaskChange {
       // Derived from the settled text so every route reports the same thing:
-      // a keystroke, `setText`, a prop change or a transform worklet.
+      // a keystroke, `setText`, a prop change or a transform worklet. Not the
+      // untouched text at mount, which Android doesn't report either.
       let result = maskEngine.apply(std.string(text), Int32(text.unicodeScalars.count), true,
                                     format.maskAutocomplete, false)
       onMaskChange(text, String(result.extractedValue), String(result.tailPlaceholder), result.complete)

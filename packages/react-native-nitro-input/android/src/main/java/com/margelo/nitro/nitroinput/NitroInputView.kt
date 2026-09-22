@@ -1282,20 +1282,32 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val changed = next != text
     text = next
     requestFeed(-1)
-    if (notify && changed) notifyChange()
+    if (!changed) return
+    // A wrapping field's height follows its text, whichever way it arrived.
+    if (keyboard.multiline) post { reportIntrinsicSize() }
+    if (notify) {
+      notifyChange()
+    } else {
+      // The `text` prop is silent for `onChangeText`, as it is for a
+      // TextInput, but a mask reports what the new text fills in on every
+      // route (iOS does the same), so the app learns `complete` for a value it set.
+      reportMaskChange()
+    }
   }
 
   /** Worklet callbacks first (synchronously, on this thread), then the JS ones. */
   private fun notifyChange() {
     if (worklets.onChangeText != 0) NitroInputWorklets.runChangeText(worklets.onChangeText, text)
     if (worklets.onChangeValue != 0 && format.mode == Mode.NUMBER) NitroInputWorklets.runChangeValue(worklets.onChangeValue, currentValue())
-    if (format.mode == Mode.MASK) {
-      // Derived from the settled text so every route reports the same thing:
-      // a keystroke, a programmatic set, a prop change or a transform worklet.
-      maskEngine.applyAll(text, text.codePointCount(0, text.length), true, format.maskAutocomplete, false)
-      onMaskChange?.invoke(text, maskEngine.lastExtracted(), maskEngine.lastTailPlaceholder(), maskEngine.lastComplete())
-    }
+    reportMaskChange()
     onTextChange?.invoke(text, currentValue())
+  }
+
+  /** `onChangeMask`, derived from the settled text so every route reports the same thing. */
+  private fun reportMaskChange() {
+    if (format.mode != Mode.MASK) return
+    maskEngine.applyAll(text, text.codePointCount(0, text.length), true, format.maskAutocomplete, false)
+    onMaskChange?.invoke(text, maskEngine.lastExtracted(), maskEngine.lastTailPlaceholder(), maskEngine.lastComplete())
   }
 
   /** Every change to the edit text (typing, backspace, paste, IME) lands here and goes through the engine. */
