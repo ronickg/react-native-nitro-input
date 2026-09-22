@@ -25,17 +25,19 @@ The full table is in the package [README](https://github.com/ronickg/react-nativ
 | `adjustsFontSizeToFit`, `minimumFontScale`, `allowFontScaling`, `maxFontSizeMultiplier` | `false`, `0.5`, `false`, `0` | Shrinking to fit a width, and following the system text size. |
 | `cursorColor`, `selectionColor`, `caretHidden` | | The caret and the selection. |
 | `keyboardType`, `returnKeyType`, `autoCapitalize`, `autoCorrect`, `maxLength`, `editable`, `autoFocus` | | Input traits. |
+| `inputMode`, `enterKeyHint` | | React Native's HTML-style aliases for `keyboardType` and `returnKeyType`, mapped with its tables; the explicit prop wins. `inputMode="none"` focuses without a keyboard. |
 | `transform` | | A worklet mask, run synchronously on the UI thread. |
-| `onChangeText`, `onChangeValue`, `onFocus`, `onBlur`, `onSubmitEditing`, `onEndEditing`, `onSelectionChange`, `onKeyPress` | | `TextInput`'s edit callbacks, plus `onChangeValue`. Any of them marked `'worklet'` runs on the UI thread instead of the JS one — see [Worklets](/input/worklets). |
+| `onChangeText`, `onChange`, `onChangeValue`, `onFocus`, `onBlur`, `onSubmitEditing`, `onEndEditing`, `onSelectionChange`, `onKeyPress` | | `TextInput`'s edit callbacks, plus `onChangeValue`. Each event carries `nativeEvent` as `TextInput`'s does, with the same fields repeated at the top level. Any of them marked `'worklet'` runs on the UI thread instead of the JS one — see [Worklets](/input/worklets). |
 | `onChangeMask` | | `'mask'`: the formatted text, the extracted value, the missing tail and whether every mandatory slot is filled. |
 | `value`, `defaultValue` | | Controlled and uncontrolled text. A `value` with a stale `mostRecentEventCount` is ignored, like `TextInput`. |
-| `submitBehavior` | `'blurAndSubmit'` | `'submit'` keeps focus so a form can move to the next field itself. |
+| `submitBehavior` | `'blurAndSubmit'`, `'newline'` when `multiline` | `'submit'` keeps focus so a form can move to the next field itself; `'newline'` inserts a line break (`multiline` only). `blurOnSubmit` is the deprecated alias, resolved as `TextInput` resolves it. |
 | `secureTextEntry` | `false` | Draws bullets; the field keeps the real text for autofill. |
 | `textContentType` / `autoComplete` | `''` | Autofill: `'username'`, `'password'`, `'oneTimeCode'`, … |
 | `keyboardAppearance`, `enablesReturnKeyAutomatically`, `showSoftInputOnFocus` | | Keyboard behaviour. |
 | `selectTextOnFocus`, `clearTextOnFocus`, `contextMenuHidden`, `spellCheck`, `readOnly` | | As on `TextInput`. |
 | `selection` | | `{ start, end? }` in code points, controlled. |
+| `id`, `aria-label`, `testID`, `accessibilityLabel` | | `id` and `aria-label` are resolved like `TextInput`'s and win over the older spellings; `testID` and the label are forwarded to the system field, the element VoiceOver, TalkBack and e2e tools interact with. |
 
-Imperative handle: `focus()`, `blur()`, `clear()`, `setText()`, `setValue()`, `getText()`, `getValue()`, `isFocused()`.
+Imperative handle: `focus()`, `blur()`, `clear()`, `setText()`, `setValue()`, `getText()`, `getValue()`, `isFocused()`, `setSelection()`, and `native`, the Nitro object.
 
 Hook: `useNitroInputState(useSharedValue)` — the field's `text`, `value`, `focused` and `selection` as shared values, plus the worklet `handlers` that keep them current. See [the field's state as shared values](/input/worklets#the-fields-state-as-shared-values).

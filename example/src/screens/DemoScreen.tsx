@@ -510,6 +510,9 @@ function MorphInputDemo() {
   const [maskSel, setMaskSel] = useState('-')
   const [outlinedText, setOutlinedText] = useState('')
   const [multilineText, setMultilineText] = useState('')
+  const [multilineSubmit, setMultilineSubmit] = useState<'submit' | 'blurAndSubmit' | 'newline'>('submit')
+  const [multilineSubmits, setMultilineSubmits] = useState(0)
+  const [multilineFocused, setMultilineFocused] = useState(false)
   const [maskPhone, setMaskPhone] = useState(EMPTY_MASK)
   const [maskHex, setMaskHex] = useState(EMPTY_MASK)
   return (
@@ -612,6 +615,35 @@ function MorphInputDemo() {
         <Text style={styles.morphReadout} testID="morph-multiline-readout">
           multiline {JSON.stringify(multilineText)}
         </Text>
+        {/* The return key on a wrapping field: `submit` fires onSubmitEditing and
+            keeps focus, `blurAndSubmit` also dismisses the keyboard, `newline`
+            (the default) inserts a line break. */}
+        <NitroInput
+          testID="morph-multiline-submit"
+          multiline
+          numberOfLines={3}
+          variant="outlined"
+          label={`submitBehavior ${multilineSubmit}`}
+          placeholder="Press return"
+          fontSize={15}
+          strokeColor="#94a3b8"
+          focusedStrokeColor="#2563eb"
+          cornerRadius={10}
+          submitBehavior={multilineSubmit}
+          onFocus={() => setMultilineFocused(true)}
+          onBlur={() => setMultilineFocused(false)}
+          onSubmitEditing={() => setMultilineSubmits((n) => n + 1)}
+        />
+        <Text style={styles.morphReadout} testID="morph-multiline-submit-readout">
+          submits {multilineSubmits} · {multilineFocused ? 'focused' : 'blurred'}
+        </Text>
+        <Button
+          title={`submitBehavior: ${multilineSubmit}`}
+          testID="morph-multiline-submit-toggle"
+          onPress={() =>
+            setMultilineSubmit((s) => (s === 'submit' ? 'blurAndSubmit' : s === 'blurAndSubmit' ? 'newline' : 'submit'))
+          }
+        />
         {/* lineHeight, both directions. 34 is looser than the font's own line
             box at 15pt, 14 is tighter — the case RN's correction skips, which
             is why a compressed lineHeight rides off-centre on a TextInput. */}

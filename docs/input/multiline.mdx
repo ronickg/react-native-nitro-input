@@ -19,4 +19,6 @@ description: 'multiline: a field that wraps, grows with its content or scrolls p
 
 ## What a multiline field is not
 
-A multiline field is always drawn by the system view and is always `mode="text"`. The glyph engine lays one run out on one baseline, so it cannot morph wrapped text, and an amount or a mask is a single-line idea. `morph`, `mode="number"` and `mode="mask"` are ignored alongside `multiline`, with one warning in development. Everything else applies: a [frame](/input/frames) with a floating label, `maxLength`, autocorrect and the edit callbacks.
+A multiline field is always drawn by the system view and is always `mode="text"`. The glyph engine lays one run out on one baseline, so it cannot morph wrapped text, and an amount, a mask and their affixes are single-line ideas. `morph`, `mode="number"`, `mode="mask"`, `prefix` and `suffix` are ignored alongside `multiline`, with one warning each in development. Everything else applies: a [frame](/input/frames) with a floating label, `maxLength`, autocorrect and the edit callbacks.
+
+The return key inserts a line break, as it does on a multiline `TextInput`: `submitBehavior` defaults to `'newline'` there. Pass `submitBehavior="blurAndSubmit"` (or the older `blurOnSubmit`) to have it fire `onSubmitEditing` and dismiss the keyboard instead, or `'submit'` to fire it and keep focus.

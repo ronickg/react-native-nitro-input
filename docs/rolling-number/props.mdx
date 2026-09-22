@@ -14,7 +14,7 @@ description: Every prop and method of RollingNumber.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `value` | `number` | – | The number to display. Every change rolls each digit natively. |
+| `value` | `number` | – | The number to display. Every change rolls each digit natively. At most 18 digits are shown: `|value| × 10^fractionDigits` is clamped at 10^17, and a JS number carries exact integers only up to 2^53. |
 | `fractionDigits` | `number` | `0` | Digits after the decimal separator (0–9). |
 | `minimumIntegerDigits` | `number` | `1` | Zero-pads the integer part (1–15). |
 | `groupingSeparator` | `string` | `''` | Inserted every three integer digits. |

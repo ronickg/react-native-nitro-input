@@ -7,8 +7,7 @@ description: 'The text-input registry, focus commands, keyboard handling and acc
 `NitroInput` registers itself in React Native's text-input registry, so the
 things that act on "the focused input" work on it as they do on `TextInput`:
 
-- `Keyboard.dismiss()`, `TextInput.State.currentlyFocusedInput()` and
-  `TextInput.State.blurTextInput()`
+- `Keyboard.dismiss()` and `TextInput.State.currentlyFocusedInput()`
 - a `ScrollView`'s `keyboardShouldPersistTaps` / auto-blur
 - `react-native-keyboard-controller`: the focused-input observer sees it,
   `KeyboardAwareScrollView` scrolls it into view, and `KeyboardToolbar`'s
@@ -18,13 +17,20 @@ things that act on "the focused input" work on it as they do on `TextInput`:
 
 React Native focuses an input by dispatching a codegen `focus` / `blur` **view
 command**. A Nitro view has no such command on Android, so that call would be
-dropped and the keyboard would stay up. `NitroInput` therefore wraps
-`TextInput.State.focusTextInput` / `blurTextInput` once and routes a
-`NitroInput` to its own native focus and blur; every other input is passed
-straight through untouched.
+dropped and the keyboard would stay up. `NitroInput` therefore wraps the
+registry's `focusTextInput` / `blurTextInput` once and routes a `NitroInput` to
+its own native focus and blur; every other input is passed straight through
+untouched. That reaches everything that reads the two off the registry when it
+calls them, which `Keyboard.dismiss()` and `ScrollView` do.
 
-Two consequences worth knowing:
+Three consequences worth knowing:
 
+- **`TextInput.State.focusTextInput()` / `blurTextInput()` bypass it.**
+  `TextInput.js` copies those two references when it loads, before the wrap
+  runs, so a call through them still dispatches the view command. On iOS the
+  component answers that command, so both work there; on Android they do not
+  reach a `NitroInput`. `ref.focus()`, `ref.blur()` and `Keyboard.dismiss()`
+  are unaffected.
 - **It is not an optimisation**, but it is faster. Skipping the view command on
   the way in and the batched event emitter on the way out removes about a frame
   of waiting at each end, which is where the focus numbers in
