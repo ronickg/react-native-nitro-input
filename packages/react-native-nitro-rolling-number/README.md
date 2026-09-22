@@ -26,6 +26,8 @@ bun add react-native-nitro-rolling-number react-native-nitro-modules
 cd ios && pod install
 ```
 
+> **Android and Nitro 0.37:** Nitro never hands a Hybrid View its `backgroundColor`, `border*`, `opacity`, `transform`, `testID` or accessibility props on Android with React Native 0.86+. Fixed upstream in [margelo/nitro#1655](https://github.com/margelo/nitro/pull/1655); until it ships, apply the [patch from this repository](https://github.com/ronickg/react-native-nitro-rolling-number/blob/main/patches/react-native-nitro-modules@0.37.1.patch) with `patchedDependencies` (Bun) or patch-package.
+
 ## Usage
 
 ```tsx
@@ -137,7 +139,7 @@ scroll or drag handler drives the number.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `value` | `number` | – | The number to display. |
+| `value` | `number` | – | The number to display. Shown with at most 18 digits: `|value| × 10^fractionDigits` is clamped at 10^17, and a JS number carries exact integers only up to 2^53. |
 | `fractionDigits` | `number` | `0` | Digits after the decimal separator. |
 | `minimumIntegerDigits` | `number` | `1` | Zero-pads the integer part. |
 | `groupingSeparator` | `string` | `''` | Inserted every three integer digits. |

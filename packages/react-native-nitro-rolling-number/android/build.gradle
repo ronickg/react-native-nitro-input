@@ -4,8 +4,14 @@ buildscript {
     mavenCentral()
   }
 
-  dependencies {
-    classpath "com.android.tools.build:gradle:9.3.1"
+  // Inside a React Native app the root project already has the Android Gradle
+  // plugin on its classpath and every subproject inherits it; pinning a second
+  // version here would only fight the app's. The pin is for building this
+  // library on its own.
+  if (project == rootProject) {
+    dependencies {
+      classpath "com.android.tools.build:gradle:9.3.1"
+    }
   }
 }
 
@@ -108,8 +114,8 @@ android {
   }
 
   compileOptions {
-    sourceCompatibility JavaVersion.VERSION_1_8
-    targetCompatibility JavaVersion.VERSION_1_8
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
   }
 
   sourceSets {

@@ -42,10 +42,10 @@ public:
   void setRevealMilestoneHold(double holdSeconds);
   int revealMilestonesReached();
   double revealMilestoneValue(int index);
-  /// [signFactor, loadingProgress, revealScale, wheelCount, then (position, width, linear, blankZero) per wheel]
-  jni::local_ref<jni::JArrayDouble> frame();
-  /// Writes the render state into `out` (same layout as `frame()`) without
-  /// allocating; returns the number of doubles written, or -1 if `out` is too small.
+  /// Writes the render state into `out` without allocating:
+  /// `[signFactor, loadingProgress, revealScale, wheelCount, then (position,
+  /// width, linear, blankZero) per wheel]`. Returns the number of doubles
+  /// written, or -1 if `out` is too small.
   int frameInto(jni::alias_ref<jni::JArrayDouble> out);
   double shimmerPhase(double now, double periodSeconds);
   double targetValue();

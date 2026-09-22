@@ -474,6 +474,54 @@ static void jackpotRevealEdgeCases() {
   CHECK(!z.isRevealing() && near(z.revealScale(), 1));
 }
 
+// `setValue` used to clamp the scaled magnitude at 10^15 while `animateTo`
+// clamped at 10^17, so a jump and a roll to one figure showed different digits
+// (with 9 fraction digits, anything above 10^6 collapsed to "1,000,000").
+static void jumpAndRollAgreeOnLargeValues() {
+  RollingEngine jump;
+  jump.setFormat(9, 1);
+  jump.setValue(123456.5);
+  RollingEngine roll;
+  roll.setFormat(9, 1);
+  roll.animateTo(123456.5, 0);
+  CHECK(jump.wheelCount() == roll.wheelCount());
+  CHECK(jump.wheelCount() == 15);
+  for (int i = 0; i < jump.wheelCount(); i++) {
+    CHECK(near(jump.wheelAt(i).position, roll.wheelAt(i).position));
+  }
+  CHECK(near(jump.wheelAt(14).position, 1) && near(jump.wheelAt(9).position, 6) && near(jump.wheelAt(8).position, 5));
+
+  RollingEngine big;
+  big.setFormat(0, 1);
+  big.setValue(2e15);                            // exactly representable, above the old 10^15 clamp
+  CHECK(big.wheelCount() == 16 && near(big.wheelAt(15).position, 2));
+  big.animateTo(2e15, 0);
+  CHECK(big.wheelCount() == 16 && near(big.wheelAt(15).position, 2));
+
+  RollingEngine over;
+  over.setFormat(9, 1);
+  over.setValue(1e12);                           // 10^21 scaled: clamped to 10^17 on both paths, never more than 18 wheels
+  RollingEngine overRoll;
+  overRoll.setFormat(9, 1);
+  overRoll.animateTo(1e12, 0);
+  CHECK(over.wheelCount() == overRoll.wheelCount() && over.wheelCount() <= 18);
+}
+
+// The stagger's longest delay is fixed when the roll is built, so a tick
+// finishes exactly when the last wheel's roll ends.
+static void staggeredRollFinishesAfterLastWheel() {
+  RollingEngine e;
+  e.setFormat(0, 1);
+  e.setTiming(0.5, 0, 0.15, /* stagger */ 0.1, 0);
+  e.animateTo(0, 0);
+  e.animateTo(999, 0);                           // hundreds wheel starts at 0.2, ends at 0.7
+  e.tick(0.69);
+  CHECK(e.needsFrames());
+  e.tick(0.7);
+  CHECK(!e.needsFrames());
+  CHECK(near(e.wheelAt(2).position, 9));
+}
+
 int main() {
   odometerPositions();
   tickerRollsShortestPathInDirection();
@@ -486,6 +534,8 @@ int main() {
   jackpotRevealSpinsReelsAndLocksLeftToRight();
   jackpotRevealMilestonesPunchAndHold();
   jackpotRevealEdgeCases();
+  jumpAndRollAgreeOnLargeValues();
+  staggeredRollFinishesAfterLastWheel();
   if (failures == 0) {
     std::printf("RollingEngine: all checks passed\n");
     return 0;

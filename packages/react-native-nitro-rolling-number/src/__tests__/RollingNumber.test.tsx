@@ -1,6 +1,6 @@
 import React, { createRef } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
-import { processColor } from 'react-native'
+import { I18nManager, processColor } from 'react-native'
 import { RollingNumber, type RollingNumberHandle } from '../RollingNumber'
 
 function nativeProps(renderer: ReactTestRenderer) {
@@ -182,6 +182,34 @@ describe('RollingNumber', () => {
     // Never undefined: removing the array would reach native as null, which Nitro rejects.
     expect(third.revealMilestones).toEqual([])
     expect(nativeProps(render(<RollingNumber value={1} />)).revealMilestones).toEqual([])
+  })
+
+  it('keeps one handle for the component\'s lifetime and reads the latest value through it', () => {
+    const ref = createRef<RollingNumberHandle>()
+    const renderer = render(<RollingNumber ref={ref} value={1} />)
+    const handle = ref.current
+    expect(handle?.getValue()).toBe(1)
+    act(() => {
+      renderer.update(<RollingNumber ref={ref} value={2} />)
+    })
+    expect(ref.current).toBe(handle)
+    expect(handle?.getValue()).toBe(2)
+  })
+
+  it('resolves the layout direction the way React Native does and aligns to the start edge by default', () => {
+    expect(nativeProps(render(<RollingNumber value={1} />)).textAlign).toBe('auto')
+    expect(nativeProps(render(<RollingNumber value={1} />)).rightToLeft).toBe(false)
+    // The view's own `direction` wins over the app's.
+    expect(nativeProps(render(<RollingNumber value={1} style={{ direction: 'rtl' }} />)).rightToLeft).toBe(true)
+    expect(nativeProps(render(<RollingNumber value={1} style={[{ width: 10 }, { direction: 'rtl' }]} />)).rightToLeft).toBe(true)
+
+    const restore = jest.replaceProperty(I18nManager, 'isRTL', true)
+    try {
+      expect(nativeProps(render(<RollingNumber value={1} />)).rightToLeft).toBe(true)
+      expect(nativeProps(render(<RollingNumber value={1} style={{ direction: 'ltr' }} />)).rightToLeft).toBe(false)
+    } finally {
+      restore.restore()
+    }
   })
 
   it('exposes revealTo on the handle', () => {
