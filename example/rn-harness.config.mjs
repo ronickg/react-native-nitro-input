@@ -40,6 +40,8 @@ const config = {
   defaultRunner: 'ios',
   // A jackpot reveal runs for seconds; a roll for half a second.
   testTimeout: 20_000,
+  // A CI runner boots a simulator or emulator far slower than a warm machine.
+  platformReadyTimeout: isCI ? 900_000 : 300_000,
   bundleStartTimeout: isCI ? 120_000 : 60_000,
   bridgeTimeout: isCI ? 120_000 : 60_000,
   maxAppRestarts: isCI ? 4 : 2,

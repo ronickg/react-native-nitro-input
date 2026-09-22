@@ -114,6 +114,14 @@ jobs:
           ONLY_ACTIVE_ARCH=YES
           CODE_SIGNING_ALLOWED=NO
           build | xcbeautify --quiet
+      # A fresh runner takes minutes to boot a simulator, longer than Harness
+      # waits by default; booted here, Harness finds it ready, as it does locally.
+      - name: Boot the simulator
+        run: |
+          udid=$(xcrun simctl list devices available -j | jq -r --arg name "$HARNESS_IOS_SIMULATOR" --arg os "$HARNESS_IOS_SIMULATOR_VERSION" '.devices | to_entries[] | select(.key | endswith("iOS-" + ($os | gsub("\\."; "-")))) | .value[] | select(.name == $name) | .udid' | head -1)
+          test -n "$udid" || { echo "no $HARNESS_IOS_SIMULATOR / iOS $HARNESS_IOS_SIMULATOR_VERSION simulator on this image"; xcrun simctl list devices available; exit 1; }
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
       - name: Run the suites
         uses: callstackincubator/react-native-harness@v1.5.0
         with:
