@@ -11,8 +11,6 @@ import com.facebook.proguard.annotations.DoNotStrip
 @Keep
 @DoNotStrip
 object NitroInputWorklets {
-  @JvmStatic external fun isReady(): Boolean
-
   /** The transformed text, or null when the worklet did not apply; the selection is in [lastSelectionStart] / [lastSelectionEnd]. */
   @JvmStatic external fun runTransform(
     id: Int,

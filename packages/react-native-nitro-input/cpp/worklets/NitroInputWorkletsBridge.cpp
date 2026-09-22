@@ -68,15 +68,6 @@ bool isAvailable() {
   return true;
 }
 
-bool isReady() {
-  return runtime() != nullptr;
-}
-
-void uninstallRuntime() {
-  std::lock_guard<std::mutex> lock(gMutex);
-  gRuntime.reset();
-}
-
 bool installRuntime(Runtime& rt, const Value& holder) {
   if (!holder.isObject()) return false;
   Object object = holder.asObject(rt);
@@ -185,15 +176,9 @@ bool isAvailable() {
   return false;
 }
 
-bool isReady() {
-  return false;
-}
-
 bool installRuntime(facebook::jsi::Runtime&, const facebook::jsi::Value&) {
   return false;
 }
-
-void uninstallRuntime() {}
 
 TransformResult runTransform(int, const std::string&, const std::string&, int, int, int, int) {
   return TransformResult{false, "", 0, 0};

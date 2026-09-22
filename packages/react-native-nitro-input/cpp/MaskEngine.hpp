@@ -93,9 +93,6 @@ public:
   /// False until a valid format has been set; `apply` then passes text through.
   bool isActive() const;
 
-  /// The format currently compiled, as given.
-  const std::string& format() const;
-
   /// Masks `text` whole. `caret` is a code point offset into `text`;
   /// `caretForward` biases the caret to the right of an inserted character,
   /// which is what you want after typing and not after deleting.
@@ -107,13 +104,6 @@ public:
   /// auto-skipping when something was deleted.
   Result applyEdit(const std::string& current, int start, int end, const std::string& replacement, bool autocomplete,
                    bool autoSkip) const;
-
-  /// The whole mask with nothing typed into it, e.g. "+1 (000) 000-0000".
-  std::string placeholder() const;
-
-  /// Slot counts, for sizing and for choosing between candidate masks.
-  int totalTextLength() const;
-  int totalValueLength() const;
 
 public:
   /// Implementation detail, public only so the compiler's helpers can name it.
@@ -130,7 +120,6 @@ private:
   struct Compiled {
     std::vector<std::unique_ptr<State>> arena;
     const State* initial = nullptr;
-    std::string format;
     std::vector<Notation> notations;
   };
 

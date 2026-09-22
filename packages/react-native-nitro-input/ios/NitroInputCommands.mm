@@ -16,36 +16,50 @@
 @interface HybridNitroInputViewComponent : RCTViewComponentView
 @end
 
-/// The hidden system field NitroInputView keeps as its only subview.
-static UITextField *NitroInputFindField(UIView *view)
+/// The system editor NitroInputView keeps as a subview: a `UITextField`, or a
+/// `UITextView` once the field wraps (`multiline`). The view keeps both around
+/// and shows one, so the hidden one is passed over.
+static UIView *NitroInputFindEditor(UIView *view)
 {
-  if ([view isKindOfClass:[UITextField class]]) {
-    return (UITextField *)view;
+  if ([view isKindOfClass:[UITextField class]] || [view isKindOfClass:[UITextView class]]) {
+    return view.isHidden ? nil : view;
   }
   for (UIView *subview in view.subviews) {
-    UITextField *field = NitroInputFindField(subview);
-    if (field != nil) {
-      return field;
+    UIView *editor = NitroInputFindEditor(subview);
+    if (editor != nil) {
+      return editor;
     }
   }
   return nil;
+}
+
+/// Mirrors the `editable` prop: `isEnabled` on a text field, `isEditable` on
+/// a text view. A read-only field declines focus either way.
+static BOOL NitroInputEditorIsEditable(UIView *editor)
+{
+  if ([editor isKindOfClass:[UITextField class]]) {
+    return ((UITextField *)editor).isEnabled;
+  }
+  if ([editor isKindOfClass:[UITextView class]]) {
+    return ((UITextView *)editor).isEditable;
+  }
+  return NO;
 }
 
 @implementation HybridNitroInputViewComponent (NitroInputCommands)
 
 - (void)handleCommand:(const NSString *)commandName args:(const NSArray *)args
 {
-  UITextField *field = NitroInputFindField(self.contentView);
-  if (field == nil) {
+  UIView *editor = NitroInputFindEditor(self.contentView);
+  if (editor == nil) {
     return;
   }
   if ([(NSString *)commandName isEqualToString:@"focus"]) {
-    // `isEnabled` mirrors the `editable` prop, so a read-only field declines.
-    if (field.isEnabled) {
-      [field becomeFirstResponder];
+    if (NitroInputEditorIsEditable(editor)) {
+      [editor becomeFirstResponder];
     }
   } else if ([(NSString *)commandName isEqualToString:@"blur"]) {
-    [field resignFirstResponder];
+    [editor resignFirstResponder];
   }
 }
 

@@ -2,6 +2,8 @@ package com.margelo.nitro.nitroinput
 
 import android.animation.ValueAnimator
 import android.content.Context
+import android.content.res.Configuration
+import android.database.ContentObserver
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -10,7 +12,10 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
+import android.provider.Settings
 import android.text.Editable
 import android.text.InputFilter
 import android.text.InputType
@@ -24,6 +29,7 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.animation.PathInterpolator
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
 import android.widget.FrameLayout
 import android.widget.TextView
@@ -62,6 +68,13 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   enum class AutoCapitalize { NONE, SENTENCES, WORDS, CHARACTERS }
   enum class Variant { NONE, OUTLINED, FILLED }
   enum class LabelBehavior { FLOAT, ALWAYS }
+  /**
+   * What the return key does, as React Native's `submitBehavior`. On a single
+   * line `SUBMIT` and `BLUR_AND_SUBMIT` both fire `onSubmitEditing` (the latter
+   * also dismisses the keyboard) and `NEWLINE` does nothing at all; on a
+   * wrapping field `NEWLINE` inserts the line break instead.
+   */
+  enum class SubmitBehavior { SUBMIT, BLUR_AND_SUBMIT, NEWLINE }
 
   /** A caller-defined slot character for [Format.mask]. */
   data class MaskNotation(val character: String, val characterSet: String, val isOptional: Boolean)
@@ -140,10 +153,9 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val autoCorrect: Boolean = true,
     val editable: Boolean = true,
     val autoFocus: Boolean = false,
-    /** Text mode: most characters accepted; 0 = unlimited. */
+    /** Text mode only, as on iOS - a mask or a number format sets its own length; 0 = unlimited. */
     val maxLength: Int = 0,
-    /** `submitBehavior`: whether the IME action also dismisses the keyboard. */
-    val blurOnSubmit: Boolean = true,
+    val submitBehavior: SubmitBehavior = SubmitBehavior.BLUR_AND_SUBMIT,
     val secureTextEntry: Boolean = false,
     /** Android autofill hint, or null for no autofill. */
     val autofillHint: String? = null,
@@ -244,8 +256,15 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       if (field == value) return
       val wasMultiline = field.multiline
       val wasLines = field.numberOfLines
+      val wasPlain = field.plain
+      val wasSecure = field.secureTextEntry
       field = value
       applyKeyboard()
+      // `applyPlain` emptied the engine on the way *into* plain mode, so coming
+      // back the overlay has nothing to draw until it is fed again. Masking
+      // changes what is drawn, not what is stored, so it re-feeds too - as iOS
+      // does; without this the real glyphs stayed up until the next edit.
+      if ((wasPlain && !value.plain) || wasSecure != value.secureTextEntry) requestFeed(-1)
       // How tall the field wants to be depends on `multiline` and
       // `numberOfLines`, and this prop lands *after* `typography` — whose
       // `rebuildFonts` is the usual reporter. Without this a wrapping field
@@ -263,6 +282,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     set(value) {
       if (field == value) return
       field = value
+      deriveColors()
       editText.highlightColor = value.selectionColor ?: defaultHighlightColor
       applyNativeCursor()
       restartBlink()
@@ -338,9 +358,6 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   /** The numeric value of [text] in number mode; NaN otherwise or when empty. */
   fun currentValue(): Double = if (format.mode == Mode.NUMBER) formatter.value(text) else Double.NaN
 
-  val hasInputFocus: Boolean
-    get() = editText.hasFocus()
-
   // endregion
 
   // region Views
@@ -368,6 +385,18 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       super.clearFocus()
       isFocusableInTouchMode = wasFocusable
     }
+
+    override fun onCreateInputConnection(outAttrs: EditorInfo): InputConnection? {
+      val connection = super.onCreateInputConnection(outAttrs)
+      // The platform gives every wrapping field IME_FLAG_NO_ENTER_ACTION, so
+      // the IME's return key inserts a line break. One that submits instead
+      // has to lose the flag, or the IME never shows the action key nor sends
+      // the action - the same fix-up ReactEditText applies.
+      if (keyboard.multiline && keyboard.submitBehavior != SubmitBehavior.NEWLINE) {
+        outAttrs.imeOptions = outAttrs.imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION.inv()
+      }
+      return connection
+    }
   }
 
   /// `contextMenuHidden`: an action-mode callback that never creates a menu.
@@ -390,8 +419,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
   // region State
 
+  /** One drawn glyph. The engine also reports an id and an exiting flag per slot; nothing here draws by them, so they are skipped. */
   private class Glyph {
-    var id = 0L
     var character = 0
     var role = 1
     var kind = 0
@@ -401,13 +430,36 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     var y = 0f
     var opacity = 1f
     var scale = 1f
-    var exiting = false
   }
 
   private val engine = MorphEngine()
   private val formatter = AmountFormatter()
   private val maskEngine = MaskEngine()
   private val density = context.resources.displayMetrics.density
+  /**
+   * The theme's primary text and accent colours. Resolved here, on a
+   * configuration change and never per frame: each lookup allocates a
+   * `TypedValue`, walks the theme and fetches a `ColorStateList`.
+   */
+  private var themeTextColor = resolveThemeColor(android.R.attr.textColorPrimary, Color.BLACK)
+  private var themeCaretColor = resolveThemeColor(android.R.attr.colorAccent, 0xFF2196F3.toInt())
+  /** `typography.color`, or the theme's. Derived whenever the fonts are rebuilt. */
+  private var resolvedTextColor = themeTextColor
+  /**
+   * [resolvedTextColor] at hint strength: what the placeholder, the stroke and
+   * the label fall back to. A React Native activity usually runs a bare
+   * `AppCompat` theme with no text appearance, so `android.R.attr.textColorHint`
+   * comes back as the *primary* text colour — which would draw the placeholder
+   * solid black instead of the muted grey every other input on the platform
+   * shows. Deriving it from the text colour, the way iOS's `.placeholderText`
+   * is derived from `.label`, is theme-independent and still reads correctly
+   * on a dark background.
+   */
+  private var mutedTextColor = muted(themeTextColor)
+  /** `typography.placeholderColor`, or [mutedTextColor]. */
+  private var resolvedPlaceholderColor = mutedTextColor
+  /** `caret.color`, or the theme's accent. */
+  private var resolvedCaretColor = themeCaretColor
   private var fonts: FontSet = FontSet(Typography())
   private val glyphs = ArrayList<Glyph>()
   /** Reused per frame so the JNI hop never allocates; grown on demand. */
@@ -502,15 +554,29 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       val isEnter = event != null && event.keyCode == KeyEvent.KEYCODE_ENTER
       if (isEnter && event.action != KeyEvent.ACTION_DOWN) return@setOnEditorActionListener true
       if (actionId == EditorInfo.IME_ACTION_NONE && !isEnter) return@setOnEditorActionListener false
-      if (worklets.onKeyPress != 0) NitroInputWorklets.runKeyPress(worklets.onKeyPress, "Enter")
-      if (worklets.onSubmitEditing != 0) {
-        NitroInputWorklets.runSubmitEditing(worklets.onSubmitEditing, text)
+      // The three-way `submitBehavior`, decided the way ReactEditText decides
+      // it: `submit` fires and keeps focus so a form can move on itself,
+      // `blurAndSubmit` fires and dismisses the keyboard, `newline` does
+      // neither - on a wrapping field it is the line break.
+      val behavior = keyboard.submitBehavior
+      val submits = behavior != SubmitBehavior.NEWLINE
+      val blurs = behavior == SubmitBehavior.BLUR_AND_SUBMIT
+      if (submits) {
+        if (worklets.onKeyPress != 0) NitroInputWorklets.runKeyPress(worklets.onKeyPress, "Enter")
+        if (worklets.onSubmitEditing != 0) {
+          NitroInputWorklets.runSubmitEditing(worklets.onSubmitEditing, text)
+        }
+        onKeyPress?.invoke("Enter")
+        onSubmit?.invoke(text)
       }
-      onKeyPress?.invoke("Enter")
-      onSubmit?.invoke(text)
-      // `submitBehavior: 'submit'` keeps focus so a form can move on itself.
-      if (keyboard.blurOnSubmit) blur()
-      true
+      if (blurs) blur()
+      // Consumed unless a wrapping field is to get its line break. A single
+      // line never inserts one, so there `newline` swallows the key, which is
+      // what React Native does too.
+      if (submits || blurs || !keyboard.multiline) return@setOnEditorActionListener true
+      // A full-screen IME (landscape) renders the `returnKeyType` action even
+      // on a wrapping field; next / previous must not move focus on their own.
+      actionId == EditorInfo.IME_ACTION_NEXT || actionId == EditorInfo.IME_ACTION_PREVIOUS
     }
     addView(editText, matchParent)
 
@@ -628,8 +694,10 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val paint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG)
     paint.typeface = makeTypeface(t)
     paint.textSize = sizeDp * density
-    paint.color = t.color ?: defaultTextColor()
-    if (format.mode == Mode.NUMBER) paint.fontFeatureSettings = "tnum"
+    paint.color = t.color ?: themeTextColor
+    // Tabular figures in every mode, as on iOS: the engine slides digit runs
+    // in text mode too, and proportional digits would jitter as they change.
+    paint.fontFeatureSettings = "tnum"
     return paint
   }
 
@@ -667,29 +735,33 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     }
   }
 
-  private fun defaultTextColor(): Int = resolveThemeColor(android.R.attr.textColorPrimary, Color.BLACK)
-  /**
-   * A React Native activity usually runs a bare `AppCompat` theme with no text
-   * appearance, so `android.R.attr.textColorHint` comes back as the *primary*
-   * text colour — which draws the placeholder solid black instead of the muted
-   * grey every other input on the platform shows. Derive it from the text
-   * colour instead, the way iOS's `.placeholderText` is derived from `.label`:
-   * theme-independent, and it still reads correctly on a dark background.
-   */
-  private fun defaultPlaceholderColor(): Int {
-    val text = typography.color ?: defaultTextColor()
-    return Color.argb(
-      (Color.alpha(text) * PLACEHOLDER_ALPHA).toInt(),
-      Color.red(text),
-      Color.green(text),
-      Color.blue(text),
-    )
+  /** [color] at placeholder strength: the same hue, its alpha multiplied down. */
+  private fun muted(color: Int): Int = Color.argb(
+    (Color.alpha(color) * PLACEHOLDER_ALPHA).toInt(),
+    Color.red(color),
+    Color.green(color),
+    Color.blue(color),
+  )
+
+  /** Re-reads the theme (a light / dark switch) and everything derived from it. */
+  private fun refreshThemeColors() {
+    themeTextColor = resolveThemeColor(android.R.attr.textColorPrimary, Color.BLACK)
+    themeCaretColor = resolveThemeColor(android.R.attr.colorAccent, 0xFF2196F3.toInt())
+    deriveColors()
   }
-  private fun defaultCaretColor(): Int = resolveThemeColor(android.R.attr.colorAccent, 0xFF2196F3.toInt())
+
+  /** The colours the frames draw with, settled once here rather than per frame. */
+  private fun deriveColors() {
+    resolvedTextColor = typography.color ?: themeTextColor
+    mutedTextColor = muted(resolvedTextColor)
+    resolvedPlaceholderColor = typography.placeholderColor ?: mutedTextColor
+    resolvedCaretColor = caret.color ?: themeCaretColor
+  }
 
   private fun charString(codePoint: Int): String = charCache.getOrPut(codePoint) { String(Character.toChars(codePoint)) }
 
   private fun rebuildFonts() {
+    deriveColors()
     fonts = FontSet(typography)
     applyEditTextLayout()
     reportIntrinsicSize()
@@ -708,6 +780,10 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     // own - unlike the overlay, which positions its own glyphs.
     if (typography.lineHeightPx > 0f) {
       TextViewCompat.setLineHeight(editText, typography.lineHeightPx.roundToInt())
+    } else {
+      // `setLineHeight` is line spacing underneath; back to the font's own
+      // once the override is gone, or the last value would stick.
+      editText.setLineSpacing(0f, 1f)
     }
     // An outlined or filled frame reserves room at the sides for its stroke and
     // at the top for the floated label. A single line is centred in whatever
@@ -820,7 +896,14 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       ReturnKeyType.SEARCH -> EditorInfo.IME_ACTION_SEARCH
       ReturnKeyType.SEND -> EditorInfo.IME_ACTION_SEND
     }
-    editText.filters = if (!numberMode && k.maxLength > 0) arrayOf<InputFilter>(InputFilter.LengthFilter(k.maxLength)) else emptyArray<InputFilter>()
+    // Text mode only, as on iOS. A mask's pattern is its own length, and
+    // `setEditable` replaces through the `Editable`, which re-runs the filters:
+    // a length filter there clipped the mask's punctuation off the end.
+    editText.filters = if (format.mode == Mode.TEXT && k.maxLength > 0) {
+      arrayOf<InputFilter>(InputFilter.LengthFilter(k.maxLength))
+    } else {
+      emptyArray<InputFilter>()
+    }
     editText.isEnabled = k.editable
     editText.isFocusable = k.editable
     editText.isFocusableInTouchMode = k.editable
@@ -906,7 +989,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     view.gravity = Gravity.CENTER_VERTICAL
     view.typeface = paint.typeface
     view.setTextSize(TypedValue.COMPLEX_UNIT_PX, paint.textSize)
-    view.setTextColor(typography.color ?: defaultTextColor())
+    view.setTextColor(resolvedTextColor)
     if (view.text?.toString() != affix) view.text = affix
     return view
   }
@@ -933,8 +1016,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       overlay.visibility = GONE
       stopAnimation()
       engine.reset()
-      editText.setTextColor(typography.color ?: defaultTextColor())
-      editText.setHintTextColor(typography.placeholderColor ?: defaultPlaceholderColor())
+      editText.setTextColor(resolvedTextColor)
+      editText.setHintTextColor(resolvedPlaceholderColor)
       applyNativeCursor()
       applyAutoSize()
       applyAffixes()
@@ -992,7 +1075,13 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     if (!keyboard.editable) return
     editText.isFocusableInTouchMode = true
     if (!editText.hasFocus()) editText.requestFocus()
-    inputMethodManager()?.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT)
+    // `showSoftInputOnFocus: false` keeps focus and the caret but no keyboard;
+    // the EditText honours it on its own, so only the explicit ask is guarded.
+    // No flags, as ReactEditText asks: `SHOW_IMPLICIT` is deprecated and only
+    // ever let the platform decline to show the keyboard.
+    if (keyboard.showSoftInputOnFocus) {
+      inputMethodManager()?.showSoftInput(editText, 0)
+    }
   }
 
   /// Moves the caret/selection to `start`..`end`, in code points.
@@ -1119,6 +1208,12 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
   override fun onAttachedToWindow() {
     super.onAttachedToWindow()
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+      animatorScale = -1f
+      context.contentResolver.registerContentObserver(
+        Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE), false, animatorScaleObserver,
+      )
+    }
     scheduleFrameIfNeeded()
     restartBlink()
     syncAccessibilityFromHost()
@@ -1128,7 +1223,21 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   override fun onDetachedFromWindow() {
     stopAnimation()
     removeCallbacks(blink)
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+      context.contentResolver.unregisterContentObserver(animatorScaleObserver)
+    }
     super.onDetachedFromWindow()
+  }
+
+  override fun onConfigurationChanged(newConfig: Configuration?) {
+    super.onConfigurationChanged(newConfig)
+    // The paints resolve the theme's colours and the system font scale when
+    // they are built; a light / dark switch or a text-size change rebuilds
+    // them, and a plain field's own text colour follows.
+    refreshThemeColors()
+    rebuildFonts()
+    applyPlain()
+    invalidate()
   }
 
   override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -1213,7 +1322,13 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       // Like React Native's `onKeyPress`: the inserted text, or 'Backspace'.
       // Only for real key events — the watcher also runs for the initial set.
       if (editText.hasFocus()) {
-        val key = if (replacement.isEmpty()) "Backspace" else replacement
+        // A wrapping field's IME commits the line break as text; React Native
+        // reports that as the Enter key, and so does the single-line path.
+        val key = when (replacement) {
+          "" -> "Backspace"
+          "\n" -> "Enter"
+          else -> replacement
+        }
         if (worklets.onKeyPress != 0) NitroInputWorklets.runKeyPress(worklets.onKeyPress, key)
         onKeyPress?.invoke(key)
       }
@@ -1409,12 +1524,27 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     }
   }
 
+  /**
+   * The animator duration scale on API < 33, read once and refreshed by
+   * [animatorScaleObserver] (a settings query per keystroke was a binder call
+   * on every edit). -1 = not read yet.
+   */
+  private var animatorScale = -1f
+  private val animatorScaleObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+    override fun onChange(selfChange: Boolean) {
+      animatorScale = -1f
+    }
+  }
+
   /** True when the user removed animations (Android's animator scale is 0), the equivalent of Reduce Motion. */
   private fun animationsDisabled(): Boolean {
     val scale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
       ValueAnimator.getDurationScale()
     } else {
-      android.provider.Settings.Global.getFloat(context.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+      if (animatorScale < 0f) {
+        animatorScale = Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+      }
+      animatorScale
     }
     return scale <= 0f
   }
@@ -1433,9 +1563,10 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     while (glyphs.size < count) glyphs.add(Glyph())
     while (glyphs.size > count) glyphs.removeAt(glyphs.size - 1)
     for (i in 0 until count) {
+      // Slot 0 is the engine's glyph id and slot 10 its exiting flag; neither
+      // is needed to draw, so they are left in the buffer.
       val base = 3 + i * 11
       val g = glyphs[i]
-      g.id = f[base].toLong()
       g.character = f[base + 1].toInt()
       g.role = f[base + 2].toInt()
       g.kind = f[base + 3].toInt()
@@ -1445,7 +1576,6 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       g.y = f[base + 7].toFloat()
       g.opacity = f[base + 8].toFloat()
       g.scale = f[base + 9].toFloat()
-      g.exiting = f[base + 10] != 0.0
     }
   }
 
@@ -1591,8 +1721,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val boxHeight = max(0, (view.height - top).roundToInt())
     val layout = contentLayout(boxWidth, boxHeight, contentWidth, trackCaret = true)
     val lineHeight = f.lineHeight
-    val textColor = typography.color ?: defaultTextColor()
-    val placeholderColor = typography.placeholderColor ?: defaultPlaceholderColor()
+    val textColor = resolvedTextColor
+    val placeholderColor = resolvedPlaceholderColor
     val effect = timing.effect
 
     val outer = canvas.save()
@@ -1636,7 +1766,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       val w = CARET_WIDTH_DP * density
       val h = lineHeight * (1f - CARET_INSET)
       val top = (lineHeight - h) / 2f
-      caretPaint.color = caret.color ?: defaultCaretColor()
+      caretPaint.color = resolvedCaretColor
       canvas.drawRoundRect(x, top, x + w, top + h, w / 2f, w / 2f, caretPaint)
     }
     canvas.restoreToCount(outer)
@@ -1695,12 +1825,12 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     get() = if (inputFrame.hasLabel && !labelShouldFloat) "" else format.placeholder
 
   private fun resolvedStrokeColor(): Int {
-    val base = inputFrame.strokeColor ?: defaultPlaceholderColor()
+    val base = inputFrame.strokeColor ?: mutedTextColor
     return blend(base, inputFrame.focusedStrokeColor ?: base, focusProgress)
   }
 
   private fun resolvedLabelColor(): Int {
-    val resting = inputFrame.labelColor ?: defaultPlaceholderColor()
+    val resting = inputFrame.labelColor ?: mutedTextColor
     val focused = inputFrame.labelFocusedColor ?: inputFrame.focusedStrokeColor ?: resting
     return blend(resting, focused, focusProgress)
   }

@@ -27,7 +27,6 @@ public:
   void clearNotations();
   void addNotation(jni::alias_ref<jni::JString> character, jni::alias_ref<jni::JString> characterSet, bool isOptional);
   bool setFormat(jni::alias_ref<jni::JString> format);
-  bool isActive();
 
   /// Replaces code points [start, end) of `current` with `replacement`.
   jni::local_ref<jni::JString> applyEdit(jni::alias_ref<jni::JString> current, int start, int end,
@@ -40,7 +39,6 @@ public:
   jni::local_ref<jni::JString> lastExtracted();
   jni::local_ref<jni::JString> lastTailPlaceholder();
   bool lastComplete();
-  jni::local_ref<jni::JString> placeholder();
 
 private:
   friend HybridBase;

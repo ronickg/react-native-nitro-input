@@ -17,7 +17,8 @@ import com.facebook.proguard.annotations.DoNotStrip
 @Keep
 enum class NitroInputSubmitBehavior(@DoNotStrip @Keep val value: Int) {
   SUBMIT(0),
-  BLURANDSUBMIT(1);
+  BLURANDSUBMIT(1),
+  NEWLINE(2);
 
   companion object
 }

@@ -103,7 +103,6 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var suffix: String = "" { didSet { markConfigDirty() } }
   var prefixFontSize: Double = 32 { didSet { markConfigDirty() } }
   var suffixFontSize: Double = 32 { didSet { markConfigDirty() } }
-  var affixAlign: NitroInputAffixAlign = .baseline { didSet { markConfigDirty() } }
   var signPlacement: NitroInputSignPlacement = .beforeaffix { didSet { markConfigDirty() } }
   var prefixAlign: NitroInputAffixAlign = .baseline { didSet { markConfigDirty() } }
   var suffixAlign: NitroInputAffixAlign = .baseline { didSet { markConfigDirty() } }
@@ -281,7 +280,6 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     suffix = ""
     prefixFontSize = 32
     suffixFontSize = 32
-    affixAlign = .baseline
     signPlacement = .beforeaffix
     prefixAlign = .baseline
     suffixAlign = .baseline
@@ -472,7 +470,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     format.maskAutocomplete = maskAutocomplete
     format.maskAutoSkip = maskAutoSkip
     format.fractionDigits = Self.clampInt(fractionDigits, 0, 9, fallback: 2)
-    format.maxIntegerDigits = Self.clampInt(maxIntegerDigits, 1, 15, fallback: 15)
+    format.maxIntegerDigits = Self.clampInt(maxIntegerDigits, 1, 30, fallback: 15)
     format.groupingSeparator = groupingSeparator
     format.decimalSeparator = decimalSeparator.isEmpty ? "." : decimalSeparator
     format.prefix = prefix
@@ -525,7 +523,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     traits.plain = plain
     traits.testID = fieldTestID.isEmpty ? nil : fieldTestID
     traits.accessibilityLabel = fieldAccessibilityLabel.isEmpty ? nil : fieldAccessibilityLabel
-    traits.blurOnSubmit = submitBehavior == .blurandsubmit
+    traits.submitBehavior = Self.mapSubmitBehavior(submitBehavior)
     traits.secureTextEntry = secureTextEntry
     traits.keyboardAppearance = Self.mapKeyboardAppearance(keyboardAppearance)
     traits.textContentType = Self.mapTextContentType(textContentType)
@@ -632,6 +630,15 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     case .top: return .top
     case .bottom: return .bottom
     default: return .baseline
+    }
+  }
+
+  private static func mapSubmitBehavior(_ behavior: NitroInputSubmitBehavior) -> NitroInputView.SubmitBehavior {
+    switch behavior {
+    case .submit: return .submit
+    case .newline: return .newline
+    case .blurandsubmit: return .blurAndSubmit
+    default: return .blurAndSubmit
     }
   }
 

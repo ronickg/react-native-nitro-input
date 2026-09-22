@@ -68,8 +68,6 @@ namespace margelo::nitro::nitroinput {
       prototype.registerHybridSetter("prefixFontSize", &HybridNitroInputViewSpec::setPrefixFontSize);
       prototype.registerHybridGetter("suffixFontSize", &HybridNitroInputViewSpec::getSuffixFontSize);
       prototype.registerHybridSetter("suffixFontSize", &HybridNitroInputViewSpec::setSuffixFontSize);
-      prototype.registerHybridGetter("affixAlign", &HybridNitroInputViewSpec::getAffixAlign);
-      prototype.registerHybridSetter("affixAlign", &HybridNitroInputViewSpec::setAffixAlign);
       prototype.registerHybridGetter("signPlacement", &HybridNitroInputViewSpec::getSignPlacement);
       prototype.registerHybridSetter("signPlacement", &HybridNitroInputViewSpec::setSignPlacement);
       prototype.registerHybridGetter("prefixAlign", &HybridNitroInputViewSpec::getPrefixAlign);

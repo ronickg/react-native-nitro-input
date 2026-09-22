@@ -25,7 +25,6 @@ class MaskEngine {
   external fun addNotation(character: String, characterSet: String, isOptional: Boolean)
   /** False when the pattern is malformed; the engine then passes text through. */
   external fun setFormat(format: String): Boolean
-  external fun isActive(): Boolean
 
   /** Replaces code points `[start, end)` of [current] with [replacement]. */
   external fun applyEdit(
@@ -48,6 +47,4 @@ class MaskEngine {
   external fun lastTailPlaceholder(): String
   /** Whether every mandatory slot is filled. */
   external fun lastComplete(): Boolean
-  /** The whole mask with nothing typed into it. */
-  external fun placeholder(): String
 }

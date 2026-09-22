@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <string>
 
@@ -243,6 +244,48 @@ static void bottomCornersCanBeSquaredOnTheirOwn() {
   CHECK(open.back().point.x >= 8.5 - 1e-9);
 }
 
+/// The flat form the Android bridge draws from says exactly what the segment
+/// form says, six doubles per segment, and reuses the caller's vector.
+static void flatFormMatchesTheSegments() {
+  CHECK(OutlineGeometry::kFlatStride == 6);
+  std::vector<double> flat;
+  const OutlineGeometry::Gap gap{24, 60, 4};
+  OutlineGeometry::Box squaredBottom{300, 56, 8, 1};
+  squaredBottom.bottomRadius = 0;
+  const OutlineGeometry::Box boxes[] = {box(), box(300, 56, 0, 1), box(300, 56, 999, 2), squaredBottom};
+  for (const auto& b : boxes) {
+    for (double t : {0.0, 0.37, 1.0}) {
+      const auto segments = OutlineGeometry::outline(b, gap, t);
+      const size_t count = OutlineGeometry::outline(b, gap, t, flat);
+      CHECK(count == segments.size());
+      CHECK(flat.size() == segments.size() * OutlineGeometry::kFlatStride);
+      for (size_t i = 0; i < segments.size() && (i + 1) * OutlineGeometry::kFlatStride <= flat.size(); ++i) {
+        const double* s = flat.data() + i * OutlineGeometry::kFlatStride;
+        CHECK_NEAR(s[0], static_cast<double>(static_cast<int32_t>(segments[i].verb)));
+        CHECK_NEAR(s[1], segments[i].point.x);
+        CHECK_NEAR(s[2], segments[i].point.y);
+        CHECK_NEAR(s[3], segments[i].radius);
+        CHECK_NEAR(s[4], segments[i].startAngle);
+        CHECK_NEAR(s[5], segments[i].sweepAngle);
+      }
+    }
+  }
+
+  // Once grown, redrawing allocates nothing: the storage stays where it was.
+  OutlineGeometry::outline(box(), gap, 1, flat);
+  const double* storage = flat.data();
+  const size_t capacity = flat.capacity();
+  for (double t : {0.0, 0.5, 1.0}) {
+    OutlineGeometry::outline(box(), gap, t, flat);
+    CHECK(flat.data() == storage);
+    CHECK(flat.capacity() == capacity);
+  }
+
+  // A box with no outline writes nothing - and clears what was there before.
+  CHECK(OutlineGeometry::outline(box(0, 56), gap, 1, flat) == 0);
+  CHECK(flat.empty());
+}
+
 int main() {
   everyPathHasTheSameShape();
   closedWhenThereIsNoLabel();
@@ -257,6 +300,7 @@ int main() {
   labelRectInterpolates();
   gapFollowsTheFloatedLabel();
   bottomCornersCanBeSquaredOnTheirOwn();
+  flatFormMatchesTheSegments();
   if (failures == 0) {
     std::printf("OutlineGeometry: all checks passed\n");
     return 0;

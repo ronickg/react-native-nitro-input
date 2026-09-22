@@ -109,12 +109,12 @@ export type NitroInputAutoCapitalize =
   | 'characters'
 
 /**
- * What the return key does. `'blurAndSubmit'` (the default, and what the field
- * did unconditionally before) fires `onSubmitEditing` and dismisses the
- * keyboard; `'submit'` fires it and keeps focus, which is what a form that
- * moves to the next field needs.
+ * What the return key does. `'blurAndSubmit'` fires `onSubmitEditing` and
+ * dismisses the keyboard; `'submit'` fires it and keeps focus, which is what
+ * a form that moves to the next field needs; `'newline'` inserts a line break
+ * (multiline fields only, and their default, as with `TextInput`).
  */
-export type NitroInputSubmitBehavior = 'submit' | 'blurAndSubmit'
+export type NitroInputSubmitBehavior = 'submit' | 'blurAndSubmit' | 'newline'
 
 /** Light or dark keyboard (iOS). `'default'` follows the system appearance. */
 export type NitroInputKeyboardAppearance = 'default' | 'light' | 'dark'
@@ -214,13 +214,11 @@ export interface NitroInputProps extends HybridViewProps {
   prefixFontSize: number
   /** Font size of `suffix` in points. Defaults to `fontSize`. */
   suffixFontSize: number
-  /** Vertical alignment of prefix and suffix relative to the text. Default: `'baseline'`. */
-  affixAlign: NitroInputAffixAlign
   /** Where a negative amount's sign sits relative to `prefix`. */
   signPlacement: NitroInputSignPlacement
-  /** Alignment of `prefix` only. Defaults to `affixAlign`. */
+  /** Vertical alignment of `prefix` relative to the text (the wrapper folds its `affixAlign` into this). */
   prefixAlign: NitroInputAffixAlign
-  /** Alignment of `suffix` only. Defaults to `affixAlign`. */
+  /** Vertical alignment of `suffix` relative to the text (the wrapper folds its `affixAlign` into this). */
   suffixAlign: NitroInputAffixAlign
   /** Shown (and morphed away) while the field is empty. Default: `''`. */
   placeholder: string
@@ -324,7 +322,7 @@ export interface NitroInputProps extends HybridViewProps {
   fieldTestID: string
   /** Accessibility label for the hidden system field. Empty leaves it unset. */
   fieldAccessibilityLabel: string
-  /** What the return key does. Default: `'blurAndSubmit'`. */
+  /** What the return key does. Default: `'blurAndSubmit'`, `'newline'` when `multiline`. */
   submitBehavior: NitroInputSubmitBehavior
   /** Masks the text with bullets and opts the field out of autocorrect/autofill. Default: `false`. */
   secureTextEntry: boolean

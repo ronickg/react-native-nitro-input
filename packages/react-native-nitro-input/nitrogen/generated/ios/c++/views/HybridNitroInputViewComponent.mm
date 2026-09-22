@@ -260,12 +260,6 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.suffixFontSize.hasSameValue(oldViewProps->suffixFontSize)) {
       swiftPart.setSuffixFontSize(newViewProps.suffixFontSize.get());
     }
-    // affixAlign: enum
-    if (oldViewProps == nullptr
-          ? newViewProps.affixAlign.isProvided()
-          : !newViewProps.affixAlign.hasSameValue(oldViewProps->affixAlign)) {
-      swiftPart.setAffixAlign(static_cast<int>(newViewProps.affixAlign.get()));
-    }
     // signPlacement: enum
     if (oldViewProps == nullptr
           ? newViewProps.signPlacement.isProvided()

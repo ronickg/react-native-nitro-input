@@ -2,9 +2,9 @@
   "name": "react-native-nitro-input",
   "version": "0.0.0",
   "description": "Native text and amount input for React Native with Torph-style text morphing: characters slide, fade and reflow as you type, currency formatting applied natively, no JS round trip. Built with Nitro.",
-  "main": "lib/index.js",
-  "module": "lib/index.js",
-  "types": "lib/index.d.ts",
+  "main": "lib/commonjs/src/index.js",
+  "module": "lib/module/src/index.js",
+  "types": "lib/typescript/src/index.d.ts",
   "react-native": "src/index.ts",
   "source": "src/index.ts",
   "files": [
@@ -34,7 +34,7 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "rm -rf lib && tsc -p tsconfig.build.json",
+    "build": "rm -rf lib && tsc -p tsconfig.build.json && tsc -p tsconfig.build.cjs.json && echo '{\"type\":\"module\"}' > lib/module/package.json",
     "clean": "rm -rf android/build lib",
     "specs": "nitrogen --logLevel=\"debug\"",
     "prepack": "bun run build",
@@ -70,7 +70,9 @@
     "@react-native/babel-preset": "0.87.1",
     "@react-native/jest-preset": "0.87.1",
     "@types/jest": "^29.5.13",
+    "@types/node": "^26.6.1",
     "@types/react": "^19.2.0",
+    "@types/react-test-renderer": "^19.3.0",
     "jest": "^29.7.0",
     "nitrogen": "0.37.1",
     "react": "19.2.3",
@@ -83,7 +85,13 @@
   "peerDependencies": {
     "react": "*",
     "react-native": ">=0.78.0",
-    "react-native-nitro-modules": ">=0.37.0"
+    "react-native-nitro-modules": ">=0.37.0",
+    "react-native-worklets": "*"
+  },
+  "peerDependenciesMeta": {
+    "react-native-worklets": {
+      "optional": true
+    }
   },
   "prettier": {
     "quoteProps": "consistent",
@@ -95,9 +103,11 @@
   },
   "exports": {
     ".": {
-      "types": "./lib/index.d.ts",
+      "types": "./lib/typescript/src/index.d.ts",
       "react-native": "./src/index.ts",
-      "default": "./lib/index.js"
+      "import": "./lib/module/src/index.js",
+      "require": "./lib/commonjs/src/index.js",
+      "default": "./lib/commonjs/src/index.js"
     },
     "./package.json": "./package.json"
   },
@@ -113,7 +123,7 @@
     },
     "github": {
       "release": true,
-      "releaseName": "morph-input v${version}"
+      "releaseName": "nitro-input v${version}"
     },
     "hooks": {
       "before:init": [

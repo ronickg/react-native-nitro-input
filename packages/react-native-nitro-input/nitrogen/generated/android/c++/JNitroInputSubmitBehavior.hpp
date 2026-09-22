@@ -48,6 +48,9 @@ namespace margelo::nitro::nitroinput {
         case NitroInputSubmitBehavior::BLURANDSUBMIT:
           static const auto fieldBLURANDSUBMIT = clazz->getStaticField<JNitroInputSubmitBehavior>("BLURANDSUBMIT");
           return clazz->getStaticFieldValue(fieldBLURANDSUBMIT);
+        case NitroInputSubmitBehavior::NEWLINE:
+          static const auto fieldNEWLINE = clazz->getStaticField<JNitroInputSubmitBehavior>("NEWLINE");
+          return clazz->getStaticFieldValue(fieldNEWLINE);
         default:
           std::string stringValue = std::to_string(static_cast<int>(value));
           throw std::invalid_argument("Invalid enum value (" + stringValue + "!");

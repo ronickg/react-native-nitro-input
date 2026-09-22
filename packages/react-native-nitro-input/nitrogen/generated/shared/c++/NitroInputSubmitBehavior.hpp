@@ -31,6 +31,7 @@ namespace margelo::nitro::nitroinput {
   enum class NitroInputSubmitBehavior {
     SUBMIT      SWIFT_NAME(submit) = 0,
     BLURANDSUBMIT      SWIFT_NAME(blurandsubmit) = 1,
+    NEWLINE      SWIFT_NAME(newline) = 2,
   } CLOSED_ENUM;
 
 } // namespace margelo::nitro::nitroinput
@@ -45,6 +46,7 @@ namespace margelo::nitro {
       switch (hashString(unionValue.c_str(), unionValue.size())) {
         case hashString("submit"): return margelo::nitro::nitroinput::NitroInputSubmitBehavior::SUBMIT;
         case hashString("blurAndSubmit"): return margelo::nitro::nitroinput::NitroInputSubmitBehavior::BLURANDSUBMIT;
+        case hashString("newline"): return margelo::nitro::nitroinput::NitroInputSubmitBehavior::NEWLINE;
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert \"" + unionValue + "\" to enum NitroInputSubmitBehavior - invalid value!");
       }
@@ -53,6 +55,7 @@ namespace margelo::nitro {
       switch (arg) {
         case margelo::nitro::nitroinput::NitroInputSubmitBehavior::SUBMIT: return JSIConverter<std::string>::toJSI(runtime, "submit");
         case margelo::nitro::nitroinput::NitroInputSubmitBehavior::BLURANDSUBMIT: return JSIConverter<std::string>::toJSI(runtime, "blurAndSubmit");
+        case margelo::nitro::nitroinput::NitroInputSubmitBehavior::NEWLINE: return JSIConverter<std::string>::toJSI(runtime, "newline");
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert NitroInputSubmitBehavior to JS - invalid value: "
                                     + std::to_string(static_cast<int>(arg)) + "!");
@@ -66,6 +69,7 @@ namespace margelo::nitro {
       switch (hashString(unionValue.c_str(), unionValue.size())) {
         case hashString("submit"):
         case hashString("blurAndSubmit"):
+        case hashString("newline"):
           return true;
         default:
           return false;

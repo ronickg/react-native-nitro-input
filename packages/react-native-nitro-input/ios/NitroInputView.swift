@@ -73,6 +73,17 @@ final class NitroInputView: UIView {
   /// Where a negative amount's sign sits relative to the prefix.
   enum SignPlacement: Equatable { case beforeAffix, afterAffix }
 
+  /// What the return key does, as React Native's `TextInput` has it on iOS.
+  enum SubmitBehavior: Equatable {
+    /// Fires `onSubmitEditing` and keeps focus, so a form can move on itself.
+    case submit
+    /// Fires `onSubmitEditing` and dismisses the keyboard.
+    case blurAndSubmit
+    /// Inserts a line break on a wrapping field; on a single line it neither
+    /// submits nor blurs.
+    case newline
+  }
+
   enum Variant: Equatable { case none, outlined, filled }
   enum LabelBehavior: Equatable { case float, always }
 
@@ -141,8 +152,7 @@ final class NitroInputView: UIView {
     var caretHidden: Bool = false
     var caretColor: UIColor? = nil
     var selectionColor: UIColor? = nil
-    /// `submitBehavior`: whether the return key also dismisses the keyboard.
-    var blurOnSubmit: Bool = true
+    var submitBehavior: SubmitBehavior = .blurAndSubmit
     var secureTextEntry: Bool = false
     var keyboardAppearance: UIKeyboardAppearance = .default
     var textContentType: UITextContentType? = nil
@@ -215,7 +225,7 @@ final class NitroInputView: UIView {
   var traits = Traits() {
     didSet {
       guard traits != oldValue else { return }
-      applyTraits()
+      applyTraits(previous: oldValue)
       // Nothing else re-measures when a field turns multiline or changes how
       // many lines it may be: the text is unchanged, so no edit comes through
       // to carry a new height out with it.
@@ -297,7 +307,6 @@ final class NitroInputView: UIView {
     guard format.mode == .number else { return .nan }
     return formatter.value(std.string(text))
   }
-  var hasFocus: Bool { editor.isFirstResponder }
   /// Incremented on every native text change JS has not caused itself.
   private(set) var eventCount = 0
 
@@ -307,40 +316,68 @@ final class NitroInputView: UIView {
     case body, prefix, suffix
   }
 
+  /// One glyph in one role, as the caches key it. A value type rather than a
+  /// concatenated string: a lookup on the frame path must not allocate.
+  fileprivate struct GlyphKey: Hashable {
+    let text: String
+    let role: GlyphRole
+    let placeholder: Bool
+  }
+
   /// Body / prefix / suffix fonts with per-glyph caches (advance widths, ink
   /// metrics and pre-rasterized images in the text or placeholder colour).
   fileprivate final class FontSet {
     let body: UIFont
     let prefix: UIFont
     let suffix: UIFont
+    /// The text and placeholder colours resolved for the view's traits: the
+    /// glyph images bake them in, and `.label` / `.placeholderText` are
+    /// dynamic (see `traitCollectionDidChange`).
     let color: UIColor
     let placeholderColor: UIColor
     let prefixAlign: AffixAlign
     let suffixAlign: AffixAlign
     /// Height of the line box (the body font's line height).
     let lineHeight: CGFloat
+    /// Pixel density the glyph images are rendered at.
     let renderScale: CGFloat
-    private var glyphCache: [String: NSAttributedString] = [:]
-    private var widthCache: [String: CGFloat] = [:]
-    private var imageCache: [String: UIImage] = [:]
-    private var inkDescentCache: [String: CGFloat] = [:]
+    private var glyphCache: [GlyphKey: NSAttributedString] = [:]
+    private var widthCache: [GlyphKey: CGFloat] = [:]
+    private var imageCache: [GlyphKey: UIImage] = [:]
+    private var inkDescentCache: [GlyphKey: CGFloat] = [:]
 
-    /// Font sets are immutable for a given `Typography` and their caches are
-    /// pure functions of it, so views that look alike share one. Without this
-    /// every field builds its own three `UIFont`s and re-rasterizes the same
-    /// glyphs: 20 identical fields did the work 20 times, and each field did it
-    /// twice over (once for the defaults in `init`, once when the real
-    /// typography arrived). Main-thread only, like the rest of the view.
-    private static var shared: [Typography: FontSet] = [:]
-    private static var sharedOrder: [Typography] = []
+    /// What a shared font set is a pure function of: the typography, the
+    /// colours it resolves to under the view's appearance, and the display
+    /// density. Two views that look alike under the same appearance on the
+    /// same kind of screen share one; a light one and a dark one do not.
+    private struct SharedKey: Hashable {
+      let typography: Typography
+      let color: UIColor
+      let placeholderColor: UIColor
+      let scale: CGFloat
+    }
 
-    static func shared(for t: Typography) -> FontSet {
-      if let hit = shared[t] { return hit }
-      let made = FontSet(t)
-      shared[t] = made
-      sharedOrder.append(t)
+    /// Font sets are immutable for a given key and their caches are pure
+    /// functions of it, so views that look alike share one. Without this every
+    /// field builds its own three `UIFont`s and re-rasterizes the same glyphs:
+    /// 20 identical fields did the work 20 times, and each field did it twice
+    /// over (once for the defaults in `init`, once when the real typography
+    /// arrived). Main-thread only, like the rest of the view.
+    private static var shared: [SharedKey: FontSet] = [:]
+    private static var sharedOrder: [SharedKey] = []
+
+    static func shared(for t: Typography, traits: UITraitCollection) -> FontSet {
+      let key = SharedKey(typography: t,
+                          color: t.color.resolvedColor(with: traits),
+                          placeholderColor: t.placeholderColor.resolvedColor(with: traits),
+                          scale: max(1, traits.displayScale))
+      if let hit = shared[key] { return hit }
+      let made = FontSet(t, traits: traits)
+      shared[key] = made
+      sharedOrder.append(key)
       // A screen rarely uses many distinct typographies; keep the newest few
-      // so the caches cannot grow without bound.
+      // so the caches cannot grow without bound. The sets an appearance switch
+      // leaves behind age out the same way.
       if sharedOrder.count > 12 {
         let evicted = sharedOrder.removeFirst()
         shared.removeValue(forKey: evicted)
@@ -348,14 +385,15 @@ final class NitroInputView: UIView {
       return made
     }
 
-    init(_ t: Typography) {
-      renderScale = max(1, UIScreen.main.scale)
+    init(_ t: Typography, traits: UITraitCollection) {
+      // The view's own display, not the main screen's (deprecated, and absent on visionOS).
+      renderScale = max(1, traits.displayScale)
       let scale = NitroInputView.systemFontMultiplier(t)
       body = NitroInputView.makeFont(size: t.fontSize * scale, weight: t.fontWeight, family: t.fontFamily)
       prefix = NitroInputView.makeFont(size: (t.prefixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily)
       suffix = NitroInputView.makeFont(size: (t.suffixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily)
-      color = t.color
-      placeholderColor = t.placeholderColor
+      color = t.color.resolvedColor(with: traits)
+      placeholderColor = t.placeholderColor.resolvedColor(with: traits)
       prefixAlign = t.prefixAlign
       suffixAlign = t.suffixAlign
       lineHeight = ceil(body.lineHeight)
@@ -370,7 +408,7 @@ final class NitroInputView: UIView {
     }
 
     func attributed(_ text: String, role: GlyphRole, placeholder: Bool = false) -> NSAttributedString {
-      let key = cacheKey(text, role, placeholder)
+      let key = GlyphKey(text: text, role: role, placeholder: placeholder)
       if let cached = glyphCache[key] { return cached }
       let string = NSAttributedString(string: text, attributes: [
         .font: font(for: role),
@@ -383,7 +421,7 @@ final class NitroInputView: UIView {
 
     /// Advance width of `text` in the role's font, in points.
     func width(of text: String, role: GlyphRole) -> CGFloat {
-      let key = cacheKey(text, role, false)
+      let key = GlyphKey(text: text, role: role, placeholder: false)
       if let cached = widthCache[key] { return cached }
       let width = attributed(text, role: role).size().width
       widthCache[key] = width
@@ -393,7 +431,7 @@ final class NitroInputView: UIView {
     /// The glyph rasterized once (colour baked in, at screen density): a frame
     /// only moves layers, the main thread never redraws a bitmap.
     func image(_ text: String, role: GlyphRole, placeholder: Bool) -> UIImage? {
-      let key = cacheKey(text, role, placeholder)
+      let key = GlyphKey(text: text, role: role, placeholder: placeholder)
       if let cached = imageCache[key] { return cached }
       let string = attributed(text, role: role, placeholder: placeholder)
       let size = string.size()
@@ -411,7 +449,7 @@ final class NitroInputView: UIView {
 
     /// How far `text`'s ink hangs below the baseline (0 for digits and capitals).
     func inkDescent(_ text: String, role: GlyphRole) -> CGFloat {
-      let key = "ink|" + cacheKey(text, role, false)
+      let key = GlyphKey(text: text, role: role, placeholder: false)
       if let cached = inkDescentCache[key] { return cached }
       let line = CTLineCreateWithAttributedString(attributed(text, role: role))
       let bounds = CTLineGetImageBounds(line, nil)
@@ -439,16 +477,6 @@ final class NitroInputView: UIView {
         return affixBaseline - f.ascender
       }
     }
-
-    private func cacheKey(_ text: String, _ role: GlyphRole, _ placeholder: Bool) -> String {
-      let r: String
-      switch role {
-      case .body: r = "b|"
-      case .prefix: r = "p|"
-      case .suffix: r = "s|"
-      }
-      return (placeholder ? "ph|" : "") + r + text
-    }
   }
 
   // MARK: - State
@@ -473,7 +501,7 @@ final class NitroInputView: UIView {
   }()
   private lazy var labelLayer: CATextLayer = {
     let text = CATextLayer()
-    text.contentsScale = UIScreen.main.scale
+    text.contentsScale = max(1, traitCollection.displayScale)
     text.anchorPoint = CGPoint(x: 0, y: 0.5)
     text.alignmentMode = .left
     layer.addSublayer(text)
@@ -498,7 +526,7 @@ final class NitroInputView: UIView {
     var frame = Frame()
   }
   fileprivate var lastFrameSnapshot = FrameSnapshot()
-  fileprivate var fonts: FontSet
+  fileprivate lazy var fonts = FontSet.shared(for: Typography(), traits: traitCollection)
   private var fontScale: CGFloat = 1
   /// Horizontal offset (in view points) when the content is wider than the
   /// view: it follows the caret like a UITextField's own scrolling does.
@@ -538,8 +566,18 @@ final class NitroInputView: UIView {
   private let clipLayer = CALayer()
   private let edgeMask = CAGradientLayer()
   private let caretLayer = CALayer()
-  /// One layer per live engine glyph id.
-  private var glyphLayers: [Int64: CALayer] = [:]
+  /// One layer per live engine glyph id, with what it was rasterized for.
+  /// `topOffset` is the affix's baseline correction (`FontSet.top` with the
+  /// line top at 0), a pure function of the role and text, so a frame neither
+  /// rebuilds the text from the code point nor measures ink.
+  private struct GlyphEntry {
+    let layer: CALayer
+    let topOffset: CGFloat
+    /// The render pass that last saw this glyph; one a pass missed has left.
+    var generation: UInt
+  }
+  private var glyphLayers: [Int64: GlyphEntry] = [:]
+  private var renderGeneration: UInt = 0
   /// Where the content box sits in the bounds, as of the last render.
   private var placement: (origin: CGPoint, scale: CGFloat) = (.zero, 1)
   /// Last selection handed to `onSelectionChange`, so it only fires on a move.
@@ -548,7 +586,6 @@ final class NitroInputView: UIView {
   // MARK: - Lifecycle
 
   override init(frame: CGRect) {
-    fonts = FontSet.shared(for: Typography())
     super.init(frame: frame)
     isOpaque = false
     backgroundColor = .clear
@@ -585,7 +622,7 @@ final class NitroInputView: UIView {
     formatter.setFormat(Int32(format.fractionDigits), Int32(format.maxIntegerDigits),
                         std.string(format.groupingSeparator), std.string(format.decimalSeparator))
     applyFonts()
-    applyTraits()
+    applyTraits(previous: traits)
 
     NotificationCenter.default.addObserver(
       self, selector: #selector(contentSizeCategoryDidChange),
@@ -705,7 +742,40 @@ final class NitroInputView: UIView {
   override func didMoveToWindow() {
     super.didMoveToWindow()
     syncAccessibilityFromHost()
+    // The fonts were built against whatever traits the view had when it was
+    // made; the window's are the ones that count.
+    if window != nil { syncWithTraits(appearanceChanged: false) }
     maybeAutoFocus()
+  }
+
+  override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+    super.traitCollectionDidChange(previousTraitCollection)
+    let appearanceChanged = previousTraitCollection.map { traitCollection.hasDifferentColorAppearance(comparedTo: $0) } ?? true
+    syncWithTraits(appearanceChanged: appearanceChanged)
+  }
+
+  /// Everything drawn through Core Animation bakes the view's traits in: the
+  /// glyph images carry the resolved text colour and the pixel density, and
+  /// the frame's stroke, fill and label are `CGColor`s. A light/dark switch
+  /// (`.label`, `.separator` and the rest are dynamic) or a move to another
+  /// display rebuilds them, settled rather than animated: the field has not
+  /// changed, only what it is drawn with.
+  private func syncWithTraits(appearanceChanged: Bool) {
+    let scale = max(1, traitCollection.displayScale)
+    let fontsStale = scale != fonts.renderScale
+      || typography.color.resolvedColor(with: traitCollection) != fonts.color
+      || typography.placeholderColor.resolvedColor(with: traitCollection) != fonts.placeholderColor
+    guard fontsStale || appearanceChanged else { return }
+    if scale != contentLayer.contentsScale {
+      contentLayer.contentsScale = scale
+      if didBuildFrameLayers { labelLayer.contentsScale = scale }
+    }
+    if fontsStale { rebuildFonts() }
+    // The frame's colours are resolved as it is laid out, and an unchanged
+    // geometry would be skipped: forget the last one so this pass redraws.
+    lastFrameSnapshot = FrameSnapshot()
+    if wantsFrameDrawing { layoutFrame(animated: false) }
+    updateCaret()
   }
 
   /// `autoFocus`, taken **synchronously** as soon as the view has a window and
@@ -906,7 +976,7 @@ final class NitroInputView: UIView {
   }
 
   private func rebuildFonts() {
-    fonts = FontSet.shared(for: typography)
+    fonts = FontSet.shared(for: typography, traits: traitCollection)
     fontScale = 1
     // Every cached glyph image belongs to the old font set.
     clearGlyphLayers()
@@ -1120,7 +1190,7 @@ final class NitroInputView: UIView {
                                                right: frameSideInset)
   }
 
-  private func applyTraits() {
+  private func applyTraits(previous: Traits) {
     applyMultiline()
     field.keyboardType = traits.keyboardType
     field.returnKeyType = traits.returnKeyType
@@ -1141,7 +1211,7 @@ final class NitroInputView: UIView {
       // The mask changes what is drawn, not what is stored.
       if engine.hasText() { feedEngine(caret: -1) }
     }
-    applyPlain()
+    applyPlain(wasPlain: previous.plain)
     syncAccessibilityFromHost()
     field.showSoftInputOnFocus = traits.showSoftInputOnFocus
     field.contextMenuHidden = traits.contextMenuHidden
@@ -1154,7 +1224,7 @@ final class NitroInputView: UIView {
   }
 
   /// Switches between "hidden field + overlay" and "the field draws itself".
-  private func applyPlain() {
+  private func applyPlain(wasPlain: Bool) {
     let plain = traits.plain
     defer { syncAccessibilityPlaceholder() }
     field.hidesNativeCaret = !plain || traits.caretHidden
@@ -1183,6 +1253,11 @@ final class NitroInputView: UIView {
     attributes[.foregroundColor] = plain ? typography.color : UIColor.clear
     field.defaultTextAttributes = attributes
     updateFieldInsets()
+    // Turning plain on tore the overlay down and reset the engine, so on the
+    // way back it has nothing to draw until the next edit: hand it the text.
+    if wasPlain, !plain, !engine.hasText() {
+      feedEngine(caret: -1)
+    }
   }
 
   private func textAlignment(for alignment: Alignment) -> NSTextAlignment {
@@ -1346,14 +1421,9 @@ final class NitroInputView: UIView {
       reportIntrinsicSize()
     }
     updateDisplayLinkNeed()
-    // One Core Animation commit per frame: render() and updateCaret() each
-    // open a transaction, and inside a display-link callback the outermost
-    // explicit transaction commits to the render server immediately.
-    CATransaction.begin()
-    CATransaction.setDisableActions(true)
+    // `render()` places the caret along with the glyphs; whether it shows is
+    // decided by the focus and selection callbacks, never by a frame.
     render()
-    updateCaret()
-    CATransaction.commit()
   }
 
   private func updateDisplayLinkNeed() {
@@ -1417,12 +1487,7 @@ final class NitroInputView: UIView {
       base = UIFont.systemFont(ofSize: size, weight: uiWeight)
     }
     // Tabular digits: a column keeps its width while its digit morphs.
-    let feature: [UIFontDescriptor.FeatureKey: Int]
-    if #available(iOS 15.0, *) {
-      feature = [.type: kNumberSpacingType, .selector: kMonospacedNumbersSelector]
-    } else {
-      feature = [.featureIdentifier: kNumberSpacingType, .typeIdentifier: kMonospacedNumbersSelector]
-    }
+    let feature: [UIFontDescriptor.FeatureKey: Int] = [.type: kNumberSpacingType, .selector: kMonospacedNumbersSelector]
     let descriptor = base.fontDescriptor.addingAttributes([.featureSettings: [feature]])
     return UIFont(descriptor: descriptor, size: size)
   }
@@ -1504,8 +1569,8 @@ final class NitroInputView: UIView {
   // MARK: - Rendering
 
   private func clearGlyphLayers() {
-    for layer in glyphLayers.values {
-      layer.removeFromSuperlayer()
+    for entry in glyphLayers.values {
+      entry.layer.removeFromSuperlayer()
     }
     glyphLayers = [:]
   }
@@ -1605,18 +1670,24 @@ final class NitroInputView: UIView {
     let fade = band / max(lineHeight + 2 * band, 1)
     edgeMask.locations = [0, NSNumber(value: Double(fade)), NSNumber(value: Double(1 - fade)), 1]
 
-    var seen = Set<Int64>()
+    // A frame allocates nothing once every glyph has its layer: each entry is
+    // stamped with this pass's generation rather than collected into a set,
+    // and only a pass that has more layers than the engine has glyphs goes
+    // looking for the ones that left.
+    renderGeneration &+= 1
+    let generation = renderGeneration
     let count = Int(engine.glyphCount())
-    seen.reserveCapacity(count)
     for i in 0..<count {
       let g = engine.glyphAt(Int32(i))
-      seen.insert(g.id)
-      let role = Self.glyphRole(g.role)
-      let text = Self.glyphText(g.character)
       let glyphLayer: CALayer
-      if let existing = glyphLayers[g.id] {
-        glyphLayer = existing
+      let topOffset: CGFloat
+      if let index = glyphLayers.index(forKey: g.id) {
+        glyphLayers.values[index].generation = generation
+        glyphLayer = glyphLayers.values[index].layer
+        topOffset = glyphLayers.values[index].topOffset
       } else {
+        let role = Self.glyphRole(g.role)
+        let text = Self.glyphText(g.character)
         glyphLayer = CALayer()
         glyphLayer.contentsScale = fonts.renderScale
         if let image = fonts.image(text, role: role, placeholder: g.placeholder) {
@@ -1624,18 +1695,21 @@ final class NitroInputView: UIView {
           glyphLayer.bounds = CGRect(origin: .zero, size: image.size)
         }
         clipLayer.addSublayer(glyphLayer)
-        glyphLayers[g.id] = glyphLayer
+        topOffset = fonts.top(for: role, text: text, lineTop: 0)
+        glyphLayers[g.id] = GlyphEntry(layer: glyphLayer, topOffset: topOffset, generation: generation)
       }
       let size = glyphLayer.bounds.size
-      let top = fonts.top(for: role, text: text, lineTop: band) + CGFloat(g.y) * lineHeight
+      let top = band + topOffset + CGFloat(g.y) * lineHeight
       glyphLayer.position = CGPoint(x: pad + CGFloat(g.x) + size.width / 2, y: top + size.height / 2)
       glyphLayer.opacity = Float(min(1, max(0, g.opacity)))
       let scale = CGFloat(g.scale)
       glyphLayer.transform = abs(scale - 1) < 0.0001 ? CATransform3DIdentity : CATransform3DMakeScale(scale, scale, 1)
     }
-    if glyphLayers.count != seen.count {
-      for (id, glyphLayer) in glyphLayers where !seen.contains(id) {
-        glyphLayer.removeFromSuperlayer()
+    if glyphLayers.count != count {
+      // Collecting the leavers allocates, but only on the frame they leave.
+      let gone = glyphLayers.filter { $0.value.generation != generation }
+      for (id, entry) in gone {
+        entry.layer.removeFromSuperlayer()
         glyphLayers[id] = nil
       }
     }
@@ -1670,7 +1744,7 @@ final class NitroInputView: UIView {
     let visible = wantsCaret
     CATransaction.begin()
     CATransaction.setDisableActions(true)
-    caretLayer.backgroundColor = (traits.caretColor ?? tintColor ?? .systemBlue).cgColor
+    caretLayer.backgroundColor = (traits.caretColor ?? tintColor ?? .systemBlue).resolvedColor(with: traitCollection).cgColor
     positionCaret()
     caretLayer.isHidden = !visible
     CATransaction.commit()
@@ -1760,6 +1834,16 @@ final class NitroInputView: UIView {
 
     var hidesNativeCaret = false {
       didSet { if hidesNativeCaret != oldValue { setNeedsDisplay() } }
+    }
+
+    /// Set while a paste is applied: a pasted line break is text and goes in,
+    /// only the return key's is taken as one (`shouldChangeTextIn`).
+    private(set) var isPasting = false
+
+    override func paste(_ sender: Any?) {
+      isPasting = true
+      super.paste(sender)
+      isPasting = false
     }
 
     /// The placeholder sits exactly where the first line of text will, so it
@@ -1935,6 +2019,14 @@ extension NitroInputView: UITextViewDelegate {
     guard !isSettingText else { return }
     reportSelection()
   }
+
+  func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+    // The return key arrives as a lone line break. Only that one is the key:
+    // a pasted line break is text, and goes in whatever the submit behaviour.
+    guard text == "\n", (textView as? HiddenTextView)?.isPasting != true else { return true }
+    // `newline` is the one behaviour that inserts it.
+    return !handleReturnKey()
+  }
 }
 
 // MARK: - UITextFieldDelegate
@@ -2087,19 +2179,30 @@ extension NitroInputView: UITextFieldDelegate {
   }
 
   func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+    handleReturnKey()
+    return false
+  }
+
+  /// The return key, as React Native's `TextInput` takes it on iOS:
+  /// `blurAndSubmit` submits and dismisses the keyboard, `submit` submits and
+  /// keeps focus so a form can move on itself, and `newline` does neither (a
+  /// wrapping field inserts the line break instead; a single line does
+  /// nothing). Returns whether the press was taken as a submit.
+  @discardableResult
+  private func handleReturnKey() -> Bool {
+    let submits = traits.submitBehavior != .newline
     if worklets.onKeyPress != 0 {
       margelo.nitro.nitroinput.nitroinputworklets.runKeyPress(Int32(worklets.onKeyPress), std.string("Enter"))
     }
-    if worklets.onSubmitEditing != 0 {
+    if submits, worklets.onSubmitEditing != 0 {
       margelo.nitro.nitroinput.nitroinputworklets.runSubmitEditing(Int32(worklets.onSubmitEditing), std.string(text))
     }
     onKeyPress?("Enter")
-    onSubmit?(text)
-    // `submitBehavior: 'submit'` keeps focus so a form can move on itself.
-    if traits.blurOnSubmit {
-      textField.resignFirstResponder()
+    if submits { onSubmit?(text) }
+    if traits.submitBehavior == .blurAndSubmit {
+      editor.resignFirstResponder()
     }
-    return false
+    return submits
   }
 
   /// Reports the caret/selection in code points, and only when it moved.
@@ -2176,17 +2279,24 @@ extension NitroInputView {
     return max(9, restingLabelFont.pointSize * Self.floatedLabelRatio)
   }
 
+  // The frame is drawn in `CGColor`s, which have no appearance of their own:
+  // each is resolved against the view's traits here, and an appearance change
+  // lays the frame out again (`syncWithTraits`).
   private var resolvedOutlineColor: UIColor {
     let base = inputFrame.strokeColor ?? UIColor.separator
-    guard editor.isFirstResponder else { return base }
-    return inputFrame.focusedStrokeColor ?? base
+    let color = editor.isFirstResponder ? (inputFrame.focusedStrokeColor ?? base) : base
+    return color.resolvedColor(with: traitCollection)
   }
 
   private var resolvedLabelColor: UIColor {
-    if editor.isFirstResponder {
-      return inputFrame.labelFocusedColor ?? inputFrame.focusedStrokeColor ?? typography.placeholderColor
-    }
-    return inputFrame.labelColor ?? typography.placeholderColor
+    let color = editor.isFirstResponder
+      ? inputFrame.labelFocusedColor ?? inputFrame.focusedStrokeColor ?? typography.placeholderColor
+      : inputFrame.labelColor ?? typography.placeholderColor
+    return color.resolvedColor(with: traitCollection)
+  }
+
+  private var resolvedFillColor: UIColor {
+    (inputFrame.fillColor ?? UIColor.secondarySystemFill).resolvedColor(with: traitCollection)
   }
 
   /// Applies everything that does not depend on the bounds, then lays out.
@@ -2339,7 +2449,7 @@ extension NitroInputView {
       path: path,
       lineWidth: strokeWidthNow,
       strokeColor: filled ? nil : resolvedOutlineColor.cgColor,
-      fillColor: filled ? (inputFrame.fillColor ?? UIColor.secondarySystemFill).cgColor : nil,
+      fillColor: filled ? resolvedFillColor.cgColor : nil,
       animated: animating,
       opening: target == 1,
     )
