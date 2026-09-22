@@ -34,3 +34,6 @@ example/.recordings/
 # Native reference apps (UIKit / SwiftUI / Android) used to compare keyboard
 # behaviour against. Kept out of the PR like the other internals notes.
 native/
+
+# React Native Harness cache and crash reports (example/__tests__/*.harness.tsx runs)
+example/.harness/
