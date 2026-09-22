@@ -1,49 +1,308 @@
 ---
 sidebar_position: 8
 title: Benchmarks
-description: 'Mount and focus cost against TextInput, measured in release builds on device.'
+description: Typing, focus and mount cost of NitroInput and MorphInput against TextInput, the JS-formatted amount fields, the mask libraries and Expo UI, on three phones.
 ---
 
-Release builds; mount is 20 fields rendered in one state update, measured to
-the last `onLayout` over 5 cold passes; focus is `focus()` → `onFocus` over 12
-runs. Medians.
+# Benchmarks
 
-| target | mount: MorphInput | mount: TextInput | focus: MorphInput | focus: TextInput |
+Measured on 2026‑09‑22 on an iPhone 13 Pro Max (iOS 26.6.2), an iPhone 11
+Pro (iOS 26.6.1) and a Samsung Galaxy A22 (Android 13, a low-end phone),
+release builds, React Native 0.87.1, by the same harness as the rolling
+number's ([method and tooling there](../rolling-number/benchmarks)). In
+short: the probe module in the example app types into the focused field the
+way a keyboard does and watches every frame; every result is in
+`scripts/bench/results/` in the repository.
+
+- **Typing.** The probe types into the focused field one key at a time
+  through the path real typing takes (`insertText` on the first responder on
+  iOS, the input connection's `commitText` on Android), at 8 and at 15 keys a
+  second, and watches the field's text on every following frame. A key whose
+  text is rewritten in a later frame is the flicker of a JS round trip: the
+  raw digit lands, JS formats, the formatted text comes back a frame or two
+  later. The table counts those rewrites per key, how long a key took to
+  settle, main- and JS-thread CPU per key, change callbacks JS received per
+  key, and frames the main thread dropped while typing. The keyboard is up
+  before the first key and is not part of any figure.
+- **Focus latency.** `focus()` to `onFocus`, eight runs, medians; the first run pays for the keyboard appearing and is listed separately.
+- **Mount.** 20 fields rendered in one state update, timed to the last field's first `onLayout`, ten cold passes, medians, with the main- and JS-thread CPU each pass cost.
+- **Memory.** 20 fields mounted and unmounted 40 times; the footprint and malloc's bytes in use are read after a forced collection at the start and at the end, so a floor that rose is a leak and not garbage waiting for the collector. On Android the live `View` count from `dumpsys meminfo` at both floors says whether detached fields survive.
+
+## What the numbers say
+
+Nine ways to put an amount, a phone number or plain text into a field, typed
+into by the probe the way a keyboard types: `insertText` on the first
+responder on iOS, the input connection on Android. The column to read first
+is **rewrites per key**. A field that formats in JavaScript (the usual
+`TextInput` with `onChangeText` → `Intl.NumberFormat` → `value`, and the two
+popular libraries built on that pattern) shows the raw keystroke first and the
+formatted text a frame or two later: 10 of 12 keys are rewritten and a key
+takes 65–100 ms to settle. That is the flicker people report with formatted
+inputs, measured. NitroInput and MorphInput format inside the native edit,
+before the frame is drawn, and so does the native mask library on Android:
+no key is ever rewritten. The JS thread tells the same story from the other
+side, 40–50 ms of JavaScript per key for the JS-formatted fields against
+2–6 ms for the Nitro ones (their one change callback per key), and at 15
+keys a second the JS-formatted fields cannot keep up with the driver, which
+waits for a key to settle before the next one.
+
+The morph costs what it looks like it costs: 20 ms of JavaScript per key
+and the animation's frames on the main thread, with nothing dropped at eight
+keys a second.
+
+Focus latency is `focus()` to `onFocus`; the Nitro fields answer in 7–11 ms
+where `TextInput` takes 18–21 ms, for the reason the old page gave:
+`focus()` is a direct call into the hybrid that lands on the next runloop
+turn and `onFocus` comes back from the field's own delegate, while
+`TextInput.focus()` goes through `TextInputState`, a Fabric view command
+applied with the mounting transaction, and the batched event emitter. Tapping
+a field is unaffected: the OS grants focus directly, with no JS in the loop.
+
+Mounting 20 fields is where the Nitro views pay: a Nitro `HybridView` costs
+more to create than a `TextInput`, on both platforms, and the numbers say by
+how much on each phone. Unmounting costs about the same for every field.
+
+### Typing at 8 keys a second
+
+#### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
+
+| Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 7.5 | 0 | 0 of 12 | 0 | 23.4 | 6.2 | 1.0 | 4 | 1 |
+| **NitroInput (text)** | 7.5 | 0 | 0 of 12 | 0 | 18.2 | 1.0 | 1.0 | 1 | 1 |
+| **MorphInput (text)** | 7.5 | 0 | 0 of 12 | 0 | 28.8 | 8.9 | 1.0 | 0 | 1 |
+| TextInput + JS formatting | 7.5 | 1 | 10 of 12 | 50 | 33.9 | 9.1 | 1.0 | 9 | 1 |
+| react-native-currency-input | 7.5 | 1 | 10 of 12 | 67 | 31.5 | 10.5 | 1.0 | 11 | 1 |
+| react-native-mask-input (number mask) | 7.5 | 1 | 10 of 12 | 67 | 33.4 | 10.5 | 1.0 | 9 | 1 |
+| **NitroInput (number)** | 7.5 | 0 | 0 of 12 | 0 | 17.0 | 0.9 | 1.0 | 0 | 1 |
+| **MorphInput (number)** | 7.5 | 0 | 0 of 12 | 0 | 27.8 | 8.7 | 1.0 | 2 | 1 |
+| **NitroInput (mask)** | 7.5 | 0 | 0 of 10 | 0 | 16.6 | 1.0 | 1.0 | 0 | 1 |
+| Expo UI TextField | 7.5 | 0 | 0 of 12 | 0 | 26.4 | 1.2 | 0.0 | 5 | 1 |
+
+#### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
+
+| Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 7.5 | 0 | 0 of 12 | 0 | 32.3 | 8.1 | 1.0 | 3 | 1 |
+| **NitroInput (text)** | 7.5 | 0 | 0 of 12 | 0 | 25.4 | 2.0 | 1.0 | 0 | 1 |
+| **MorphInput (text)** | 7.5 | 0 | 0 of 12 | 0 | 40.0 | 10.3 | 1.0 | 0 | 1 |
+| TextInput + JS formatting | 7.5 | 1 | 10 of 12 | 54 | 38.3 | 10.4 | 1.0 | 4 | 1 |
+| react-native-currency-input | 7.5 | 1 | 10 of 12 | 55 | 38.3 | 10.6 | 1.0 | 6 | 1 |
+| react-native-mask-input (number mask) | 7.5 | 1 | 10 of 12 | 66 | 38.1 | 11.2 | 1.0 | 4 | 1 |
+| **NitroInput (number)** | 7.5 | 0 | 0 of 12 | 0 | 23.9 | 1.9 | 1.0 | 0 | 1 |
+| **MorphInput (number)** | 7.5 | 0 | 0 of 12 | 0 | 40.9 | 9.2 | 1.0 | 0 | 1 |
+| **NitroInput (mask)** | 7.5 | 0 | 0 of 10 | 0 | 23.2 | 1.8 | 1.0 | 0 | 1 |
+| Expo UI TextField | 7.5 | 0 | 0 of 12 | 0 | 37.2 | 1.8 | 0.0 | 0 | 1 |
+
+#### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+| Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 7.5 | 0 | 0 of 12 | 0 | 35.0 | 21.7 | 1.0 | 3 | 1 |
+| **NitroInput (text)** | 7.5 | 0 | 0 of 12 | 0 | 23.3 | 2.5 | 1.0 | 0 | 1 |
+| **MorphInput (text)** | 7.5 | 0 | 0 of 12 | 0 | 55.8 | 16.7 | 1.0 | 0 | 1 |
+| TextInput + JS formatting | 7.5 | 1 | 10 of 12 | 77 | 50.8 | 47.5 | 1.0 | 0 | 1 |
+| react-native-currency-input | 7.5 | 1 | 10 of 12 | 67 | 50.8 | 47.5 | 1.0 | 0 | 1 |
+| react-native-mask-input (number mask) | 7.5 | 1 | 10 of 12 | 66 | 45.0 | 40.8 | 1.0 | 0 | 1 |
+| **NitroInput (number)** | 7.5 | 0 | 0 of 12 | 0 | 35.0 | 5.0 | 1.0 | 1 | 1 |
+| **MorphInput (number)** | 7.5 | 0 | 0 of 12 | 0 | 60.8 | 19.2 | 1.0 | 1 | 1 |
+| react-native-advanced-input-mask | 7.5 | 0 | 0 of 10 | 0 | 43.0 | 30.0 | 1.0 | 6 | 1 |
+| **NitroInput (mask)** | 7.5 | 0 | 0 of 10 | 0 | 40.0 | 4.0 | 1.0 | 2 | 1 |
+| Expo UI TextField | 7.5 | 0 | 0 of 12 | 0 | 70.8 | 3.3 | 0.0 | 24 | 1 |
+
+### Typing at 15 keys a second
+
+#### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
+
+| Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 14.8 | 0 | 0 of 12 | 0 | 17.8 | 7.1 | 1.0 | 1 | 1 |
+| **NitroInput (text)** | 14.8 | 0 | 0 of 12 | 0 | 14.9 | 0.7 | 1.0 | 1 | 1 |
+| **MorphInput (text)** | 14.8 | 0 | 0 of 12 | 0 | 22.0 | 7.3 | 1.0 | 0 | 1 |
+| TextInput + JS formatting | 12.1 | 1 | 10 of 12 | 50 | 23.4 | 8.7 | 1.0 | 11 | 1 |
+| react-native-currency-input | 13.0 | 1 | 10 of 12 | 50 | 21.4 | 8.2 | 1.0 | 10 | 1 |
+| react-native-mask-input (number mask) | 13.2 | 1 | 10 of 12 | 50 | 21.1 | 8.2 | 1.0 | 9 | 1 |
+| **NitroInput (number)** | 14.8 | 0 | 0 of 12 | 0 | 13.9 | 0.7 | 1.0 | 0 | 1 |
+| **MorphInput (number)** | 14.8 | 0 | 0 of 12 | 0 | 21.5 | 7.2 | 1.0 | 2 | 1 |
+| **NitroInput (mask)** | 14.8 | 0 | 0 of 10 | 0 | 13.6 | 0.8 | 1.0 | 1 | 1 |
+| Expo UI TextField | 14.8 | 0 | 0 of 12 | 0 | 22.8 | 1.6 | 0.0 | 1 | 1 |
+
+#### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
+
+| Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 15.0 | 0 | 0 of 12 | 0 | 20.0 | 8.1 | 1.0 | 0 | 1 |
+| **NitroInput (text)** | 15.0 | 0 | 0 of 12 | 0 | 21.0 | 1.2 | 1.0 | 0 | 1 |
+| **MorphInput (text)** | 14.7 | 0 | 0 of 12 | 0 | 25.1 | 7.5 | 1.0 | 0 | 1 |
+| TextInput + JS formatting | 12.8 | 1 | 10 of 12 | 54 | 24.3 | 8.2 | 1.0 | 5 | 1 |
+| react-native-currency-input | 13.8 | 1 | 10 of 12 | 54 | 22.8 | 7.3 | 1.0 | 2 | 1 |
+| react-native-mask-input (number mask) | 13.6 | 1 | 10 of 12 | 56 | 23.5 | 7.4 | 1.0 | 3 | 1 |
+| **NitroInput (number)** | 15.0 | 0 | 0 of 12 | 0 | 19.8 | 1.2 | 1.0 | 0 | 1 |
+| **MorphInput (number)** | 15.0 | 0 | 0 of 12 | 0 | 22.2 | 6.9 | 1.0 | 0 | 1 |
+| **NitroInput (mask)** | 15.0 | 0 | 0 of 10 | 0 | 19.3 | 1.3 | 1.0 | 0 | 1 |
+| Expo UI TextField | 15.0 | 0 | 0 of 12 | 0 | 24.0 | 0.9 | 0.0 | 0 | 1 |
+
+#### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+| Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 12.9 | 0 | 0 of 12 | 0 | 30.8 | 33.3 | 1.0 | 1 | 1 |
+| **NitroInput (text)** | 12.9 | 0 | 0 of 12 | 0 | 30.0 | 5.8 | 1.0 | 1 | 1 |
+| **MorphInput (text)** | 12.9 | 0 | 0 of 12 | 0 | 38.3 | 20.0 | 1.0 | 2 | 1 |
+| TextInput + JS formatting | 10.2 | 1 | 10 of 12 | 78 | 42.5 | 49.2 | 1.0 | 2 | 1 |
+| react-native-currency-input | 10.3 | 1 | 10 of 12 | 77 | 40.0 | 46.7 | 1.0 | 2 | 1 |
+| react-native-mask-input (number mask) | 10.9 | 1 | 10 of 12 | 77 | 37.5 | 43.3 | 1.0 | 0 | 1 |
+| **NitroInput (number)** | 12.9 | 0 | 0 of 12 | 0 | 28.3 | 4.2 | 1.0 | 0 | 1 |
+| **MorphInput (number)** | 12.9 | 0 | 0 of 12 | 0 | 37.5 | 20.8 | 1.0 | 2 | 1 |
+| react-native-advanced-input-mask | 12.9 | 0 | 0 of 10 | 0 | 33.0 | 39.0 | 1.0 | 3 | 1 |
+| **NitroInput (mask)** | 12.9 | 0 | 0 of 10 | 0 | 28.0 | 5.0 | 1.0 | 2 | 1 |
+| Expo UI TextField | 12.9 | 0 | 0 of 12 | 0 | 49.2 | 3.3 | 0.0 | 15 | 1 |
+
+### Focus latency
+
+#### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
+
+| Implementation | focus → onFocus ms | p95 | first (keyboard) | runs |
 | --- | --- | --- | --- | --- |
-| iPhone 13 Pro Max | 12.6 ms | **9.7 ms** | **4.5 ms** | 53.7 ms |
-| iPhone 17 Pro simulator | 17.2 ms | **8.8 ms** | **4.1 ms** | 29.3 ms |
-| Pixel 9 Pro emulator | **24.8 ms** | 62.6 ms | **2.0 ms** | 18.4 ms |
-| Pixel 10 | **30.3 ms** | 41.7 ms | **2.5 ms** | 21.9 ms |
-| Galaxy A22 (slow device) | **76.4 ms** | 90.8 ms | **14.1 ms** | 24.8 ms |
+| TextInput (text) | 49.3 | 49.5 | 29.9 | 1 |
+| **NitroInput (text)** | 7.5 | 8.3 | 3.9 | 1 |
+| **MorphInput (text)** | 7.6 | 8.2 | 4.4 | 1 |
+| TextInput + JS formatting | 41.2 | 42.4 | 32.5 | 1 |
+| react-native-currency-input | 41.2 | 41.5 | 32.2 | 1 |
+| react-native-mask-input (number mask) | 41.6 | 43.3 | 37.7 | 1 |
+| **NitroInput (number)** | 7.8 | 8.2 | 4.7 | 1 |
+| **MorphInput (number)** | 7.6 | 8.5 | 2.7 | 1 |
+| **NitroInput (mask)** | 7.5 | 8.1 | 2.6 | 1 |
+| Expo UI TextField | 84.9 | 137.3 | 57.4 | 1 |
 
-On the iPhone, `NitroInput` mounts in 12.9 ms and focuses in 10.6 ms — the same
-mount as `MorphInput`, because the overlay is not what mount costs.
+‡ at least one of these runs started with the phone already throttled (thermal state serious or worse).
 
-For a third point of reference, `@expo/ui`'s SwiftUI `TextField` on the same
-device mounts 20 fields in **91.4 ms** and focuses in **107.4 ms** — roughly 7x
-our mount and 24x `MorphInput`'s focus, and it is invisible to
-`react-native-keyboard-controller`.
+#### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
 
-**Programmatic focus is faster**, because `focus()` is a direct call into the
-hybrid that lands on the next runloop turn, and `onFocus` comes back from the
-field's own delegate. `TextInput.focus()` goes through `TextInputState` and a
-Fabric view command applied with the mounting transaction, then returns through
-the batched event emitter — about a frame's wait either side. Tapping a field
-is unaffected: the OS grants first responder directly, with no JS in the loop.
+| Implementation | focus → onFocus ms | p95 | first (keyboard) | runs |
+| --- | --- | --- | --- | --- |
+| TextInput (text) | 52.0 | 53.9 | 37.6 | 1 |
+| **NitroInput (text)** | 10.4 | 11.1 | 4.9 | 1 |
+| **MorphInput (text)** | 10.8 | 11.3 | 4.9 | 1 |
+| TextInput + JS formatting | 48.1 | 48.3 | 40.5 | 1 |
+| react-native-currency-input | 48.0 | 49.1 | 39.5 | 1 |
+| react-native-mask-input (number mask) | 48.9 | 49.9 | 35.6 | 1 |
+| **NitroInput (number)** | 10.5 | 11.1 | 5.3 | 1 |
+| **MorphInput (number)** | 11.2 | 11.8 | 4.4 | 1 |
+| **NitroInput (mask)** | 10.9 | 11.1 | 4.3 | 1 |
+| Expo UI TextField | 122.1 | 133.0 | 89.9 | 1 |
 
-**The ratio depends on the device.** On fast hardware it looks like 8–9×; on a
-budget phone it is 1.8×, because MorphInput's round trip costs real CPU while
-`TextInput`'s frame wait stays roughly constant. The dependable claim is
-**~10 ms saved per programmatic focus on a slow device**, more on a fast one.
+‡ at least one of these runs started with the phone already throttled (thermal state serious or worse).
 
-**Mount** is cheaper than `TextInput` on every Android target measured, and on
-iOS costs about 0.16 ms more per field. That difference is not this component:
-a *different* Nitro view (`RollingNumber`, no text input, fewer props) mounts at
-the same 12.2 ms per 20 that `MorphInput` and `NitroInput` do, against 9.1 ms
-for `TextInput` and 4.1 ms for a bare `View`. It is the per-view floor of a
-Nitro `HybridView`, roughly 0.6 ms each — measured on an iPhone 13 Pro Max over
-15 cold passes.
+#### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
 
-Both components deliver `onFocus` **asynchronously**; the benchmark screen
-checks that rather than assuming it, so the two numbers measure the same event.
-Re-run any of this from the example app's **Mount / focus benchmark** screen.
+| Implementation | focus → onFocus ms | p95 | first (keyboard) | runs |
+| --- | --- | --- | --- | --- |
+| TextInput (text) | 20.6 | 25.1 | 25.1 | 1 |
+| **NitroInput (text)** | 10.7 | 14.8 | 5.5 | 1 |
+| **MorphInput (text)** | 6.6 | 13.0 | 3.7 | 1 |
+| TextInput + JS formatting | 19.2 | 29.9 | 29.9 | 1 |
+| react-native-currency-input | 17.5 | 22.5 | 17.5 | 1 |
+| react-native-mask-input (number mask) | 21.0 | 29.4 | 29.4 | 1 |
+| **NitroInput (number)** | 7.6 | 13.5 | 2.8 | 1 |
+| **MorphInput (number)** | 7.1 | 12.6 | 4.3 | 1 |
+| react-native-advanced-input-mask | 19.9 | 31.1 | 31.1 | 1 |
+| **NitroInput (mask)** | 7.0 | 13.4 | 4.2 | 1 |
+| Expo UI TextField | 21.8 | 33.0 | 32.2 | 2 |
+
+### Mounting 20 fields
+
+#### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
+
+| Implementation | mount ms | min | max | unmount ms | main-thread ms | JS-thread ms | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 37.4 | 31.8 | 48.0 | 32.7 | 23.6 | 19.1 | 1 |
+| **NitroInput (text)** | 54.6 | 24.6 | 59.0 | 32.7 | 28.3 | 26.1 | 1 |
+| **MorphInput (text)** | 46.3 | 24.4 | 65.8 | 32.7 | 35.4 | 43.8 | 1 |
+| TextInput + JS formatting | 46.1 | 24.2 | 47.3 | 32.7 | 28.2 | 19.6 | 1 |
+| react-native-currency-input | 34.4 | 30.8 | 47.7 | 32.7 | 22.9 | 21.6 | 1 |
+| react-native-mask-input (number mask) | 35.6 | 23.3 | 59.3 | 32.7 | 24.7 | 19.6 | 1 |
+| **NitroInput (number)** | 58.3 | 23.3 | 63.5 | 32.7 | 30.3 | 26.9 | 1 |
+| **MorphInput (number)** | 54.2 | 40.0 | 67.4 | 32.7 | 33.4 | 44.8 | 1 |
+| **NitroInput (mask)** | 59.4 | 38.3 | 71.5 | 32.7 | 29.2 | 28.1 | 1 |
+| Expo UI TextField | 39.9 | 35.2 | 155.2 | 33.2 | 37.9 | 12.2 | 1 |
+
+#### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
+
+| Implementation | mount ms | min | max | unmount ms | main-thread ms | JS-thread ms | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 54.4 | 20.9 | 56.4 | 32.1 | 35.8 | 20.7 | 1 |
+| **NitroInput (text)** | 61.6 | 50.5 | 71.0 | 32.1 | 35.5 | 29.5 | 1 |
+| **MorphInput (text)** | 74.1 | 52.8 | 79.7 | 32.5 | 49.6 | 47.0 | 1 |
+| TextInput + JS formatting | 57.7 | 25.3 | 58.7 | 32.2 | 35.4 | 24.4 | 1 |
+| react-native-currency-input | 57.9 | 20.9 | 58.5 | 32.1 | 37.0 | 22.7 | 1 |
+| react-native-mask-input (number mask) | 63.0 | 57.4 | 66.7 | 32.0 | 41.5 | 23.3 | 1 |
+| **NitroInput (number)** | 69.7 | 60.7 | 74.5 | 32.2 | 42.8 | 30.6 | 1 |
+| **MorphInput (number)** | 77.8 | 29.1 | 82.2 | 32.7 | 51.5 | 48.6 | 1 |
+| **NitroInput (mask)** | 65.9 | 45.2 | 71.1 | 32.2 | 38.7 | 30.8 | 1 |
+| Expo UI TextField | 175.7 | 12.2 | 229.7 | 33.1 | 165.1 | 14.1 | 1 |
+
+#### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+| Implementation | mount ms | min | max | unmount ms | main-thread ms | JS-thread ms | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 96.6 | 20.5 | 351.5 | 32.1 | 90.0 | 40.0 | 1 |
+| **NitroInput (text)** | 138.1 | 58.3 | 191.9 | 33.8 | 140.0 | 90.0 | 1 |
+| **MorphInput (text)** | 105.8 | 53.7 | 219.2 | 28.4 | 90.0 | 110.0 | 1 |
+| TextInput + JS formatting | 110.6 | 78.6 | 157.2 | 31.7 | 90.0 | 80.0 | 1 |
+| react-native-currency-input | 93.9 | 25.2 | 162.2 | 30.0 | 90.0 | 60.0 | 1 |
+| react-native-mask-input (number mask) | 132.7 | 34.5 | 166.7 | 48.9 | 130.0 | 90.0 | 1 |
+| **NitroInput (number)** | 191.1 | 103.8 | 227.3 | 53.8 | 180.0 | 140.0 | 1 |
+| **MorphInput (number)** | 172.6 | 75.3 | 205.8 | 50.0 | 150.0 | 200.0 | 1 |
+| react-native-advanced-input-mask | 129.5 | 70.5 | 189.1 | 58.8 | 140.0 | 100.0 | 1 |
+| **NitroInput (mask)** | 199.0 | 131.9 | 224.9 | 52.1 | 170.0 | 140.0 | 1 |
+| Expo UI TextField | 506.7 | 119.8 | 957.9 | 111.5 | 780.0 | 150.0 | 1 |
+
+### Memory over 40 mount/unmount cycles of 20 fields
+
+#### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
+
+| Implementation | footprint, start | footprint, end | peak | growth per cycle | malloc heap, start → end | runs |
+| --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 265.4 MB | 258.0 MB | 266.8 MB | -270.1 KB | 107.8 → 112.2 MB | 1 |
+| **NitroInput (text)** | 256.6 MB | 265.8 MB | 268.4 MB | +238.1 KB | 112.6 → 104.1 MB | 1 |
+| **MorphInput (text)** | 264.3 MB | 267.4 MB | 268.1 MB | +20.6 KB | 104.2 → 110.9 MB | 1 |
+| TextInput + JS formatting | 265.8 MB | 267.9 MB | 267.9 MB | +24.0 KB | 111.3 → 114.5 MB | 1 |
+| react-native-currency-input | 266.2 MB | 264.2 MB | 268.1 MB | -53.2 KB | 114.9 → 111.7 MB | 1 |
+| react-native-mask-input (number mask) | 262.4 MB | 268.5 MB | 270.3 MB | +41.1 KB | 112.1 → 114.0 MB | 1 |
+| **NitroInput (number)** | 262.9 MB | 278.1 MB | 278.1 MB | +378.9 KB | 114.4 → 122.7 MB | 1 |
+| **MorphInput (number)** | 275.8 MB | 284.3 MB | 284.3 MB | +136.1 KB | 123.1 → 129.8 MB | 1 |
+| **NitroInput (mask)** | 282.2 MB | 288.2 MB | 288.2 MB | +87.8 KB | 130.2 → 139.0 MB | 1 |
+| Expo UI TextField | 286.0 MB | 294.1 MB | 295.6 MB | +66.9 KB | 139.4 → 144.3 MB | 1 |
+
+#### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
+
+| Implementation | footprint, start | footprint, end | peak | growth per cycle | malloc heap, start → end | runs |
+| --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 228.0 MB | 230.5 MB | 230.5 MB | +26.8 KB | 137.0 → 118.4 MB | 1 |
+| **NitroInput (text)** | 228.4 MB | 240.4 MB | 240.4 MB | +262.8 KB | 118.8 → 135.0 MB | 1 |
+| **MorphInput (text)** | 238.0 MB | 237.5 MB | 241.4 MB | -12.9 KB | 135.3 → 138.5 MB | 1 |
+| TextInput + JS formatting | 234.9 MB | 237.8 MB | 237.8 MB | +30.0 KB | 138.9 → 141.4 MB | 1 |
+| react-native-currency-input | 235.0 MB | 238.1 MB | 238.1 MB | +32.1 KB | 141.8 → 142.5 MB | 1 |
+| react-native-mask-input (number mask) | 235.2 MB | 241.6 MB | 241.6 MB | +67.8 KB | 142.9 → 144.9 MB | 1 |
+| **NitroInput (number)** | 235.4 MB | 247.8 MB | 248.1 MB | +275.1 KB | 145.4 → 150.7 MB | 1 |
+| **MorphInput (number)** | 244.5 MB | 256.8 MB | 256.8 MB | +229.5 KB | 151.1 → 161.4 MB | 1 |
+| **NitroInput (mask)** | 253.3 MB | 263.8 MB | 267.0 MB | +270.8 KB | 161.8 → 166.3 MB | 1 |
+| Expo UI TextField | 260.2 MB | 263.9 MB | 263.9 MB | +62.7 KB | 166.8 → 175.0 MB | 1 |
+
+#### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+| Implementation | footprint, start | footprint, end | peak | growth per cycle | malloc heap, start → end | live Views, start → end | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 726.2 MB | 756.2 MB | 758.5 MB | +569.9 KB | 323.3 → 336.3 MB | 151 → 152 | 1 |
+| **NitroInput (text)** | 732.8 MB | 747.5 MB | 777.6 MB | +38.1 KB | 326.9 → 315.3 MB | 152 → 153 | 1 |
+| **MorphInput (text)** | 727.7 MB | 754.2 MB | 762.7 MB | +431.8 KB | 307.0 → 326.6 MB | 153 → 154 | 1 |
+| TextInput + JS formatting | 733.5 MB | 755.4 MB | 755.4 MB | +309.3 KB | 320.3 → 329.2 MB | 154 → 155 | 1 |
+| react-native-currency-input | 736.4 MB | 770.0 MB | 770.0 MB | +653.4 KB | 325.3 → 342.3 MB | 155 → 156 | 1 |
+| react-native-mask-input (number mask) | 740.0 MB | 773.1 MB | 773.1 MB | +640.1 KB | 330.4 → 346.2 MB | 156 → 157 | 1 |
+| **NitroInput (number)** | 743.1 MB | 755.9 MB | 778.7 MB | -43.1 KB | 333.2 → 335.3 MB | 157 → 158 | 1 |
+| **MorphInput (number)** | 740.2 MB | 782.1 MB | 795.4 MB | +898.3 KB | 330.6 → 343.1 MB | 158 → 159 | 1 |
+| react-native-advanced-input-mask | 746.4 MB | 779.9 MB | 785.8 MB | +722.9 KB | 327.6 → 346.9 MB | 159 → 160 | 1 |
+| **NitroInput (mask)** | 750.3 MB | 808.1 MB | 808.1 MB | +1267.5 KB | 335.2 → 392.9 MB | 160 → 161 | 1 |
+| Expo UI TextField | 780.5 MB | 840.5 MB | 840.5 MB | +661.2 KB | 380.1 → 397.6 MB | 161 → 374 | 1 |
+

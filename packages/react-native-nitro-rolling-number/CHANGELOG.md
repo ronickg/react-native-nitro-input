@@ -2,6 +2,22 @@
 
 ## 0.1.0 (unreleased)
 
+- Memory: a dropped rolling number is freed when Fabric drops it. The Nitro
+  hybrid behind a view is kept alive by its C++ part until the JS handle from
+  `hybridRef` is garbage-collected, and Hermes collects a handle it takes for
+  an empty object only when the JS heap fills up. On Android the hybrid held
+  the platform view, so in a mount/unmount loop on a Galaxy A22 every dropped
+  view stayed allocated: 24 more live `View`s per cycle, each with a digit-
+  strip texture, about 1 MB of resident memory a cycle, linear for as long as
+  the loop ran (the same for the fields of `react-native-nitro-input`). Now
+  the Android hybrid lets go of its view on drop (unless Fabric is recycling
+  it), so what lingers is a shell; iOS, where Fabric pools the component view
+  and reuses it, releases the display link, the element layers, the engine's
+  wheels and the buffers on drop. The digit strips (Android `RenderNode`s, iOS
+  glyph and strip images) are shared by every rolling number drawn with the
+  same font, colour and density instead of rasterized per view, and the
+  hybrid reports its `memorySize` to Nitro so the handle is collected in
+  time. `dispose()` on the ref does the same release eagerly.
 - Android draws a settled wheel from a shared digit-strip texture (one
   `RenderNode` per font and blank-zero variant, recorded once, composited at
   an offset) instead of two `drawText`s per wheel per frame, the way iOS has

@@ -2,6 +2,16 @@
 
 ## 0.1.0 (unreleased)
 
+- Memory: a dropped field is freed when Fabric drops it. The Nitro hybrid
+  behind a view is kept alive by its C++ part until the JS handle from
+  `hybridRef` is garbage-collected, and Hermes collects a handle it takes for
+  an empty object only when the JS heap fills up. On Android the hybrid held
+  the platform view, so in a mount/unmount loop on a Galaxy A22 every dropped
+  field stayed allocated (about 60 live `View`s more per cycle, linear). Now
+  the Android hybrid lets go of its view on drop (unless Fabric is recycling
+  it); iOS pools and reuses the component view. The hybrid reports its
+  `memorySize` to Nitro so the handle is collected in time, and `dispose()`
+  on the ref stops the animation eagerly, as a drop does.
 - An unset colour is sent as `Infinity`, not `NaN`: Nitro only calls a native
   setter when a prop's value changed, and NaN never equals itself, so every
   render of a controlled field (every keystroke) re-set the colours and had

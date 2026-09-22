@@ -210,31 +210,37 @@ class RollingNumberView(context: Context) : View(context) {
      * A wheel then composites one slot-high window of the texture at an
      * offset, and a frame costs no glyph rasterization at all: the same thing
      * the iOS view does with a CALayer strip. Public RenderNode needs API 29.
+     *
+     * The strips are shared by every rolling number drawn with the same
+     * typography (see [StripCache]): a strip is a texture, and a view lives on
+     * after Fabric drops it until the JS side's handle to it is collected,
+     * which is Hermes's decision; twenty-four dropped views must not hold
+     * twenty-four textures meanwhile.
      */
-    private val strips = arrayOfNulls<RenderNode>(2)
+    private val stripKey: String =
+      "${t.fontFamily}|${t.fontWeight}|${digit.textSize}|${digit.color}|${digit.typeface?.hashCode()}"
 
     fun strip(blankZero: Boolean): RenderNode? {
       if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || digitWidth <= 0f || lineHeight <= 0f) return null
-      val slot = if (blankZero) 1 else 0
-      strips[slot]?.let { return it }
-      val w = ceil(digitWidth).toInt()
-      val h = ceil(lineHeight * STRIP_SLOTS).toInt()
-      val node = RenderNode("rolling-number-strip")
-      node.setPosition(0, 0, w, h)
-      node.setUseCompositingLayer(true, null)
-      val canvas = node.beginRecording(w, h)
-      try {
-        val baseline = baseline(GlyphRole.DIGIT, "0", 0f)
-        for (index in -1 until STRIP_SLOTS - 1) {
-          if (index < 0 || (blankZero && index == 0)) continue
-          val text = DIGITS[index % 10]
-          canvas.drawText(text, (digitWidth - width(text, GlyphRole.DIGIT)) / 2f, (index + 1) * lineHeight + baseline, digit)
+      return StripCache.get("$stripKey|$blankZero") {
+        val w = ceil(digitWidth).toInt()
+        val h = ceil(lineHeight * STRIP_SLOTS).toInt()
+        val node = RenderNode("rolling-number-strip")
+        node.setPosition(0, 0, w, h)
+        node.setUseCompositingLayer(true, null)
+        val canvas = node.beginRecording(w, h)
+        try {
+          val baseline = baseline(GlyphRole.DIGIT, "0", 0f)
+          for (index in -1 until STRIP_SLOTS - 1) {
+            if (index < 0 || (blankZero && index == 0)) continue
+            val text = DIGITS[index % 10]
+            canvas.drawText(text, (digitWidth - width(text, GlyphRole.DIGIT)) / 2f, (index + 1) * lineHeight + baseline, digit)
+          }
+        } finally {
+          node.endRecording()
         }
-      } finally {
-        node.endRecording()
+        node
       }
-      strips[slot] = node
-      return node
     }
     private val capHeightCache = HashMap<GlyphRole, Float>()
     private val inkDescentCache = HashMap<String, Float>()
@@ -932,10 +938,53 @@ class RollingNumberView(context: Context) : View(context) {
 
   // endregion
 
+  /**
+   * Fabric dropped the view. It stays allocated until the JS side's handle to
+   * it is collected (Hermes decides when), so everything that could outlive
+   * the drop stops here and everything sizeable is let go of: the frame
+   * callback, the engine's wheels and the layout buffers. The strips are
+   * shared and stay in their cache. The view stays usable: with view
+   * recycling on, Fabric hands it to [resetForRecycle] and a new element next.
+   */
+  fun release() {
+    stopAnimation()
+    engine.reset()
+    wheels.clear()
+    frameElements.clear()
+    settledElements.clear()
+  }
+
+  /**
+   * What this view holds beyond its Java object, for the JS garbage collector
+   * (Nitro's `memorySize`): the display list and the engine, roughly. The
+   * strips are shared and not counted. A constant, because Nitro reads it from
+   * the JS thread.
+   */
+  fun memoryEstimateBytes(): Long = 24L * 1024
+
   /** Interior wheels wrap modulo 10; a roll can be any real, so fold it onto 0 ≤ p < 10. */
   private fun wrap10(position: Double): Double {
     val r = position % 10.0
     return if (r < 0) r + 10.0 else r
+  }
+
+  /** The digit strips every rolling number shares, most recently used last; the ones that fall off the end give their texture back. */
+  private object StripCache {
+    private const val CAPACITY = 24
+    private val nodes =
+      object : LinkedHashMap<String, RenderNode>(CAPACITY, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, RenderNode>): Boolean {
+          val evict = size > CAPACITY
+          if (evict) {
+            // Give the layer texture back now rather than when the node is finalized.
+            eldest.value.setUseCompositingLayer(false, null)
+            eldest.value.discardDisplayList()
+          }
+          return evict
+        }
+      }
+
+    fun get(key: String, build: () -> RenderNode): RenderNode = nodes[key] ?: build().also { nodes[key] = it }
   }
 
   companion object {

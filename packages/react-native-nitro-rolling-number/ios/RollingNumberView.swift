@@ -213,9 +213,35 @@ final class RollingNumberView: UIView {
     // frame path must not allocate.
     private var glyphCache: [GlyphKey: NSAttributedString] = [:]
     private var widthCache: [GlyphKey: CGFloat] = [:]
-    private var imageCache: [GlyphKey: UIImage] = [:]
-    private var stripCache: [Bool: UIImage] = [:]
     private var inkDescentCache: [GlyphKey: CGFloat] = [:]
+
+    /// The rasterized glyphs and strips are shared by every rolling number
+    /// drawn with the same font, colour and density. A view lives on after
+    /// Fabric drops it until the JS side's handle to it is collected, which is
+    /// Hermes's decision; twenty-four dropped views must not each hold a strip
+    /// (a 3× strip is most of a megabyte) meanwhile. Bounded: when the cache
+    /// grows past its capacity it starts over, which costs one re-rasterization.
+    private struct ImageKey: Hashable {
+      let font: String
+      let color: UInt32
+      let scale: CGFloat
+      let text: String
+      let role: GlyphRole
+    }
+    private struct StripKey: Hashable {
+      let font: String
+      let color: UInt32
+      let scale: CGFloat
+      let blankZero: Bool
+    }
+    private static var sharedImages: [ImageKey: UIImage] = [:]
+    private static var sharedStrips: [StripKey: UIImage] = [:]
+    private static let sharedCapacity = 512
+    private let colorKey: UInt32
+    private func fontTag(_ role: GlyphRole) -> String {
+      let font = self.font(for: role)
+      return "\(font.fontName)|\(font.pointSize)"
+    }
     /// Pixel density the glyph images are rendered at.
     let renderScale: CGFloat
     /// Slots in a wheel strip: index -1 (blank) through 10 (the 0 after 9).
@@ -229,6 +255,9 @@ final class RollingNumberView: UIView {
       prefix = RollingNumberView.makeFont(size: (t.prefixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily)
       suffix = RollingNumberView.makeFont(size: (t.suffixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily)
       color = t.color.resolvedColor(with: traits)
+      var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+      color.getRed(&r, green: &g, blue: &b, alpha: &a)
+      colorKey = (UInt32(max(0, min(1, a)) * 255) << 24) | (UInt32(max(0, min(1, r)) * 255) << 16) | (UInt32(max(0, min(1, g)) * 255) << 8) | UInt32(max(0, min(1, b)) * 255)
       prefixAlign = t.prefixAlign
       suffixAlign = t.suffixAlign
       lineHeight = ceil(digit.lineHeight)
@@ -267,8 +296,8 @@ final class RollingNumberView: UIView {
     /// rasterization pass per glyph. Profiling 24 rolling views showed the
     /// per-glyph `NSAttributedString.draw` dominating the main thread.
     func image(_ text: String, role: GlyphRole) -> UIImage? {
-      let key = GlyphKey(text: text, role: role)
-      if let cached = imageCache[key] { return cached }
+      let key = ImageKey(font: fontTag(role), color: colorKey, scale: renderScale, text: text, role: role)
+      if let cached = Self.sharedImages[key] { return cached }
       let string = attributed(text, role: role)
       let size = string.size()
       guard size.width > 0, size.height > 0 else { return nil }
@@ -279,7 +308,8 @@ final class RollingNumberView: UIView {
       let image = UIGraphicsImageRenderer(size: bounds, format: format).image { _ in
         string.draw(at: .zero)
       }
-      imageCache[key] = image
+      if Self.sharedImages.count >= Self.sharedCapacity { Self.sharedImages.removeAll(keepingCapacity: true) }
+      Self.sharedImages[key] = image
       return image
     }
 
@@ -288,7 +318,8 @@ final class RollingNumberView: UIView {
     /// digit centred in `digitWidth`. A wheel layer shows one slot-high window
     /// of it and just moves the strip, so a roll is a position change.
     func strip(blankZero: Bool) -> UIImage? {
-      if let cached = stripCache[blankZero] { return cached }
+      let key = StripKey(font: fontTag(.digit), color: colorKey, scale: renderScale, blankZero: blankZero)
+      if let cached = Self.sharedStrips[key] { return cached }
       guard digitWidth > 0, lineHeight > 0 else { return nil }
       let format = UIGraphicsImageRendererFormat()
       format.scale = renderScale
@@ -303,7 +334,8 @@ final class RollingNumberView: UIView {
           attributed(text, role: .digit).draw(at: CGPoint(x: (digitWidth - w) / 2, y: CGFloat(slot) * lineHeight))
         }
       }
-      stripCache[blankZero] = image
+      if Self.sharedStrips.count >= 64 { Self.sharedStrips.removeAll(keepingCapacity: true) }
+      Self.sharedStrips[key] = image
       return image
     }
 
@@ -462,6 +494,30 @@ final class RollingNumberView: UIView {
   func stopAnimation() {
     stopDisplayLink()
   }
+
+  /// Fabric dropped the view. Its component view goes to Fabric's recycle
+  /// pool and the hybrid lives on until the JS handle to it is collected, so
+  /// everything that could outlive the drop stops here and everything
+  /// sizeable is let go of: the display link, the element layers, the engine's
+  /// wheels and the buffers. The glyph images are shared and stay cached. The
+  /// view stays usable: `resetForRecycle` and a new element's props may follow.
+  func release() {
+    stopDisplayLink()
+    engine.reset()
+    clearSlots()
+    wheelBuffer = []
+    elementBuffer = []
+    settledWheels = []
+    settledBuffer = []
+    usesBitmap = false
+    layer.contents = nil
+  }
+
+  /// What this view holds beyond its Swift object, for the JS garbage
+  /// collector (Nitro's `memorySize`): a masked layer per element, each with
+  /// a backing store of its own, and the engine, roughly. A constant, because
+  /// Nitro reads it from the JS thread.
+  static let memoryEstimateBytes = 48 * 1024
 
   /// Returns the view to its pristine state so Fabric can reuse it for a new
   /// element (`RecyclableView`). Props are re-applied by Nitro afterwards.

@@ -1,7 +1,7 @@
 import NativeBenchProbe from 'bench-probe'
 
 export type ThreadSample = { id: number; name: string; main: boolean; cpuMs: number }
-export type Sample = { wallMs: number; rssMb: number; threads: ThreadSample[] }
+export type Sample = { wallMs: number; rssMb: number; nativeHeapMb?: number; threads: ThreadSample[] }
 export type FrameStats = {
   frames: number
   seconds: number
@@ -56,12 +56,26 @@ export function sample(): Sample | null {
   return hasProbe ? parse<Sample | null>(NativeBenchProbe!.sample(), null) : null
 }
 
+/** Java GC + finalizers on Android, malloc pressure relief on iOS: call before a memory sample that should be a floor. */
+export function forceGc() {
+  NativeBenchProbe?.forceGc?.()
+}
+
 export function startFrames() {
   NativeBenchProbe?.startFrames()
 }
 
 export function stopFrames(): FrameStats | null {
   return hasProbe ? parse<FrameStats | null>(NativeBenchProbe!.stopFrames(), null) : null
+}
+
+export type TypedKey = { key: string; rewrites: number; settledMs: number; cpuMs: number; text?: string }
+export type TypeStats = { keys: TypedKey[]; typed: number; seconds: number; frames: number; dropped: number; error: string | null }
+
+/** Types `text` into the focused field at `keysPerSecond`, the way real typing arrives; null without the probe. */
+export async function typeText(text: string, keysPerSecond: number): Promise<TypeStats | null> {
+  if (!hasProbe) return null
+  return parse<TypeStats | null>(await NativeBenchProbe!.typeText(text, keysPerSecond), null)
 }
 
 /** One JSON line per event: stdout on iOS (devicectl streams it), logcat tag BENCH on Android, plus a file in the app container. */

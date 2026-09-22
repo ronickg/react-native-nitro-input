@@ -4,6 +4,7 @@
 #import <UIKit/UIKit.h>
 #import <mach/mach.h>
 #import <mach/thread_info.h>
+#import <malloc/malloc.h>
 #import <pthread.h>
 #import <sys/utsname.h>
 
@@ -33,7 +34,187 @@ static double BenchPercentile(const std::vector<double> &sorted, double p) {
  * This sees in-process stalls only; see BENCHMARKS.md for the render-server
  * cross-check with Instruments.
  */
+/// Finds the view that has the keyboard: the field the typing driver types into.
+static UIView *BenchFirstResponder(UIView *view) {
+  if (view.isFirstResponder) return view;
+  for (UIView *child in view.subviews) {
+    UIView *found = BenchFirstResponder(child);
+    if (found) return found;
+  }
+  return nil;
+}
+
+static UIView *BenchFindFirstResponder(void) {
+  for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+    if (![scene isKindOfClass:UIWindowScene.class]) continue;
+    for (UIWindow *window in ((UIWindowScene *)scene).windows) {
+      UIView *found = BenchFirstResponder(window);
+      if (found) return found;
+    }
+  }
+  return nil;
+}
+
+/// Cumulative CPU time of the main thread, in ms.
+static double BenchMainThreadCpuMs(uint64_t mainThreadId) {
+  thread_act_array_t list = NULL;
+  mach_msg_type_number_t count = 0;
+  double cpuMs = 0;
+  if (task_threads(mach_task_self(), &list, &count) != KERN_SUCCESS) return 0;
+  for (mach_msg_type_number_t i = 0; i < count; i++) {
+    thread_identifier_info_data_t ident;
+    mach_msg_type_number_t identCount = THREAD_IDENTIFIER_INFO_COUNT;
+    thread_extended_info_data_t ext;
+    mach_msg_type_number_t extCount = THREAD_EXTENDED_INFO_COUNT;
+    if (thread_info(list[i], THREAD_IDENTIFIER_INFO, (thread_info_t)&ident, &identCount) == KERN_SUCCESS &&
+        (mainThreadId == 0 ? i == 0 : ident.thread_id == mainThreadId) &&
+        thread_info(list[i], THREAD_EXTENDED_INFO, (thread_info_t)&ext, &extCount) == KERN_SUCCESS) {
+      cpuMs = (double)(ext.pth_user_time + ext.pth_system_time) / 1e6;
+    }
+    mach_port_deallocate(mach_task_self(), list[i]);
+  }
+  vm_deallocate(mach_task_self(), (vm_address_t)list, count * sizeof(thread_t));
+  return cpuMs;
+}
+
+/**
+ * Types into the first responder one key at a time from a display link, and
+ * watches the field's text on every following frame: a key whose text is
+ * rewritten in a later frame (the raw digit first, the formatted amount a
+ * frame or two later) is the flicker of a JS round trip, counted per key.
+ */
+@interface BenchTypingDriver : NSObject
+@property (nonatomic, copy) void (^completion)(NSString *json);
+@end
+
+@implementation BenchTypingDriver {
+  CADisplayLink *_link;
+  NSArray<NSString *> *_keys;
+  double _interval;
+  NSUInteger _next;
+  CFTimeInterval _nextAt;
+  CFTimeInterval _lastTs;
+  uint64_t _mainThreadId;
+  NSMutableArray<NSMutableDictionary *> *_records;
+  NSString *_lastText;
+  NSInteger _pendingKey;
+  NSInteger _quietFrames;
+  double _cpuAtKey;
+  NSInteger _dropped;
+  NSInteger _frames;
+  CFTimeInterval _startTs;
+}
+
+- (instancetype)initWithText:(NSString *)text keysPerSecond:(double)rate mainThreadId:(uint64_t)mainThreadId {
+  if (self = [super init]) {
+    NSMutableArray *keys = [NSMutableArray new];
+    [text enumerateSubstringsInRange:NSMakeRange(0, text.length)
+                             options:NSStringEnumerationByComposedCharacterSequences
+                          usingBlock:^(NSString *sub, NSRange, NSRange, BOOL *) { [keys addObject:sub]; }];
+    _keys = keys;
+    _interval = rate > 0 ? 1.0 / rate : 0.1;
+    _mainThreadId = mainThreadId;
+    _records = [NSMutableArray new];
+    _pendingKey = -1;
+  }
+  return self;
+}
+
+- (void)start {
+  _link = [CADisplayLink displayLinkWithTarget:self selector:@selector(onFrame:)];
+  [_link addToRunLoop:NSRunLoop.mainRunLoop forMode:NSRunLoopCommonModes];
+}
+
+- (NSString *)currentText:(UIView *)field {
+  if ([field respondsToSelector:@selector(text)]) {
+    NSString *text = [field performSelector:@selector(text)];
+    return [text isKindOfClass:NSString.class] ? text : @"";
+  }
+  return @"";
+}
+
+- (void)onFrame:(CADisplayLink *)link {
+  CFTimeInterval ts = link.timestamp;
+  if (_startTs == 0) {
+    _startTs = ts;
+    _nextAt = ts;
+  } else {
+    double gap = ts - _lastTs;
+    double expected = link.targetTimestamp - ts;
+    if (expected <= 0) expected = 1.0 / 60.0;
+    _frames++;
+    if (gap > 1.5 * expected) _dropped += (NSInteger)llround(gap / expected) - 1;
+  }
+  _lastTs = ts;
+
+  UIView *field = BenchFindFirstResponder();
+  NSString *text = [self currentText:field];
+
+  // Watch the key that just landed: every later frame that changes the text is a rewrite.
+  if (_pendingKey >= 0) {
+    NSMutableDictionary *record = _records[_pendingKey];
+    if (![text isEqualToString:_lastText]) {
+      record[@"rewrites"] = @([record[@"rewrites"] integerValue] + 1);
+      record[@"settledMs"] = @((ts - [record[@"atTs"] doubleValue]) * 1000.0);
+      _quietFrames = 0;
+    } else {
+      _quietFrames++;
+    }
+    record[@"cpuMs"] = @(BenchMainThreadCpuMs(_mainThreadId) - _cpuAtKey);
+    if (_quietFrames >= 3 && ts >= _nextAt) {
+      record[@"text"] = text;
+      _pendingKey = -1;
+    }
+  }
+  _lastText = text;
+
+  if (_pendingKey < 0 && _next < _keys.count && ts >= _nextAt) {
+    if (!field || ![field conformsToProtocol:@protocol(UIKeyInput)]) {
+      [self finishWithError:@"no focused text field"];
+      return;
+    }
+    NSMutableDictionary *record = [@{@"key" : _keys[_next], @"rewrites" : @0, @"settledMs" : @0, @"cpuMs" : @0} mutableCopy];
+    record[@"atTs"] = @(ts);
+    [_records addObject:record];
+    _cpuAtKey = BenchMainThreadCpuMs(_mainThreadId);
+    [(id<UIKeyInput>)field insertText:_keys[_next]];
+    // The key's own frame is not a rewrite: what the field shows right after
+    // the insert is the baseline the later frames are compared against.
+    _lastText = [self currentText:field];
+    _pendingKey = (NSInteger)_next;
+    _quietFrames = 0;
+    _next++;
+    _nextAt = ts + _interval;
+  } else if (_pendingKey < 0 && _next >= _keys.count) {
+    [self finishWithError:nil];
+  }
+}
+
+- (void)finishWithError:(NSString *)error {
+  [_link invalidate];
+  _link = nil;
+  NSMutableArray *keys = [NSMutableArray new];
+  for (NSMutableDictionary *record in _records) {
+    [record removeObjectForKey:@"atTs"];
+    [keys addObject:record];
+  }
+  double seconds = _lastTs - _startTs;
+  NSDictionary *summary = @{
+    @"keys" : keys,
+    @"typed" : @(_records.count),
+    @"seconds" : @(seconds),
+    @"frames" : @(_frames),
+    @"dropped" : @(_dropped),
+    @"error" : error ?: NSNull.null,
+  };
+  if (self.completion) self.completion(BenchJSON(summary));
+  self.completion = nil;
+}
+
+@end
+
 @implementation BenchProbe {
+  BenchTypingDriver *_typing;
   CADisplayLink *_link;
   std::mutex _mutex;
   std::vector<double> _gaps;      // ms between consecutive frames
@@ -141,11 +322,24 @@ RCT_EXPORT_MODULE()
   if (task_info(mach_task_self(), TASK_VM_INFO, (task_info_t)&vm, &vmCount) == KERN_SUCCESS) {
     rssMb = (double)vm.phys_footprint / (1024.0 * 1024.0);
   }
+  // malloc's bytes in use across every zone: the C++ engines, the native
+  // views' own allocations and everything ObjC, but not the JS heap (Hermes
+  // maps its segments itself) or layer backing stores.
+  malloc_statistics_t stats = {};
+  malloc_zone_statistics(NULL, &stats);
   return BenchJSON(@{
     @"wallMs" : @(CACurrentMediaTime() * 1000.0),
     @"rssMb" : @(rssMb),
+    @"nativeHeapMb" : @((double)stats.size_in_use / (1024.0 * 1024.0)),
     @"threads" : threads,
   });
+}
+
+- (void)forceGc {
+  // No collector here; freed malloc pages are the part of the footprint that
+  // is noise. Ask every zone to give them back so a floor is a floor.
+  malloc_zone_pressure_relief(NULL, 0);
+  [NSThread sleepForTimeInterval:0.25];
 }
 
 /** A plan runs for minutes with nobody touching the screen; auto-lock would end it. */
@@ -250,6 +444,27 @@ RCT_EXPORT_MODULE()
   [handle seekToEndOfFile];
   [handle writeData:[[line stringByAppendingString:@"\n"] dataUsingEncoding:NSUTF8StringEncoding]];
   [handle closeFile];
+}
+
+- (void)typeText:(NSString *)text
+   keysPerSecond:(double)keysPerSecond
+         resolve:(RCTPromiseResolveBlock)resolve
+          reject:(RCTPromiseRejectBlock)reject {
+  dispatch_async(dispatch_get_main_queue(), ^{
+    if (self->_typing) {
+      reject(@"busy", @"a typing run is already in progress", nil);
+      return;
+    }
+    BenchTypingDriver *driver = [[BenchTypingDriver alloc] initWithText:text keysPerSecond:keysPerSecond mainThreadId:self->_mainThreadId];
+    self->_typing = driver;
+    __weak BenchProbe *weakSelf = self;
+    driver.completion = ^(NSString *json) {
+      BenchProbe *strongSelf = weakSelf;
+      if (strongSelf) strongSelf->_typing = nil;
+      resolve(json);
+    };
+    [driver start];
+  });
 }
 
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:

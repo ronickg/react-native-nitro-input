@@ -14,7 +14,7 @@ import {
   type FrameStats,
   type Sample,
 } from './probe'
-import type { Count, Rate, Scenario } from './plan'
+import type { Count, Rate, StreamScenario } from './plan'
 
 // React Native exposes performance.now() at runtime; the RN types omit the DOM lib.
 declare const performance: { now(): number }
@@ -22,10 +22,8 @@ declare const performance: { now(): number }
 /** Pacing of the requestAnimationFrame loop that pushes the values: how responsive the JS thread stayed. */
 export type JsStats = { fps: number; frames: number; p50: number; p95: number; p99: number; max: number; long: number }
 
-export type BenchResult = {
-  impl: ImplKey
-  rate: Rate
-  count: Count
+/** What a measured window of frames yields, for a value stream or a scrolling list. */
+export type StreamStats = {
   /** Measured seconds (after the warm-up). */
   seconds: number
   /** The native frame meter on the main thread; null without the probe. */
@@ -38,42 +36,49 @@ export type BenchResult = {
   error?: string
 }
 
+export type BenchResult = StreamStats & { kind: 'stream'; impl: ImplKey; rate: Rate; count: Count }
+
 export const BENCH_FONT_SIZE = 44
 
+export const quantile = (sorted: number[], p: number) =>
+  sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))] : 0
+
 /**
- * One scenario: `count` copies of one implementation, fed the same value
- * stream. While `running`, a requestAnimationFrame loop pushes values for
- * `warmup` seconds unmeasured, then for `seconds` measured. The native probe
- * counts main-thread frames and samples per-thread CPU over the measured
- * window; the loop's own pacing is the JS-thread figure.
+ * The measured loop behind a value stream and a scrolling list: while
+ * `running`, a requestAnimationFrame loop calls `push` at `rate` (and
+ * `onFrame` every frame) for `warmup` seconds unmeasured, then for `seconds`
+ * measured. The native probe counts main-thread frames and samples per-thread
+ * CPU over the measured window; the loop's own pacing is the JS-thread figure.
  */
-export function BenchRun({
-  scenario,
-  seconds,
-  warmup,
+export function useMeasuredStream({
   running,
+  rate,
+  warmup,
+  seconds,
+  push,
+  onFrame,
+  errorRef,
   onMeasureStart,
   onDone,
 }: {
-  scenario: Scenario
-  seconds: number
-  warmup: number
   running: boolean
+  rate: Rate
+  warmup: number
+  seconds: number
+  push: (value: number) => void
+  onFrame?: (elapsedSeconds: number) => void
+  errorRef: React.MutableRefObject<string | null>
   onMeasureStart?: () => void
-  onDone: (result: BenchResult) => void
+  onDone: (stats: StreamStats) => void
 }) {
-  const { impl, rate, count } = scenario
-  const [value, setValue] = useState(BENCH_START)
-  const nitroRefs = useRef<(RollingNumberHandle | null)[]>([])
-  const fmt = useMemo(() => new Intl.NumberFormat('en-US', BENCH_FORMAT), [])
-  const sv = useSharedValue(fmt.format(BENCH_START))
-  const fontSize = count === 1 ? BENCH_FONT_SIZE : BENCH_FONT_SIZE / 2
-  const font = useMemo(() => matchFont({ fontSize, fontWeight: 'bold' }), [fontSize])
   const onDoneRef = useRef(onDone)
   onDoneRef.current = onDone
   const onMeasureStartRef = useRef(onMeasureStart)
   onMeasureStartRef.current = onMeasureStart
-  const errorRef = useRef<string | null>(null)
+  const pushRef = useRef(push)
+  pushRef.current = push
+  const onFrameRef = useRef(onFrame)
+  onFrameRef.current = onFrame
 
   useEffect(() => {
     if (!running) return
@@ -91,32 +96,22 @@ export function BenchRun({
     let before: Sample | null = null
     let thermalBefore = ''
 
-    const push = (v: number) => {
-      if (impl === 'nitro-jump') nitroRefs.current.forEach((r) => r?.jumpTo(v))
-      else if (impl === 'nf-skia-sv' || impl === 'atext') sv.value = fmt.format(v)
-      else setValue(v)
-    }
-
     const finish = (now: number, error?: string) => {
       const ui = measuring ? stopFrames() : null
       const after = measuring ? sample() : null
       const thermalAfter = thermalState()
       const measured = measuring ? (now - measureStart) / 1000 : 0
       const sorted = [...gaps].sort((a, b) => a - b)
-      const q = (p: number) => (sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))] : 0)
       const frameMs = 1000 / (ui?.hz || 60)
       onDoneRef.current({
-        impl,
-        rate,
-        count,
         seconds: measured,
         ui,
         js: {
           fps: measured > 0 ? gaps.length / measured : 0,
           frames: gaps.length ? gaps.length + 1 : 0,
-          p50: q(0.5),
-          p95: q(0.95),
-          p99: q(0.99),
+          p50: quantile(sorted, 0.5),
+          p95: quantile(sorted, 0.95),
+          p99: quantile(sorted, 0.99),
           max: sorted.length ? sorted[sorted.length - 1] : 0,
           long: gaps.filter((g) => g > 2.5 * frameMs).length,
         },
@@ -153,10 +148,12 @@ export function BenchRun({
           return
         }
       }
+      const elapsed = (now - start) / 1000
+      onFrameRef.current?.(elapsed)
       // The loop always runs (it is the JS pacing probe); values are pushed at `rate`.
       if (interval === 0 || now - lastPush >= interval - 1) {
         lastPush = now
-        push(benchValue((now - start) / 1000))
+        pushRef.current(benchValue(elapsed))
       }
       frame = requestAnimationFrame(loop)
     }
@@ -166,7 +163,57 @@ export function BenchRun({
       cancelAnimationFrame(frame)
       if (measuring) stopFrames()
     }
-  }, [running, impl, rate, count, fmt, sv, warmup, seconds])
+  }, [running, rate, warmup, seconds, errorRef])
+}
+
+/** The value, shared value and font one implementation needs, for whichever run renders it. */
+export function useBenchValue(fontSize: number) {
+  const [value, setValue] = useState(BENCH_START)
+  const fmt = useMemo(() => new Intl.NumberFormat('en-US', BENCH_FORMAT), [])
+  const sv = useSharedValue(fmt.format(BENCH_START))
+  const font = useMemo(() => matchFont({ fontSize, fontWeight: 'bold' }), [fontSize])
+  return { value, setValue, fmt, sv, font }
+}
+
+/**
+ * One value-stream scenario: `count` copies of one implementation, fed the
+ * same value stream through the measured loop above.
+ */
+export function BenchRun({
+  scenario,
+  seconds,
+  warmup,
+  running,
+  onMeasureStart,
+  onDone,
+}: {
+  scenario: StreamScenario
+  seconds: number
+  warmup: number
+  running: boolean
+  onMeasureStart?: () => void
+  onDone: (result: BenchResult) => void
+}) {
+  const { impl, rate, count } = scenario
+  const fontSize = count === 1 ? BENCH_FONT_SIZE : BENCH_FONT_SIZE / 2
+  const { value, setValue, fmt, sv, font } = useBenchValue(fontSize)
+  const nitroRefs = useRef<(RollingNumberHandle | null)[]>([])
+  const errorRef = useRef<string | null>(null)
+
+  useMeasuredStream({
+    running,
+    rate,
+    warmup,
+    seconds,
+    errorRef,
+    onMeasureStart,
+    push: (v) => {
+      if (impl === 'nitro-jump') nitroRefs.current.forEach((r) => r?.jumpTo(v))
+      else if (impl === 'nf-skia-sv' || impl === 'atext') sv.value = fmt.format(v)
+      else setValue(v)
+    },
+    onDone: (stats) => onDone({ kind: 'stream', impl, rate, count, ...stats }),
+  })
 
   return (
     <View style={count === 1 ? styles.single : styles.grid}>

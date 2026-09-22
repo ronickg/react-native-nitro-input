@@ -245,9 +245,22 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     commit()
   }
 
+  /// Fabric dropped the view. The hybrid lives on until the JS handle to it
+  /// (`hybridRef`) is garbage-collected, so the animation stops now.
   func onDropView() {
     onMain { self.inputView.stopAnimation() }
   }
+
+  /// JS called `dispose()` on the ref: same as a drop.
+  func dispose() {
+    onMain { self.inputView.stopAnimation() }
+  }
+
+  /// Reported to the JS garbage collector so a dropped field's handle counts as
+  /// the memory it holds (the field, its layers and their backing stores,
+  /// roughly) rather than as an empty object; that is what makes Hermes
+  /// collect the handles, and with them the views, in time.
+  var memorySize: Int { 48 * 1024 }
 
   /// Fabric is about to reuse this view for another element: forget every prop
   /// and all state. Nitro re-applies the new element's props next.

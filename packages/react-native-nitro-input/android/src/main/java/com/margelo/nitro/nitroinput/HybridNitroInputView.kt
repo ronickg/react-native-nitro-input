@@ -14,9 +14,25 @@ import com.margelo.nitro.views.RecyclableView
  */
 @Keep
 @DoNotStrip
-class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSpec(), RecyclableView {
-  private val inputView = NitroInputView(context)
+class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitroInputViewSpec(), RecyclableView {
   private val mainHandler = Handler(Looper.getMainLooper())
+
+  /**
+   * The platform view, or null once Fabric has dropped it. This hybrid is
+   * kept alive by Nitro's C++ part for as long as the JS handle to it (the
+   * `hybridRef`) exists, and Hermes collects that handle only when the JS
+   * heap fills up; so a dropped hybrid lets go of the field rather than keep
+   * its views around meanwhile. A method called on a stale ref gets a fresh,
+   * detached field.
+   */
+  private var attachedView: NitroInputView? = null
+  private val inputView: NitroInputView
+    get() = attachedView ?: NitroInputView(context).also {
+      wire(it)
+      attachedView = it
+    }
+  /** Set by [prepareForRecycle]: Fabric is keeping the dropped view for reuse. */
+  private var recycled = false
 
   override val view: View
     get() = inputView
@@ -35,7 +51,7 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
   @Volatile private var cachedValue = Double.NaN
   @Volatile private var cachedFocused = false
 
-  init {
+  private fun wire(inputView: NitroInputView) {
     inputView.onTextChange = { text, value ->
       eventCount += 1
       cachedText = text
@@ -299,15 +315,41 @@ class HybridNitroInputView(context: ThemedReactContext) : HybridNitroInputViewSp
     commit()
   }
 
+  /**
+   * Fabric dropped the view. The Kotlin object lives on until the JS handle
+   * to it (`hybridRef`) is garbage-collected, so the animation stops now.
+   */
   override fun onDropView() {
-    onMain { inputView.stopAnimation() }
+    recycled = false
+    onMain {
+      attachedView?.stopAnimation()
+      // With view recycling on, Fabric asks for prepareForRecycle right after
+      // this hook, synchronously; by the next main-thread turn we know whether
+      // the view is wanted again or can go.
+      mainHandler.post { if (!recycled) attachedView = null }
+    }
   }
+
+  /** JS called `dispose()` on the ref: same as a drop. */
+  override fun dispose() {
+    onMain { attachedView?.stopAnimation() }
+  }
+
+  /**
+   * Reported to the JS garbage collector so a dropped field's handle counts as
+   * the memory it holds (the field, its edit text, outline and label views and
+   * their display lists, roughly) rather than as an empty object; that is what
+   * makes Hermes collect the handles, and with them the views, in time.
+   */
+  override val memorySize: Long
+    get() = if (attachedView != null) 48L * 1024 else 0L
 
   /**
    * Fabric is about to reuse this view for another element: forget every prop,
    * the text and the edit count. Nitro re-applies the new element's props next.
    */
   override fun prepareForRecycle() {
+    recycled = true
     isBatching = true
     text = ""
     mostRecentEventCount = 0.0

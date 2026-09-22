@@ -5,9 +5,11 @@ screen (`example/src/bench`, driven from the host by `scripts/bench/run.mjs`):
 an **iPhone 13 Pro Max** (iOS 26.6.2, 120 Hz ProMotion), an **iPhone 11 Pro**
 (iOS 26.6.1, 60 Hz) and a **Samsung Galaxy A22** (Android 13, 90 Hz, a
 MediaTek Helio G80: a low-end phone). Release builds, React Native 0.87.1,
-twelve implementations. Every number below is in a result file in
-`scripts/bench/results/`, and the tables are what `scripts/bench/report.mjs`
-prints from them.
+twelve rolling-number implementations and eleven text fields. Every number
+below is in a result file in `scripts/bench/results/`, and the tables are what
+`scripts/bench/report.mjs` prints from them. The library's own share of these
+numbers changed during the work: the profiling pass that came out of the first
+matrix is in the package changelog, and everything here is measured after it.
 
 ## At a glance
 
@@ -17,28 +19,27 @@ missed; JS = frames per second the JS thread still managed:
 
 | Implementation | iPhone 13 Pro Max, 120 Hz | iPhone 11 Pro, 60 Hz | Galaxy A22, 90 Hz |
 | --- | --- | --- | --- |
-| Text (no animation) | 120 fps, 0 dropped, JS 60 | 59.9 fps, 0 dropped, JS 60 | 89.0 fps, 7 dropped, JS 80 |
-| AnimateableText (shared value) | 120 fps, 0 dropped, JS 60 | 59.9 fps, 0 dropped, JS 60 | 89.4 fps, 5 dropped, JS 46 |
-| **Nitro `value` prop** | 120 fps, 0 dropped, JS 60 | 59.9 fps, 0 dropped, JS 60 | 72.1 fps, 91 dropped, JS 61 |
-| **Nitro `jumpTo`** | 120 fps, 0 dropped, JS 60 | 59.9 fps, 0 dropped, JS 60 | 90.0 fps, 2 dropped, JS 88 |
-| number-animation (native) | 115 fps, 27 dropped, JS 60 | 54.5 fps, 27 dropped, JS 60 | 50.2 fps, 199 dropped, JS 18 |
-| animated-rolling-numbers | 114 fps, 28 dropped, JS 13 | 58.7 fps, 6 dropped, JS 11 | 19.0 fps, 352 dropped, JS 4 |
-| NumberFlow View | 81.6 fps, 193 dropped, JS 10 | 46.1 fps, 71 dropped, JS 8 | 26.2 fps, 330 dropped, JS 2 |
-| NumberFlow Skia | 86.1 fps, 203 dropped, JS 1 | 51.2 fps, 48 dropped, JS 1 | 29.7 fps, 303 dropped, JS 13 |
-| NumberFlow Skia sharedValue | 93.1 fps, 174 dropped, JS 30 | 48.5 fps, 77 dropped, JS 25 | 18.4 fps, 352 dropped, JS 4 |
-| NumberBloom (Skia) | 65.9 fps, 271 dropped, JS 3 | 46.6 fps, 70 dropped, JS 2 | 48.9 fps, 212 dropped, JS 8 |
-| react-native-ticker | 13.3 fps, 523 dropped, JS 12 | 7.1 fps, 257 dropped, JS 10 | 13.0 fps, 401 dropped, JS 4 |
-| AnimatedNumbers | 115 fps, 25 dropped, JS 14 | 56.9 fps, 15 dropped, JS 10 | 49.1 fps, 215 dropped, JS 4 |
+| Text (no animation) | 120 fps, 0 dropped, JS 60 | 59.9 fps, 0 dropped, JS 60 | 88.7 fps, 8 dropped, JS 80 |
+| AnimateableText (shared value) | 120 fps, 0 dropped, JS 60 | 59.9 fps, 0 dropped, JS 60 | 88.8 fps, 8 dropped, JS 46 |
+| **Nitro `value` prop** | 120 fps, 0 dropped, JS 60 | 59.9 fps, 0 dropped, JS 60 | 90.4 fps, 0 dropped, JS 80 |
+| **Nitro `jumpTo`** | 120 fps, 0 dropped, JS 60 | 59.9 fps, 0 dropped, JS 60 | 89.8 fps, 3 dropped, JS 87 |
+| number-animation (native) | 117 fps, 13 dropped, JS 60 | 59.1 fps, 4 dropped, JS 60 | 56.2 fps, 170 dropped, JS 18 |
+| animated-rolling-numbers | 117 fps, 17 dropped, JS 13 | 58.7 fps, 5 dropped, JS 11 | 18.8 fps, 370 dropped, JS 4 |
+| NumberFlow View | 76.1 fps, 222 dropped, JS 10 | 49.1 fps, 56 dropped, JS 8 | 24.9 fps, 352 dropped, JS 2 |
+| NumberFlow Skia | 86.7 fps, 182 dropped, JS 1 | 53.1 fps, 37 dropped, JS 1 | 28.2 fps, 309 dropped, JS 12 |
+| NumberFlow Skia sharedValue | 95.0 fps, 160 dropped, JS 31 | 49.9 fps, 68 dropped, JS 26 | 19.8 fps, 348 dropped, JS 4 |
+| NumberBloom (Skia) | 64.8 fps, 281 dropped, JS 3 | 48.3 fps, 60 dropped, JS 3 | 49.5 fps, 207 dropped, JS 8 |
+| react-native-ticker | 11.8 fps, 544 dropped, JS 12 | 7.6 fps, 258 dropped, JS 10 | 12.6 fps, 379 dropped, JS 4 |
+| AnimatedNumbers | 116 fps, 21 dropped, JS 15 | 56.7 fps, 16 dropped, JS 11 | 51.2 fps, 199 dropped, JS 4 |
 
 Two things hold the panel's frame rate on every phone: a path that does no
 per-update work on the JS thread beyond a call (AnimateableText, Nitro
 `jumpTo`), and a path whose per-update work is a plain React render (Text,
-Nitro `value` prop), which on the low-end phone at 90 Hz is already too much
-for 24 elements a frame, so there `jumpTo` is the path that stays smooth.
-Every other library drops frames, starves the JS thread, or both: a UI thread
-at 115 fps next to a JS thread at 13 fps is a screen that animates but does
-not respond. The per-device tables below add CPU per thread and the ten-a-
-second and one-copy cases.
+Nitro `value` prop). Every other library drops frames, starves the JS thread,
+or both: a UI thread at 117 fps next to a JS thread at 13 fps is a screen that
+animates but does not respond. The per-device tables below add CPU per
+thread, the ten-a-second and one-copy cases, a scrolling list, mounting and
+unmounting, and then the text fields.
 
 ## Method
 
@@ -101,6 +102,47 @@ debugger, no Metro.
   tables. Low Power Mode / battery saver are recorded too (both cap the frame
   rate); every run below had them off.
 
+### The other measurements
+
+- **Mount and unmount.** 24 numbers (20 fields) rendered in one state update,
+  timed from that update to the last one's `onLayout`, then unmounted and
+  timed to the second frame after; ten cold passes, medians. Main- and
+  JS-thread CPU per pass come from the probe.
+- **A scrolling list.** 200 rows of one number in a `FlatList`, scrolled a
+  screen's worth back and forth every three seconds by the same loop that
+  pushes ten values a second into every row; measured like a stream. The JS
+  column includes the list's own scroll handling, the same for every row type.
+- **Typing.** The probe types into the focused field one key at a time
+  through the path real typing takes (`insertText` on the first responder on
+  iOS, the input connection's `commitText` on Android), at 8 and at 15 keys a
+  second, and watches the field's text on every following frame. A key whose
+  text is rewritten in a later frame is the flicker of a JS round trip: the
+  raw digit lands, JS formats, the formatted text comes back a frame or two
+  later. The table counts those rewrites per key, how long a key took to
+  settle, main- and JS-thread CPU per key, change callbacks JS received per
+  key, and frames the main thread dropped while typing. The keyboard is up
+  before the first key and is not part of any figure.
+- **Focus latency.** `focus()` to `onFocus`, eight runs, medians; the first
+  run pays for the keyboard appearing and is listed separately.
+- **Memory.** Two ways to leak: 24 copies (20 fields) mounted and unmounted
+  40 times, and the 200-row list scrolled for 30 s with values arriving.
+  Garbage collectors make a process's memory swing by megabytes, so a floor is
+  taken only after a forced collection: on Android the probe runs the Java
+  collector and its finalizers (a detached view, and the C++ engine its
+  `HybridData` owns, are only freed then), on iOS it asks malloc to return
+  freed pages. The tables give the footprint at that start floor and at the
+  end floor (the physical footprint on iOS, what Xcode and jetsam count; the
+  resident set on Android), the peak in between, a least-squares slope of the
+  samples taken every four cycles or every second, and malloc's bytes in use
+  at both floors, which is where C++ engines and native views live and where
+  the JS heap is not. The list's first six seconds (two scroll periods, every
+  row mounted once and the caches warm) are not part of the slope. On Android
+  the live `View` count from `dumpsys meminfo` at both floors is the
+  decisive column: a detached view that is still alive after a collection is
+  held by something. Instruments' Leaks template was meant as the iOS
+  cross-check; on these phones it recorded no allocation data (see the memory
+  section), so the iOS evidence is the floors.
+
 ## What was compared
 
 Every animated-number library on npm that builds against React Native 0.87
@@ -133,211 +175,187 @@ re-rendering), `react-native-countup-component`, `react-native-rolling-number-ti
 
 ## iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
-### 24 copies, new value every frame
-
 | Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | runs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Text (no animation) | 120.0 | 0 | 8 | 60.0 | 47 % | 26 % | 20 % | 3 |
-| AnimateableText (shared value) | 120.0 | 0 | 8 | 60.0 | 37 % | 36 % | 1 % | 3 |
-| **Nitro `value` prop** | 120.0 | 0 | 8 | 60.0 | 52 % | 22 % | 20 % | 3 |
-| **Nitro `jumpTo`** | 120.0 | 0 | 8 | 60.0 | 28 % | 21 % | 3 % | 3 |
-| number-animation (native) | 114.6 | 27 | 8 | 60.0 | 109 % | 64 % | 43 % | 3 |
-| animated-rolling-numbers | 114.4 | 28 | 8 | 12.8 | 186 % | 81 % | 99 % | 3 |
-| NumberFlow View | 81.6 | 193 | 26 | 10.4 | 174 % | 69 % | 99 % | 3 |
-| NumberFlow Skia | 86.1 | 203 | 25 | 1.2 | 184 % | 92 % | 40 % | 3 |
-| NumberFlow Skia sharedValue | 93.1 | 174 | 24 | 30.2 | 148 % | 90 % | 24 % | 3 |
-| NumberBloom (Skia) | 65.9 | 271 | 30 | 3.3 | 214 % | 78 % | 61 % | 3 |
-| react-native-ticker | 13.3 | 523 | 125 | 12.1 | 202 % | 97 % | 98 % | 3 |
-| AnimatedNumbers | 115.4 | 25 | 8 | 14.1 | 164 % | 40 % | 99 % | 3 |
-
-### 24 copies, 10 values a second
+| AnimateableText (shared value) | 120.0 | 0 | 8 | 60.0 | 38 % | 37 % | 1 % | 3 |
+| **Nitro `value` prop** | 120.0 | 0 | 8 | 60.0 | 56 % | 25 % | 25 % | 3 |
+| **Nitro `jumpTo`** | 120.0 | 0 | 8 | 60.0 | 27 % | 20 % | 3 % | 3 |
+| number-animation (native) | 117.4 | 13 | 8 | 60.0 | 104 % | 63 % | 40 % | 3 |
+| animated-rolling-numbers | 116.6 | 17 | 8 | 12.7 | 187 % | 82 % | 99 % | 3 |
+| NumberFlow View | 76.1 | 222 | 28 | 10.2 | 175 % | 70 % | 99 % | 3 |
+| NumberFlow Skia | 86.7 | 182 | 24 | 1.3 | 185 % | 92 % | 38 % | 3 |
+| NumberFlow Skia sharedValue | 95.0 | 160 | 25 | 31.2 | 147 % | 89 % | 23 % | 3 |
+| NumberBloom (Skia) | 64.8 | 281 | 33 | 3.3 | 213 % | 77 % | 61 % | 3 |
+| react-native-ticker | 11.8 | 544 | 123 | 11.9 | 203 % | 97 % | 99 % | 3 |
+| AnimatedNumbers | 115.8 | 21 | 8 | 14.5 | 160 % | 39 % | 99 % | 3 |
 
 | Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | runs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Text (no animation) | 119.8 | 1 | 8 | 60.0 | 28 % | 13 % | 15 % | 1 |
-| AnimateableText (shared value) | 109.4 | 53 | 17 | 60.0 | 20 % | 19 % | 1 % | 1 |
-| **Nitro `value` prop** | 120.0 | 0 | 8 | 60.0 | 47 % | 28 % | 12 % | 1 |
-| **Nitro `jumpTo`** | 120.0 | 0 | 8 | 60.0 | 10 % | 7 % | 2 % | 1 |
-| number-animation (native) | 115.8 | 21 | 8 | 60.0 | 34 % | 15 % | 19 % | 1 |
-| animated-rolling-numbers | 115.8 | 21 | 8 | 17.0 | 178 % | 90 % | 83 % | 1 |
-| NumberFlow View | 80.9 | 200 | 25 | 10.9 | 163 % | 65 % | 93 % | 1 |
-| NumberFlow Skia | 105.4 | 80 | 17 | 1.4 | 203 % | 93 % | 45 % | 1 |
-| NumberFlow Skia sharedValue | 97.8 | 141 | 21 | 32.5 | 142 % | 82 % | 22 % | 1 |
-| NumberBloom (Skia) | 64.7 | 287 | 31 | 3.2 | 215 % | 79 % | 61 % | 1 |
-| react-native-ticker | 14.8 | 511 | 131 | 19.5 | 183 % | 96 % | 80 % | 1 |
-| AnimatedNumbers | 116.8 | 16 | 8 | 28.4 | 109 % | 30 % | 65 % | 1 |
-
-### 1 copy, new value every frame
+| Text (no animation) | 119.8 | 1 | 8 | 59.6 | 29 % | 13 % | 15 % | 1 |
+| AnimateableText (shared value) | 108.8 | 56 | 17 | 60.0 | 20 % | 18 % | 1 % | 1 |
+| **Nitro `value` prop** | 120.0 | 0 | 8 | 60.0 | 50 % | 34 % | 9 % | 1 |
+| **Nitro `jumpTo`** | 120.0 | 0 | 8 | 60.0 | 9 % | 6 % | 2 % | 1 |
+| number-animation (native) | 115.6 | 22 | 8 | 60.0 | 35 % | 15 % | 20 % | 1 |
+| animated-rolling-numbers | 117.8 | 11 | 8 | 21.8 | 162 % | 81 % | 77 % | 1 |
+| NumberFlow View | 81.3 | 198 | 26 | 9.3 | 166 % | 65 % | 95 % | 1 |
+| NumberFlow Skia | 111.2 | 44 | 17 | 1.4 | 207 % | 93 % | 47 % | 1 |
+| NumberFlow Skia sharedValue | 96.1 | 152 | 23 | 31.6 | 139 % | 81 % | 22 % | 1 |
+| NumberBloom (Skia) | 64.5 | 284 | 31 | 3.2 | 215 % | 79 % | 62 % | 1 |
+| react-native-ticker | 20.1 | 499 | 111 | 20.1 | 181 % | 96 % | 79 % | 1 |
+| AnimatedNumbers | 117.0 | 15 | 8 | 28.6 | 111 % | 30 % | 65 % | 1 |
 
 | Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | runs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Text (no animation) | 120.0 | 0 | 8 | 59.8 | 46 % | 14 % | 30 % | 1 ‡ |
-| AnimateableText (shared value) | 120.0 | 0 | 8 | 60.0 | 31 % | 27 % | 4 % | 1 |
-| **Nitro `value` prop** | 120.0 | 0 | 8 | 59.6 | 40 % | 11 % | 27 % | 1 |
+| Text (no animation) | 120.0 | 0 | 8 | 59.8 | 46 % | 14 % | 31 % | 1 |
+| AnimateableText (shared value) | 120.0 | 0 | 8 | 60.0 | 32 % | 27 % | 4 % | 1 |
+| **Nitro `value` prop** | 120.0 | 0 | 8 | 60.0 | 42 % | 11 % | 28 % | 1 |
 | **Nitro `jumpTo`** | 120.0 | 0 | 8 | 60.0 | 6 % | 4 % | 2 % | 1 |
-| number-animation (native) | 120.0 | 0 | 8 | 60.0 | 46 % | 19 % | 26 % | 1 |
-| animated-rolling-numbers | 120.0 | 0 | 8 | 60.0 | 41 % | 12 % | 28 % | 1 |
-| NumberFlow View | 120.0 | 0 | 8 | 60.0 | 44 % | 16 % | 27 % | 1 |
-| NumberFlow Skia | 97.6 | 112 | 17 | 60.0 | 67 % | 8 % | 50 % | 1 |
-| NumberFlow Skia sharedValue | 119.4 | 3 | 8 | 58.0 | 32 % | 25 % | 7 % | 1 |
-| NumberBloom (Skia) | 120.0 | 0 | 8 | 60.0 | 62 % | 12 % | 39 % | 1 |
+| number-animation (native) | 119.4 | 3 | 8 | 60.0 | 47 % | 19 % | 26 % | 1 |
+| animated-rolling-numbers | 120.0 | 0 | 8 | 60.0 | 42 % | 13 % | 29 % | 1 |
+| NumberFlow View | 120.0 | 0 | 8 | 60.0 | 43 % | 15 % | 27 % | 1 |
+| NumberFlow Skia | 119.6 | 2 | 8 | 60.0 | 63 % | 8 % | 47 % | 1 |
+| NumberFlow Skia sharedValue | 120.0 | 0 | 8 | 58.2 | 32 % | 25 % | 7 % | 1 |
+| NumberBloom (Skia) | 120.0 | 0 | 8 | 60.0 | 58 % | 11 % | 37 % | 1 |
 | react-native-ticker | 120.0 | 0 | 8 | 60.0 | 56 % | 38 % | 18 % | 1 |
-| AnimatedNumbers | 120.0 | 0 | 8 | 60.0 | 51 % | 8 % | 36 % | 1 |
-
-‡ at least one of these runs started with the phone already throttled (thermal state serious or worse).
+| AnimatedNumbers | 120.0 | 0 | 8 | 60.0 | 50 % | 8 % | 36 % | 1 |
 
 The UI columns count 120 Hz frames here. Both Nitro rows hold 120 fps with
-nothing dropped at 24 copies, and `jumpTo` does it on 28 % of one core. The
-two other libraries that keep the UI thread near 120 (AnimatedNumbers and
-animated-rolling-numbers) do it by starving the JS thread: 13–14 JS frames a
-second, so a screen using them stops responding to touches and state while the
-numbers roll. number-animation is native like this library but its JS thread
-is at 43 % and its main thread at 64 % for the same stream, and it drops
-frames; its React side formats and re-sends the string on every update and the
-native side rebuilds glyph layers from it. The View, Skia and Bloom renderers
-lose a fifth to a half of the frames. react-native-ticker, ten `<Text>`s per
-digit, collapses.
+nothing dropped at 24 copies, `jumpTo` on 27 % of one core, and the wheels
+now roll at 120 Hz (the view's display link asks for the panel's rate since
+the profiling pass). The two other libraries that keep the UI thread near
+120 (AnimatedNumbers and animated-rolling-numbers) do it by starving the JS
+thread: 13–15 JS frames a second, so a screen using them stops responding to
+touches and state while the numbers roll. number-animation is native like
+this library but its JS thread is at 40 % and its main thread at 63 % for
+the same stream, and it drops frames; its React side formats and re-sends
+the string on every update and the native side rebuilds glyph layers from
+it. The View, Skia and Bloom renderers lose a fifth to a half of the frames.
+react-native-ticker, ten `<Text>`s per digit, collapses.
 
 Note the JS fps column: React Native's own `requestAnimationFrame` runs at
 60 Hz on this phone (see Method), so "every frame" here is 60 pushes a second
-into a 120 Hz UI thread; the Reanimated-driven libraries animate at 120 Hz on
-it and this library's wheels at 60, which flatters the Nitro main-thread
-figure somewhat until the view asks for the panel's rate.
+into a 120 Hz UI thread.
 
 ## iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
 
-### 24 copies, new value every frame
-
 | Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | runs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Text (no animation) | 59.9 | 0 | 17 | 59.9 | 40 % | 23 % | 15 % | 3 |
+| Text (no animation) | 59.9 | 0 | 17 | 59.9 | 41 % | 24 % | 15 % | 3 |
 | AnimateableText (shared value) | 59.9 | 0 | 17 | 59.9 | 39 % | 37 % | 1 % | 3 |
-| **Nitro `value` prop** | 59.9 | 0 | 17 | 59.9 | 52 % | 24 % | 18 % | 3 |
-| **Nitro `jumpTo`** | 59.9 | 0 | 17 | 59.9 | 42 % | 30 % | 5 % | 3 |
-| number-animation (native) | 54.5 | 27 | 33 | 59.9 | 156 % | 93 % | 59 % | 3 |
-| animated-rolling-numbers | 58.7 | 6 | 17 | 10.9 | 179 % | 73 % | 99 % | 3 ‡ |
-| NumberFlow View | 46.1 | 71 | 45 | 8.2 | 183 % | 75 % | 99 % | 3 |
-| NumberFlow Skia | 51.2 | 48 | 40 | 1.2 | 189 % | 85 % | 49 % | 3 |
-| NumberFlow Skia sharedValue | 48.5 | 77 | 45 | 25.0 | 150 % | 84 % | 28 % | 3 |
-| NumberBloom (Skia) | 46.6 | 70 | 42 | 2.5 | 219 % | 76 % | 61 % | 3 |
-| react-native-ticker | 7.1 | 257 | 215 | 9.7 | 207 % | 99 % | 98 % | 3 |
-| AnimatedNumbers | 56.9 | 15 | 17 | 10.2 | 179 % | 50 % | 99 % | 3 |
-
-### 24 copies, 10 values a second
+| **Nitro `value` prop** | 59.9 | 0 | 17 | 59.9 | 50 % | 19 % | 27 % | 3 |
+| **Nitro `jumpTo`** | 59.9 | 0 | 17 | 59.9 | 38 % | 29 % | 5 % | 3 |
+| number-animation (native) | 59.1 | 4 | 17 | 59.9 | 148 % | 92 % | 54 % | 3 |
+| animated-rolling-numbers | 58.7 | 5 | 17 | 11.2 | 177 % | 72 % | 99 % | 3 |
+| NumberFlow View | 49.1 | 56 | 43 | 8.4 | 183 % | 76 % | 99 % | 3 |
+| NumberFlow Skia | 53.1 | 37 | 32 | 1.2 | 187 % | 85 % | 47 % | 3 |
+| NumberFlow Skia sharedValue | 49.9 | 68 | 34 | 26.5 | 147 % | 83 % | 28 % | 3 |
+| NumberBloom (Skia) | 48.3 | 60 | 40 | 2.5 | 220 % | 76 % | 62 % | 3 |
+| react-native-ticker | 7.6 | 258 | 202 | 9.8 | 207 % | 99 % | 98 % | 3 |
+| AnimatedNumbers | 56.7 | 16 | 17 | 10.9 | 178 % | 49 % | 100 % | 3 |
 
 | Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | runs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Text (no animation) | 59.9 | 0 | 17 | 59.9 | 35 % | 17 % | 18 % | 1 ‡ |
-| AnimateableText (shared value) | 59.9 | 0 | 17 | 59.9 | 30 % | 27 % | 2 % | 1 |
-| **Nitro `value` prop** | 59.9 | 0 | 17 | 59.9 | 47 % | 28 % | 10 % | 1 |
-| **Nitro `jumpTo`** | 59.9 | 0 | 17 | 59.9 | 17 % | 10 % | 4 % | 1 |
-| number-animation (native) | 59.9 | 0 | 17 | 59.9 | 35 % | 20 % | 15 % | 1 |
-| animated-rolling-numbers | 58.9 | 5 | 17 | 21.1 | 152 % | 69 % | 78 % | 1 |
-| NumberFlow View | 46.2 | 68 | 50 | 6.5 | 179 % | 72 % | 99 % | 1 |
-| NumberFlow Skia | 57.0 | 16 | 17 | 1.3 | 194 % | 77 % | 56 % | 1 |
-| NumberFlow Skia sharedValue | 55.7 | 22 | 19 | 35.3 | 126 % | 72 % | 18 % | 1 |
-| NumberBloom (Skia) | 47.0 | 67 | 50 | 2.5 | 222 % | 76 % | 62 % | 1 |
-| react-native-ticker | 8.9 | 253 | 206 | 14.6 | 194 % | 98 % | 88 % | 1 |
-| AnimatedNumbers | 57.3 | 14 | 17 | 18.6 | 154 % | 44 % | 82 % | 1 |
-
-### 1 copy, new value every frame
+| Text (no animation) | 59.9 | 0 | 17 | 59.9 | 36 % | 17 % | 19 % | 1 |
+| AnimateableText (shared value) | 59.9 | 0 | 17 | 59.9 | 30 % | 27 % | 3 % | 1 |
+| **Nitro `value` prop** | 59.9 | 0 | 17 | 59.9 | 44 % | 27 % | 11 % | 1 |
+| **Nitro `jumpTo`** | 59.9 | 0 | 17 | 59.9 | 10 % | 6 % | 3 % | 1 |
+| number-animation (native) | 59.9 | 0 | 17 | 59.9 | 36 % | 20 % | 15 % | 1 |
+| animated-rolling-numbers | 58.7 | 6 | 17 | 18.3 | 160 % | 72 % | 83 % | 1 |
+| NumberFlow View | 46.7 | 69 | 43 | 7.8 | 182 % | 76 % | 98 % | 1 |
+| NumberFlow Skia | 55.3 | 24 | 30 | 1.2 | 192 % | 86 % | 49 % | 1 |
+| NumberFlow Skia sharedValue | 50.2 | 64 | 42 | 26.1 | 138 % | 76 % | 27 % | 1 |
+| NumberBloom (Skia) | 47.3 | 64 | 40 | 2.4 | 221 % | 78 % | 63 % | 1 |
+| react-native-ticker | 6.8 | 259 | 214 | 13.6 | 195 % | 99 % | 88 % | 1 |
+| AnimatedNumbers | 57.5 | 12 | 17 | 18.6 | 153 % | 43 % | 81 % | 1 |
 
 | Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | runs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Text (no animation) | 59.9 | 0 | 17 | 59.9 | 47 % | 16 % | 28 % | 1 |
-| AnimateableText (shared value) | 59.9 | 0 | 17 | 59.9 | 42 % | 37 % | 4 % | 1 |
-| **Nitro `value` prop** | 59.9 | 0 | 17 | 59.7 | 44 % | 12 % | 28 % | 1 |
+| Text (no animation) | 59.9 | 0 | 17 | 59.9 | 45 % | 15 % | 27 % | 1 |
+| AnimateableText (shared value) | 59.9 | 0 | 17 | 59.9 | 45 % | 38 % | 4 % | 1 |
+| **Nitro `value` prop** | 59.9 | 0 | 17 | 59.9 | 44 % | 11 % | 30 % | 1 |
 | **Nitro `jumpTo`** | 59.9 | 0 | 17 | 59.9 | 12 % | 6 % | 3 % | 1 |
-| number-animation (native) | 59.9 | 0 | 17 | 59.9 | 47 % | 19 % | 26 % | 1 |
-| animated-rolling-numbers | 59.9 | 0 | 17 | 59.9 | 46 % | 12 % | 33 % | 1 |
-| NumberFlow View | 59.9 | 0 | 17 | 59.9 | 53 % | 18 % | 34 % | 1 |
-| NumberFlow Skia | 59.9 | 0 | 17 | 59.9 | 96 % | 14 % | 71 % | 1 |
-| NumberFlow Skia sharedValue | 59.9 | 0 | 17 | 57.6 | 40 % | 30 % | 10 % | 1 |
-| NumberBloom (Skia) | 59.9 | 0 | 17 | 59.9 | 101 % | 18 % | 63 % | 1 |
-| react-native-ticker | 59.9 | 0 | 17 | 59.9 | 60 % | 35 % | 23 % | 1 |
-| AnimatedNumbers | 59.9 | 0 | 17 | 59.9 | 52 % | 11 % | 34 % | 1 |
-
-‡ at least one of these runs started with the phone already throttled (thermal state serious or worse).
+| number-animation (native) | 59.9 | 0 | 17 | 59.9 | 47 % | 19 % | 27 % | 1 |
+| animated-rolling-numbers | 59.9 | 0 | 17 | 59.9 | 47 % | 12 % | 34 % | 1 |
+| NumberFlow View | 59.9 | 0 | 17 | 59.9 | 51 % | 18 % | 31 % | 1 |
+| NumberFlow Skia | 59.9 | 0 | 17 | 59.9 | 85 % | 13 % | 59 % | 1 |
+| NumberFlow Skia sharedValue | 59.9 | 0 | 17 | 57.5 | 41 % | 30 % | 11 % | 1 |
+| NumberBloom (Skia) | 58.7 | 6 | 17 | 59.9 | 84 % | 16 % | 51 % | 1 |
+| react-native-ticker | 59.9 | 0 | 17 | 59.9 | 59 % | 36 % | 23 % | 1 |
+| AnimatedNumbers | 59.9 | 0 | 17 | 59.9 | 52 % | 11 % | 33 % | 1 |
 
 A 2019 chip at 60 Hz. The four rows that touch the UI thread lightly (plain
-text, AnimateableText and both Nitro paths) are the only ones that hold
-60 fps with nothing dropped at 24 copies; the Nitro `value` prop path costs
-about the same as re-rendering 24 plain `<Text>`s, and `jumpTo` about the same
-with the JS thread nearly idle. number-animation pins the main thread at 93 %
-and drops five frames a second. The View, Skia and Bloom renderers drop
-between one in six and one in four frames with the JS thread at 1–25 frames
+text, AnimateableText and both Nitro paths) hold 60 fps with nothing dropped
+at 24 copies; the Nitro `value` prop path costs less main thread than
+re-rendering 24 plain `<Text>`s (19 % against 24 %), and `jumpTo` about the
+same with the JS thread nearly idle. number-animation holds 59 fps but pins
+the main thread at 92 % to do it. The View, Skia and Bloom renderers drop
+between one in ten and one in five frames with the JS thread at 1–27 frames
 a second; animated-rolling-numbers and AnimatedNumbers keep the UI thread
-near 60 only by running the JS thread at 10–11.
+near 60 only by running the JS thread at 11.
 
 Ten values a second is the live-ticker case: the differences stay the same,
-only smaller, and `jumpTo` runs the whole screen at 17 % of a core.
+only smaller, and `jumpTo` runs the whole screen at 10 % of a core.
 
 ## Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
 
-### 24 copies, new value every frame
+| Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | RenderThread | HWUI janky (of frames drawn) | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Text (no animation) | 88.7 | 8 | 11 | 80.2 | 236 % | 70 % | 84 % | 51 % | 41 % of 374 | 3 |
+| AnimateableText (shared value) | 88.8 | 8 | 11 | 45.9 | 148 % | 77 % | 8 % | 40 % | 98 % of 220 | 3 |
+| **Nitro `value` prop** | 90.4 | 0 | 11 | 79.6 | 226 % | 54 % | 90 % | 65 % | 78 % of 452 | 3 |
+| **Nitro `jumpTo`** | 89.8 | 3 | 11 | 87.2 | 160 % | 59 % | 11 % | 63 % | 46 % of 433 | 3 |
+| number-animation (native) | 56.2 | 170 | 33 | 18.3 | 285 % | 81 % | 98 % | 60 % | 98 % of 282 | 3 |
+| animated-rolling-numbers | 18.8 | 370 | 89 | 3.8 | 265 % | 91 % | 100 % | 43 % | 100 % of 92 | 3 |
+| NumberFlow View | 24.9 | 352 | 144 | 2.3 | 244 % | 85 % | 98 % | 37 % | 100 % of 42 | 3 |
+| NumberFlow Skia | 28.2 | 309 | 111 | 12.4 | 262 % | 71 % | 91 % | 23 % | 88 % of 123 | 3 |
+| NumberFlow Skia sharedValue | 19.8 | 348 | 177 | 3.7 | 175 % | 69 % | 33 % | 18 % | 98 % of 56 | 3 |
+| NumberBloom (Skia) | 49.5 | 207 | 33 | 8.1 | 210 % | 61 % | 55 % | 29 % | 78 % of 142 | 3 |
+| react-native-ticker | 12.6 | 379 | 221 | 3.8 | 232 % | 92 % | 96 % | 24 % | 100 % of 50 | 3 |
+| AnimatedNumbers | 51.2 | 199 | 33 | 3.7 | 282 % | 62 % | 96 % | 64 % | 98 % of 240 | 3 |
 
 | Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | RenderThread | HWUI janky (of frames drawn) | runs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Text (no animation) | 89.0 | 7 | 11 | 79.6 | 233 % | 70 % | 85 % | 46 % | 39 % of 372 | 3 |
-| AnimateableText (shared value) | 89.4 | 5 | 11 | 45.7 | 147 % | 78 % | 8 % | 40 % | 99 % of 221 | 3 |
-| **Nitro `value` prop** | 72.1 | 91 | 22 | 61.2 | 242 % | 93 % | 75 % | 57 % | 96 % of 360 | 3 |
-| **Nitro `jumpTo`** | 90.0 | 2 | 11 | 88.3 | 176 % | 81 % | 8 % | 62 % | 23 % of 440 | 3 |
-| number-animation (native) | 50.2 | 199 | 44 | 18.3 | 299 % | 81 % | 98 % | 68 % | 100 % of 253 | 3 |
-| animated-rolling-numbers | 19.0 | 352 | 88 | 3.6 | 263 % | 91 % | 99 % | 46 % | 100 % of 91 | 3 |
-| NumberFlow View | 26.2 | 330 | 133 | 2.3 | 236 % | 84 % | 99 % | 32 % | 100 % of 38 | 3 |
-| NumberFlow Skia | 29.7 | 303 | 100 | 12.9 | 262 % | 70 % | 92 % | 24 % | 83 % of 122 | 3 |
-| NumberFlow Skia sharedValue | 18.4 | 352 | 188 | 3.9 | 175 % | 68 % | 34 % | 19 % | 98 % of 62 | 3 |
-| NumberBloom (Skia) | 48.9 | 212 | 33 | 8.1 | 205 % | 62 % | 55 % | 28 % | 77 % of 137 | 3 |
-| react-native-ticker | 13.0 | 401 | 221 | 3.9 | 232 % | 93 % | 97 % | 23 % | 100 % of 52 | 3 |
-| AnimatedNumbers | 49.1 | 215 | 33 | 3.7 | 282 % | 61 % | 98 % | 67 % | 100 % of 240 | 3 |
-
-### 24 copies, 10 values a second
+| Text (no animation) | 84.2 | 31 | 22 | 67.5 | 76 % | 29 % | 33 % | 8 % | 100 % of 50 | 1 |
+| AnimateableText (shared value) | 61.5 | 144 | 44 | 59.6 | 71 % | 53 % | 4 % | 10 % | 100 % of 50 | 1 |
+| **Nitro `value` prop** | 89.8 | 3 | 11 | 60.6 | 195 % | 62 % | 45 % | 63 % | 62 % of 452 | 1 |
+| **Nitro `jumpTo`** | 88.0 | 12 | 11 | 83.8 | 72 % | 25 % | 7 % | 33 % | 99 % of 100 | 1 |
+| number-animation (native) | 69.0 | 107 | 33 | 27.2 | 243 % | 64 % | 63 % | 70 % | 87 % of 348 | 1 |
+| animated-rolling-numbers | 18.4 | 367 | 88 | 4.1 | 265 % | 92 % | 100 % | 45 % | 100 % of 89 | 1 |
+| NumberFlow View | 34.7 | 301 | 100 | 2.0 | 237 % | 85 % | 99 % | 34 % | 100 % of 35 | 1 |
+| NumberFlow Skia | 62.0 | 141 | 33 | 18.2 | 271 % | 70 % | 94 % | 39 % | 80 % of 239 | 1 |
+| NumberFlow Skia sharedValue | 20.3 | 352 | 177 | 3.7 | 171 % | 69 % | 35 % | 20 % | 98 % of 66 | 1 |
+| NumberBloom (Skia) | 49.9 | 222 | 33 | 8.7 | 200 % | 60 % | 54 % | 28 % | 82 % of 150 | 1 |
+| react-native-ticker | 13.4 | 392 | 243 | 3.4 | 229 % | 92 % | 95 % | 23 % | 100 % of 51 | 1 |
+| AnimatedNumbers | 51.9 | 194 | 22 | 3.1 | 283 % | 61 % | 95 % | 66 % | 97 % of 246 | 1 |
 
 | Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | RenderThread | HWUI janky (of frames drawn) | runs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Text (no animation) | 77.1 | 66 | 22 | 53.3 | 94 % | 35 % | 42 % | 9 % | 100 % of 50 | 1 |
-| AnimateableText (shared value) | 59.1 | 156 | 44 | 56.9 | 72 % | 55 % | 4 % | 9 % | 100 % of 50 | 1 |
-| **Nitro `value` prop** | 83.6 | 34 | 22 | 60.6 | 209 % | 93 % | 39 % | 57 % | 87 % of 422 | 1 |
-| **Nitro `jumpTo`** | 77.7 | 63 | 22 | 75.1 | 92 % | 45 % | 9 % | 26 % | 96 % of 102 | 1 |
-| number-animation (native) | 70.1 | 101 | 33 | 34.7 | 237 % | 66 % | 57 % | 72 % | 84 % of 351 | 1 |
-| animated-rolling-numbers | 18.7 | 372 | 77 | 3.4 | 266 % | 92 % | 99 % | 46 % | 100 % of 92 | 1 |
-| NumberFlow View | 26.9 | 307 | 122 | 2.1 | 244 % | 85 % | 98 % | 34 % | 100 % of 38 | 1 |
-| NumberFlow Skia | 25.3 | 325 | 100 | 11.5 | 263 % | 73 % | 91 % | 22 % | 89 % of 111 | 1 |
-| NumberFlow Skia sharedValue | 19.7 | 330 | 199 | 3.8 | 174 % | 68 % | 33 % | 20 % | 98 % of 66 | 1 |
-| NumberBloom (Skia) | 52.0 | 193 | 33 | 8.9 | 210 % | 62 % | 53 % | 31 % | 75 % of 157 | 1 |
-| react-native-ticker | 12.3 | 381 | 276 | 4.4 | 239 % | 91 % | 99 % | 25 % | 100 % of 53 | 1 |
-| AnimatedNumbers | 52.4 | 196 | 33 | 3.1 | 281 % | 60 % | 96 % | 67 % | 96 % of 247 | 1 |
-
-### 1 copy, new value every frame
-
-| Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | RenderThread | HWUI janky (of frames drawn) | runs |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Text (no animation) | 90.4 | 0 | 11 | 88.2 | 153 % | 28 % | 61 % | 45 % | 1 % of 434 | 1 |
-| AnimateableText (shared value) | 90.2 | 1 | 11 | 89.4 | 140 % | 60 % | 11 % | 47 % | 0 % of 440 | 1 |
-| **Nitro `value` prop** | 90.2 | 1 | 11 | 88.2 | 152 % | 32 % | 57 % | 49 % | 1 % of 451 | 1 |
-| **Nitro `jumpTo`** | 90.4 | 0 | 11 | 90.2 | 101 % | 27 % | 4 % | 49 % | 0 % of 449 | 1 |
-| number-animation (native) | 90.4 | 0 | 11 | 87.5 | 197 % | 47 % | 69 % | 57 % | 8 % of 452 | 1 |
-| animated-rolling-numbers | 89.8 | 3 | 11 | 77.6 | 243 % | 53 % | 89 % | 68 % | 60 % of 447 | 1 |
-| NumberFlow View | 80.4 | 50 | 22 | 57.5 | 241 % | 63 % | 90 % | 58 % | 45 % of 327 | 1 |
-| NumberFlow Skia | 84.8 | 28 | 22 | 18.4 | 206 % | 59 % | 94 % | 0 % | 0 % of 0 | 1 |
-| NumberFlow Skia sharedValue | 88.0 | 12 | 11 | 44.1 | 92 % | 55 % | 20 % | 0 % | 100 % of 1 | 1 |
-| NumberBloom (Skia) | 85.2 | 26 | 22 | 5.2 | 231 % | 73 % | 52 % | 56 % | 43 % of 421 | 1 |
-| react-native-ticker | 88.8 | 8 | 11 | 72.2 | 242 % | 63 % | 96 % | 59 % | 4 % of 442 | 1 |
-| AnimatedNumbers | 88.8 | 8 | 11 | 53.2 | 252 % | 53 % | 97 % | 53 % | 17 % of 397 | 1 |
+| Text (no animation) | 90.2 | 1 | 11 | 89.2 | 153 % | 29 % | 61 % | 46 % | 0 % of 441 | 1 |
+| AnimateableText (shared value) | 90.4 | 0 | 11 | 89.3 | 144 % | 62 % | 11 % | 49 % | 1 % of 443 | 1 |
+| **Nitro `value` prop** | 90.2 | 1 | 11 | 88.8 | 148 % | 24 % | 57 % | 49 % | 1 % of 454 | 1 |
+| **Nitro `jumpTo`** | 90.4 | 0 | 11 | 90.0 | 94 % | 21 % | 4 % | 50 % | 0 % of 447 | 1 |
+| number-animation (native) | 90.2 | 1 | 11 | 87.9 | 198 % | 47 % | 70 % | 56 % | 11 % of 450 | 1 |
+| animated-rolling-numbers | 89.8 | 3 | 11 | 80.9 | 242 % | 51 % | 89 % | 66 % | 67 % of 446 | 1 |
+| NumberFlow View | 82.1 | 41 | 22 | 56.9 | 225 % | 62 % | 91 % | 49 % | 47 % of 333 | 1 |
+| NumberFlow Skia | 89.2 | 6 | 11 | 20.7 | 212 % | 55 % | 94 % | 0 % | 100 % of 1 | 1 |
+| NumberFlow Skia sharedValue | 88.4 | 11 | 11 | 46.4 | 90 % | 58 % | 17 % | 0 % | 0 % of 0 | 1 |
+| NumberBloom (Skia) | 85.1 | 29 | 22 | 4.6 | 232 % | 73 % | 49 % | 55 % | 47 % of 438 | 1 |
+| react-native-ticker | 88.0 | 12 | 11 | 65.3 | 239 % | 62 % | 92 % | 60 % | 33 % of 438 | 1 |
+| AnimatedNumbers | 87.6 | 14 | 11 | 53.9 | 252 % | 52 % | 98 % | 53 % | 14 % of 405 | 1 |
 
 A low-end phone: a MediaTek Helio G80 (two A75 cores, six A55) driving a
-90 Hz panel, so the frame budget is 11 ms and everything costs more. It is
-the one device where the two Nitro paths part ways. `jumpTo` holds 90 fps
-with two dropped frames over the run and 8 % on the JS thread. The `value`
-prop path drops a frame in five: a React render of 24 elements on every one
-of 90 frames is more than this chip's JS thread manages (plain `<Text>` pays
-the same, 85 % of the JS thread, and just about keeps up because it has no
-native work behind it), and the main thread is at 93 % between Fabric's prop
-updates and drawing 24 wheels. On a phone like this the value prop is for
-values that change a few times a second; a stream should go through `jumpTo`
-or `animateTo`. Every other library is at 13–50 fps with a JS thread at 2–18
-frames a second; number-animation, native as well, is at 50 fps with the JS
-thread saturated.
+90 Hz panel, so the frame budget is 11 ms and everything costs more. Both
+Nitro paths hold 90 fps at 24 copies: `jumpTo` with three dropped frames and
+11 % on the JS thread, the `value` prop with none dropped, at 54 % of the
+main thread. That last row is the one the profiling changed most: before the
+Android view drew its wheels from a shared GPU strip, this scenario was
+72 fps with 91 dropped frames and 93 % of the main thread (see the
+package changelog). Plain `<Text>` re-rendered 24 times a frame is the
+harness's own cost here, 84 % of the JS thread; the Nitro prop path pays
+the same render and adds its wheels. Every other library is at 13–56 fps
+with a JS thread at 2–18 frames a second; number-animation, native as
+well, is at 56 fps with the JS thread saturated.
 
 The "10 values a second" table looks worse than the "every frame" one for
 the light rows, and that is the phone, not the harness: with little to do,
@@ -345,14 +363,301 @@ the governor drops the cores to idle clocks, and the React commit that lands
 every 100 ms then takes longer than an 11 ms frame. The wheels of the Nitro
 `value` prop keep the chip awake and so drop fewer frames at this rate than
 plain text does. HWUI's own accounting (the last column, from `dumpsys
-gfxinfo`) tells the same story from the render side: a frame is "janky" when
-it missed its deadline, and on this panel even plain text misses 39 % of the
-frames it draws under the every-frame stream, `jumpTo` 23 %.
+gfxinfo`) counts a frame as "janky" when it missed its deadline, and on this
+chip a frame that reaches the display one vsync late still counts, so plain
+text under the every-frame stream is 41 % janky at a steady 89 fps.
 
 At one copy every library holds 90 fps here and the CPU column is what
-separates them: `jumpTo` at 101 % of a core is the floor (HWUI's RenderThread
+separates them: `jumpTo` at 94 % of a core is the floor (HWUI's RenderThread
 alone is ~45 % at 90 Hz on this chip, for anything), the Skia and Reanimated
 libraries at 200–250 %.
+
+## The list
+
+A market screen is a list, so this is 200 rows of one number in a
+`FlatList`, scrolled a screen's worth back and forth every three seconds
+while ten values a second arrive in every row; rows mount and unmount as
+they scroll through the window. The harness's own cost is the list's scroll
+handling on the JS thread, the same for every row type: on the Galaxy A22
+it alone holds the JS thread at 14–40 frames a second, which is why the
+Android JS column is low for everyone there.
+
+Both Nitro paths keep the list at the panel's rate on the iPhones (60 fps
+with nothing dropped on the 11 Pro; 112–115 of 120 on the 13 Pro Max, where
+plain text manages 117) and lead on the Android phone (74–81 fps against
+plain text's 56, because a re-rendered `<Text>` is re-measured on every
+update and a Nitro number is not). Every other library falls apart in a
+list: number-animation to 22–34 fps, animated-rolling-numbers to 25–72,
+NumberFlow View to 0.5–3 fps with a JS thread at 0.5–2 frames a second, and
+the Skia renderers to 35–60, because each row mounting on the way in is a
+whole digit tree or a canvas to create, on top of the updates.
+
+#### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
+
+| Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Text (no animation) | 116.8 | 16 | 8 | 60.0 | 47 % | 15 % | 30 % | 1 |
+| AnimateableText (shared value) | 110.0 | 50 | 17 | 60.0 | 44 % | 25 % | 19 % | 1 |
+| **Nitro `value` prop** | 112.0 | 40 | 17 | 59.4 | 104 % | 55 % | 36 % | 1 |
+| **Nitro `jumpTo`** | 114.8 | 26 | 8 | 60.0 | 51 % | 23 % | 27 % | 1 |
+| number-animation (native) | 33.5 | 433 | 89 | 25.6 | 164 % | 83 % | 77 % | 1 |
+| animated-rolling-numbers | 71.5 | 253 | 51 | 1.9 | 178 % | 74 % | 98 % | 1 |
+| NumberFlow View | 2.8 | 542 | 817 | 2.0 | 204 % | 99 % | 97 % | 1 |
+| NumberFlow Skia | 59.3 | 382 | 52 | 0.9 | 209 % | 81 % | 77 % | 1 |
+| NumberFlow Skia sharedValue | 34.6 | 675 | 128 | 0.1 | 142 % | 90 % | 30 % | 1 ‡ |
+| NumberBloom (Skia) | 97.3 | 116 | 19 | 1.8 | 195 % | 74 % | 68 % | 1 |
+| react-native-ticker | 13.8 | 523 | 338 | 7.2 | 194 % | 93 % | 94 % | 1 |
+| AnimatedNumbers | 47.9 | 375 | 55 | 11.3 | 195 % | 82 % | 91 % | 1 ‡ |
+
+#### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
+
+| Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Text (no animation) | 59.9 | 0 | 17 | 57.3 | 64 % | 24 % | 38 % | 1 |
+| AnimateableText (shared value) | 59.9 | 0 | 17 | 59.9 | 55 % | 32 % | 22 % | 1 |
+| **Nitro `value` prop** | 59.9 | 0 | 17 | 56.2 | 84 % | 36 % | 44 % | 1 |
+| **Nitro `jumpTo`** | 59.9 | 0 | 17 | 59.0 | 62 % | 29 % | 31 % | 1 |
+| number-animation (native) | 21.8 | 188 | 141 | 25.4 | 166 % | 85 % | 77 % | 1 |
+| animated-rolling-numbers | 24.6 | 183 | 140 | 2.5 | 189 % | 85 % | 97 % | 1 |
+| NumberFlow View | 0.5 | 112 | 1881 | 0.5 | 206 % | 100 % | 99 % | 1 |
+| NumberFlow Skia | 45.9 | 83 | 48 | 0.9 | 215 % | 78 % | 86 % | 1 |
+| NumberFlow Skia sharedValue | 34.5 | 134 | 86 | 0.6 | 165 % | 83 % | 57 % | 1 |
+| NumberBloom (Skia) | 59.3 | 3 | 17 | 1.2 | 189 % | 64 % | 77 % | 1 |
+| react-native-ticker | 11.2 | 213 | 393 | 10.2 | 191 % | 90 % | 92 % | 1 |
+| AnimatedNumbers | 28.8 | 146 | 122 | 9.7 | 208 % | 88 % | 91 % | 1 ‡ |
+
+#### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+| Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | RenderThread | HWUI janky (of frames drawn) | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Text (no animation) | 55.8 | 174 | 55 | 17.0 | 194 % | 65 % | 83 % | 21 % | 91 % of 134 | 1 |
+| AnimateableText (shared value) | 52.1 | 190 | 66 | 16.2 | 185 % | 72 % | 68 % | 24 % | 96 % of 123 | 1 |
+| **Nitro `value` prop** | 74.3 | 81 | 33 | 14.5 | 240 % | 61 % | 95 % | 49 % | 67 % of 327 | 1 |
+| **Nitro `jumpTo`** | 81.3 | 46 | 22 | 39.5 | 206 % | 58 % | 85 % | 49 % | 57 % of 294 | 1 |
+| number-animation (native) | 59.7 | 156 | 55 | 8.0 | 224 % | 65 % | 98 % | 28 % | 79 % of 163 | 1 |
+| animated-rolling-numbers | 46.9 | 215 | 77 | 0.6 | 212 % | 69 % | 96 % | 11 % | 29 % of 65 | 1 |
+| NumberFlow View | 19.8 | 368 | 276 | 0.4 | 235 % | 88 % | 97 % | 7 % | 56 % of 32 | 1 |
+| NumberFlow Skia | 49.2 | 204 | 66 | 8.7 | 215 % | 65 % | 95 % | 13 % | 95 % of 61 | 1 |
+| NumberFlow Skia sharedValue | 29.7 | 303 | 166 | 9.6 | 230 % | 74 % | 87 % | 18 % | 98 % of 61 | 1 |
+| NumberBloom (Skia) | 77.0 | 68 | 11 | 1.0 | 157 % | 29 % | 92 % | 7 % | 91 % of 43 | 1 |
+| react-native-ticker | 30.1 | 308 | 155 | 1.1 | 217 % | 82 % | 94 % | 8 % | 33 % of 58 | 1 |
+| AnimatedNumbers | 38.7 | 224 | 144 | 2.4 | 272 % | 87 % | 94 % | 6 % | 91 % of 35 | 1 |
+
+## Mount and unmount
+
+24 numbers rendered in one state update, timed to the last one's first
+`onLayout`, then unmounted and timed to the second frame after; ten cold
+passes, medians, with the main- and JS-thread CPU each pass cost. Unmount
+is two frames for everyone that keeps the JS thread free (the 32–33 ms is
+the two-frame wait, not work) and longer only where the JS thread is busy
+tearing a digit tree down.
+
+Mounting is where a native view pays for being native: a Nitro
+`HybridView` is a Swift or Kotlin object, a hidden native view, a C++ engine
+and fonts to create, where a `<Text>` is a string. On the iPhones the 24
+numbers mount in 52–65 ms against 18–22 ms for plain text, about 1.5 ms of
+main-thread time per view; on the Galaxy A22 109–129 ms against 79. That is
+the same order as number-animation, the other native library, and a
+quarter to a fifth of what the Reanimated digit trees cost
+(animated-rolling-numbers, NumberFlow View, react-native-ticker: 150–290 ms
+on the iPhones, 1–1.6 s on the A22, all of it JavaScript). The Skia
+renderers mount their canvases quickly on the iPhones and then spend
+350–530 ms of JS-thread time per pass warming them up; on the A22 two of
+them did not finish a pass inside the five-second limit.
+
+The number to keep in mind: 24 rolling numbers cost about 40–45 ms of extra
+mount time on an iPhone, once, and nothing after that. For a list that
+mounts rows as they scroll, the list section above is the measurement that
+matters, and there the same views are the ones that keep the list at the
+panel's rate.
+
+#### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
+
+| Implementation | mount ms | min | max | unmount ms | main-thread ms | JS-thread ms | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Text (no animation) | 18.4 | 17.1 | 26.1 | 32.7 | 13.1 | 14.9 | 1 |
+| AnimateableText (shared value) | 35.7 | 30.2 | 49.7 | 32.7 | 4.0 | 41.2 | 1 |
+| **Nitro `value` prop** | 51.6 | 41.7 | 55.8 | 32.9 | 34.7 | 45.2 | 1 |
+| **Nitro `jumpTo`** | 53.4 | 36.9 | 63.4 | 32.6 | 36.7 | 45.9 | 1 |
+| number-animation (native) | 66.4 | 58.9 | 68.5 | 32.8 | 38.2 | 43.6 | 1 |
+| animated-rolling-numbers | 224.1 | 215.9 | 230.3 | 50.0 | 108.1 | 254.5 | 1 |
+| NumberFlow View | 204.8 | 49.9 | 210.0 | 83.3 | 53.5 | 240.7 | 1 |
+| NumberFlow Skia | 56.2 | 18.2 | 60.8 | 66.5 | 126.9 | 342.6 | 1 |
+| NumberFlow Skia sharedValue | 56.1 | 18.7 | 72.7 | 66.5 | 190.8 | 394.2 | 1 |
+| NumberBloom (Skia) | 59.9 | 49.3 | 105.3 | 66.5 | 90.1 | 339.1 | 1 |
+| react-native-ticker | 147.6 | 124.2 | 162.6 | 33.3 | 31.3 | 156.9 | 1 |
+| AnimatedNumbers | 91.3 | 85.4 | 105.7 | 33.3 | 12.5 | 89.3 | 1 |
+
+#### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
+
+| Implementation | mount ms | min | max | unmount ms | main-thread ms | JS-thread ms | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Text (no animation) | 21.8 | 18.3 | 25.6 | 32.1 | 9.2 | 18.5 | 1 |
+| AnimateableText (shared value) | 43.7 | 29.0 | 45.2 | 32.0 | 4.6 | 41.3 | 1 |
+| **Nitro `value` prop** | 61.5 | 55.7 | 63.4 | 32.0 | 43.7 | 55.1 | 1 |
+| **Nitro `jumpTo`** | 65.1 | 50.5 | 69.6 | 32.0 | 44.4 | 55.0 | 1 |
+| number-animation (native) | 76.2 | 54.4 | 85.6 | 32.7 | 46.4 | 49.1 | 1 |
+| animated-rolling-numbers | 274.0 | 265.2 | 289.2 | 66.6 | 145.0 | 317.2 | 1 |
+| NumberFlow View | 289.4 | 108.7 | 425.5 | 100.0 | 196.6 | 339.8 | 1 |
+| NumberFlow Skia | 58.2 | 32.7 | 147.0 | 66.5 | 198.4 | 451.8 | 1 |
+| NumberFlow Skia sharedValue | 40.5 | 35.1 | 72.7 | 83.1 | 249.8 | 531.5 | 1 |
+| NumberBloom (Skia) | 115.5 | 109.6 | 124.3 | 66.5 | 151.0 | 446.1 | 1 |
+| react-native-ticker | 180.1 | 139.6 | 209.3 | 66.6 | 33.3 | 194.4 | 1 |
+| AnimatedNumbers | 100.6 | 90.5 | 122.1 | 33.2 | 14.2 | 91.3 | 1 |
+
+#### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+| Implementation | mount ms | min | max | unmount ms | main-thread ms | JS-thread ms | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Text (no animation) | 79.2 | 39.1 | 108.8 | 22.5 | 70.0 | 70.0 | 1 |
+| AnimateableText (shared value) | 94.4 | 35.4 | 125.6 | 38.9 | 70.0 | 120.0 | 1 |
+| **Nitro `value` prop** | 129.3 | 54.1 | 150.7 | 22.6 | 140.0 | 140.0 | 1 |
+| **Nitro `jumpTo`** | 108.8 | 53.7 | 149.8 | 31.9 | 130.0 | 140.0 | 1 |
+| number-animation (native) | 99.2 | 83.5 | 211.5 | 34.5 | 110.0 | 110.0 | 1 |
+| animated-rolling-numbers | 1464.4 | 1307.1 | 1734.9 | 210.8 | 1590.0 | 1750.0 | 1 |
+| NumberFlow View | 1583.0 | 279.3 | 1901.5 | 387.5 | 2550.0 | 1760.0 | 1 |
+| NumberFlow Skia | timed out | 22.1 | timed out | 139.7 | 810.0 | 750.0 | 1 |
+| NumberFlow Skia sharedValue | timed out | 32.8 | timed out | 98.1 | 900.0 | 1540.0 | 1 |
+| NumberBloom (Skia) | 353.7 | 129.9 | timed out | 191.5 | 250.0 | 600.0 | 1 |
+| react-native-ticker | 954.7 | 809.5 | 1173.4 | 239.8 | 920.0 | 1100.0 | 1 |
+| AnimatedNumbers | 671.8 | 618.2 | 795.0 | 93.9 | 960.0 | 680.0 | 1 |
+
+## Memory
+
+Two ways for a rolling number to leak: the copies it leaves behind when a
+screen unmounts, and the rows a list drops as it scrolls. The first is 24
+copies (20 fields) mounted and unmounted 40 times; the second is the list
+from the list section scrolling for 30 s with ten values a second arriving.
+Both are read as floors after a forced collection (the method section has
+the details), so the tables say what stayed allocated, not what was waiting
+for a collector.
+
+What we found, and fixed, first. Before this round a mount/unmount loop on
+the Galaxy A22 left every Nitro copy alive: 24 more live `View`s a cycle in
+`dumpsys meminfo`, about a megabyte of resident memory a cycle, linear for
+as long as the loop ran, and the same for the fields of
+`react-native-nitro-input`. The cause is how a Nitro view lives: the Kotlin
+or Swift object behind it is held by its C++ part until the JavaScript
+handle from `hybridRef` is garbage-collected, and Hermes collects a handle it
+takes for an empty object only when the JS heap fills up, which a quiet
+screen never does. On Android the hybrid held the platform view, so the
+view, its display list and its digit-strip texture lived on with it. The
+library now lets go of the view when Fabric drops it (unless Fabric is
+recycling it), shares the digit strips between every rolling number drawn
+with the same font, and tells Nitro how much memory each handle stands for;
+on iOS, where Fabric pools the component view and reuses it, a drop releases
+the display link, the layers and the engine's wheels. With that, the live
+`View` count on the A22 is flat for all seven Nitro components (the count
+climbs by one per scenario across the plan, 139 to 161: that is the
+harness's own stage view), and the floors below are what remains.
+
+**Mount and unmount.** After 40 cycles the Nitro number's footprint is where
+it started on all three phones: 146 → 132 MB on the 13 Pro Max, 103 → 109 on
+the 11 Pro, 409 → 411 on the A22 (the A22 figures sit on top of what earlier
+scenarios left in the process; only the difference means anything). Plain
+text moves by the same few megabytes (36 → 47, 34 → 41, 243 → 258). The
+fields are the same story: NitroInput and MorphInput end within 3–15 MB of
+where they began on the iPhones and within 15–40 MB on the A22, alongside
+`TextInput` (265 → 258, 228 → 231, 726 → 756). (The mask field climbed 58 MB in the long run on the A22, at 750 MB of
+process footprint; rerun on its own in a fresh process it moves like the
+text field and like the other native masked field, 254 → 277 MB against
+239 → 267 for NitroInput text, 248 → 274 for react-native-advanced-input-mask
+and 227 → 252 for `TextInput`, all four flat from the sixteenth cycle on.)
+The libraries that
+leave something behind are the digit trees: react-native-ticker grows by 12
+MB a cycle on the 13 Pro Max and on the A22 (147 → 648 MB and 402 → 1041 MB
+in 40 cycles, most of it in malloc), animated-rolling-numbers by 2–5 MB a
+cycle (183 → 305, 137 → 252, 477 → 776), NumberFlow View by 0.7–2 MB a
+cycle (43 → 195, 37 → 132, 253 → 470) and the Reanimated text by about 1 MB
+a cycle (111 → 152, 96 → 140, 393 → 414). Whether that is a leak or garbage
+a collector will take later, a floor cannot say for certain on iOS, where
+there is no collector to force; a flat floor, which is what this library's
+components show, is the stronger statement either way.
+
+**The scrolling list.** Rows mount and unmount as the list scrolls; anything
+a row keeps alive shows as a footprint that keeps rising after the first six
+seconds. The Nitro number's does not: −2.3 and −0.7 MB/s on the iPhones
+(363 → 326 MB, and 664 → 687 with a peak of 717), `jumpTo` flat (365 → 366,
+361 → 360), plain text +0.1 MB/s. On the A22 the list is where the method
+meets its limit: the footprint of the Nitro rows rose 8 MB/s for the whole
+30 s (1091 → 1269 MB), and so did the Reanimated text's (+7.2 MB/s), the
+ticker's (+7.2) and animated-rolling-numbers' (+4.6), while NumberFlow
+View's fell 5 MB/s from a 1.2 GB peak. That is the garbage of a list of
+native views arriving faster than it is collected: React keeps a handle to
+each old version of a row's shadow node until its collector runs, and each
+version carries the row's props. Plain text rows allocate enough JavaScript
+strings to bring a collection every fifteen seconds or so (their footprint
+stepped from 940 to 861 MB at 14 s); the Nitro rows allocate almost nothing
+in JavaScript, saw no collection in 30 s, and the forced Java collection at
+the end took nothing back either, which puts that garbage on the JavaScript
+collector's side. On the iPhones the same rows are collected every five to
+ten seconds and the footprint saw-tooths within about 60 MB. A list that
+pushes ten values a second into a hundred mounted native rows is a stress
+case; it is the one where a low-end phone shows how late Hermes can be.
+
+**What is not here.** Instruments' Leaks template was to be the iOS
+cross-check (`scripts/bench/leaks.mjs` records this library's four
+components under it); on these phones with this Xcode the recording comes
+back with process and thread tables and no allocation data, launched by
+Instruments or attached to a running app, so there is no leaks table to
+show. The evidence for iOS is the floors above; for Android it is the floors
+and the live `View` count, which is the one figure a collector cannot
+flatter.
+
+### Mount and unmount cycles
+
+#### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
+
+| Implementation | footprint, start | footprint, end | peak | growth per cycle | malloc heap, start → end | runs |
+| --- | --- | --- | --- | --- | --- | --- |
+| Text (no animation) | 36.0 MB | 47.2 MB | 47.2 MB | +167.6 KB | 15.1 → 22.1 MB | 1 |
+| AnimateableText (shared value) | 110.8 MB | 152.1 MB | 152.1 MB | +970.4 KB | 61.4 → 97.3 MB | 1 |
+| **Nitro `value` prop** | 145.7 MB | 131.8 MB | 145.7 MB | -351.0 KB | 70.8 → 81.7 MB | 1 |
+| **Nitro `jumpTo`** | 116.0 MB | 121.9 MB | 121.9 MB | +130.2 KB | 56.8 → 66.4 MB | 1 |
+| number-animation (native) | 641.2 MB | 656.3 MB | 656.3 MB | +283.4 KB | 534.7 → 527.1 MB | 1 |
+| animated-rolling-numbers | 183.2 MB | 304.6 MB | 328.7 MB | +1953.9 KB | 79.0 → 111.0 MB | 1 |
+| NumberFlow View | 43.0 MB | 195.0 MB | 243.0 MB | +661.3 KB | 16.9 → 70.6 MB | 1 |
+| NumberFlow Skia | 126.5 MB | 132.8 MB | 166.9 MB | -245.1 KB | 81.9 → 56.6 MB | 1 |
+| NumberFlow Skia sharedValue | 643.4 MB | 232.7 MB | 643.4 MB | -5120.9 KB | 527.3 → 72.3 MB | 1 |
+| NumberBloom (Skia) | 120.9 MB | 149.2 MB | 160.3 MB | +387.3 KB | 66.7 → 61.2 MB | 1 |
+| react-native-ticker | 146.8 MB | 647.6 MB | 647.6 MB | +12291.8 KB | 97.4 → 534.5 MB | 1 |
+| AnimatedNumbers | 189.3 MB | 200.4 MB | 232.8 MB | -569.0 KB | 72.7 → 83.7 MB | 1 |
+
+#### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
+
+| Implementation | footprint, start | footprint, end | peak | growth per cycle | malloc heap, start → end | runs |
+| --- | --- | --- | --- | --- | --- | --- |
+| Text (no animation) | 33.6 MB | 41.2 MB | 41.2 MB | +95.9 KB | 17.8 → 24.8 MB | 1 |
+| AnimateableText (shared value) | 95.8 MB | 140.0 MB | 140.0 MB | +1072.1 KB | 61.5 → 99.5 MB | 1 |
+| **Nitro `value` prop** | 102.6 MB | 108.6 MB | 108.6 MB | +129.3 KB | 70.4 → 85.8 MB | 1 |
+| **Nitro `jumpTo`** | 103.3 MB | 111.1 MB | 111.1 MB | +191.4 KB | 59.2 → 65.7 MB | 1 |
+| number-animation (native) | 263.0 MB | 269.5 MB | 269.5 MB | +81.3 KB | 357.3 → 359.1 MB | 1 |
+| animated-rolling-numbers | 136.8 MB | 252.2 MB | 266.7 MB | +2712.1 KB | 77.2 → 139.4 MB | 1 |
+| NumberFlow View | 36.6 MB | 132.1 MB | 174.6 MB | +664.0 KB | 19.7 → 97.4 MB | 1 |
+| NumberFlow Skia | 108.3 MB | 126.7 MB | 126.7 MB | +158.9 KB | 86.0 → 59.0 MB | 1 |
+| NumberFlow Skia sharedValue | 263.3 MB | 170.6 MB | 263.3 MB | -945.6 KB | 344.2 → 72.6 MB | 1 |
+| NumberBloom (Skia) | 110.5 MB | 115.9 MB | 127.3 MB | -103.3 KB | 65.9 → 61.2 MB | 1 |
+| react-native-ticker | 135.0 MB | 271.1 MB | 484.3 MB | +2183.8 KB | 99.5 → 357.0 MB | 1 |
+| AnimatedNumbers | 160.8 MB | 154.1 MB | 204.8 MB | -1001.8 KB | 72.9 → 82.0 MB | 1 |
+
+#### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+| Implementation | footprint, start | footprint, end | peak | growth per cycle | malloc heap, start → end | live Views, start → end | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Text (no animation) | 243.4 MB | 258.5 MB | 263.9 MB | +302.7 KB | 28.9 → 31.2 MB | 139 → 140 | 1 |
+| AnimateableText (shared value) | 393.1 MB | 413.5 MB | 413.5 MB | +582.8 KB | 104.5 → 130.1 MB | 145 → 146 | 1 |
+| **Nitro `value` prop** | 409.5 MB | 411.3 MB | 417.1 MB | -58.4 KB | 92.6 → 95.4 MB | 141 → 142 | 1 |
+| **Nitro `jumpTo`** | 371.4 MB | 385.8 MB | 388.1 MB | +377.9 KB | 77.9 → 88.3 MB | 143 → 144 | 1 |
+| number-animation (native) | 983.5 MB | 1039.0 MB | 1039.0 MB | +1159.5 KB | 635.3 → 685.4 MB | 147 → 148 | 1 |
+| animated-rolling-numbers | 477.1 MB | 776.1 MB | 993.8 MB | +5285.1 KB | 146.7 → 341.5 MB | 150 → 151 | 1 |
+| NumberFlow View | 252.9 MB | 470.0 MB | 490.6 MB | +2085.5 KB | 30.5 → 127.7 MB | 140 → 141 | 1 |
+| NumberFlow Skia | 397.6 MB | 382.7 MB | 397.6 MB | +194.9 KB | 89.1 → 95.5 MB | 142 → 143 | 1 |
+| NumberFlow Skia sharedValue | 1017.9 MB | 432.6 MB | 1017.9 MB | -6831.2 KB | 674.5 → 152.0 MB | 148 → 149 | 1 |
+| NumberBloom (Skia) | 371.9 MB | 414.4 MB | 423.7 MB | +843.4 KB | 83.5 → 124.8 MB | 144 → 145 | 1 |
+| react-native-ticker | 402.5 MB | 1041.4 MB | 1042.9 MB | +12780.5 KB | 127.3 → 655.6 MB | 146 → 147 | 1 |
+| AnimatedNumbers | 421.0 MB | 538.2 MB | 680.4 MB | +2790.0 KB | 137.3 → 165.1 MB | 149 → 150 | 1 |
+
+### A list scrolling for 30 seconds
 
 ## The render-server cross-check
 
@@ -383,6 +688,562 @@ drops, Instruments saw hitches in proportion: 77 hitches to 96 dropped frames
 for NumberFlow View, 26 to 50 for number-animation, 6 to 5 for
 animated-rolling-numbers. A 17 ms worst hitch is one missed 60 Hz frame;
 number-animation's 33 ms is two in a row.
+
+## The inputs
+
+Nine ways to put an amount, a phone number or plain text into a field, typed
+into by the probe the way a keyboard types: `insertText` on the first
+responder on iOS, the input connection on Android. The column to read first
+is **rewrites per key**. A field that formats in JavaScript (the usual
+`TextInput` with `onChangeText` → `Intl.NumberFormat` → `value`, and the two
+popular libraries built on that pattern) shows the raw keystroke first and the
+formatted text a frame or two later: 10 of 12 keys are rewritten and a key
+takes 65–100 ms to settle. That is the flicker people report with formatted
+inputs, measured. NitroInput and MorphInput format inside the native edit,
+before the frame is drawn, and so does the native mask library on Android:
+no key is ever rewritten. The JS thread tells the same story from the other
+side, 40–50 ms of JavaScript per key for the JS-formatted fields against
+2–6 ms for the Nitro ones (their one change callback per key), and at 15
+keys a second the JS-formatted fields cannot keep up with the driver, which
+waits for a key to settle before the next one.
+
+The morph costs what it looks like it costs: 20 ms of JavaScript per key
+and the animation's frames on the main thread, with nothing dropped at eight
+keys a second.
+
+Focus latency is `focus()` to `onFocus`; the Nitro fields answer in 7–11 ms
+where `TextInput` takes 18–21 ms, for the reason the old page gave:
+`focus()` is a direct call into the hybrid that lands on the next runloop
+turn and `onFocus` comes back from the field's own delegate, while
+`TextInput.focus()` goes through `TextInputState`, a Fabric view command
+applied with the mounting transaction, and the batched event emitter. Tapping
+a field is unaffected: the OS grants focus directly, with no JS in the loop.
+
+Mounting 20 fields is where the Nitro views pay: a Nitro `HybridView` costs
+more to create than a `TextInput`, on both platforms, and the numbers say by
+how much on each phone. Unmounting costs about the same for every field.
+
+### Typing at 8 keys a second
+
+#### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
+
+| Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 7.5 | 0 | 0 of 12 | 0 | 23.4 | 6.2 | 1.0 | 4 | 1 |
+| **NitroInput (text)** | 7.5 | 0 | 0 of 12 | 0 | 18.2 | 1.0 | 1.0 | 1 | 1 |
+| **MorphInput (text)** | 7.5 | 0 | 0 of 12 | 0 | 28.8 | 8.9 | 1.0 | 0 | 1 |
+| TextInput + JS formatting | 7.5 | 1 | 10 of 12 | 50 | 33.9 | 9.1 | 1.0 | 9 | 1 |
+| react-native-currency-input | 7.5 | 1 | 10 of 12 | 67 | 31.5 | 10.5 | 1.0 | 11 | 1 |
+| react-native-mask-input (number mask) | 7.5 | 1 | 10 of 12 | 67 | 33.4 | 10.5 | 1.0 | 9 | 1 |
+| **NitroInput (number)** | 7.5 | 0 | 0 of 12 | 0 | 17.0 | 0.9 | 1.0 | 0 | 1 |
+| **MorphInput (number)** | 7.5 | 0 | 0 of 12 | 0 | 27.8 | 8.7 | 1.0 | 2 | 1 |
+| **NitroInput (mask)** | 7.5 | 0 | 0 of 10 | 0 | 16.6 | 1.0 | 1.0 | 0 | 1 |
+| Expo UI TextField | 7.5 | 0 | 0 of 12 | 0 | 26.4 | 1.2 | 0.0 | 5 | 1 |
+
+#### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
+
+| Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 7.5 | 0 | 0 of 12 | 0 | 32.3 | 8.1 | 1.0 | 3 | 1 |
+| **NitroInput (text)** | 7.5 | 0 | 0 of 12 | 0 | 25.4 | 2.0 | 1.0 | 0 | 1 |
+| **MorphInput (text)** | 7.5 | 0 | 0 of 12 | 0 | 40.0 | 10.3 | 1.0 | 0 | 1 |
+| TextInput + JS formatting | 7.5 | 1 | 10 of 12 | 54 | 38.3 | 10.4 | 1.0 | 4 | 1 |
+| react-native-currency-input | 7.5 | 1 | 10 of 12 | 55 | 38.3 | 10.6 | 1.0 | 6 | 1 |
+| react-native-mask-input (number mask) | 7.5 | 1 | 10 of 12 | 66 | 38.1 | 11.2 | 1.0 | 4 | 1 |
+| **NitroInput (number)** | 7.5 | 0 | 0 of 12 | 0 | 23.9 | 1.9 | 1.0 | 0 | 1 |
+| **MorphInput (number)** | 7.5 | 0 | 0 of 12 | 0 | 40.9 | 9.2 | 1.0 | 0 | 1 |
+| **NitroInput (mask)** | 7.5 | 0 | 0 of 10 | 0 | 23.2 | 1.8 | 1.0 | 0 | 1 |
+| Expo UI TextField | 7.5 | 0 | 0 of 12 | 0 | 37.2 | 1.8 | 0.0 | 0 | 1 |
+
+#### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+| Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 7.5 | 0 | 0 of 12 | 0 | 35.0 | 21.7 | 1.0 | 3 | 1 |
+| **NitroInput (text)** | 7.5 | 0 | 0 of 12 | 0 | 23.3 | 2.5 | 1.0 | 0 | 1 |
+| **MorphInput (text)** | 7.5 | 0 | 0 of 12 | 0 | 55.8 | 16.7 | 1.0 | 0 | 1 |
+| TextInput + JS formatting | 7.5 | 1 | 10 of 12 | 77 | 50.8 | 47.5 | 1.0 | 0 | 1 |
+| react-native-currency-input | 7.5 | 1 | 10 of 12 | 67 | 50.8 | 47.5 | 1.0 | 0 | 1 |
+| react-native-mask-input (number mask) | 7.5 | 1 | 10 of 12 | 66 | 45.0 | 40.8 | 1.0 | 0 | 1 |
+| **NitroInput (number)** | 7.5 | 0 | 0 of 12 | 0 | 35.0 | 5.0 | 1.0 | 1 | 1 |
+| **MorphInput (number)** | 7.5 | 0 | 0 of 12 | 0 | 60.8 | 19.2 | 1.0 | 1 | 1 |
+| react-native-advanced-input-mask | 7.5 | 0 | 0 of 10 | 0 | 43.0 | 30.0 | 1.0 | 6 | 1 |
+| **NitroInput (mask)** | 7.5 | 0 | 0 of 10 | 0 | 40.0 | 4.0 | 1.0 | 2 | 1 |
+| Expo UI TextField | 7.5 | 0 | 0 of 12 | 0 | 70.8 | 3.3 | 0.0 | 24 | 1 |
+
+### Typing at 15 keys a second
+
+#### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
+
+| Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 14.8 | 0 | 0 of 12 | 0 | 17.8 | 7.1 | 1.0 | 1 | 1 |
+| **NitroInput (text)** | 14.8 | 0 | 0 of 12 | 0 | 14.9 | 0.7 | 1.0 | 1 | 1 |
+| **MorphInput (text)** | 14.8 | 0 | 0 of 12 | 0 | 22.0 | 7.3 | 1.0 | 0 | 1 |
+| TextInput + JS formatting | 12.1 | 1 | 10 of 12 | 50 | 23.4 | 8.7 | 1.0 | 11 | 1 |
+| react-native-currency-input | 13.0 | 1 | 10 of 12 | 50 | 21.4 | 8.2 | 1.0 | 10 | 1 |
+| react-native-mask-input (number mask) | 13.2 | 1 | 10 of 12 | 50 | 21.1 | 8.2 | 1.0 | 9 | 1 |
+| **NitroInput (number)** | 14.8 | 0 | 0 of 12 | 0 | 13.9 | 0.7 | 1.0 | 0 | 1 |
+| **MorphInput (number)** | 14.8 | 0 | 0 of 12 | 0 | 21.5 | 7.2 | 1.0 | 2 | 1 |
+| **NitroInput (mask)** | 14.8 | 0 | 0 of 10 | 0 | 13.6 | 0.8 | 1.0 | 1 | 1 |
+| Expo UI TextField | 14.8 | 0 | 0 of 12 | 0 | 22.8 | 1.6 | 0.0 | 1 | 1 |
+
+#### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
+
+| Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 15.0 | 0 | 0 of 12 | 0 | 20.0 | 8.1 | 1.0 | 0 | 1 |
+| **NitroInput (text)** | 15.0 | 0 | 0 of 12 | 0 | 21.0 | 1.2 | 1.0 | 0 | 1 |
+| **MorphInput (text)** | 14.7 | 0 | 0 of 12 | 0 | 25.1 | 7.5 | 1.0 | 0 | 1 |
+| TextInput + JS formatting | 12.8 | 1 | 10 of 12 | 54 | 24.3 | 8.2 | 1.0 | 5 | 1 |
+| react-native-currency-input | 13.8 | 1 | 10 of 12 | 54 | 22.8 | 7.3 | 1.0 | 2 | 1 |
+| react-native-mask-input (number mask) | 13.6 | 1 | 10 of 12 | 56 | 23.5 | 7.4 | 1.0 | 3 | 1 |
+| **NitroInput (number)** | 15.0 | 0 | 0 of 12 | 0 | 19.8 | 1.2 | 1.0 | 0 | 1 |
+| **MorphInput (number)** | 15.0 | 0 | 0 of 12 | 0 | 22.2 | 6.9 | 1.0 | 0 | 1 |
+| **NitroInput (mask)** | 15.0 | 0 | 0 of 10 | 0 | 19.3 | 1.3 | 1.0 | 0 | 1 |
+| Expo UI TextField | 15.0 | 0 | 0 of 12 | 0 | 24.0 | 0.9 | 0.0 | 0 | 1 |
+
+#### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+| Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 12.9 | 0 | 0 of 12 | 0 | 30.8 | 33.3 | 1.0 | 1 | 1 |
+| **NitroInput (text)** | 12.9 | 0 | 0 of 12 | 0 | 30.0 | 5.8 | 1.0 | 1 | 1 |
+| **MorphInput (text)** | 12.9 | 0 | 0 of 12 | 0 | 38.3 | 20.0 | 1.0 | 2 | 1 |
+| TextInput + JS formatting | 10.2 | 1 | 10 of 12 | 78 | 42.5 | 49.2 | 1.0 | 2 | 1 |
+| react-native-currency-input | 10.3 | 1 | 10 of 12 | 77 | 40.0 | 46.7 | 1.0 | 2 | 1 |
+| react-native-mask-input (number mask) | 10.9 | 1 | 10 of 12 | 77 | 37.5 | 43.3 | 1.0 | 0 | 1 |
+| **NitroInput (number)** | 12.9 | 0 | 0 of 12 | 0 | 28.3 | 4.2 | 1.0 | 0 | 1 |
+| **MorphInput (number)** | 12.9 | 0 | 0 of 12 | 0 | 37.5 | 20.8 | 1.0 | 2 | 1 |
+| react-native-advanced-input-mask | 12.9 | 0 | 0 of 10 | 0 | 33.0 | 39.0 | 1.0 | 3 | 1 |
+| **NitroInput (mask)** | 12.9 | 0 | 0 of 10 | 0 | 28.0 | 5.0 | 1.0 | 2 | 1 |
+| Expo UI TextField | 12.9 | 0 | 0 of 12 | 0 | 49.2 | 3.3 | 0.0 | 15 | 1 |
+
+### Focus latency
+
+#### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
+
+| Implementation | focus → onFocus ms | p95 | first (keyboard) | runs |
+| --- | --- | --- | --- | --- |
+| TextInput (text) | 49.3 | 49.5 | 29.9 | 1 |
+| **NitroInput (text)** | 7.5 | 8.3 | 3.9 | 1 |
+| **MorphInput (text)** | 7.6 | 8.2 | 4.4 | 1 |
+| TextInput + JS formatting | 41.2 | 42.4 | 32.5 | 1 |
+| react-native-currency-input | 41.2 | 41.5 | 32.2 | 1 |
+| react-native-mask-input (number mask) | 41.6 | 43.3 | 37.7 | 1 |
+| **NitroInput (number)** | 7.8 | 8.2 | 4.7 | 1 |
+| **MorphInput (number)** | 7.6 | 8.5 | 2.7 | 1 |
+| **NitroInput (mask)** | 7.5 | 8.1 | 2.6 | 1 |
+| Expo UI TextField | 84.9 | 137.3 | 57.4 | 1 |
+
+‡ at least one of these runs started with the phone already throttled (thermal state serious or worse).
+
+#### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
+
+| Implementation | focus → onFocus ms | p95 | first (keyboard) | runs |
+| --- | --- | --- | --- | --- |
+| TextInput (text) | 52.0 | 53.9 | 37.6 | 1 |
+| **NitroInput (text)** | 10.4 | 11.1 | 4.9 | 1 |
+| **MorphInput (text)** | 10.8 | 11.3 | 4.9 | 1 |
+| TextInput + JS formatting | 48.1 | 48.3 | 40.5 | 1 |
+| react-native-currency-input | 48.0 | 49.1 | 39.5 | 1 |
+| react-native-mask-input (number mask) | 48.9 | 49.9 | 35.6 | 1 |
+| **NitroInput (number)** | 10.5 | 11.1 | 5.3 | 1 |
+| **MorphInput (number)** | 11.2 | 11.8 | 4.4 | 1 |
+| **NitroInput (mask)** | 10.9 | 11.1 | 4.3 | 1 |
+| Expo UI TextField | 122.1 | 133.0 | 89.9 | 1 |
+
+‡ at least one of these runs started with the phone already throttled (thermal state serious or worse).
+
+#### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+| Implementation | focus → onFocus ms | p95 | first (keyboard) | runs |
+| --- | --- | --- | --- | --- |
+| TextInput (text) | 20.6 | 25.1 | 25.1 | 1 |
+| **NitroInput (text)** | 10.7 | 14.8 | 5.5 | 1 |
+| **MorphInput (text)** | 6.6 | 13.0 | 3.7 | 1 |
+| TextInput + JS formatting | 19.2 | 29.9 | 29.9 | 1 |
+| react-native-currency-input | 17.5 | 22.5 | 17.5 | 1 |
+| react-native-mask-input (number mask) | 21.0 | 29.4 | 29.4 | 1 |
+| **NitroInput (number)** | 7.6 | 13.5 | 2.8 | 1 |
+| **MorphInput (number)** | 7.1 | 12.6 | 4.3 | 1 |
+| react-native-advanced-input-mask | 19.9 | 31.1 | 31.1 | 1 |
+| **NitroInput (mask)** | 7.0 | 13.4 | 4.2 | 1 |
+| Expo UI TextField | 21.8 | 33.0 | 32.2 | 2 |
+
+### Mounting 20 fields
+
+#### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
+
+| Implementation | mount ms | min | max | unmount ms | main-thread ms | JS-thread ms | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 37.4 | 31.8 | 48.0 | 32.7 | 23.6 | 19.1 | 1 |
+| **NitroInput (text)** | 54.6 | 24.6 | 59.0 | 32.7 | 28.3 | 26.1 | 1 |
+| **MorphInput (text)** | 46.3 | 24.4 | 65.8 | 32.7 | 35.4 | 43.8 | 1 |
+| TextInput + JS formatting | 46.1 | 24.2 | 47.3 | 32.7 | 28.2 | 19.6 | 1 |
+| react-native-currency-input | 34.4 | 30.8 | 47.7 | 32.7 | 22.9 | 21.6 | 1 |
+| react-native-mask-input (number mask) | 35.6 | 23.3 | 59.3 | 32.7 | 24.7 | 19.6 | 1 |
+| **NitroInput (number)** | 58.3 | 23.3 | 63.5 | 32.7 | 30.3 | 26.9 | 1 |
+| **MorphInput (number)** | 54.2 | 40.0 | 67.4 | 32.7 | 33.4 | 44.8 | 1 |
+| **NitroInput (mask)** | 59.4 | 38.3 | 71.5 | 32.7 | 29.2 | 28.1 | 1 |
+| Expo UI TextField | 39.9 | 35.2 | 155.2 | 33.2 | 37.9 | 12.2 | 1 |
+
+#### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
+
+| Implementation | mount ms | min | max | unmount ms | main-thread ms | JS-thread ms | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 54.4 | 20.9 | 56.4 | 32.1 | 35.8 | 20.7 | 1 |
+| **NitroInput (text)** | 61.6 | 50.5 | 71.0 | 32.1 | 35.5 | 29.5 | 1 |
+| **MorphInput (text)** | 74.1 | 52.8 | 79.7 | 32.5 | 49.6 | 47.0 | 1 |
+| TextInput + JS formatting | 57.7 | 25.3 | 58.7 | 32.2 | 35.4 | 24.4 | 1 |
+| react-native-currency-input | 57.9 | 20.9 | 58.5 | 32.1 | 37.0 | 22.7 | 1 |
+| react-native-mask-input (number mask) | 63.0 | 57.4 | 66.7 | 32.0 | 41.5 | 23.3 | 1 |
+| **NitroInput (number)** | 69.7 | 60.7 | 74.5 | 32.2 | 42.8 | 30.6 | 1 |
+| **MorphInput (number)** | 77.8 | 29.1 | 82.2 | 32.7 | 51.5 | 48.6 | 1 |
+| **NitroInput (mask)** | 65.9 | 45.2 | 71.1 | 32.2 | 38.7 | 30.8 | 1 |
+| Expo UI TextField | 175.7 | 12.2 | 229.7 | 33.1 | 165.1 | 14.1 | 1 |
+
+#### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+| Implementation | mount ms | min | max | unmount ms | main-thread ms | JS-thread ms | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 96.6 | 20.5 | 351.5 | 32.1 | 90.0 | 40.0 | 1 |
+| **NitroInput (text)** | 138.1 | 58.3 | 191.9 | 33.8 | 140.0 | 90.0 | 1 |
+| **MorphInput (text)** | 105.8 | 53.7 | 219.2 | 28.4 | 90.0 | 110.0 | 1 |
+| TextInput + JS formatting | 110.6 | 78.6 | 157.2 | 31.7 | 90.0 | 80.0 | 1 |
+| react-native-currency-input | 93.9 | 25.2 | 162.2 | 30.0 | 90.0 | 60.0 | 1 |
+| react-native-mask-input (number mask) | 132.7 | 34.5 | 166.7 | 48.9 | 130.0 | 90.0 | 1 |
+| **NitroInput (number)** | 191.1 | 103.8 | 227.3 | 53.8 | 180.0 | 140.0 | 1 |
+| **MorphInput (number)** | 172.6 | 75.3 | 205.8 | 50.0 | 150.0 | 200.0 | 1 |
+| react-native-advanced-input-mask | 129.5 | 70.5 | 189.1 | 58.8 | 140.0 | 100.0 | 1 |
+| **NitroInput (mask)** | 199.0 | 131.9 | 224.9 | 52.1 | 170.0 | 140.0 | 1 |
+| Expo UI TextField | 506.7 | 119.8 | 957.9 | 111.5 | 780.0 | 150.0 | 1 |
+
+### Memory over 40 mount/unmount cycles of 20 fields
+
+#### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
+
+| Implementation | footprint, start | footprint, end | peak | growth per cycle | malloc heap, start → end | runs |
+| --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 265.4 MB | 258.0 MB | 266.8 MB | -270.1 KB | 107.8 → 112.2 MB | 1 |
+| **NitroInput (text)** | 256.6 MB | 265.8 MB | 268.4 MB | +238.1 KB | 112.6 → 104.1 MB | 1 |
+| **MorphInput (text)** | 264.3 MB | 267.4 MB | 268.1 MB | +20.6 KB | 104.2 → 110.9 MB | 1 |
+| TextInput + JS formatting | 265.8 MB | 267.9 MB | 267.9 MB | +24.0 KB | 111.3 → 114.5 MB | 1 |
+| react-native-currency-input | 266.2 MB | 264.2 MB | 268.1 MB | -53.2 KB | 114.9 → 111.7 MB | 1 |
+| react-native-mask-input (number mask) | 262.4 MB | 268.5 MB | 270.3 MB | +41.1 KB | 112.1 → 114.0 MB | 1 |
+| **NitroInput (number)** | 262.9 MB | 278.1 MB | 278.1 MB | +378.9 KB | 114.4 → 122.7 MB | 1 |
+| **MorphInput (number)** | 275.8 MB | 284.3 MB | 284.3 MB | +136.1 KB | 123.1 → 129.8 MB | 1 |
+| **NitroInput (mask)** | 282.2 MB | 288.2 MB | 288.2 MB | +87.8 KB | 130.2 → 139.0 MB | 1 |
+| Expo UI TextField | 286.0 MB | 294.1 MB | 295.6 MB | +66.9 KB | 139.4 → 144.3 MB | 1 |
+
+#### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
+
+| Implementation | footprint, start | footprint, end | peak | growth per cycle | malloc heap, start → end | runs |
+| --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 228.0 MB | 230.5 MB | 230.5 MB | +26.8 KB | 137.0 → 118.4 MB | 1 |
+| **NitroInput (text)** | 228.4 MB | 240.4 MB | 240.4 MB | +262.8 KB | 118.8 → 135.0 MB | 1 |
+| **MorphInput (text)** | 238.0 MB | 237.5 MB | 241.4 MB | -12.9 KB | 135.3 → 138.5 MB | 1 |
+| TextInput + JS formatting | 234.9 MB | 237.8 MB | 237.8 MB | +30.0 KB | 138.9 → 141.4 MB | 1 |
+| react-native-currency-input | 235.0 MB | 238.1 MB | 238.1 MB | +32.1 KB | 141.8 → 142.5 MB | 1 |
+| react-native-mask-input (number mask) | 235.2 MB | 241.6 MB | 241.6 MB | +67.8 KB | 142.9 → 144.9 MB | 1 |
+| **NitroInput (number)** | 235.4 MB | 247.8 MB | 248.1 MB | +275.1 KB | 145.4 → 150.7 MB | 1 |
+| **MorphInput (number)** | 244.5 MB | 256.8 MB | 256.8 MB | +229.5 KB | 151.1 → 161.4 MB | 1 |
+| **NitroInput (mask)** | 253.3 MB | 263.8 MB | 267.0 MB | +270.8 KB | 161.8 → 166.3 MB | 1 |
+| Expo UI TextField | 260.2 MB | 263.9 MB | 263.9 MB | +62.7 KB | 166.8 → 175.0 MB | 1 |
+
+#### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+| Implementation | footprint, start | footprint, end | peak | growth per cycle | malloc heap, start → end | live Views, start → end | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 726.2 MB | 756.2 MB | 758.5 MB | +569.9 KB | 323.3 → 336.3 MB | 151 → 152 | 1 |
+| **NitroInput (text)** | 732.8 MB | 747.5 MB | 777.6 MB | +38.1 KB | 326.9 → 315.3 MB | 152 → 153 | 1 |
+| **MorphInput (text)** | 727.7 MB | 754.2 MB | 762.7 MB | +431.8 KB | 307.0 → 326.6 MB | 153 → 154 | 1 |
+| TextInput + JS formatting | 733.5 MB | 755.4 MB | 755.4 MB | +309.3 KB | 320.3 → 329.2 MB | 154 → 155 | 1 |
+| react-native-currency-input | 736.4 MB | 770.0 MB | 770.0 MB | +653.4 KB | 325.3 → 342.3 MB | 155 → 156 | 1 |
+| react-native-mask-input (number mask) | 740.0 MB | 773.1 MB | 773.1 MB | +640.1 KB | 330.4 → 346.2 MB | 156 → 157 | 1 |
+| **NitroInput (number)** | 743.1 MB | 755.9 MB | 778.7 MB | -43.1 KB | 333.2 → 335.3 MB | 157 → 158 | 1 |
+| **MorphInput (number)** | 740.2 MB | 782.1 MB | 795.4 MB | +898.3 KB | 330.6 → 343.1 MB | 158 → 159 | 1 |
+| react-native-advanced-input-mask | 746.4 MB | 779.9 MB | 785.8 MB | +722.9 KB | 327.6 → 346.9 MB | 159 → 160 | 1 |
+| **NitroInput (mask)** | 750.3 MB | 808.1 MB | 808.1 MB | +1267.5 KB | 335.2 → 392.9 MB | 160 → 161 | 1 |
+| Expo UI TextField | 780.5 MB | 840.5 MB | 840.5 MB | +661.2 KB | 380.1 → 397.6 MB | 161 → 374 | 1 |
+
+## The inputs
+
+Nine ways to put an amount, a phone number or plain text into a field, typed
+into by the probe the way a keyboard types: `insertText` on the first
+responder on iOS, the input connection on Android. The column to read first
+is **rewrites per key**. A field that formats in JavaScript (the usual
+`TextInput` with `onChangeText` → `Intl.NumberFormat` → `value`, and the two
+popular libraries built on that pattern) shows the raw keystroke first and the
+formatted text a frame or two later: 10 of 12 keys are rewritten and a key
+takes 65–100 ms to settle. That is the flicker people report with formatted
+inputs, measured. NitroInput and MorphInput format inside the native edit,
+before the frame is drawn, and so does the native mask library on Android:
+no key is ever rewritten. The JS thread tells the same story from the other
+side, 40–50 ms of JavaScript per key for the JS-formatted fields against
+2–6 ms for the Nitro ones (their one change callback per key), and at 15
+keys a second the JS-formatted fields cannot keep up with the driver, which
+waits for a key to settle before the next one.
+
+The morph costs what it looks like it costs: 20 ms of JavaScript per key
+and the animation's frames on the main thread, with nothing dropped at eight
+keys a second.
+
+Focus latency is `focus()` to `onFocus`; the Nitro fields answer in 7–11 ms
+where `TextInput` takes 18–21 ms, for the reason the old page gave:
+`focus()` is a direct call into the hybrid that lands on the next runloop
+turn and `onFocus` comes back from the field's own delegate, while
+`TextInput.focus()` goes through `TextInputState`, a Fabric view command
+applied with the mounting transaction, and the batched event emitter. Tapping
+a field is unaffected: the OS grants focus directly, with no JS in the loop.
+
+Mounting 20 fields is where the Nitro views pay: a Nitro `HybridView` costs
+more to create than a `TextInput`, on both platforms, and the numbers say by
+how much on each phone. Unmounting costs about the same for every field.
+
+### Typing at 8 keys a second
+
+#### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
+
+| Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 7.5 | 0 | 0 of 12 | 0 | 23.4 | 6.2 | 1.0 | 4 | 1 |
+| **NitroInput (text)** | 7.5 | 0 | 0 of 12 | 0 | 18.2 | 1.0 | 1.0 | 1 | 1 |
+| **MorphInput (text)** | 7.5 | 0 | 0 of 12 | 0 | 28.8 | 8.9 | 1.0 | 0 | 1 |
+| TextInput + JS formatting | 7.5 | 1 | 10 of 12 | 50 | 33.9 | 9.1 | 1.0 | 9 | 1 |
+| react-native-currency-input | 7.5 | 1 | 10 of 12 | 67 | 31.5 | 10.5 | 1.0 | 11 | 1 |
+| react-native-mask-input (number mask) | 7.5 | 1 | 10 of 12 | 67 | 33.4 | 10.5 | 1.0 | 9 | 1 |
+| **NitroInput (number)** | 7.5 | 0 | 0 of 12 | 0 | 17.0 | 0.9 | 1.0 | 0 | 1 |
+| **MorphInput (number)** | 7.5 | 0 | 0 of 12 | 0 | 27.8 | 8.7 | 1.0 | 2 | 1 |
+| **NitroInput (mask)** | 7.5 | 0 | 0 of 10 | 0 | 16.6 | 1.0 | 1.0 | 0 | 1 |
+| Expo UI TextField | 7.5 | 0 | 0 of 12 | 0 | 26.4 | 1.2 | 0.0 | 5 | 1 |
+
+#### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
+
+| Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 7.5 | 0 | 0 of 12 | 0 | 32.3 | 8.1 | 1.0 | 3 | 1 |
+| **NitroInput (text)** | 7.5 | 0 | 0 of 12 | 0 | 25.4 | 2.0 | 1.0 | 0 | 1 |
+| **MorphInput (text)** | 7.5 | 0 | 0 of 12 | 0 | 40.0 | 10.3 | 1.0 | 0 | 1 |
+| TextInput + JS formatting | 7.5 | 1 | 10 of 12 | 54 | 38.3 | 10.4 | 1.0 | 4 | 1 |
+| react-native-currency-input | 7.5 | 1 | 10 of 12 | 55 | 38.3 | 10.6 | 1.0 | 6 | 1 |
+| react-native-mask-input (number mask) | 7.5 | 1 | 10 of 12 | 66 | 38.1 | 11.2 | 1.0 | 4 | 1 |
+| **NitroInput (number)** | 7.5 | 0 | 0 of 12 | 0 | 23.9 | 1.9 | 1.0 | 0 | 1 |
+| **MorphInput (number)** | 7.5 | 0 | 0 of 12 | 0 | 40.9 | 9.2 | 1.0 | 0 | 1 |
+| **NitroInput (mask)** | 7.5 | 0 | 0 of 10 | 0 | 23.2 | 1.8 | 1.0 | 0 | 1 |
+| Expo UI TextField | 7.5 | 0 | 0 of 12 | 0 | 37.2 | 1.8 | 0.0 | 0 | 1 |
+
+#### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+| Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 7.5 | 0 | 0 of 12 | 0 | 35.0 | 21.7 | 1.0 | 3 | 1 |
+| **NitroInput (text)** | 7.5 | 0 | 0 of 12 | 0 | 23.3 | 2.5 | 1.0 | 0 | 1 |
+| **MorphInput (text)** | 7.5 | 0 | 0 of 12 | 0 | 55.8 | 16.7 | 1.0 | 0 | 1 |
+| TextInput + JS formatting | 7.5 | 1 | 10 of 12 | 77 | 50.8 | 47.5 | 1.0 | 0 | 1 |
+| react-native-currency-input | 7.5 | 1 | 10 of 12 | 67 | 50.8 | 47.5 | 1.0 | 0 | 1 |
+| react-native-mask-input (number mask) | 7.5 | 1 | 10 of 12 | 66 | 45.0 | 40.8 | 1.0 | 0 | 1 |
+| **NitroInput (number)** | 7.5 | 0 | 0 of 12 | 0 | 35.0 | 5.0 | 1.0 | 1 | 1 |
+| **MorphInput (number)** | 7.5 | 0 | 0 of 12 | 0 | 60.8 | 19.2 | 1.0 | 1 | 1 |
+| react-native-advanced-input-mask | 7.5 | 0 | 0 of 10 | 0 | 43.0 | 30.0 | 1.0 | 6 | 1 |
+| **NitroInput (mask)** | 7.5 | 0 | 0 of 10 | 0 | 40.0 | 4.0 | 1.0 | 2 | 1 |
+| Expo UI TextField | 7.5 | 0 | 0 of 12 | 0 | 70.8 | 3.3 | 0.0 | 24 | 1 |
+
+### Typing at 15 keys a second
+
+#### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
+
+| Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 14.8 | 0 | 0 of 12 | 0 | 17.8 | 7.1 | 1.0 | 1 | 1 |
+| **NitroInput (text)** | 14.8 | 0 | 0 of 12 | 0 | 14.9 | 0.7 | 1.0 | 1 | 1 |
+| **MorphInput (text)** | 14.8 | 0 | 0 of 12 | 0 | 22.0 | 7.3 | 1.0 | 0 | 1 |
+| TextInput + JS formatting | 12.1 | 1 | 10 of 12 | 50 | 23.4 | 8.7 | 1.0 | 11 | 1 |
+| react-native-currency-input | 13.0 | 1 | 10 of 12 | 50 | 21.4 | 8.2 | 1.0 | 10 | 1 |
+| react-native-mask-input (number mask) | 13.2 | 1 | 10 of 12 | 50 | 21.1 | 8.2 | 1.0 | 9 | 1 |
+| **NitroInput (number)** | 14.8 | 0 | 0 of 12 | 0 | 13.9 | 0.7 | 1.0 | 0 | 1 |
+| **MorphInput (number)** | 14.8 | 0 | 0 of 12 | 0 | 21.5 | 7.2 | 1.0 | 2 | 1 |
+| **NitroInput (mask)** | 14.8 | 0 | 0 of 10 | 0 | 13.6 | 0.8 | 1.0 | 1 | 1 |
+| Expo UI TextField | 14.8 | 0 | 0 of 12 | 0 | 22.8 | 1.6 | 0.0 | 1 | 1 |
+
+#### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
+
+| Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 15.0 | 0 | 0 of 12 | 0 | 20.0 | 8.1 | 1.0 | 0 | 1 |
+| **NitroInput (text)** | 15.0 | 0 | 0 of 12 | 0 | 21.0 | 1.2 | 1.0 | 0 | 1 |
+| **MorphInput (text)** | 14.7 | 0 | 0 of 12 | 0 | 25.1 | 7.5 | 1.0 | 0 | 1 |
+| TextInput + JS formatting | 12.8 | 1 | 10 of 12 | 54 | 24.3 | 8.2 | 1.0 | 5 | 1 |
+| react-native-currency-input | 13.8 | 1 | 10 of 12 | 54 | 22.8 | 7.3 | 1.0 | 2 | 1 |
+| react-native-mask-input (number mask) | 13.6 | 1 | 10 of 12 | 56 | 23.5 | 7.4 | 1.0 | 3 | 1 |
+| **NitroInput (number)** | 15.0 | 0 | 0 of 12 | 0 | 19.8 | 1.2 | 1.0 | 0 | 1 |
+| **MorphInput (number)** | 15.0 | 0 | 0 of 12 | 0 | 22.2 | 6.9 | 1.0 | 0 | 1 |
+| **NitroInput (mask)** | 15.0 | 0 | 0 of 10 | 0 | 19.3 | 1.3 | 1.0 | 0 | 1 |
+| Expo UI TextField | 15.0 | 0 | 0 of 12 | 0 | 24.0 | 0.9 | 0.0 | 0 | 1 |
+
+#### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+| Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 12.9 | 0 | 0 of 12 | 0 | 30.8 | 33.3 | 1.0 | 1 | 1 |
+| **NitroInput (text)** | 12.9 | 0 | 0 of 12 | 0 | 30.0 | 5.8 | 1.0 | 1 | 1 |
+| **MorphInput (text)** | 12.9 | 0 | 0 of 12 | 0 | 38.3 | 20.0 | 1.0 | 2 | 1 |
+| TextInput + JS formatting | 10.2 | 1 | 10 of 12 | 78 | 42.5 | 49.2 | 1.0 | 2 | 1 |
+| react-native-currency-input | 10.3 | 1 | 10 of 12 | 77 | 40.0 | 46.7 | 1.0 | 2 | 1 |
+| react-native-mask-input (number mask) | 10.9 | 1 | 10 of 12 | 77 | 37.5 | 43.3 | 1.0 | 0 | 1 |
+| **NitroInput (number)** | 12.9 | 0 | 0 of 12 | 0 | 28.3 | 4.2 | 1.0 | 0 | 1 |
+| **MorphInput (number)** | 12.9 | 0 | 0 of 12 | 0 | 37.5 | 20.8 | 1.0 | 2 | 1 |
+| react-native-advanced-input-mask | 12.9 | 0 | 0 of 10 | 0 | 33.0 | 39.0 | 1.0 | 3 | 1 |
+| **NitroInput (mask)** | 12.9 | 0 | 0 of 10 | 0 | 28.0 | 5.0 | 1.0 | 2 | 1 |
+| Expo UI TextField | 12.9 | 0 | 0 of 12 | 0 | 49.2 | 3.3 | 0.0 | 15 | 1 |
+
+### Focus latency
+
+#### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
+
+| Implementation | focus → onFocus ms | p95 | first (keyboard) | runs |
+| --- | --- | --- | --- | --- |
+| TextInput (text) | 49.3 | 49.5 | 29.9 | 1 |
+| **NitroInput (text)** | 7.5 | 8.3 | 3.9 | 1 |
+| **MorphInput (text)** | 7.6 | 8.2 | 4.4 | 1 |
+| TextInput + JS formatting | 41.2 | 42.4 | 32.5 | 1 |
+| react-native-currency-input | 41.2 | 41.5 | 32.2 | 1 |
+| react-native-mask-input (number mask) | 41.6 | 43.3 | 37.7 | 1 |
+| **NitroInput (number)** | 7.8 | 8.2 | 4.7 | 1 |
+| **MorphInput (number)** | 7.6 | 8.5 | 2.7 | 1 |
+| **NitroInput (mask)** | 7.5 | 8.1 | 2.6 | 1 |
+| Expo UI TextField | 84.9 | 137.3 | 57.4 | 1 |
+
+‡ at least one of these runs started with the phone already throttled (thermal state serious or worse).
+
+#### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
+
+| Implementation | focus → onFocus ms | p95 | first (keyboard) | runs |
+| --- | --- | --- | --- | --- |
+| TextInput (text) | 52.0 | 53.9 | 37.6 | 1 |
+| **NitroInput (text)** | 10.4 | 11.1 | 4.9 | 1 |
+| **MorphInput (text)** | 10.8 | 11.3 | 4.9 | 1 |
+| TextInput + JS formatting | 48.1 | 48.3 | 40.5 | 1 |
+| react-native-currency-input | 48.0 | 49.1 | 39.5 | 1 |
+| react-native-mask-input (number mask) | 48.9 | 49.9 | 35.6 | 1 |
+| **NitroInput (number)** | 10.5 | 11.1 | 5.3 | 1 |
+| **MorphInput (number)** | 11.2 | 11.8 | 4.4 | 1 |
+| **NitroInput (mask)** | 10.9 | 11.1 | 4.3 | 1 |
+| Expo UI TextField | 122.1 | 133.0 | 89.9 | 1 |
+
+‡ at least one of these runs started with the phone already throttled (thermal state serious or worse).
+
+#### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+| Implementation | focus → onFocus ms | p95 | first (keyboard) | runs |
+| --- | --- | --- | --- | --- |
+| TextInput (text) | 20.6 | 25.1 | 25.1 | 1 |
+| **NitroInput (text)** | 10.7 | 14.8 | 5.5 | 1 |
+| **MorphInput (text)** | 6.6 | 13.0 | 3.7 | 1 |
+| TextInput + JS formatting | 19.2 | 29.9 | 29.9 | 1 |
+| react-native-currency-input | 17.5 | 22.5 | 17.5 | 1 |
+| react-native-mask-input (number mask) | 21.0 | 29.4 | 29.4 | 1 |
+| **NitroInput (number)** | 7.6 | 13.5 | 2.8 | 1 |
+| **MorphInput (number)** | 7.1 | 12.6 | 4.3 | 1 |
+| react-native-advanced-input-mask | 19.9 | 31.1 | 31.1 | 1 |
+| **NitroInput (mask)** | 7.0 | 13.4 | 4.2 | 1 |
+| Expo UI TextField | 21.8 | 33.0 | 32.2 | 2 |
+
+### Mounting 20 fields
+
+#### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
+
+| Implementation | mount ms | min | max | unmount ms | main-thread ms | JS-thread ms | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 37.4 | 31.8 | 48.0 | 32.7 | 23.6 | 19.1 | 1 |
+| **NitroInput (text)** | 54.6 | 24.6 | 59.0 | 32.7 | 28.3 | 26.1 | 1 |
+| **MorphInput (text)** | 46.3 | 24.4 | 65.8 | 32.7 | 35.4 | 43.8 | 1 |
+| TextInput + JS formatting | 46.1 | 24.2 | 47.3 | 32.7 | 28.2 | 19.6 | 1 |
+| react-native-currency-input | 34.4 | 30.8 | 47.7 | 32.7 | 22.9 | 21.6 | 1 |
+| react-native-mask-input (number mask) | 35.6 | 23.3 | 59.3 | 32.7 | 24.7 | 19.6 | 1 |
+| **NitroInput (number)** | 58.3 | 23.3 | 63.5 | 32.7 | 30.3 | 26.9 | 1 |
+| **MorphInput (number)** | 54.2 | 40.0 | 67.4 | 32.7 | 33.4 | 44.8 | 1 |
+| **NitroInput (mask)** | 59.4 | 38.3 | 71.5 | 32.7 | 29.2 | 28.1 | 1 |
+| Expo UI TextField | 39.9 | 35.2 | 155.2 | 33.2 | 37.9 | 12.2 | 1 |
+
+#### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
+
+| Implementation | mount ms | min | max | unmount ms | main-thread ms | JS-thread ms | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 54.4 | 20.9 | 56.4 | 32.1 | 35.8 | 20.7 | 1 |
+| **NitroInput (text)** | 61.6 | 50.5 | 71.0 | 32.1 | 35.5 | 29.5 | 1 |
+| **MorphInput (text)** | 74.1 | 52.8 | 79.7 | 32.5 | 49.6 | 47.0 | 1 |
+| TextInput + JS formatting | 57.7 | 25.3 | 58.7 | 32.2 | 35.4 | 24.4 | 1 |
+| react-native-currency-input | 57.9 | 20.9 | 58.5 | 32.1 | 37.0 | 22.7 | 1 |
+| react-native-mask-input (number mask) | 63.0 | 57.4 | 66.7 | 32.0 | 41.5 | 23.3 | 1 |
+| **NitroInput (number)** | 69.7 | 60.7 | 74.5 | 32.2 | 42.8 | 30.6 | 1 |
+| **MorphInput (number)** | 77.8 | 29.1 | 82.2 | 32.7 | 51.5 | 48.6 | 1 |
+| **NitroInput (mask)** | 65.9 | 45.2 | 71.1 | 32.2 | 38.7 | 30.8 | 1 |
+| Expo UI TextField | 175.7 | 12.2 | 229.7 | 33.1 | 165.1 | 14.1 | 1 |
+
+#### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+| Implementation | mount ms | min | max | unmount ms | main-thread ms | JS-thread ms | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 96.6 | 20.5 | 351.5 | 32.1 | 90.0 | 40.0 | 1 |
+| **NitroInput (text)** | 138.1 | 58.3 | 191.9 | 33.8 | 140.0 | 90.0 | 1 |
+| **MorphInput (text)** | 105.8 | 53.7 | 219.2 | 28.4 | 90.0 | 110.0 | 1 |
+| TextInput + JS formatting | 110.6 | 78.6 | 157.2 | 31.7 | 90.0 | 80.0 | 1 |
+| react-native-currency-input | 93.9 | 25.2 | 162.2 | 30.0 | 90.0 | 60.0 | 1 |
+| react-native-mask-input (number mask) | 132.7 | 34.5 | 166.7 | 48.9 | 130.0 | 90.0 | 1 |
+| **NitroInput (number)** | 191.1 | 103.8 | 227.3 | 53.8 | 180.0 | 140.0 | 1 |
+| **MorphInput (number)** | 172.6 | 75.3 | 205.8 | 50.0 | 150.0 | 200.0 | 1 |
+| react-native-advanced-input-mask | 129.5 | 70.5 | 189.1 | 58.8 | 140.0 | 100.0 | 1 |
+| **NitroInput (mask)** | 199.0 | 131.9 | 224.9 | 52.1 | 170.0 | 140.0 | 1 |
+| Expo UI TextField | 506.7 | 119.8 | 957.9 | 111.5 | 780.0 | 150.0 | 1 |
+
+### Memory over 40 mount/unmount cycles of 20 fields
+
+#### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
+
+| Implementation | footprint, start | footprint, end | peak | growth per cycle | malloc heap, start → end | runs |
+| --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 265.4 MB | 258.0 MB | 266.8 MB | -270.1 KB | 107.8 → 112.2 MB | 1 |
+| **NitroInput (text)** | 256.6 MB | 265.8 MB | 268.4 MB | +238.1 KB | 112.6 → 104.1 MB | 1 |
+| **MorphInput (text)** | 264.3 MB | 267.4 MB | 268.1 MB | +20.6 KB | 104.2 → 110.9 MB | 1 |
+| TextInput + JS formatting | 265.8 MB | 267.9 MB | 267.9 MB | +24.0 KB | 111.3 → 114.5 MB | 1 |
+| react-native-currency-input | 266.2 MB | 264.2 MB | 268.1 MB | -53.2 KB | 114.9 → 111.7 MB | 1 |
+| react-native-mask-input (number mask) | 262.4 MB | 268.5 MB | 270.3 MB | +41.1 KB | 112.1 → 114.0 MB | 1 |
+| **NitroInput (number)** | 262.9 MB | 278.1 MB | 278.1 MB | +378.9 KB | 114.4 → 122.7 MB | 1 |
+| **MorphInput (number)** | 275.8 MB | 284.3 MB | 284.3 MB | +136.1 KB | 123.1 → 129.8 MB | 1 |
+| **NitroInput (mask)** | 282.2 MB | 288.2 MB | 288.2 MB | +87.8 KB | 130.2 → 139.0 MB | 1 |
+| Expo UI TextField | 286.0 MB | 294.1 MB | 295.6 MB | +66.9 KB | 139.4 → 144.3 MB | 1 |
+
+#### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
+
+| Implementation | footprint, start | footprint, end | peak | growth per cycle | malloc heap, start → end | runs |
+| --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 228.0 MB | 230.5 MB | 230.5 MB | +26.8 KB | 137.0 → 118.4 MB | 1 |
+| **NitroInput (text)** | 228.4 MB | 240.4 MB | 240.4 MB | +262.8 KB | 118.8 → 135.0 MB | 1 |
+| **MorphInput (text)** | 238.0 MB | 237.5 MB | 241.4 MB | -12.9 KB | 135.3 → 138.5 MB | 1 |
+| TextInput + JS formatting | 234.9 MB | 237.8 MB | 237.8 MB | +30.0 KB | 138.9 → 141.4 MB | 1 |
+| react-native-currency-input | 235.0 MB | 238.1 MB | 238.1 MB | +32.1 KB | 141.8 → 142.5 MB | 1 |
+| react-native-mask-input (number mask) | 235.2 MB | 241.6 MB | 241.6 MB | +67.8 KB | 142.9 → 144.9 MB | 1 |
+| **NitroInput (number)** | 235.4 MB | 247.8 MB | 248.1 MB | +275.1 KB | 145.4 → 150.7 MB | 1 |
+| **MorphInput (number)** | 244.5 MB | 256.8 MB | 256.8 MB | +229.5 KB | 151.1 → 161.4 MB | 1 |
+| **NitroInput (mask)** | 253.3 MB | 263.8 MB | 267.0 MB | +270.8 KB | 161.8 → 166.3 MB | 1 |
+| Expo UI TextField | 260.2 MB | 263.9 MB | 263.9 MB | +62.7 KB | 166.8 → 175.0 MB | 1 |
+
+#### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+| Implementation | footprint, start | footprint, end | peak | growth per cycle | malloc heap, start → end | live Views, start → end | runs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| TextInput (text) | 726.2 MB | 756.2 MB | 758.5 MB | +569.9 KB | 323.3 → 336.3 MB | 151 → 152 | 1 |
+| **NitroInput (text)** | 732.8 MB | 747.5 MB | 777.6 MB | +38.1 KB | 326.9 → 315.3 MB | 152 → 153 | 1 |
+| **MorphInput (text)** | 727.7 MB | 754.2 MB | 762.7 MB | +431.8 KB | 307.0 → 326.6 MB | 153 → 154 | 1 |
+| TextInput + JS formatting | 733.5 MB | 755.4 MB | 755.4 MB | +309.3 KB | 320.3 → 329.2 MB | 154 → 155 | 1 |
+| react-native-currency-input | 736.4 MB | 770.0 MB | 770.0 MB | +653.4 KB | 325.3 → 342.3 MB | 155 → 156 | 1 |
+| react-native-mask-input (number mask) | 740.0 MB | 773.1 MB | 773.1 MB | +640.1 KB | 330.4 → 346.2 MB | 156 → 157 | 1 |
+| **NitroInput (number)** | 743.1 MB | 755.9 MB | 778.7 MB | -43.1 KB | 333.2 → 335.3 MB | 157 → 158 | 1 |
+| **MorphInput (number)** | 740.2 MB | 782.1 MB | 795.4 MB | +898.3 KB | 330.6 → 343.1 MB | 158 → 159 | 1 |
+| react-native-advanced-input-mask | 746.4 MB | 779.9 MB | 785.8 MB | +722.9 KB | 327.6 → 346.9 MB | 159 → 160 | 1 |
+| **NitroInput (mask)** | 750.3 MB | 808.1 MB | 808.1 MB | +1267.5 KB | 335.2 → 392.9 MB | 160 → 161 | 1 |
+| Expo UI TextField | 780.5 MB | 840.5 MB | 840.5 MB | +661.2 KB | 380.1 → 397.6 MB | 161 → 374 | 1 |
 
 ## Earlier measurements
 

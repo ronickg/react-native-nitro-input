@@ -14,9 +14,25 @@ import com.margelo.nitro.views.RecyclableView
  */
 @Keep
 @DoNotStrip
-class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumberViewSpec(), RecyclableView {
-  private val rollingView = RollingNumberView(context)
+class HybridRollingNumberView(private val context: ThemedReactContext) : HybridRollingNumberViewSpec(), RecyclableView {
   private val mainHandler = Handler(Looper.getMainLooper())
+
+  /**
+   * The platform view, or null once Fabric has dropped it. This hybrid is
+   * kept alive by Nitro's C++ part for as long as the JS handle to it (the
+   * `hybridRef`) exists, and Hermes collects that handle only when the JS
+   * heap fills up; so a dropped hybrid lets go of the view rather than keep a
+   * `View`, its display list and engine around meanwhile. A method called on
+   * a stale ref gets a fresh, detached view.
+   */
+  private var attachedView: RollingNumberView? = null
+  private val rollingView: RollingNumberView
+    get() = attachedView ?: RollingNumberView(context).also {
+      wire(it)
+      attachedView = it
+    }
+  /** Set by [prepareForRecycle]: Fabric is keeping the dropped view for reuse. */
+  private var recycled = false
 
   override val view: View
     get() = rollingView
@@ -30,7 +46,7 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
    */
   private var appliedReveal: Boolean? = null
 
-  init {
+  private fun wire(rollingView: RollingNumberView) {
     rollingView.onIntrinsicSizeChange = { width, height ->
       onSizeChange?.invoke(width.toDouble(), height.toDouble())
     }
@@ -209,15 +225,41 @@ class HybridRollingNumberView(context: ThemedReactContext) : HybridRollingNumber
     commit()
   }
 
+  /**
+   * Fabric dropped the view. The Kotlin object lives on until the JS handle
+   * to it (`hybridRef`) is garbage-collected, so the view lets go of what is
+   * sizeable now and keeps only itself.
+   */
   override fun onDropView() {
-    onMain { rollingView.stopAnimation() }
+    recycled = false
+    onMain {
+      attachedView?.release()
+      // With view recycling on, Fabric asks for prepareForRecycle right after
+      // this hook, synchronously; by the next main-thread turn we know whether
+      // the view is wanted again or can go.
+      mainHandler.post { if (!recycled) attachedView = null }
+    }
   }
+
+  /** JS called `dispose()` on the ref: same as a drop. */
+  override fun dispose() {
+    onMain { attachedView?.release() }
+  }
+
+  /**
+   * Reported to the JS garbage collector so a dropped view's handle counts as
+   * the memory it holds rather than as an empty object; that is what makes
+   * Hermes collect the handles, and with them the views, in time.
+   */
+  override val memorySize: Long
+    get() = attachedView?.memoryEstimateBytes() ?: 0L
 
   /**
    * Fabric is about to reuse this view for another element: forget every prop
    * and all animation state. Nitro re-applies the new element's props next.
    */
   override fun prepareForRecycle() {
+    recycled = true
     // Batch the resets so the setters don't flush config thirty times.
     isBatching = true
     pendingValue = null

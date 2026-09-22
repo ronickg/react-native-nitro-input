@@ -42,3 +42,10 @@ scripts/bench/results/hitches/device.json
 scripts/bench/results/hitches/*.stdout.txt
 example/modules/*/android/build/
 example/modules/*/android/.cxx/
+scripts/bench/results/leaks/*.trace
+scripts/bench/results/leaks/bench-results.ndjson
+scripts/bench/results/leaks/device.json
+
+# react-native-harness writes its manifest and cache next to the example app
+example/.harness/
+scripts/bench/results/leaks/

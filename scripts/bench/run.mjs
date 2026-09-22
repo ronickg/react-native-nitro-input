@@ -15,7 +15,7 @@ import { execFileSync, spawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { IMPLS, RESULTS_DIR, renderAll } from './report.mjs'
+import { IMPLS, INPUT_IMPLS, RESULTS_DIR, renderAll } from './report.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const example = path.resolve(here, '../../example')
@@ -53,31 +53,76 @@ function parseArgs(argv) {
 // light scenarios instead of the plan idling. Mirrors example/src/bench/plan.ts.
 const RUN_ORDER = ['text', 'nf-view', 'nitro-prop', 'nf-skia', 'nitro-jump', 'bloom', 'atext', 'ticker', 'rnna', 'nf-skia-sv', 'anim-numbers', 'arn']
 
-/** The light rounds sit between the heavy ones, for the same reason. */
+// What the typing driver types: digits into a number or text field, a phone number into a masked one.
+const INPUT_KEYS = { 'advanced-mask': '1234567890', 'nitro-mask': '1234567890' }
+const inputKeys = (impl) => INPUT_KEYS[impl] ?? '123456789012'
+
+/**
+ * The plans. `full` is the value-stream matrix (the light rounds sit between
+ * the heavy ones); `inputs` types into every field at two paces and measures
+ * focus; `mount` mounts and unmounts 24 numbers and 20 fields ten times;
+ * `list` scrolls 200 rows under ten values a second; `all` is all of them.
+ * Mirrors example/src/bench/plan.ts.
+ */
 function buildPlan(o) {
-  const wanted = o.impls ?? RUN_ORDER
-  const unknown = wanted.filter((k) => !IMPLS.some(([key]) => key === k))
-  if (unknown.length) throw new Error(`unknown implementations: ${unknown.join(', ')}`)
-  const impls = RUN_ORDER.filter((k) => wanted.includes(k))
-  let rounds
-  if (o.plan === 'full') {
-    const heavy = Array.from({ length: Math.max(1, o.repeat) }, () => [24, 'frame'])
-    const light = [[1, 'frame'], [24, 10]]
-    rounds = []
-    heavy.forEach((h, i) => {
-      rounds.push(h)
-      if (light[i]) rounds.push(light[i])
-    })
-  }
-  else if (o.plan === 'headline') rounds = Array.from({ length: o.repeat }, () => [24, 'frame'])
-  else if (o.plan === 'quick') rounds = [[24, 'frame']]
-  else return JSON.parse(fs.readFileSync(o.plan, 'utf8'))
   const scenarios = []
-  for (const [count, rate] of rounds) for (const impl of impls) scenarios.push({ impl, rate, count })
+  const known = [...IMPLS, ...INPUT_IMPLS].map(([k]) => k)
+  const unknown = (o.impls ?? []).filter((k) => !known.includes(k))
+  if (unknown.length) throw new Error(`unknown implementations: ${unknown.join(', ')}`)
+  const rolling = RUN_ORDER.filter((k) => !o.impls || o.impls.includes(k))
+  const inputs = INPUT_IMPLS.map(([k]) => k).filter((k) => !o.impls || o.impls.includes(k))
+  const parts = o.plan === 'all' ? ['full', 'inputs', 'mount', 'list', 'leak'] : [o.plan]
+  for (const part of parts) {
+    if (part === 'full' || part === 'headline' || part === 'quick') {
+      let rounds
+      if (part === 'full') {
+        const heavy = Array.from({ length: Math.max(1, o.repeat) }, () => [24, 'frame'])
+        const light = [[1, 'frame'], [24, 10]]
+        rounds = []
+        heavy.forEach((h, i) => {
+          rounds.push(h)
+          if (light[i]) rounds.push(light[i])
+        })
+      } else if (part === 'headline') rounds = Array.from({ length: o.repeat }, () => [24, 'frame'])
+      else rounds = [[24, 'frame']]
+      for (const [count, rate] of rounds) for (const impl of rolling) scenarios.push({ impl, rate, count })
+    } else if (part === 'inputs') {
+      for (const rate of [8, 15]) for (const impl of inputs) scenarios.push({ kind: 'type', impl, keys: inputKeys(impl), rate })
+      for (const impl of inputs) scenarios.push({ kind: 'focus', impl, runs: 8 })
+    } else if (part === 'mount') {
+      for (const impl of rolling) scenarios.push({ kind: 'mount', impl, count: 24, passes: 10 })
+      for (const impl of inputs) scenarios.push({ kind: 'mount', impl, count: 20, passes: 10 })
+    } else if (part === 'list') {
+      for (const impl of rolling) scenarios.push({ kind: 'list', impl, rows: 200, rate: 10 })
+    } else if (part === 'leak') {
+      for (const impl of rolling) scenarios.push({ kind: 'leak', impl, count: 24, cycles: 40 })
+      for (const impl of inputs) scenarios.push({ kind: 'leak', impl, count: 20, cycles: 40 })
+      for (const impl of rolling) scenarios.push({ kind: 'leaklist', impl, rows: 200, rate: 10, seconds: 30 })
+    } else {
+      return JSON.parse(fs.readFileSync(part, 'utf8'))
+    }
+  }
   return { label: o.label || o.plan, seconds: o.seconds, warmup: o.warmup, settle: o.settle, scenarios }
 }
 
-const planSeconds = (plan) => plan.scenarios.length * (plan.settle + plan.warmup + plan.seconds + 1)
+const scenarioSeconds = (plan, s) => {
+  switch (s.kind ?? 'stream') {
+    case 'mount':
+      // A pass is a mount (up to two seconds for a heavy library's 24 copies, five if it times out), an unmount and two short waits.
+      return plan.settle + s.passes * 2.5
+    case 'type':
+      return plan.settle + 2.5 + s.keys.length / s.rate
+    case 'focus':
+      return plan.settle + s.runs * 0.6
+    case 'leak':
+      return plan.settle + s.cycles * 2
+    case 'leaklist':
+      return plan.settle + 2 + s.seconds
+    default:
+      return plan.settle + plan.warmup + plan.seconds + 1
+  }
+}
+const planSeconds = (plan) => plan.scenarios.reduce((sum, s) => sum + scenarioSeconds(plan, s), 0)
 
 function run(cmd, args, opts = {}) {
   console.log(`$ ${cmd} ${args.map((a) => (/\s/.test(a) ? JSON.stringify(a) : a)).join(' ')}`)
@@ -113,8 +158,7 @@ function collect(tag, stream, onEvent, timeoutMs) {
         events.push(event)
         onEvent?.(event)
         if (event.event === 'result') {
-          const ui = event.ui ? `UI ${event.ui.fps.toFixed(1)}/${event.ui.hz} fps, ${event.ui.dropped} dropped` : 'UI –'
-          console.log(`[${tag}] ${event.index + 1}: ${event.impl} ×${event.count} @${event.rate} → ${ui} · JS ${event.js.fps.toFixed(1)} fps · CPU ${event.cpu ? Math.round(event.cpu.process) + ' %' : '–'}${event.error ? ' · FAILED ' + event.error : ''}`)
+          console.log(`[${tag}] ${event.index + 1}: ${describe(event)}${event.error ? ' · FAILED ' + event.error : ''}`)
         } else if (event.event === 'plan') {
           console.log(`[${tag}] ${event.device?.name} ${event.device?.model} ${event.device?.os}, ${event.device?.refreshRate} Hz, thermal ${event.device?.thermal}${event.device?.lowPowerMode ? ', LOW POWER MODE' : ''}${event.device?.debug ? ', DEBUG BUILD' : ''}: ${event.scenarios} scenarios`)
         } else if (event.event === 'done') {
@@ -125,6 +169,27 @@ function collect(tag, stream, onEvent, timeoutMs) {
     })
     stream.on('error', reject)
   })
+}
+
+/** One line per result, by kind. */
+function describe(r) {
+  switch (r.kind ?? 'stream') {
+    case 'mount':
+      return `mount ${r.count} × ${r.impl} → ${r.mountMs.p50.toFixed(1)} ms, unmount ${r.unmountMs.p50.toFixed(1)} ms, main ${r.mountMainMs?.toFixed(1) ?? '–'} ms`
+    case 'type':
+      return `type @${r.rate}/s into ${r.impl} → ${r.typed} keys, rewrites ${r.rewrites.p50} (max ${r.rewrites.max}), settled p95 ${r.settledMs.p95.toFixed(0)} ms, main ${r.mainMsPerKey?.toFixed(1) ?? '–'} ms/key, ${r.dropped} dropped`
+    case 'focus':
+      return `focus ${r.impl} → ${r.ms.p50.toFixed(1)} ms (first ${r.first.toFixed(1)})`
+    case 'leak':
+      return `memory ${r.cycles} × mount ${r.count} × ${r.impl} → RSS ${r.rssFirstMb?.toFixed(1)} → ${r.rssLastMb?.toFixed(1)} MB, ${r.growthKbPerCycle?.toFixed(1)} KB/cycle${r.meminfo ? `, views ${r.meminfo.viewsStart} → ${r.meminfo.viewsEnd}` : ''}`
+    case 'leaklist':
+      return `memory ${r.impl} list ${Math.round(r.seconds)} s → RSS ${r.rssFirstMb?.toFixed(1)} → ${r.rssLastMb?.toFixed(1)} MB, ${r.growthKbPerSecond?.toFixed(1)} KB/s${r.meminfo ? `, views ${r.meminfo.viewsStart} → ${r.meminfo.viewsEnd}` : ''}`
+    default: {
+      const ui = r.ui ? `UI ${r.ui.fps.toFixed(1)}/${r.ui.hz} fps, ${r.ui.dropped} dropped` : 'UI –'
+      const what = r.kind === 'list' ? `${r.impl} list of ${r.rows} @${r.rate}` : `${r.impl} ×${r.count} @${r.rate}`
+      return `${what} → ${ui} · JS ${r.js.fps.toFixed(1)} fps · CPU ${r.cpu ? Math.round(r.cpu.process) + ' %' : '–'}`
+    }
+  }
 }
 
 function save(label, events) {
@@ -160,6 +225,13 @@ async function runIos(udid, plan, o) {
   }
 }
 
+/** Live View objects and the native heap, from dumpsys meminfo: detached views that never die are the classic leak. */
+function parseMeminfo(text) {
+  const views = text.match(/Views:\s*(\d+)/)
+  const heap = text.match(/Native Heap:\s*(\d+)/) ?? text.match(/Native Heap\s+(\d+)/)
+  return { views: views ? Number(views[1]) : null, nativeHeapKb: heap ? Number(heap[1]) : null }
+}
+
 function parseGfxinfo(text) {
   const num = (re) => {
     const m = text.match(re)
@@ -181,13 +253,26 @@ async function runAndroid(serial, plan, o) {
   const encoded = Buffer.from(JSON.stringify(plan)).toString('base64')
   console.log(`[${tag}] launching with ${plan.scenarios.length} scenarios (~${Math.round(planSeconds(plan) / 60)} min)`)
   adb(serial, ['shell', 'am', 'start', '-n', `${ANDROID_PKG}/.MainActivity`, '--es', 'BENCH_PLAN', encoded], { capture: true })
-  // HWUI's own frame accounting, reset when the measured window opens and read with the result.
+  // HWUI's own frame accounting, reset when the measured window opens and read
+  // with the result; and around a memory scenario, the live View count and the
+  // native heap from dumpsys meminfo.
+  const meminfoAtStart = new Map()
   const onEvent = (event) => {
     try {
       if (event.event === 'measure') adb(serial, ['shell', 'dumpsys', 'gfxinfo', ANDROID_PKG, 'reset'], { capture: true, stdio: ['ignore', 'pipe', 'ignore'] })
-      else if (event.event === 'result') event.hwui = parseGfxinfo(adb(serial, ['shell', 'dumpsys', 'gfxinfo', ANDROID_PKG], { capture: true, stdio: ['ignore', 'pipe', 'ignore'] }))
+      else if (event.event === 'start' && (event.kind === 'leak' || event.kind === 'leaklist')) {
+        meminfoAtStart.set(event.index, parseMeminfo(adb(serial, ['shell', 'dumpsys', 'meminfo', ANDROID_PKG], { capture: true, stdio: ['ignore', 'pipe', 'ignore'] })))
+      } else if (event.event === 'result') {
+        if (event.kind === 'leak' || event.kind === 'leaklist') {
+          const before = meminfoAtStart.get(event.index)
+          const after = parseMeminfo(adb(serial, ['shell', 'dumpsys', 'meminfo', ANDROID_PKG], { capture: true, stdio: ['ignore', 'pipe', 'ignore'] }))
+          if (before) event.meminfo = { viewsStart: before.views, viewsEnd: after.views, nativeHeapStartKb: before.nativeHeapKb, nativeHeapEndKb: after.nativeHeapKb }
+        } else {
+          event.hwui = parseGfxinfo(adb(serial, ['shell', 'dumpsys', 'gfxinfo', ANDROID_PKG], { capture: true, stdio: ['ignore', 'pipe', 'ignore'] }))
+        }
+      }
     } catch (e) {
-      console.warn(`[${tag}] gfxinfo: ${e.message}`)
+      console.warn(`[${tag}] dumpsys: ${e.message}`)
     }
   }
   try {
@@ -202,8 +287,10 @@ async function runAndroid(serial, plan, o) {
 
 const o = parseArgs(process.argv.slice(2))
 const plan = buildPlan(o)
+// react-native-advanced-input-mask does not build against React Native 0.87's prebuilt core on iOS (see example/react-native.config.js).
+const iosPlan = { ...plan, scenarios: plan.scenarios.filter((s) => s.impl !== 'advanced-mask') }
 console.log(`plan "${plan.label}": ${plan.scenarios.length} scenarios × (${plan.settle} + ${plan.warmup} + ${plan.seconds} s) ≈ ${Math.round(planSeconds(plan) / 60)} min per device`)
-const jobs = [...o.ios.map((udid) => runIos(udid, plan, o)), ...o.android.map((serial) => runAndroid(serial, plan, o))]
+const jobs = [...o.ios.map((udid) => runIos(udid, iosPlan, o)), ...o.android.map((serial) => runAndroid(serial, plan, o))]
 const settled = await Promise.allSettled(jobs)
 const files = []
 settled.forEach((s, i) => {

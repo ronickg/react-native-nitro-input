@@ -12,6 +12,12 @@ import android.util.Log
 import android.view.Choreographer
 import android.view.Display
 import android.view.WindowManager
+import android.view.View
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.ExtractedTextRequest
+import android.view.inputmethod.InputConnection
+import android.widget.EditText
+import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.UiThreadUtil
 import org.json.JSONArray
@@ -158,8 +164,21 @@ class BenchProbeModule(reactContext: ReactApplicationContext) : NativeBenchProbe
     return JSONObject()
       .put("wallMs", SystemClock.elapsedRealtimeNanos() / 1_000_000.0)
       .put("rssMb", rssMb)
+      .put("nativeHeapMb", android.os.Debug.getNativeHeapAllocatedSize() / (1024.0 * 1024.0))
       .put("threads", threads)
       .toString()
+  }
+
+  override fun forceGc() {
+    // A detached view is freed by the Java collector; the C++ engine behind it
+    // (an fbjni HybridData) by the destructor thread after that. Two rounds so
+    // what the first round's finalizers released is collected too.
+    System.gc()
+    System.runFinalization()
+    SystemClock.sleep(150)
+    System.gc()
+    System.runFinalization()
+    SystemClock.sleep(100)
   }
 
   override fun startFrames() {
@@ -207,6 +226,148 @@ class BenchProbeModule(reactContext: ReactApplicationContext) : NativeBenchProbe
       .put("max", sorted.lastOrNull() ?: 0.0)
       .toString()
   }
+
+  // region Typing driver
+
+  private var typing: TypingDriver? = null
+
+  /** Cumulative CPU time of the main thread (its tid is the pid), in ms. */
+  private fun mainThreadCpuMs(): Double {
+    val pid = Process.myPid()
+    val stat = try { File("/proc/self/task/$pid/stat").readText() } catch (e: Exception) { return 0.0 }
+    val close = stat.lastIndexOf(')')
+    val fields = stat.substring(close + 1).trim().split(' ')
+    if (fields.size < 13) return 0.0
+    val ticks = (fields[11].toLongOrNull() ?: 0L) + (fields[12].toLongOrNull() ?: 0L)
+    return ticks * 1000.0 / Os.sysconf(OsConstants._SC_CLK_TCK).toDouble()
+  }
+
+  /**
+   * Types into the focused field one key at a time from a Choreographer
+   * callback, through the input connection (the IME's path), and watches the
+   * field's text on every following frame: a key whose text is rewritten in a
+   * later frame (the raw digit first, the formatted amount a frame or two
+   * later) is the flicker of a JS round trip, counted per key.
+   */
+  private inner class TypingDriver(text: String, keysPerSecond: Double, private val done: (String) -> Unit) : Choreographer.FrameCallback {
+    private val keys: List<String> = text.codePoints().toArray().map { String(Character.toChars(it)) }
+    private val intervalNs = if (keysPerSecond > 0) (1e9 / keysPerSecond).toLong() else 100_000_000L
+    private val records = ArrayList<JSONObject>()
+    private var next = 0
+    private var nextAt = 0L
+    private var startNs = 0L
+    private var lastNs = 0L
+    private var lastText = ""
+    private var pendingKey = -1
+    private var pendingAt = 0L
+    private var quietFrames = 0
+    private var cpuAtKey = 0.0
+    private var frames = 0
+    private var dropped = 0.0
+    private val expectedNs = (1e9 / (display()?.refreshRate ?: 60f)).toLong()
+
+    fun start() {
+      Choreographer.getInstance().postFrameCallback(this)
+    }
+
+    /** The focused view: an EditText, or a Compose host (Expo UI) that owns a text field. */
+    private fun field(): View? = reactApplicationContext.currentActivity?.currentFocus
+
+    /** The IME's channel to the focused field, whatever draws it. */
+    private fun connection(field: View): InputConnection? = field.onCreateInputConnection(EditorInfo())
+
+    /** The field's text as the IME sees it (works for Compose too); an EditText's own text as a fallback. */
+    private fun textOf(field: View?, connection: InputConnection?): String {
+      val extracted = try { connection?.getExtractedText(ExtractedTextRequest(), 0)?.text?.toString() } catch (e: Exception) { null }
+      return extracted ?: (field as? EditText)?.text?.toString() ?: ""
+    }
+
+    override fun doFrame(frameTimeNanos: Long) {
+      if (startNs == 0L) {
+        startNs = frameTimeNanos
+        nextAt = frameTimeNanos
+      } else {
+        val gap = frameTimeNanos - lastNs
+        frames++
+        if (gap > 1.5 * expectedNs) dropped += Math.round(gap.toDouble() / expectedNs) - 1
+      }
+      lastNs = frameTimeNanos
+      val field = field()
+      val connection = field?.let { connection(it) }
+      val text = textOf(field, connection)
+
+      if (pendingKey >= 0) {
+        val record = records[pendingKey]
+        if (text != lastText) {
+          record.put("rewrites", record.getInt("rewrites") + 1)
+          record.put("settledMs", (frameTimeNanos - pendingAt) / 1e6)
+          quietFrames = 0
+        } else {
+          quietFrames++
+        }
+        record.put("cpuMs", mainThreadCpuMs() - cpuAtKey)
+        if (quietFrames >= 3 && frameTimeNanos >= nextAt) {
+          record.put("text", text)
+          pendingKey = -1
+        }
+      }
+      lastText = text
+
+      if (pendingKey < 0 && next < keys.size && frameTimeNanos >= nextAt) {
+        if (field == null || (connection == null && field !is EditText)) {
+          finish("no focused text field")
+          return
+        }
+        val record = JSONObject().put("key", keys[next]).put("rewrites", 0).put("settledMs", 0.0).put("cpuMs", 0.0)
+        records.add(record)
+        cpuAtKey = mainThreadCpuMs()
+        if (connection != null) connection.commitText(keys[next], 1)
+        else (field as EditText).text?.insert(field.selectionStart.coerceAtLeast(0), keys[next])
+        // The key's own frame is not a rewrite: what the field shows right after
+        // the insert is the baseline the later frames are compared against.
+        lastText = textOf(field, connection)
+        pendingKey = next
+        pendingAt = frameTimeNanos
+        quietFrames = 0
+        next++
+        nextAt = frameTimeNanos + intervalNs
+      } else if (pendingKey < 0 && next >= keys.size) {
+        finish(null)
+        return
+      }
+      Choreographer.getInstance().postFrameCallback(this)
+    }
+
+    private fun finish(error: String?) {
+      val keysJson = JSONArray()
+      for (r in records) keysJson.put(r)
+      val summary = JSONObject()
+        .put("keys", keysJson)
+        .put("typed", records.size)
+        .put("seconds", (lastNs - startNs) / 1e9)
+        .put("frames", frames)
+        .put("dropped", dropped)
+        .put("error", error ?: JSONObject.NULL)
+      done(summary.toString())
+    }
+  }
+
+  override fun typeText(text: String, keysPerSecond: Double, promise: Promise) {
+    UiThreadUtil.runOnUiThread {
+      if (typing != null) {
+        promise.reject("busy", "a typing run is already in progress")
+        return@runOnUiThread
+      }
+      val driver = TypingDriver(text, keysPerSecond) { json ->
+        typing = null
+        promise.resolve(json)
+      }
+      typing = driver
+      driver.start()
+    }
+  }
+
+  // endregion
 
   override fun report(line: String) {
     Log.i("BENCH", line)
