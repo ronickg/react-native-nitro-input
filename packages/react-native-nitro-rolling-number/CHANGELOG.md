@@ -2,6 +2,16 @@
 
 ## 0.1.0 (unreleased)
 
+- Android: digits no longer vanish after every rolling number on screen has
+  been unmounted and new ones mount, or after the window gives its hardware
+  resources back (the app going to the background). The wheels draw a digit
+  strip recorded once into a `RenderNode`; HWUI deletes a node's display list
+  the moment nothing in the view tree draws it any more, and a node drawn
+  without one draws nothing, so the next rolling number showed its value to
+  accessibility and painted blank. The strip is recorded again whenever its
+  display list is gone. Found by the example's new Recycle check screen and
+  `scripts/ui/recycle-check.mjs`, which drive a 400-row list through argent
+  and compare what every visible row reports with what it painted.
 - Memory: a dropped rolling number is freed when Fabric drops it. The Nitro
   hybrid behind a view is kept alive by its C++ part until the JS handle from
   `hybridRef` is garbage-collected, and Hermes collects a handle it takes for

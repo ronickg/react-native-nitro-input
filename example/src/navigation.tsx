@@ -12,6 +12,7 @@ import { KeyboardControllerScreen } from './screens/KeyboardControllerScreen'
 import { BenchScreen } from './screens/BenchScreen'
 import { ViewPropsReproScreen } from './screens/ViewPropsRepro'
 import { RtlScreen } from './screens/RtlScreen'
+import { RecycleCheckScreen } from './screens/RecycleCheckScreen'
 import { RollingBenchScreen, type RollingBenchParams } from './bench/RollingBenchScreen'
 import { parsePlan } from './bench/plan'
 import { launchPlan } from './bench/probe'
@@ -40,6 +41,7 @@ export type RootStackParamList = {
   FlowSheet: { impl: Impl }
   ViewPropsRepro: undefined
   Rtl: undefined
+  RecycleCheck: undefined
 }
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
@@ -109,6 +111,7 @@ function HomeScreen() {
       </Card>
       <Card title="Rolling number" hint="This library against every other animated-number library on npm that builds here: frame pacing on both threads and per-thread CPU, on this device.">
         <Row><Btn testID="home-rolling-bench" tone="primary" title="Benchmark vs other libraries" onPress={() => nav.navigate('RollingBench')} /></Row>
+        <Row><Btn testID="home-recycle" title="Recycle check (400-row lists)" onPress={() => nav.navigate('RecycleCheck')} /></Row>
       </Card>
       <Card title="Original demo" hint="The rolling number and morph input showcase this example shipped with.">
         <Row><Btn testID="home-demo" title="Open demo" onPress={() => nav.navigate('Demo')} /></Row>
@@ -158,6 +161,7 @@ export function RootNavigator() {
         <Stack.Screen name="Demo" component={DemoScreen} options={{ title: 'Demo' }} />
         <Stack.Screen name="ViewPropsRepro" component={ViewPropsReproScreen} options={{ title: 'View props' }} />
         <Stack.Screen name="Rtl" component={RtlScreen} options={{ title: 'Right-to-left' }} />
+        <Stack.Screen name="RecycleCheck" component={RecycleCheckScreen} options={{ title: 'Recycle check' }} />
         <Stack.Screen
           name="FlowSheet"
           component={FlowSheetScreen}

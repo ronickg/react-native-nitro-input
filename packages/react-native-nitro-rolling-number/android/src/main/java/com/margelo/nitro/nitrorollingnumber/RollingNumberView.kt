@@ -222,24 +222,31 @@ class RollingNumberView(context: Context) : View(context) {
 
     fun strip(blankZero: Boolean): RenderNode? {
       if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || digitWidth <= 0f || lineHeight <= 0f) return null
-      return StripCache.get("$stripKey|$blankZero") {
-        val w = ceil(digitWidth).toInt()
-        val h = ceil(lineHeight * STRIP_SLOTS).toInt()
-        val node = RenderNode("rolling-number-strip")
-        node.setPosition(0, 0, w, h)
-        node.setUseCompositingLayer(true, null)
-        val canvas = node.beginRecording(w, h)
-        try {
-          val baseline = baseline(GlyphRole.DIGIT, "0", 0f)
-          for (index in -1 until STRIP_SLOTS - 1) {
-            if (index < 0 || (blankZero && index == 0)) continue
-            val text = DIGITS[index % 10]
-            canvas.drawText(text, (digitWidth - width(text, GlyphRole.DIGIT)) / 2f, (index + 1) * lineHeight + baseline, digit)
-          }
-        } finally {
-          node.endRecording()
+      val node = StripCache.get("$stripKey|$blankZero") { RenderNode("rolling-number-strip") }
+      // HWUI deletes a node's display list once nothing in the view tree draws
+      // it any more (the last view drawing this strip was dropped, or the
+      // window gave its hardware resources back), and a node drawn without
+      // one draws nothing. Record again whenever that happened; it is the
+      // one-time cost of a strip, and only then.
+      if (!node.hasDisplayList()) recordStrip(node, blankZero)
+      return node
+    }
+
+    private fun recordStrip(node: RenderNode, blankZero: Boolean) {
+      val w = ceil(digitWidth).toInt()
+      val h = ceil(lineHeight * STRIP_SLOTS).toInt()
+      node.setPosition(0, 0, w, h)
+      node.setUseCompositingLayer(true, null)
+      val canvas = node.beginRecording(w, h)
+      try {
+        val baseline = baseline(GlyphRole.DIGIT, "0", 0f)
+        for (index in -1 until STRIP_SLOTS - 1) {
+          if (index < 0 || (blankZero && index == 0)) continue
+          val text = DIGITS[index % 10]
+          canvas.drawText(text, (digitWidth - width(text, GlyphRole.DIGIT)) / 2f, (index + 1) * lineHeight + baseline, digit)
         }
-        node
+      } finally {
+        node.endRecording()
       }
     }
     private val capHeightCache = HashMap<GlyphRole, Float>()
