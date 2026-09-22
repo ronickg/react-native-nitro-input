@@ -67,7 +67,8 @@ jobs:
         uses: callstackincubator/react-native-harness@v1.5.0
         with:
           runner: android
-          app: example/android/app/build/outputs/apk/debug/app-debug.apk
+          # Relative to projectRoot, like everything the action resolves.
+          app: android/app/build/outputs/apk/debug/app-debug.apk
           projectRoot: example
           packageManager: bun
           preRunHook: |
@@ -117,6 +118,6 @@ jobs:
         uses: callstackincubator/react-native-harness@v1.5.0
         with:
           runner: ios
-          app: example/ios/build/Build/Products/Debug-iphonesimulator/RollingNumberExample.app
+          app: ios/build/Build/Products/Debug-iphonesimulator/RollingNumberExample.app
           projectRoot: example
           packageManager: bun

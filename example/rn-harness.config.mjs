@@ -26,8 +26,14 @@ const config = {
     }),
     androidPlatform({
       name: 'android',
-      // The options let CI create the emulator when the image has none by that name.
-      device: androidEmulator(androidEmulatorName, { apiLevel: androidApiLevel, profile: 'pixel' }),
+      // The options let CI create the emulator when the image has none by that
+      // name; the CI loader reads every one of them, so none may be left out.
+      device: androidEmulator(androidEmulatorName, {
+        apiLevel: androidApiLevel,
+        profile: 'pixel',
+        diskSize: '2G',
+        heapSize: '1G',
+      }),
       bundleId: 'com.rollingnumberexample',
     }),
   ],
