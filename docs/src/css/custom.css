@@ -22,6 +22,10 @@
   --nitro-bg: #ffffff;
   --nitro-bg-sunken: #f7f8fa;
   --nitro-bg-raised: #ffffff;
+  /* A field's own background, for the demos that draw one. Deliberately a
+     step off both surfaces above: a demo field sits on the sunken card and
+     the playground's raised panel, and on neither may its edges vanish. */
+  --nitro-field-fill: #e4e9f0;
   --nitro-border: rgba(15, 23, 42, 0.1);
   --nitro-border-strong: rgba(15, 23, 42, 0.16);
   --nitro-ink-muted: rgba(15, 23, 42, 0.62);
@@ -78,6 +82,7 @@
   --nitro-bg: #0a0d14;
   --nitro-bg-sunken: #0d111a;
   --nitro-bg-raised: #12161f;
+  --nitro-field-fill: #1d2431;
   --nitro-border: rgba(255, 255, 255, 0.09);
   --nitro-border-strong: rgba(255, 255, 255, 0.16);
   --nitro-ink-muted: rgba(226, 232, 240, 0.62);

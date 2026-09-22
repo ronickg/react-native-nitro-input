@@ -50,16 +50,20 @@ const FILL = [AUTO, '#e2e8f0', '#f1f5f9', '#ede9fe', '#dcfce7', '#fee2e2', '#fef
  * The colours the page itself is using. Read from the CSS variables rather
  * than hard-coded, and re-read when the theme toggle flips `data-theme`, so a
  * field with no colour of its own is legible in either theme.
+ *
+ * `fill` is the field's own background, and it is its own token rather than
+ * the page's sunken surface: the demos draw fields on that surface, and a
+ * fill equal to what is behind it is a field with no visible bounds.
  */
 export function useThemeColors() {
-  const [colors, setColors] = useState({ink: '#0f172a', fill: '#e2e8f0', muted: '#94a3b8'});
+  const [colors, setColors] = useState({ink: '#0f172a', fill: '#e4e9f0', muted: '#94a3b8'});
   useEffect(() => {
     const read = () => {
       const style = getComputedStyle(document.documentElement);
       const pick = (name: string, fallback: string) => style.getPropertyValue(name).trim() || fallback;
       setColors({
         ink: pick('--ifm-font-color-base', '#0f172a'),
-        fill: pick('--nitro-bg-sunken', '#e2e8f0'),
+        fill: pick('--nitro-field-fill', '#e4e9f0'),
         muted: pick('--nitro-ink-muted', '#94a3b8'),
       });
     };
@@ -274,7 +278,11 @@ function Control({
   knob: Knob;
   value: string | number | boolean;
   onChange: (v: string | number | boolean) => void;
-  /** What a theme-following colour is right now, for painting its swatch. */
+  /**
+   * What a theme-following colour is right now, for painting its swatch. It
+   * must be the same resolver the field is given, or the `auto` swatch paints
+   * a colour the field will not use.
+   */
   resolve: (option: string) => string;
 }) {
   switch (knob.kind) {
@@ -382,7 +390,8 @@ function PlaygroundInner() {
   const [value, setValue] = useState(NaN);
 
   const theme = useThemeColors();
-  // `auto` means "whatever the page is using"; everything else is literal.
+  // `auto` means "whatever the page is using": the page's ink for a colour,
+  // and the docs' field fill for a background. Everything else is literal.
   const resolveColor = (option: string) =>
     option !== AUTO ? option : theme.ink;
   const resolveFill = (option: string) => (option !== AUTO ? option : theme.fill);
@@ -494,7 +503,7 @@ function PlaygroundInner() {
                           knob={knob}
                           value={state[knob.key]}
                           onChange={set(knob.key)}
-                          resolve={resolveColor}
+                          resolve={knob.key === 'fillColor' ? resolveFill : resolveColor}
                         />
                       </Row>
                     ))}
