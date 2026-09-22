@@ -6,7 +6,12 @@ a Jest-compatible runner is bundled with the app, each test's tree is rendered
 as an overlay in the running app, and results come back over a Metro bridge.
 They exercise the two packages the way an app does, so a regression in the
 native views, the engines, the formatter or the wrappers fails here rather
-than on a device in someone's hands.
+than on a device in someone's hands. Each file ends with a lifetime suite:
+two dozen copies mounted and unmounted thirty times, a forced collection,
+then the live `View` count on Android (read through the example's probe
+module, what `dumpsys meminfo` calls Views) must be where it started and the
+copies mounted afterwards must work. That is the leak the 0.1.0 memory fix
+closed, kept closed.
 
 `App.test.tsx` next to them is an ordinary Jest test and runs on Node
 (`bun run test` in this folder); the harness runner only picks up

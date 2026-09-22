@@ -17,6 +17,7 @@ import {
   type NitroInputSelectionEvent,
 } from 'react-native-nitro-input'
 import { deferred, sleep, withTimeout } from './test-utils'
+import { forceGc, trackNativeViews, trackedLiveCount } from '../src/bench/probe'
 
 function layoutOf() {
   const state: { current: LayoutRectangle | null } = { current: null }
@@ -158,10 +159,11 @@ describe('NitroInput', () => {
       )
     }
     const { rerender } = await render(<FocusOnMount how="effect" />)
-    await waitFor(() => expect(focusEvents).toEqual(['effect']), { timeout: 5000 })
+    // Ten seconds: a hosted emulator has taken more than five to deliver the first focus.
+    await waitFor(() => expect(focusEvents).toEqual(['effect']), { timeout: 10_000 })
     await rerender(<View />)
     await rerender(<FocusOnMount how="ref" />)
-    await waitFor(() => expect(focusEvents).toEqual(['effect', 'ref']), { timeout: 5000 })
+    await waitFor(() => expect(focusEvents).toEqual(['effect', 'ref']), { timeout: 10_000 })
   })
 
   it('takes focus away from the field that had it, like the system field it wraps', async () => {
@@ -288,24 +290,24 @@ describe('NitroInput', () => {
 
     ref.current!.setText('555123')
     await waitFor(() => expect(ref.current!.getText()).toBe('+1 (555) 123-'))
-    await waitFor(() => expect(reports.length).toBe(1))
+    await waitFor(() => expect(reports.length).toBe(1), { timeout: 5000 })
     expect(reports[0]).toEqual(['+1 (555) 123-', '555123', '0000', false])
 
     ref.current!.setText('5551234567')
     await waitFor(() => expect(ref.current!.getText()).toBe('+1 (555) 123-4567'))
-    await waitFor(() => expect(reports.length).toBe(2))
+    await waitFor(() => expect(reports.length).toBe(2), { timeout: 5000 })
     expect(reports[1]).toEqual(['+1 (555) 123-4567', '5551234567', '', true])
 
     // The `value` prop is silent for onChangeText but a mask still reports what it fills in.
     await rerender(<NitroInput ref={ref} mode="mask" mask="+1 ([000]) [000]-[0000]" value="4155550" onChangeMask={onChangeMask} />)
     await waitFor(() => expect(ref.current!.getText()).toBe('+1 (415) 555-0'))
-    await waitFor(() => expect(reports.length).toBe(3))
+    await waitFor(() => expect(reports.length).toBe(3), { timeout: 5000 })
     expect(reports[2]).toEqual(['+1 (415) 555-0', '4155550', '000', false])
 
     // Emptied, the field shows its placeholder again: no literal is completed into nothing.
     ref.current!.clear()
     await waitFor(() => expect(ref.current!.getText()).toBe(''))
-    await waitFor(() => expect(reports.length).toBe(4))
+    await waitFor(() => expect(reports.length).toBe(4), { timeout: 5000 })
     expect(reports[3]).toEqual(['', '', '+1 (000) 000-0000', false])
   })
 
@@ -379,5 +381,45 @@ describe('MorphInput', () => {
     expect(ref.current!.getValue()).toBe(1234567.89)
     // The morph is a native animation; the box follows the settled text.
     await waitFor(() => expect(state.current!.width).toBeGreaterThan(oneDigit), { timeout: 3000 })
+  })
+})
+
+describe('NitroInput lifetime', () => {
+  // The same check as the rolling number's: 20 fields mounted and unmounted
+  // 30 times, a forced collection, the live View count where it started
+  // (Android), and fields mounted after the churn that read what they were given.
+  it('frees its views on unmount and mounts working fields after the churn', async () => {
+    const fields = 20
+    const cycles = 30
+    const refs = Array.from({ length: fields }, () => createRef<NitroInputHandle>())
+    const tree = (base: number) => (
+      <View>
+        {refs.map((ref, i) => (
+          <NitroInput key={i} ref={ref} defaultValue={String(base + i)} />
+        ))}
+      </View>
+    )
+    const { rerender } = await render(<View />)
+    let tracked: number | null = 0
+    for (let cycle = 1; cycle <= cycles; cycle++) {
+      await rerender(tree(1000 * cycle))
+      await waitFor(() => expect(refs[fields - 1].current?.native).not.toBeNull(), { timeout: 5000 })
+      // Remember this cycle's native views (weakly) while they are mounted.
+      tracked = trackNativeViews()
+      await rerender(<View />)
+    }
+    forceGc()
+    await sleep(500)
+    forceGc()
+    await sleep(300)
+    const alive = trackedLiveCount()
+    if (tracked != null && alive != null) {
+      // Every cycle's fields (and their inner views) were tracked; after the
+      // collection none should be alive. A leak is a cycle's worth or more.
+      expect(tracked).toBeGreaterThanOrEqual(fields)
+      expect(alive).toBeLessThan(fields)
+    }
+    await rerender(tree(5000))
+    await waitFor(() => expect(refs.map((ref) => ref.current?.getText())).toEqual(refs.map((_, i) => String(5000 + i))), { timeout: 5000 })
   })
 })

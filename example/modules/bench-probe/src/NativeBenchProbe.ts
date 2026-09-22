@@ -29,6 +29,17 @@ export interface Spec extends TurboModule {
    * freed pages to the system. Blocks for about a quarter of a second.
    */
   forceGc(): void
+  /**
+   * Android: remembers, weakly, every view in the window whose class name
+   * starts with `classPrefix` (`com.margelo.nitro.` for this repo's views),
+   * and returns how many are remembered. Call it while the views are mounted;
+   * after they are unmounted and a collection has run, `trackedLiveCount`
+   * says how many are still alive, which is the leak check. -1 on iOS, where
+   * Fabric pools component views and a survivor is not a leak.
+   */
+  trackNativeViews(classPrefix: string): number
+  /** How many of the tracked views are still alive (Android; -1 on iOS). */
+  trackedLiveCount(): number
   /** Start counting display frames on the main thread (CADisplayLink / Choreographer). */
   startFrames(): void
   /** Stop and summarize: { frames, seconds, fps, hz, dropped, long, p50, p95, p99, max } (gaps in ms). */
