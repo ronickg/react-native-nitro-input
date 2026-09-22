@@ -8,6 +8,7 @@ import { View, type LayoutRectangle } from 'react-native'
 import { describe, expect, it, render, waitFor } from 'react-native-harness'
 import { RollingNumber, type RollingNumberHandle } from 'react-native-nitro-rolling-number'
 import { deferred, sleep, withTimeout } from './test-utils'
+import { forceGc, trackNativeViews, trackedLiveCount } from '../src/bench/probe'
 
 /**
  * The most recent `onLayout` rectangle of one view, kept by reference. Pair it
@@ -200,5 +201,49 @@ describe('RollingNumber', () => {
     // Let every roll finish with the whole set on screen.
     await sleep(400)
     expect(refs.every((ref) => ref.current?.native != null)).toBe(true)
+  })
+})
+
+describe('RollingNumber lifetime', () => {
+  // A Nitro view's Kotlin or Swift object lives until Hermes collects the JS
+  // handle to it, which a quiet screen never triggers; on Android the hybrid
+  // used to hold its platform view, so every unmounted copy stayed alive (24
+  // more live Views a cycle, linear). 24 copies mounted and unmounted 30
+  // times, then a forced collection: the live View count (Android; what
+  // `dumpsys meminfo` calls Views, read through the example's probe) must be
+  // where it started, and the copies mounted after the churn must work.
+  it('frees its views on unmount and mounts working copies after the churn', async () => {
+    const copies = 24
+    const cycles = 30
+    const refs = Array.from({ length: copies }, () => createRef<RollingNumberHandle>())
+    const tree = (base: number) => (
+      <View>
+        {refs.map((ref, i) => (
+          <RollingNumber key={i} ref={ref} value={base + i} duration={100} style={content} />
+        ))}
+      </View>
+    )
+    const { rerender } = await render(<View />)
+    let tracked: number | null = 0
+    for (let cycle = 1; cycle <= cycles; cycle++) {
+      await rerender(tree(1000 * cycle))
+      await waitFor(() => expect(refs[copies - 1].current?.native).not.toBeNull(), { timeout: 5000 })
+      // Remember this cycle's native views (weakly) while they are mounted.
+      tracked = trackNativeViews()
+      await rerender(<View />)
+    }
+    forceGc()
+    await sleep(500)
+    forceGc()
+    await sleep(300)
+    const alive = trackedLiveCount()
+    if (tracked != null && alive != null) {
+      // Every cycle's copies were tracked; after the collection none of them
+      // should be alive. A leak is a cycle's worth or more.
+      expect(tracked).toBeGreaterThanOrEqual(copies)
+      expect(alive).toBeLessThan(copies)
+    }
+    await rerender(tree(5000))
+    await waitFor(() => expect(refs.map((ref) => ref.current?.getValue())).toEqual(refs.map((_, i) => 5000 + i)), { timeout: 5000 })
   })
 })

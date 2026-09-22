@@ -39,7 +39,8 @@ const config = {
   ],
   defaultRunner: 'ios',
   // A jackpot reveal runs for seconds; a roll for half a second.
-  testTimeout: 20_000,
+  // A minute: the lifetime suites mount and unmount two dozen views thirty times, and a hosted emulator is slow.
+  testTimeout: 60_000,
   // A CI runner boots a simulator or emulator far slower than a warm machine.
   platformReadyTimeout: isCI ? 900_000 : 300_000,
   bundleStartTimeout: isCI ? 120_000 : 60_000,

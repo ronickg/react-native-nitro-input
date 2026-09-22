@@ -170,6 +170,21 @@ class BenchProbeModule(reactContext: ReactApplicationContext) : NativeBenchProbe
       .toString()
   }
 
+  /** Weak: a view that is only here is not kept alive by it. `size()` expunges what the collector took. */
+  private val tracked: MutableSet<View> = java.util.Collections.newSetFromMap(java.util.WeakHashMap<View, Boolean>())
+
+  override fun trackNativeViews(classPrefix: String): Double {
+    val root = reactApplicationContext.currentActivity?.window?.decorView ?: return -1.0
+    fun walk(view: View) {
+      if (view.javaClass.name.startsWith(classPrefix)) tracked.add(view)
+      if (view is android.view.ViewGroup) for (i in 0 until view.childCount) walk(view.getChildAt(i))
+    }
+    walk(root)
+    return tracked.size.toDouble()
+  }
+
+  override fun trackedLiveCount(): Double = tracked.size.toDouble()
+
   override fun forceGc() {
     // A detached view is freed by the Java collector; the C++ engine behind it
     // (an fbjni HybridData) by the destructor thread after that. Two rounds so

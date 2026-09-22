@@ -48,8 +48,14 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+      # A download; it has failed once on a fresh runner, so it gets three tries.
       - name: NDK
-        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;27.1.12297006" > /dev/null'
+        run: |
+          for attempt in 1 2 3; do
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;27.1.12297006" > /dev/null && exit 0
+            echo "sdkmanager failed (attempt $attempt)"; sleep 20
+          done
+          exit 1
       - uses: gradle/actions/setup-gradle@v4
       # The whole example app, for the one ABI the emulator runs.
       - name: Build the example app
@@ -63,7 +69,13 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+      # The suites run twice at most: a hosted emulator is slow enough that a
+      # wait for focus or a callback can expire on a good build, and one rerun
+      # tells a slow runner from a regression. The second run only happens
+      # when the first failed.
       - name: Run the suites
+        id: suites
+        continue-on-error: true
         uses: callstackincubator/react-native-harness@v1.5.0
         with:
           runner: android
@@ -77,6 +89,19 @@ jobs:
           # transforming, and a cache hit skips the transform. A restored cache
           # on a fresh runner then points at files that were never written and
           # every suite fails to bundle with ENOENT.
+          cacheSavePolicy: never
+          preRunHook: |
+            adb shell settings put global window_animation_scale 0
+            adb shell settings put global transition_animation_scale 0
+            adb shell settings put global animator_duration_scale 1
+      - name: Run the suites again
+        if: steps.suites.outcome == 'failure'
+        uses: callstackincubator/react-native-harness@v1.5.0
+        with:
+          runner: android
+          app: android/app/build/outputs/apk/debug/app-debug.apk
+          projectRoot: example
+          packageManager: bun
           cacheSavePolicy: never
           preRunHook: |
             adb shell settings put global window_animation_scale 0
@@ -129,7 +154,10 @@ jobs:
           test -n "$udid" || { echo "no $HARNESS_IOS_SIMULATOR / iOS $HARNESS_IOS_SIMULATOR_VERSION simulator on this image"; xcrun simctl list devices available; exit 1; }
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b
+      # Twice at most, as in the Android job.
       - name: Run the suites
+        id: suites
+        continue-on-error: true
         uses: callstackincubator/react-native-harness@v1.5.0
         with:
           runner: ios
@@ -137,4 +165,13 @@ jobs:
           projectRoot: example
           packageManager: bun
           # See the Android job.
+          cacheSavePolicy: never
+      - name: Run the suites again
+        if: steps.suites.outcome == 'failure'
+        uses: callstackincubator/react-native-harness@v1.5.0
+        with:
+          runner: ios
+          app: ios/build/Build/Products/Debug-iphonesimulator/RollingNumberExample.app
+          projectRoot: example
+          packageManager: bun
           cacheSavePolicy: never

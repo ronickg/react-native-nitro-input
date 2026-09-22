@@ -61,6 +61,19 @@ export function forceGc() {
   NativeBenchProbe?.forceGc?.()
 }
 
+/**
+ * Android: remember (weakly) every mounted view of this repo's packages; later, after a
+ * forced collection, `trackedLiveCount` is how many are still alive. null where not measured (iOS).
+ */
+export function trackNativeViews(): number | null {
+  const n = NativeBenchProbe?.trackNativeViews?.('com.margelo.nitro.')
+  return n == null || n < 0 ? null : n
+}
+export function trackedLiveCount(): number | null {
+  const n = NativeBenchProbe?.trackedLiveCount?.()
+  return n == null || n < 0 ? null : n
+}
+
 export function startFrames() {
   NativeBenchProbe?.startFrames()
 }
