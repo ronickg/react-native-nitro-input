@@ -19,6 +19,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.provider.Settings
+import android.graphics.RenderNode
 import android.text.TextPaint
 import android.util.TypedValue
 import android.view.Choreographer
@@ -202,6 +203,39 @@ class RollingNumberView(context: Context) : View(context) {
     /** Width of the widest digit glyph, in px. */
     val digitWidth: Float
     private val widthCache = HashMap<String, Float>()
+    /**
+     * A wheel's whole digit strip as one GPU layer, per blank-zero variant: 12
+     * slots for index -1 (blank) to 10 (the 0 that follows 9 on a wrap), each
+     * `lineHeight` tall with the digit centred in `digitWidth`, recorded once.
+     * A wheel then composites one slot-high window of the texture at an
+     * offset, and a frame costs no glyph rasterization at all: the same thing
+     * the iOS view does with a CALayer strip. Public RenderNode needs API 29.
+     */
+    private val strips = arrayOfNulls<RenderNode>(2)
+
+    fun strip(blankZero: Boolean): RenderNode? {
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || digitWidth <= 0f || lineHeight <= 0f) return null
+      val slot = if (blankZero) 1 else 0
+      strips[slot]?.let { return it }
+      val w = ceil(digitWidth).toInt()
+      val h = ceil(lineHeight * STRIP_SLOTS).toInt()
+      val node = RenderNode("rolling-number-strip")
+      node.setPosition(0, 0, w, h)
+      node.setUseCompositingLayer(true, null)
+      val canvas = node.beginRecording(w, h)
+      try {
+        val baseline = baseline(GlyphRole.DIGIT, "0", 0f)
+        for (index in -1 until STRIP_SLOTS - 1) {
+          if (index < 0 || (blankZero && index == 0)) continue
+          val text = DIGITS[index % 10]
+          canvas.drawText(text, (digitWidth - width(text, GlyphRole.DIGIT)) / 2f, (index + 1) * lineHeight + baseline, digit)
+        }
+      } finally {
+        node.endRecording()
+      }
+      strips[slot] = node
+      return node
+    }
     private val capHeightCache = HashMap<GlyphRole, Float>()
     private val inkDescentCache = HashMap<String, Float>()
 
@@ -853,8 +887,23 @@ class RollingNumberView(context: Context) : View(context) {
 
   private fun drawWheel(canvas: Canvas, fonts: FontSet, wheel: Wheel, x: Float, width: Float) {
     if (width <= 0f) return
-    val paint = fonts.digit
     val lineHeight = fonts.lineHeight
+    // A settled-width wheel is a window onto the shared strip texture (the
+    // strip has no per-wheel alpha, so a wheel still growing or shrinking, and
+    // any canvas without a GPU, draws its two glyphs the old way).
+    if (wheel.width >= 1.0 && canvas.isHardwareAccelerated) {
+      val strip = fonts.strip(wheel.blankZero)
+      if (strip != null) {
+        val position = if (wheel.linear) wheel.position else wrap10(wheel.position)
+        canvas.save()
+        canvas.clipRect(x, 0f, x + width, lineHeight)
+        canvas.translate(x + width - fonts.digitWidth, (-(position + 1) * lineHeight).toFloat())
+        canvas.drawRenderNode(strip)
+        canvas.restore()
+        return
+      }
+    }
+    val paint = fonts.digit
     val baseline = fonts.baseline(GlyphRole.DIGIT, "0", 0f)
     canvas.save()
     canvas.clipRect(x, 0f, x + width, lineHeight)
@@ -883,7 +932,15 @@ class RollingNumberView(context: Context) : View(context) {
 
   // endregion
 
+  /** Interior wheels wrap modulo 10; a roll can be any real, so fold it onto 0 ≤ p < 10. */
+  private fun wrap10(position: Double): Double {
+    val r = position % 10.0
+    return if (r < 0) r + 10.0 else r
+  }
+
   companion object {
+    /** Strip slots: blank, 0–9, and the 0 that follows 9 when a wheel wraps. */
+    private const val STRIP_SLOTS = 12
     private val DIGITS = Array(10) { it.toString() }
     private const val ALL_DIGITS = "0123456789"
     /** The core starts at the glyphs' left edge instead of parked off-screen. */

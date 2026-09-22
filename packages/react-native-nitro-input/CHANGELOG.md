@@ -2,6 +2,12 @@
 
 ## 0.1.0 (unreleased)
 
+- An unset colour is sent as `Infinity`, not `NaN`: Nitro only calls a native
+  setter when a prop's value changed, and NaN never equals itself, so every
+  render of a controlled field (every keystroke) re-set the colours and had
+  the whole configuration applied again. Native already read a non-finite
+  colour as the platform default.
+
 - Initial release: native single-line text / amount input (iOS + Android) with Torph-style text morphing, built with Nitro Modules.
 - One shared C++ engine (`cpp/MorphEngine`): caret matching for edits (grouping separators paired from the units end), place matching for programmatic sets, longest-common-subsequence for text; digits slide through the line box, separators from below, text fades and scales; entering and leaving characters ride with their nearest persisting neighbour; `expo` / `easeOut` / `easeInOut` / `linear` / `spring` timing; Reduce Motion snaps.
 - `mode="number"`: every edit is formatted natively before a frame is drawn (`cpp/AmountFormatter`): grouping, one decimal, `fractionDigits` / `maxIntegerDigits` limits that reject the keystroke, backspace over a separator removes the digit before it, a decimal typed in the integer part moves the decimal point, `prefix` / `suffix` with their own sizes and alignment.

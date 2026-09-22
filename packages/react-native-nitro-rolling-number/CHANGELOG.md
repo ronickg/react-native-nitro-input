@@ -2,6 +2,30 @@
 
 ## 0.1.0 (unreleased)
 
+- Android draws a settled wheel from a shared digit-strip texture (one
+  `RenderNode` per font and blank-zero variant, recorded once, composited at
+  an offset) instead of two `drawText`s per wheel per frame, the way iOS has
+  moved a `CALayer` strip since the layer renderer. On a Galaxy A22 at 90 Hz
+  with 24 numbers fed a new value every frame, `onDraw` recording went from
+  9.4 ms to 2.6 ms a frame and the `value` prop path from 72 fps with 91
+  dropped frames in five seconds to 89 fps with 7; needs Android 10, older
+  devices keep the text path (so does a wheel still growing or shrinking).
+- A value change no longer re-applies the whole configuration. The wrapper
+  sent `NaN` for an unset colour, Nitro only calls a native setter when a
+  prop's value changed, and NaN never equals itself, so every render re-set
+  the colour, marked the configuration dirty and had the format, timing,
+  typography and shimmer applied again on each value. The sentinel is
+  `Infinity` now (both platforms already read a non-finite colour as the
+  platform default).
+- iOS renders a roll from the display link's tick only: `animate(to:)` also
+  rendered the layers immediately, so a value stream did two layer passes per
+  view per frame. And a frame now sets only the layer properties that moved
+  (affixes, separators and wheels at rest were re-set every frame; each Core
+  Animation setter costs a transaction entry and a KVO round trip).
+- The roll runs at a ProMotion panel's full rate: the display link asks for
+  the screen's maximum refresh rate (as a Reanimated animation does); a
+  default display link stays at 60 Hz on a 120 Hz iPhone.
+
 - `jumpTo` and `animateTo` now agree on large figures: `jumpTo` clamped the
   scaled magnitude at 10^15 while a roll clamped at 10^17, so with 9 fraction
   digits any value above 10^6 jumped to "1,000,000" but rolled to the right

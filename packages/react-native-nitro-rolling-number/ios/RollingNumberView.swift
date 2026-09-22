@@ -374,6 +374,13 @@ final class RollingNumberView: UIView {
     var blankZero: Bool
     /// Glyphs only: the image's top within the line box, fixed for the font set.
     var glyphTop: CGFloat
+    /// What the layers were last given, so a frame only touches what moved:
+    /// every Core Animation setter costs a transaction entry and a KVO round
+    /// trip even when the value is the same, and most of a number's layers
+    /// (affixes, separators, wheels that are not rolling) do not move.
+    var frame = CGRect.null
+    var innerFrame = CGRect.null
+    var opacity: Float = -1
   }
 
   private struct AffixBlocks {
@@ -496,7 +503,12 @@ final class RollingNumberView: UIView {
     engine.animateTo(value, CACurrentMediaTime())
     reportIntrinsicSize()
     updateDisplayLinkNeed()
-    render()
+    // A roll is rendered by the display link's next tick, within a frame; a
+    // value that snapped (duration 0, Reduce Motion, nothing shown yet) has
+    // no tick coming and is rendered now. Rendering here as well doubled the
+    // main-thread work of a value stream (24 views fed every frame: two layer
+    // passes per view per frame).
+    if displayLink == nil { render() }
   }
 
   /// Shows the opening frame of a jackpot reveal for `value` ("$0.00" in the
@@ -569,6 +581,16 @@ final class RollingNumberView: UIView {
     guard displayLink == nil else { return }
     let proxy = DisplayLinkProxy(target: self)
     let link = CADisplayLink(target: proxy, selector: #selector(DisplayLinkProxy.tick(_:)))
+    // A ProMotion panel runs at 120 Hz only while something asks for it; a
+    // display link left at its default gets 60 there, and so did the roll.
+    // Ask for the panel's maximum (like a Reanimated animation does) so a roll
+    // is as smooth as the screen allows; the link only lives while wheels move.
+    if #available(iOS 15.0, *) {
+      let maxFps = (window?.screen ?? UIScreen.main).maximumFramesPerSecond
+      if maxFps > 60 {
+        link.preferredFrameRateRange = CAFrameRateRange(minimum: 60, maximum: Float(maxFps), preferred: Float(maxFps))
+      }
+    }
     link.add(to: .main, forMode: .common)
     displayLink = link
   }
@@ -874,20 +896,30 @@ final class RollingNumberView: UIView {
     CATransaction.setDisableActions(true)
     defer { CATransaction.commit() }
 
-    contentLayer.bounds = CGRect(x: 0, y: 0, width: max(total, 1), height: fonts.lineHeight)
-    contentLayer.position = placement.origin
-    contentLayer.transform = placement.scale == 1 ? CATransform3DIdentity : CATransform3DMakeScale(placement.scale, placement.scale, 1)
+    let contentBounds = CGRect(x: 0, y: 0, width: max(total, 1), height: fonts.lineHeight)
+    if contentLayer.bounds != contentBounds { contentLayer.bounds = contentBounds }
+    if contentLayer.position != placement.origin { contentLayer.position = placement.origin }
+    let contentTransform = placement.scale == 1 ? CATransform3DIdentity : CATransform3DMakeScale(placement.scale, placement.scale, 1)
+    if !CATransform3DEqualToTransform(contentLayer.transform, contentTransform) { contentLayer.transform = contentTransform }
 
     syncSlots(with: elements, wheels: wheels, fonts: fonts)
 
     var x: CGFloat = 0
     for (i, element) in elements.enumerated() {
       let slot = slots[i]
-      slot.layer.frame = CGRect(x: x, y: 0, width: element.width, height: fonts.lineHeight)
+      let frame = CGRect(x: x, y: 0, width: element.width, height: fonts.lineHeight)
+      if slot.frame != frame {
+        slot.layer.frame = frame
+        slots[i].frame = frame
+      }
       switch element.kind {
       case .wheel(let index):
         let wheel = wheels[index]
-        slot.layer.opacity = Float(wheel.width)
+        let opacity = Float(wheel.width)
+        if slot.opacity != opacity {
+          slot.layer.opacity = opacity
+          slots[i].opacity = opacity
+        }
         if let strip = slot.layer.sublayers?.first {
           if slot.blankZero != wheel.blankZero {
             strip.contents = fonts.strip(blankZero: wheel.blankZero)?.cgImage
@@ -895,22 +927,34 @@ final class RollingNumberView: UIView {
           }
           // Linear strips run from -1 (blank) to 9; a roll can be any real, so wrap it onto 0..<10.
           let position = wheel.linear ? wheel.position : Self.wrap10(wheel.position)
-          strip.frame = CGRect(
+          let stripFrame = CGRect(
             x: element.width - fonts.digitWidth,
             y: -(position + 1) * fonts.lineHeight,
             width: strip.bounds.width,
             height: strip.bounds.height
           )
+          if slot.innerFrame != stripFrame {
+            strip.frame = stripFrame
+            slots[i].innerFrame = stripFrame
+          }
         }
       case .glyph:
-        slot.layer.opacity = Float(element.factor)
+        let opacity = Float(element.factor)
+        if slot.opacity != opacity {
+          slot.layer.opacity = opacity
+          slots[i].opacity = opacity
+        }
         if let image = slot.layer.sublayers?.first {
-          image.frame = CGRect(
+          let imageFrame = CGRect(
             x: element.width - element.fullWidth,
             y: slot.glyphTop,
             width: image.bounds.width,
             height: image.bounds.height
           )
+          if slot.innerFrame != imageFrame {
+            image.frame = imageFrame
+            slots[i].innerFrame = imageFrame
+          }
         }
       }
       x += element.width
