@@ -47,6 +47,13 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>()
 
 /**
+ * iOS: drop the keyboard the moment a swipe-back starts, the way Notes and
+ * Messages do. UIKit keeps it up until the pop finishes; react-navigation
+ * forwards this to react-native-screens' `hideKeyboardOnSwipe`.
+ */
+const STACK_OPTIONS = { keyboardHandlingEnabled: true }
+
+/**
  * The four onboarding steps share their chrome: no title (the progress rail on
  * the screen says which step you are on), a hairline-free header that blends
  * into the page, and a back chevron with no label to compete with the headline.
@@ -146,7 +153,7 @@ export function RootNavigator() {
   const onReady = useLaunchPlan(navRef)
   return (
     <NavigationContainer ref={navRef} onReady={onReady}>
-      <Stack.Navigator>
+      <Stack.Navigator screenOptions={STACK_OPTIONS}>
         <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Input parity' }} />
         <Stack.Screen name="Parity" component={ParityScreen} options={{ title: 'Parity' }} />
         <Stack.Screen name="NavA" component={NavAScreen} options={{ title: 'Screen A' }} />

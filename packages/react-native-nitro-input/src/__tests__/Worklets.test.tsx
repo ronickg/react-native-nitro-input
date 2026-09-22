@@ -6,6 +6,10 @@
  * runtime is this very runtime, so `executeOnUIRuntimeSync` just runs the
  * function - and for the native bridge, so the wrappers that native would call
  * by id can be called here and their arguments and results checked.
+ *
+ * The fake is a plain `jest.mock`, not a virtual one: the name resolves to
+ * the stub in `__mocks__` (the reason is written there), so its module id is
+ * the same from every file and in every worker, and the factory always wins.
  */
 import React from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
@@ -19,8 +23,7 @@ jest.mock(
       (...args: unknown[]) =>
         fn(...args),
     getUIRuntimeHolder: () => ({ holder: true }),
-  }),
-  { virtual: true }
+  })
 )
 
 // `mock`-prefixed so the hoisted factory below may close over it.

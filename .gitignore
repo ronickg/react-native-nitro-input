@@ -40,12 +40,9 @@ scripts/bench/results/hitches/*.trace
 scripts/bench/results/hitches/bench-results.ndjson
 scripts/bench/results/hitches/device.json
 scripts/bench/results/hitches/*.stdout.txt
+scripts/bench/results/leaks/
 example/modules/*/android/build/
 example/modules/*/android/.cxx/
-scripts/bench/results/leaks/*.trace
-scripts/bench/results/leaks/bench-results.ndjson
-scripts/bench/results/leaks/device.json
 
-# react-native-harness writes its manifest and cache next to the example app
+# React Native Harness cache and crash reports (example/__tests__/*.harness.tsx runs)
 example/.harness/
-scripts/bench/results/leaks/

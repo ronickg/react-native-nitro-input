@@ -886,7 +886,8 @@ final class NitroInputView: UIView {
     }
     // The first application always commits so the engine has the (possibly
     // empty) text and its placeholder to draw.
-    guard normalized != text || !engine.hasText() else { return false }
+    let changed = normalized != text
+    guard changed || !engine.hasText() else { return false }
     isSettingText = true
     if traits.multiline, didBuildTextView {
       // Multiline holds its own text; the formatter is single-line by
@@ -897,7 +898,7 @@ final class NitroInputView: UIView {
     field.text = normalized
     field.selectedTextRange = field.textRange(from: field.endOfDocument, to: field.endOfDocument)
     isSettingText = false
-    textDidChange(caret: -1, reason: reason)
+    textDidChange(caret: -1, reason: reason, changed: changed)
     return true
   }
 
@@ -970,7 +971,8 @@ final class NitroInputView: UIView {
       }
     }
     applyKeyboardTraitsForMode()
-    if engine.hasText() {
+    // A plain field has nothing in the engine and still has a width to report.
+    if engine.hasText() || traits.plain {
       feedEngine(caret: -1)
     }
   }
@@ -981,7 +983,7 @@ final class NitroInputView: UIView {
     // Every cached glyph image belongs to the old font set.
     clearGlyphLayers()
     applyFonts()
-    if engine.hasText() {
+    if engine.hasText() || traits.plain {
       feedEngine(caret: -1)
     } else {
       render()
@@ -1209,7 +1211,7 @@ final class NitroInputView: UIView {
     if field.isSecureTextEntry != traits.secureTextEntry {
       field.isSecureTextEntry = traits.secureTextEntry
       // The mask changes what is drawn, not what is stored.
-      if engine.hasText() { feedEngine(caret: -1) }
+      if engine.hasText() || traits.plain { feedEngine(caret: -1) }
     }
     applyPlain(wasPlain: previous.plain)
     syncAccessibilityFromHost()
@@ -1258,6 +1260,8 @@ final class NitroInputView: UIView {
     if wasPlain, !plain, !engine.hasText() {
       feedEngine(caret: -1)
     }
+    // Turning it on: the width now comes from the field, not the engine.
+    if plain { reportIntrinsicSize() }
   }
 
   private func textAlignment(for alignment: Alignment) -> NSTextAlignment {
@@ -1296,7 +1300,9 @@ final class NitroInputView: UIView {
 
   /// Every change to the field's text ends up here: the engine is fed the new
   /// glyph list and the change is reported.
-  private func textDidChange(caret: Int, reason: ChangeReason) {
+  /// `changed` is false only for the first, unchanged application of the
+  /// `text` prop (the engine still needs feeding); a keystroke always changes.
+  private func textDidChange(caret: Int, reason: ChangeReason, changed: Bool = true) {
     feedEngine(caret: caret)
     if reason != .prop {
       eventCount += 1
@@ -1308,9 +1314,10 @@ final class NitroInputView: UIView {
         margelo.nitro.nitroinput.nitroinputworklets.runChangeValue(Int32(worklets.onChangeValue), value)
       }
     }
-    if format.mode == .mask, let onMaskChange {
+    if format.mode == .mask, changed, let onMaskChange {
       // Derived from the settled text so every route reports the same thing:
-      // a keystroke, `setText`, a prop change or a transform worklet.
+      // a keystroke, `setText`, a prop change or a transform worklet. Not the
+      // untouched text at mount, which Android doesn't report either.
       let result = maskEngine.apply(std.string(text), Int32(text.unicodeScalars.count), true,
                                     format.maskAutocomplete, false)
       onMaskChange(text, String(result.extractedValue), String(result.tailPlaceholder), result.complete)
@@ -1331,8 +1338,10 @@ final class NitroInputView: UIView {
   /// Hands the engine the current text as glyphs (prefix, body or placeholder,
   /// suffix) with their advance widths and commits it.
   fileprivate func feedEngine(caret: Int) {
-    // Plain mode has no overlay to feed: the field draws its own text.
-    guard !traits.plain else { return }
+    // Plain mode has no overlay to feed: the field draws its own text. Its
+    // width still has to reach React for `autoWidth`, and this is the one
+    // place every text, font, affix and placeholder change comes through.
+    guard !traits.plain else { reportIntrinsicSize(); return }
     engine.setReduceMotion(UIAccessibility.isReduceMotionEnabled)
     engine.beginText()
     // `secureTextEntry` masks what the overlay draws: the hidden field keeps
@@ -1547,8 +1556,21 @@ final class NitroInputView: UIView {
     return framePadding + line * CGFloat(capped)
   }
 
+  /// The width the content asks for: the engine's layout in morph mode; in
+  /// plain mode, which never feeds the engine, the text (or the placeholder)
+  /// and the affixes measured with the same fonts the field draws them in.
+  private func contentWidth() -> CGFloat {
+    guard traits.plain else { return CGFloat(engine.targetWidth()) }
+    let body = text.isEmpty
+      ? effectivePlaceholder
+      : traits.secureTextEntry ? String(repeating: "\u{2022}", count: text.unicodeScalars.count) : text
+    return fonts.width(of: format.prefix, role: .prefix)
+      + fonts.width(of: body, role: .body)
+      + fonts.width(of: format.suffix, role: .suffix)
+  }
+
   private func reportIntrinsicSize() {
-    let size = CGSize(width: ceil(CGFloat(engine.targetWidth()) + 2), height: intrinsicHeight())
+    let size = CGSize(width: ceil(contentWidth() + 2), height: intrinsicHeight())
     guard abs(size.width - lastReportedSize.width) > 0.01 || abs(size.height - lastReportedSize.height) > 0.01 else {
       pendingSizeReport = false
       return
@@ -1779,8 +1801,12 @@ final class NitroInputView: UIView {
 
   /// The text position nearest to `point` (in this view's coordinates), going
   /// through the engine's glyph boundaries so taps stay right while the content
-  /// is scaled or mid-morph.
+  /// is scaled or mid-morph. `nil` when there is no overlay: a plain field
+  /// draws its own text, and the engine holds no glyphs for it, so UIKit's own
+  /// mapping is the right one. (Going through the engine there found a single
+  /// boundary and put every tap at index 0.)
   fileprivate func closestTextPosition(to point: CGPoint) -> UITextPosition? {
+    guard !traits.plain, engine.hasText() else { return nil }
     let bodyCount = Int(engine.bodyCount())
     let textCount = text.unicodeScalars.count
     let contentX = (point.x - placement.origin.x) / max(placement.scale, 0.0001)
@@ -2376,7 +2402,7 @@ extension NitroInputView {
       // The placeholder is hidden behind a resting label and revealed once it
       // floats, so it has to follow the same transition.
       syncAccessibilityPlaceholder()
-      if !traits.plain { feedEngine(caret: -1) }
+      feedEngine(caret: -1)
     }
 
     let floatedSize = floatedLabelSize

@@ -255,7 +255,7 @@ hints), `enablesReturnKeyAutomatically`, `showSoftInputOnFocus`,
 `selectTextOnFocus`, `clearTextOnFocus`, `contextMenuHidden`, `spellCheck`,
 `readOnly`, `selection`, `inputMode` / `enterKeyHint` (React Native's
 HTML-flavoured aliases, resolved with the same tables and the same precedence),
-`id` and `aria-label` (which a Nitro view receives unresolved, so this component
+`id`, `aria-label`, the `aria-busy` / `-checked` / `-disabled` / `-expanded` / `-selected` state, `aria-hidden` and `aria-labelledby` (which a Nitro view receives unresolved, so this component
 resolves them itself); callbacks `onEndEditing`, `onSelectionChange`,
 `onKeyPress`.
 

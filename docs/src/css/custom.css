@@ -22,6 +22,10 @@
   --nitro-bg: #ffffff;
   --nitro-bg-sunken: #f7f8fa;
   --nitro-bg-raised: #ffffff;
+  /* A field's own background, for the demos that draw one. Deliberately a
+     step off both surfaces above: a demo field sits on the sunken card and
+     the playground's raised panel, and on neither may its edges vanish. */
+  --nitro-field-fill: #e4e9f0;
   --nitro-border: rgba(15, 23, 42, 0.1);
   --nitro-border-strong: rgba(15, 23, 42, 0.16);
   --nitro-ink-muted: rgba(15, 23, 42, 0.62);
@@ -78,6 +82,7 @@
   --nitro-bg: #0a0d14;
   --nitro-bg-sunken: #0d111a;
   --nitro-bg-raised: #12161f;
+  --nitro-field-fill: #1d2431;
   --nitro-border: rgba(255, 255, 255, 0.09);
   --nitro-border-strong: rgba(255, 255, 255, 0.16);
   --nitro-ink-muted: rgba(226, 232, 240, 0.62);
@@ -515,4 +520,91 @@ a code {
 .markdown table td,
 .rn-demo-readout {
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------- prop blocks */
+
+/*
+ * The props references: one block per prop under a heading per topic. The
+ * header line carries the name (its own anchor), the type, a platform badge
+ * and the default; the description gets the full width underneath, which is
+ * what a table could not give it on a narrow screen.
+ */
+.prop {
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--nitro-border);
+  scroll-margin-top: calc(var(--ifm-navbar-height) + 1rem);
+}
+
+.prop:has(+ :not(.prop)),
+.prop:last-child {
+  border-bottom: 1px solid var(--nitro-border);
+}
+
+.prop-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 0.8rem;
+  margin-bottom: 0.4rem;
+}
+
+.prop-name,
+.prop-name:hover {
+  text-decoration: none;
+}
+
+.prop-name code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ifm-font-color-base);
+}
+
+.prop-name:hover code {
+  color: var(--ifm-color-primary);
+}
+
+.prop-type {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 0.8rem;
+  color: var(--nitro-ink-muted);
+}
+
+.prop-badge {
+  font-size: 0.65rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--nitro-border-strong);
+  color: var(--nitro-ink-muted);
+}
+
+.prop-default {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--nitro-ink-muted);
+  white-space: nowrap;
+}
+
+.prop-default code {
+  font-size: 0.8rem;
+}
+
+.prop-body {
+  font-size: 0.925rem;
+}
+
+.prop-body p {
+  margin: 0 0 0.4rem;
+}
+
+.prop-body p:last-child {
+  margin-bottom: 0;
 }

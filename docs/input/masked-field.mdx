@@ -56,7 +56,7 @@ Slots inside one block run together, so `[000]` is three mandatory digits. An in
 
 ## Literals, autocompletion and backspace
 
-`maskAutocomplete` (default `true`) inserts the pattern's literals as soon as the slot before them is filled, so typing `212` into `+1 ([000]) [000]-[0000]` leaves `+1 (212) `. It only runs while the caret is at the end, so editing in the middle of a value does not fight you.
+`maskAutocomplete` (default `true`) inserts the pattern's literals as soon as the slot before them is filled, so typing `212` into `+1 ([000]) [000]-[0000]` leaves `+1 (212) `. It only runs while the caret is at the end, so editing in the middle of a value does not fight you, and never into an empty field: cleared, whether by hand, by `clear()` or by an empty `value`, the field shows its placeholder rather than `+1 (`.
 
 `maskAutoSkip` (default `false`) lets a backspace at the end of a run walk back over those inserted literals. Without it, a backspace stops in front of them.
 

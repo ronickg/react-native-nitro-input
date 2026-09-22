@@ -367,7 +367,10 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     var ready = false
 
     override fun getOffsetForPosition(x: Float, y: Float): Int {
-      if (!ready) return super.getOffsetForPosition(x, y)
+      // A plain field draws its own text and the engine holds no glyphs for
+      // it, so the EditText's own mapping is the right one. (Going through the
+      // engine there found a single boundary and put every tap at index 0.)
+      if (!ready || keyboard.plain) return super.getOffsetForPosition(x, y)
       return offsetForTap(x)
     }
 
@@ -1029,6 +1032,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
         Alignment.CENTER -> TEXT_ALIGNMENT_CENTER
         Alignment.LEFT, Alignment.RIGHT -> TEXT_ALIGNMENT_GRAVITY
       }
+      // The width now comes from the field, not the engine.
+      reportIntrinsicSize()
     } else {
       overlay.visibility = VISIBLE
       editText.setTextColor(Color.TRANSPARENT)
@@ -1282,20 +1287,32 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val changed = next != text
     text = next
     requestFeed(-1)
-    if (notify && changed) notifyChange()
+    if (!changed) return
+    // A wrapping field's height follows its text, whichever way it arrived.
+    if (keyboard.multiline) post { reportIntrinsicSize() }
+    if (notify) {
+      notifyChange()
+    } else {
+      // The `text` prop is silent for `onChangeText`, as it is for a
+      // TextInput, but a mask reports what the new text fills in on every
+      // route (iOS does the same), so the app learns `complete` for a value it set.
+      reportMaskChange()
+    }
   }
 
   /** Worklet callbacks first (synchronously, on this thread), then the JS ones. */
   private fun notifyChange() {
     if (worklets.onChangeText != 0) NitroInputWorklets.runChangeText(worklets.onChangeText, text)
     if (worklets.onChangeValue != 0 && format.mode == Mode.NUMBER) NitroInputWorklets.runChangeValue(worklets.onChangeValue, currentValue())
-    if (format.mode == Mode.MASK) {
-      // Derived from the settled text so every route reports the same thing:
-      // a keystroke, a programmatic set, a prop change or a transform worklet.
-      maskEngine.applyAll(text, text.codePointCount(0, text.length), true, format.maskAutocomplete, false)
-      onMaskChange?.invoke(text, maskEngine.lastExtracted(), maskEngine.lastTailPlaceholder(), maskEngine.lastComplete())
-    }
+    reportMaskChange()
     onTextChange?.invoke(text, currentValue())
+  }
+
+  /** `onChangeMask`, derived from the settled text so every route reports the same thing. */
+  private fun reportMaskChange() {
+    if (format.mode != Mode.MASK) return
+    maskEngine.applyAll(text, text.codePointCount(0, text.length), true, format.maskAutocomplete, false)
+    onMaskChange?.invoke(text, maskEngine.lastExtracted(), maskEngine.lastTailPlaceholder(), maskEngine.lastComplete())
   }
 
   /** Every change to the edit text (typing, backspace, paste, IME) lands here and goes through the engine. */
@@ -1443,7 +1460,10 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
   /** Hands the engine the prefix, body (or placeholder) and suffix as glyphs and commits. */
   private fun feedEngine(caret: Int) {
-    if (keyboard.plain) return
+    // A plain field draws its own text and never feeds the engine, but its
+    // width still has to reach React for `autoWidth`; every text, font, affix
+    // and hint change comes through here.
+    if (keyboard.plain) { reportIntrinsicSize(); return }
     val f = fonts
     engine.setReduceMotion(animationsDisabled())
     engine.beginText()
@@ -1619,10 +1639,27 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     return text + padding
   }
 
+  /**
+   * The width the content asks for: the engine's layout in morph mode; in plain
+   * mode, which never feeds the engine, the text (or the hint) and the affixes
+   * measured with the paints the field draws them in.
+   */
+  private fun contentWidthPx(): Float {
+    if (!keyboard.plain) return engine.targetWidth().toFloat()
+    val body = when {
+      text.isEmpty() -> effectivePlaceholder
+      keyboard.secureTextEntry -> "\u2022".repeat(text.codePointCount(0, text.length))
+      else -> text
+    }
+    return fonts.paint(Role.PREFIX).measureText(format.prefix) +
+      fonts.paint(Role.BODY).measureText(body) +
+      fonts.paint(Role.SUFFIX).measureText(format.suffix)
+  }
+
   private fun reportIntrinsicSize() {
     // The reported size is always the full-size one: with shrink-to-fit the view
     // keeps its height and the scaled text is centred inside it when drawing.
-    val widthDp = ceil(engine.targetWidth().toFloat() / density + 2f)
+    val widthDp = ceil(contentWidthPx() / density + 2f)
     val heightDp = ceil(intrinsicHeightPx() / density)
     if (abs(widthDp - lastReportedWidth) <= 0.01f && abs(heightDp - lastReportedHeight) <= 0.01f) {
       pendingSizeReport = false

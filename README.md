@@ -139,7 +139,7 @@ Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inp
 
 - [`packages/react-native-nitro-rolling-number`](packages/react-native-nitro-rolling-number) – the rolling number: the shared C++ engine (`cpp/`), the Swift and Kotlin views, the Nitro spec and the JS wrapper. Its [README](packages/react-native-nitro-rolling-number/README.md) is the API reference.
 - [`packages/react-native-nitro-input`](packages/react-native-nitro-input) – the morphing input, same layout: `cpp/MorphEngine` + `cpp/AmountFormatter`, a Swift and a Kotlin view around a hidden system text field.
-- [`example/`](example) – React Native 0.87 app with every demo, the benchmark harness and the showcase screens the recordings come from.
+- [`example/`](example) – React Native 0.87 app with every demo, the benchmark harness and the showcase screens the recordings come from. Its [`__tests__/*.harness.tsx`](example/__tests__) are on-device suites run by [React Native Harness](https://www.react-native-harness.dev) inside the app (see [`example/__tests__/README.md`](example/__tests__/README.md)); CI runs them on an Android emulator and an iOS simulator.
 - [`docs/`](docs) – the Docusaurus site. Its live demos run the very same `RollingEngine.cpp` and `MorphEngine.cpp`, compiled to WebAssembly.
 
 ```sh
@@ -149,6 +149,7 @@ bun run test                # jest tests for the JS wrappers (plain `bun test` w
 bun run test:cpp            # C++ engine tests for both packages (host clang++)
 bun run build               # lib/ for both packages: ES modules, CommonJS and declarations
 bun example ios             # or: bun example android
+bun run test:harness:ios    # on-device suites (example/__tests__/*.harness.tsx) in the example app on a simulator; `:android` for the emulator
 cd docs && npm install && npm start                                  # docs site
 ```
 

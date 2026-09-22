@@ -12,10 +12,16 @@
     "typecheck": "bun run --filter './packages/*' typecheck",
     "test": "bun run --filter './packages/*' test",
     "test:cpp": "bun run --filter './packages/*' test:cpp",
-    "example": "bun --cwd example"
+    "example": "bun --cwd example",
+    "test:harness:ios": "bun --cwd example test:harness:ios",
+    "test:harness:android": "bun --cwd example test:harness:android"
   },
   "patchedDependencies": {
     "metro@0.87.1": "patches/metro@0.87.1.patch",
     "react-native-nitro-modules@0.37.1": "patches/react-native-nitro-modules@0.37.1.patch"
-  }
+  },
+  "trustedDependencies": [
+    "@parcel/watcher",
+    "unrs-resolver"
+  ]
 }
