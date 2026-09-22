@@ -4,11 +4,13 @@ import android.animation.ValueAnimator
 import android.content.Context
 import android.content.res.Configuration
 import android.database.ContentObserver
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.RenderNode
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
@@ -19,7 +21,6 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.provider.Settings
-import android.graphics.RenderNode
 import android.text.TextPaint
 import android.util.TypedValue
 import android.view.Choreographer
@@ -204,50 +205,67 @@ class RollingNumberView(context: Context) : View(context) {
     val digitWidth: Float
     private val widthCache = HashMap<String, Float>()
     /**
-     * A wheel's whole digit strip as one GPU layer, per blank-zero variant: 12
-     * slots for index -1 (blank) to 10 (the 0 that follows 9 on a wrap), each
-     * `lineHeight` tall with the digit centred in `digitWidth`, recorded once.
-     * A wheel then composites one slot-high window of the texture at an
-     * offset, and a frame costs no glyph rasterization at all: the same thing
-     * the iOS view does with a CALayer strip. Public RenderNode needs API 29.
+     * A wheel's whole digit strip, per blank-zero variant: 12 slots for index
+     * -1 (blank) to 10 (the 0 that follows 9 on a wrap), each `lineHeight`
+     * tall with the digit centred in `digitWidth`. The digits are rasterized
+     * once by the software text renderer into a bitmap, and the bitmap is the
+     * whole content of a `RenderNode` layer; a wheel then draws one slot-high
+     * window of that layer, one quad, and a frame costs no glyph work at all:
+     * the same thing the iOS view does with a CALayer strip.
+     *
+     * Why both. Text rasterized by the GPU straight into a hardware layer came
+     * out thinner and paler than the glyphs drawn beside it (a small red digit
+     * next to its sign, visibly), and a bitmap's pixels are exactly what the
+     * text renderer put there. But drawing the bitmap itself per wheel costs
+     * the renderer several milliseconds a frame more than drawing a layer, so
+     * the bitmap goes into a layer once. Below Android 10 there is no public
+     * RenderNode and the bitmap is drawn directly.
      *
      * The strips are shared by every rolling number drawn with the same
-     * typography (see [StripCache]): a strip is a texture, and a view lives on
-     * after Fabric drops it until the JS side's handle to it is collected,
-     * which is Hermes's decision; twenty-four dropped views must not hold
-     * twenty-four textures meanwhile.
+     * typography (see [StripCache]).
      */
     private val stripKey: String =
       "${t.fontFamily}|${t.fontWeight}|${digit.textSize}|${digit.color}|${digit.typeface?.hashCode()}"
 
-    fun strip(blankZero: Boolean): RenderNode? {
-      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || digitWidth <= 0f || lineHeight <= 0f) return null
-      val node = StripCache.get("$stripKey|$blankZero") { RenderNode("rolling-number-strip") }
+    fun strip(blankZero: Boolean): Strip? {
+      if (digitWidth <= 0f || lineHeight <= 0f) return null
+      val strip = StripCache.get("$stripKey|$blankZero") {
+        Strip(renderStrip(blankZero), if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) RenderNode("rolling-number-strip") else null)
+      }
+      val node = strip.node
       // HWUI deletes a node's display list once nothing in the view tree draws
       // it any more (the last view drawing this strip was dropped, or the
       // window gave its hardware resources back), and a node drawn without
-      // one draws nothing. Record again whenever that happened; it is the
-      // one-time cost of a strip, and only then.
-      if (!node.hasDisplayList()) recordStrip(node, blankZero)
-      return node
+      // one draws nothing. Record again whenever that happened: one bitmap
+      // draw, and only then.
+      if (node != null && !node.hasDisplayList()) {
+        node.setPosition(0, 0, strip.bitmap.width, strip.bitmap.height)
+        node.setUseCompositingLayer(true, null)
+        val canvas = node.beginRecording(strip.bitmap.width, strip.bitmap.height)
+        try {
+          canvas.drawBitmap(strip.bitmap, 0f, 0f, null)
+        } finally {
+          node.endRecording()
+        }
+      }
+      return strip
     }
 
-    private fun recordStrip(node: RenderNode, blankZero: Boolean) {
+    private fun renderStrip(blankZero: Boolean): Bitmap {
       val w = ceil(digitWidth).toInt()
       val h = ceil(lineHeight * STRIP_SLOTS).toInt()
-      node.setPosition(0, 0, w, h)
-      node.setUseCompositingLayer(true, null)
-      val canvas = node.beginRecording(w, h)
-      try {
-        val baseline = baseline(GlyphRole.DIGIT, "0", 0f)
-        for (index in -1 until STRIP_SLOTS - 1) {
-          if (index < 0 || (blankZero && index == 0)) continue
-          val text = DIGITS[index % 10]
-          canvas.drawText(text, (digitWidth - width(text, GlyphRole.DIGIT)) / 2f, (index + 1) * lineHeight + baseline, digit)
-        }
-      } finally {
-        node.endRecording()
+      val drawn = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+      val canvas = Canvas(drawn)
+      val baseline = baseline(GlyphRole.DIGIT, "0", 0f)
+      for (index in -1 until STRIP_SLOTS - 1) {
+        if (index < 0 || (blankZero && index == 0)) continue
+        val text = DIGITS[index % 10]
+        canvas.drawText(text, (digitWidth - width(text, GlyphRole.DIGIT)) / 2f, (index + 1) * lineHeight + baseline, digit)
       }
+      // Immutable: the renderer uploads it once and keeps the texture.
+      val strip = drawn.copy(Bitmap.Config.ARGB_8888, false)
+      if (strip !== drawn) drawn.recycle()
+      return strip
     }
     private val capHeightCache = HashMap<GlyphRole, Float>()
     private val inkDescentCache = HashMap<String, Float>()
@@ -390,6 +408,8 @@ class RollingNumberView(context: Context) : View(context) {
     val listener = onRevealMilestone ?: return
     for (index in reachedBefore until reached) listener(index, engine.revealMilestoneValue(index))
   }
+  /** Filtered so a strip window in motion between two pixel rows blends rather than steps. */
+  private val stripPaint = Paint(Paint.FILTER_BITMAP_FLAG)
   private val shimmerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
     xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP)
   }
@@ -837,7 +857,7 @@ class RollingNumberView(context: Context) : View(context) {
       val element = elements[i]
       val text = element.text
       if (element.wheelIndex >= 0) {
-        drawWheel(canvas, fonts, wheels[element.wheelIndex], x, element.width)
+        drawWheel(canvas, fonts, wheels[element.wheelIndex], x, element.width, originX, originY, scale)
       } else if (text != null) {
         drawGlyph(canvas, fonts, text, element.role, x, element.width, element.fullWidth, element.factor)
       }
@@ -898,20 +918,38 @@ class RollingNumberView(context: Context) : View(context) {
     canvas.restore()
   }
 
-  private fun drawWheel(canvas: Canvas, fonts: FontSet, wheel: Wheel, x: Float, width: Float) {
+  /**
+   * [originX], [originY] and [scale] are the content transform already on the
+   * canvas, so the strip window can be landed on whole device pixels.
+   */
+  private fun drawWheel(canvas: Canvas, fonts: FontSet, wheel: Wheel, x: Float, width: Float, originX: Float, originY: Float, scale: Float) {
     if (width <= 0f) return
     val lineHeight = fonts.lineHeight
-    // A settled-width wheel is a window onto the shared strip texture (the
-    // strip has no per-wheel alpha, so a wheel still growing or shrinking, and
-    // any canvas without a GPU, draws its two glyphs the old way).
+    // A settled-width wheel is a window onto the shared strip (the strip has
+    // no per-wheel alpha, so a wheel still growing or shrinking, and any
+    // canvas without a GPU, which cannot draw a hardware bitmap, draws its
+    // two glyphs the old way).
     if (wheel.width >= 1.0 && canvas.isHardwareAccelerated) {
       val strip = fonts.strip(wheel.blankZero)
       if (strip != null) {
-        val position = if (wheel.linear) wheel.position else wrap10(wheel.position)
+        // An interior wheel wraps modulo 10, negatives included (rolling down
+        // through 0 shows 9); a linear wheel never wraps and uses -1 for the
+        // blank slot. Either way the window lands inside the strip.
+        val position = if (wheel.linear) wheel.position.coerceIn(-1.0, 10.0) else wrap10(wheel.position)
+        var tx = x + width - fonts.digitWidth
+        var ty = (-(position + 1) * lineHeight).toFloat()
+        if (scale == 1f && position == floor(position)) {
+          // At rest, land the window on whole device pixels: composited at a
+          // fractional offset (a centred number, a fractional digit width) the
+          // layer is resampled and a small digit goes soft. In motion the
+          // fractional offsets are the motion, and stay.
+          tx = Math.round(originX + tx) - originX
+          ty = Math.round(originY + ty) - originY
+        }
         canvas.save()
         canvas.clipRect(x, 0f, x + width, lineHeight)
-        canvas.translate(x + width - fonts.digitWidth, (-(position + 1) * lineHeight).toFloat())
-        canvas.drawRenderNode(strip)
+        canvas.translate(tx, ty)
+        if (strip.node != null) canvas.drawRenderNode(strip.node) else canvas.drawBitmap(strip.bitmap, 0f, 0f, stripPaint)
         canvas.restore()
         return
       }
@@ -975,23 +1013,25 @@ class RollingNumberView(context: Context) : View(context) {
     return if (r < 0) r + 10.0 else r
   }
 
-  /** The digit strips every rolling number shares, most recently used last; the ones that fall off the end give their texture back. */
+  /** A digit strip: the software-rendered bitmap and, from Android 10, the layer that holds it. */
+  class Strip(val bitmap: Bitmap, val node: RenderNode?)
+
+  /** The digit strips every rolling number shares, most recently used last; the ones that fall off the end drop their layer. */
   private object StripCache {
     private const val CAPACITY = 24
-    private val nodes =
-      object : LinkedHashMap<String, RenderNode>(CAPACITY, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, RenderNode>): Boolean {
+    private val strips =
+      object : LinkedHashMap<String, Strip>(CAPACITY, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Strip>): Boolean {
           val evict = size > CAPACITY
           if (evict) {
-            // Give the layer texture back now rather than when the node is finalized.
-            eldest.value.setUseCompositingLayer(false, null)
-            eldest.value.discardDisplayList()
+            eldest.value.node?.setUseCompositingLayer(false, null)
+            eldest.value.node?.discardDisplayList()
           }
           return evict
         }
       }
 
-    fun get(key: String, build: () -> RenderNode): RenderNode = nodes[key] ?: build().also { nodes[key] = it }
+    fun get(key: String, build: () -> Strip): Strip = strips[key] ?: build().also { strips[key] = it }
   }
 
   companion object {

@@ -90,10 +90,13 @@ for y0, y1 in rows:
     x0, x1 = int(col[0] * W), int(col[1] * W)
     ya, yb = max(0, int(y0 * H)), min(H, int(y1 * H))
     dark = 0
+    cols = set()
     for y in range(ya, yb):
         for x in range(x0, x1, 2):
-            if px[x, y] < 110: dark += 1
-    out.append(dark)
+            if px[x, y] < 110:
+                dark += 1
+                cols.add(x)
+    out.append([dark, len(cols)])
 print(json.dumps(out))
 `
   const res = execFileSync('python3', ['-c', script, file, JSON.stringify(rows), JSON.stringify(column)], { encoding: 'utf8' }).trim()
@@ -103,7 +106,7 @@ print(json.dumps(out))
     return null
   }
   inkAvailable = true
-  return JSON.parse(res)
+  return JSON.parse(res).map(([dark, cols]) => ({ dark, cols }))
 }
 
 const find = (els, pred) => els.find(pred)
@@ -137,7 +140,8 @@ function verify(step, els) {
   const rows = []
   const frame = list()
   const bottom = Math.min(frame.y + frame.h, 0.92)
-  const onScreen = (e) => e.y >= frame.y && e.y + 0.03 <= bottom
+  // Rows touching the list's top edge are half under it or still settling; leave them out.
+  const onScreen = (e) => e.y >= frame.y + 0.01 && e.y + 0.03 <= bottom
   for (const e of els) {
     const row = e.id?.match(/^row-(\d+)$/)
     if (row && onScreen(e)) rows.push({ y: e.y, h: e.h, expected: base + +row[1], index: +row[1] })
@@ -181,7 +185,7 @@ function verify(step, els) {
   const xs = valueFrames.length ? [Math.min(...valueFrames.map((e) => e.x)), Math.max(...valueFrames.map((e) => e.x + e.w))] : [0.6, 0.98]
   const fullRows = labels
   const ink = inkPerRow(fullRows.map((l) => [l.y - 0.004, l.y + 0.03]), xs)
-  const blank = ink ? fullRows.filter((_, i) => ink[i] < 15) : []
+  const blank = ink ? fullRows.filter((_, i) => ink[i].dark < 15) : []
   const status = wrong.length || missing.length || blank.length || !labels.length ? 'FAIL' : 'ok'
   console.log(`${status.padEnd(4)} ${step}: ${labels.length} rows visible, ${ok} correct${wrong.length ? `, ${wrong.length} WRONG` : ''}${missing.length ? `, ${missing.length} without a value` : ''}${ink ? `, painted ${fullRows.length - blank.length}/${fullRows.length}` : ''}`)
   for (const w of wrong) console.log(`       row expecting ${w.expected} shows ${w.shown} (y=${w.y.toFixed(3)})`)
@@ -251,8 +255,38 @@ check('numbers, after 2 precise swipes')
 for (let i = 0; i < 8; i++) swipe(list(), 'up')
 check('numbers, back near the top')
 
-// 3. Every row rolls by one; the settled values must follow.
-bump()
+// 3. Every row rolls by one; the settled values must follow, and no frame of
+// the roll may leave a row blank (a wheel between two digits still shows ink).
+{
+  settle()
+  const before = tree()
+  const frame = list()
+  const rowsBefore = before.filter((e) => e.id?.match(/^row-\d+$/) && e.y >= frame.y && e.y + 0.03 <= Math.min(frame.y + frame.h, 0.92))
+  const valueFrames = before.filter((e) => e.quoted.some((q) => /^-?\d{4,7}$/.test(q)))
+  const xs = valueFrames.length ? [Math.min(...valueFrames.map((e) => e.x)), Math.max(...valueFrames.map((e) => e.x + e.w))] : [0.6, 0.98]
+  // At rest every value paints a certain number of pixel columns; a wheel
+  // that goes blank while rolling takes a fifth of them away, a half-shown
+  // digit far less. Compare each mid-roll frame's column count with rest.
+  const bands = rowsBefore.map((r) => [r.y - 0.004, r.y + 0.03])
+  const rest = inkPerRow(bands, xs)
+  bump()
+  let blankFrames = 0
+  let frames = 0
+  for (let k = 0; k < 4 && rest; k++) {
+    const ink = inkPerRow(bands, xs)
+    if (!ink) break
+    frames += 1
+    const blank = rowsBefore.filter((_, i) => ink[i].dark < 15 || ink[i].cols < rest[i].cols * 0.8)
+    if (blank.length) {
+      blankFrames += 1
+      console.log(`       mid-roll frame ${k + 1}: ${blank.length} rows lost a digit's worth of paint (${blank.map((r, j) => `${r.expected - 1}: ${ink[rowsBefore.indexOf(r)].cols}/${rest[rowsBefore.indexOf(r)].cols} columns`).join(', ')})`)
+    }
+  }
+  if (frames) {
+    console.log(`${blankFrames ? 'FAIL' : 'ok  '} numbers, frames captured during the roll: ${frames} frames, ${blankFrames} with a blank row`)
+    results.push(!blankFrames)
+  }
+}
 check('numbers, after one bump (all rows rolled)')
 for (let i = 0; i < 3; i++) {
   bump()

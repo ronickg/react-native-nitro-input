@@ -2,16 +2,24 @@
 
 ## 0.1.0 (unreleased)
 
-- Android: digits no longer vanish after every rolling number on screen has
-  been unmounted and new ones mount, or after the window gives its hardware
-  resources back (the app going to the background). The wheels draw a digit
-  strip recorded once into a `RenderNode`; HWUI deletes a node's display list
-  the moment nothing in the view tree draws it any more, and a node drawn
-  without one draws nothing, so the next rolling number showed its value to
-  accessibility and painted blank. The strip is recorded again whenever its
-  display list is gone. Found by the example's new Recycle check screen and
+- Android: the digit strip is a software-rendered bitmap inside a layer, and
+  it is recorded again when the renderer drops it. Two things were wrong with
+  the strip as a layer of GPU-rasterized text. Its digits came out thinner
+  and paler than the sign and affixes drawn as glyphs beside them, visibly on
+  a small red change value; text the software renderer rasterizes into a
+  bitmap has the pixels it should, and the bitmap goes into a layer once
+  because drawing it per wheel costs the renderer several milliseconds a
+  frame more than a layer does. And HWUI deletes a node's display list the
+  moment nothing in the view tree draws it, so once every rolling number on
+  screen had been unmounted and new ones mounted (or the app had been in the
+  background) the next ones reported their value to accessibility and painted
+  blank; the strip is recorded again whenever its display list is gone. At
+  rest the window lands on whole device pixels so a small digit is not
+  resampled soft. Found by the example's new Recycle check screen and
   `scripts/ui/recycle-check.mjs`, which drive a 400-row list through argent
-  and compare what every visible row reports with what it painted.
+  and compare what every visible row reports with what it painted, frames
+  in the middle of a roll included.
+
 - Memory: a dropped rolling number is freed when Fabric drops it. The Nitro
   hybrid behind a view is kept alive by its C++ part until the JS handle from
   `hybridRef` is garbage-collected, and Hermes collects a handle it takes for
@@ -28,10 +36,10 @@
   same font, colour and density instead of rasterized per view, and the
   hybrid reports its `memorySize` to Nitro so the handle is collected in
   time. `dispose()` on the ref does the same release eagerly.
-- Android draws a settled wheel from a shared digit-strip texture (one
-  `RenderNode` per font and blank-zero variant, recorded once, composited at
-  an offset) instead of two `drawText`s per wheel per frame, the way iOS has
-  moved a `CALayer` strip since the layer renderer. On a Galaxy A22 at 90 Hz
+- Android draws a settled wheel from a shared digit strip (one layer per
+  font and blank-zero variant, recorded once, drawn at an offset) instead of
+  two `drawText`s per wheel per frame, the way iOS has moved a `CALayer`
+  strip since the layer renderer. On a Galaxy A22 at 90 Hz
   with 24 numbers fed a new value every frame, `onDraw` recording went from
   9.4 ms to 2.6 ms a frame and the `value` prop path from 72 fps with 91
   dropped frames in five seconds to 89 fps with 7; needs Android 10, older
