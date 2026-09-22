@@ -29,6 +29,9 @@ export function NitroInputPlainDemo() {
   return (
     <Stage height={80}>
       <div style={{width: '100%', padding: '12px 16px 4px'}}>
+        {/* The box is the `style` background from the snippet below the demo,
+            and it is the only thing marking where the field is: the field
+            itself draws nothing when `variant` is `none`. */}
         <div style={{background: theme.fill, borderRadius: 10, padding: '10px 12px'}}>
           <NitroInputCanvas placeholder="Your name" fontSize={22} fontWeight={500} duration={0} />
         </div>
