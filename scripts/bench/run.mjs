@@ -100,8 +100,12 @@ function buildPlan(o) {
       for (const impl of rolling) scenarios.push({ kind: 'leaklist', impl, rows: 200, rate: 10, seconds: 30 })
     } else if (part === 'footprint') {
       // Per-view memory: what one mounted copy costs, after forced collections.
-      for (const impl of rolling) scenarios.push({ kind: 'footprint', impl, count: 100 })
-      for (const impl of inputs) scenarios.push({ kind: 'footprint', impl, count: 50 })
+      // Repeated and interleaved (--repeat), so a row is a median of runs that
+      // followed different neighbours.
+      for (let round = 0; round < Math.max(1, o.repeat); round++) {
+        for (const impl of rolling) scenarios.push({ kind: 'footprint', impl, count: 100 })
+        for (const impl of inputs) scenarios.push({ kind: 'footprint', impl, count: 50 })
+      }
     } else {
       return JSON.parse(fs.readFileSync(part, 'utf8'))
     }
@@ -123,7 +127,7 @@ const scenarioSeconds = (plan, s) => {
     case 'leaklist':
       return plan.settle + 2 + s.seconds
     case 'footprint':
-      return plan.settle + 10
+      return plan.settle + 20
     default:
       return plan.settle + plan.warmup + plan.seconds + 1
   }

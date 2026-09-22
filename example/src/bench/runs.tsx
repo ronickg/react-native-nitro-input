@@ -786,12 +786,20 @@ export function FootprintRun({ scenario, running, onDone }: { scenario: Footprin
     ;(async () => {
       const thermal = thermalState()
       const t0 = performance.now()
+      // A floor is a reading that stopped moving: the previous scenario's
+      // views and garbage go on being freed for a while, and a delta taken
+      // across that is off by tens of KB a copy. Collect, wait, read, and
+      // accept only two consecutive readings within two percent of each other.
       const floor = async () => {
-        forceGc()
-        await pause(400)
-        forceGc()
-        await pause(300)
-        return sample()
+        let last: Sample | null = null
+        for (let attempt = 0; attempt < 8; attempt++) {
+          forceGc()
+          await pause(600)
+          const s = sample()
+          if (s && last && Math.abs(s.rssMb - last.rssMb) <= 0.02 * last.rssMb && Math.abs((s.nativeHeapMb ?? 0) - (last.nativeHeapMb ?? 0)) <= 0.02 * (last.nativeHeapMb ?? 1)) return s
+          last = s
+        }
+        return last
       }
       const before = await floor()
       laidOut.current.clear()

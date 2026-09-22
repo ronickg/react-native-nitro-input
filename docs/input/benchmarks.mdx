@@ -26,7 +26,7 @@ way a keyboard does and watches every frame; every result is in
   before the first key and is not part of any figure.
 - **Focus latency.** `focus()` to `onFocus`, eight runs, medians; the first run pays for the keyboard appearing and is listed separately.
 - **Mount.** 20 fields rendered in one state update, timed to the last field's first `onLayout`, ten cold passes, medians, with the main- and JS-thread CPU each pass cost.
-- **Memory.** 20 fields mounted and unmounted 40 times; the footprint and malloc's bytes in use are read after a forced collection at the start and at the end, so a floor that rose is a leak and not garbage waiting for the collector. On Android the live `View` count from `dumpsys meminfo` at both floors says whether detached fields survive. A separate run mounts 50 fields once and divides the memory difference by 50: what one field costs.
+- **Memory.** 20 fields mounted and unmounted 40 times; the footprint and malloc's bytes in use are read after a forced collection at the start and at the end, so a floor that rose is a leak and not garbage waiting for the collector. On Android the live `View` count from `dumpsys meminfo` at both floors says whether detached fields survive. A separate run mounts 50 fields and divides the memory difference by 50, medians of three rounds on Android and the first mount on iOS, where later mounts reuse pooled views: what one field costs.
 
 ## What the numbers say
 
@@ -312,23 +312,23 @@ how much on each phone. Unmounting costs about the same for every field.
 
 | Implementation | footprint per copy | malloc per copy | left behind per copy | runs |
 | --- | --- | --- | --- | --- |
-| TextInput (text) | 135.7 KB | 87.2 KB | 125.1 KB | 1 |
-| **NitroInput (text)** | 135.0 KB | 131.4 KB | 136.0 KB | 1 |
-| **MorphInput (text)** | 96.3 KB | 55.2 KB | 97.6 KB | 1 |
+| TextInput (text) | 108.2 KB | 119.8 KB | 94.4 KB | 1 |
+| **NitroInput (text)** | 156.5 KB | 117.9 KB | 155.8 KB | 1 |
+| **MorphInput (text)** | 63.7 KB | 17.3 KB | 63.7 KB | 1 |
 
 #### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
 
 | Implementation | footprint per copy | malloc per copy | left behind per copy | runs |
 | --- | --- | --- | --- | --- |
-| TextInput (text) | 112.6 KB | 88.1 KB | 91.2 KB | 1 |
-| **NitroInput (text)** | 140.2 KB | 129.7 KB | 139.5 KB | 1 |
-| **MorphInput (text)** | 79.0 KB | 66.6 KB | 79.4 KB | 1 |
+| TextInput (text) | 97.3 KB | 120.6 KB | 75.2 KB | 1 |
+| **NitroInput (text)** | 140.8 KB | 124.0 KB | 141.1 KB | 1 |
+| **MorphInput (text)** | 29.8 KB | 28.9 KB | 30.4 KB | 1 |
 
 #### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
 
 | Implementation | footprint per copy | malloc per copy | Java heap per copy | left behind per copy | runs |
 | --- | --- | --- | --- | --- | --- |
-| TextInput (text) | 102.0 KB | 73.3 KB | 19.8 KB | 59.1 KB | 1 |
-| **NitroInput (text)** | 93.2 KB | 48.4 KB | 28.2 KB | 61.3 KB | 1 |
-| **MorphInput (text)** | 241.7 KB | 203.8 KB | 23.6 KB | 231.3 KB | 1 |
+| TextInput (text) | 59.5 KB | 62.7 KB | 17.2 KB | 24.6 KB | 3 |
+| **NitroInput (text)** | 66.4 KB | 37.1 KB | 27.0 KB | 42.2 KB | 3 |
+| **MorphInput (text)** | 58.0 KB | -3.7 KB | 23.5 KB | -1.8 KB | 3 |
 

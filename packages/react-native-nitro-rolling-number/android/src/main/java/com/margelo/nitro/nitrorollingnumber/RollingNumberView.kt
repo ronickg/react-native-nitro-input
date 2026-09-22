@@ -1003,10 +1003,11 @@ class RollingNumberView(context: Context) : View(context) {
    * What one mounted rolling number costs, for the JS garbage collector
    * (Nitro's `memorySize`). Measured, not estimated: the example's
    * `footprint` benchmark mounts 100 copies, forces a collection before and
-   * with them, and divides the difference. Galaxy A22, Android 13,
-   * 2026-09-22: 54 KB of malloc (engine, display list, paints) and 9 KB of
-   * Java heap per copy; plain `Text` is 32 + 48 KB. A constant, because Nitro
-   * reads it from the JS thread; the shared strips are not per copy.
+   * with them, and divides the difference; the median of three interleaved
+   * rounds. Galaxy A22, Android 13, 2026-09-22: 46 KB of malloc (engine,
+   * display list, paints) and 8 KB of Java heap per copy, rounds within
+   * ±30 KB; plain `Text` is 26 + 5 KB. A constant, because Nitro reads it
+   * from the JS thread; the shared strips are not per copy.
    */
   fun memoryEstimateBytes(): Long = 64L * 1024
 

@@ -218,7 +218,7 @@ export function scenarioSeconds(plan: Plan, s: Scenario) {
     case 'leaklist':
       return plan.settle + 2 + (s as LeakListScenario).seconds
     case 'footprint':
-      return plan.settle + 10
+      return plan.settle + 20
   }
 }
 

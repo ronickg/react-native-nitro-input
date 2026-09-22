@@ -260,12 +260,13 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   /// the memory it holds rather than as an empty object. Measured, not
   /// estimated: the example's `footprint` benchmark mounts 50 fields, asks
   /// malloc to return freed pages before and with them, and divides the
-  /// difference. iPhone 11 Pro and 13 Pro Max, 2026-09-22: a plain NitroInput
-  /// is 130 KB of malloc and 135–140 KB of footprint per field (a `TextInput`
-  /// 88 and 113–136), a MorphInput 55–67 and 79–96. One constant for both,
-  /// because Nitro reads it once when the handle is created, before the props
-  /// say which one this is.
-  var memorySize: Int { 128 * 1024 }
+  /// difference, on the first mount (Fabric hands later mounts the pooled
+  /// views of earlier ones). iPhone 11 Pro and 13 Pro Max, 2026-09-22: a
+  /// NitroInput is about 120 KB of malloc and 140–155 KB of footprint per
+  /// field (a `TextInput` 120 and 100–110), a MorphInput 20–30 and 30–65.
+  /// One constant for both, because Nitro reads it once when the handle is
+  /// created, before the props say which one this is.
+  var memorySize: Int { 96 * 1024 }
 
   /// Fabric is about to reuse this view for another element: forget every prop
   /// and all state. Nitro re-applies the new element's props next.
