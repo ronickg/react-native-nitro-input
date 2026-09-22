@@ -81,16 +81,21 @@ The count follows how slot machines present a win: a constant-rate tally per tie
 
 ## Performance
 
-Release builds, 24 copies fed a new value on every frame, UI-thread frame rate from a Reanimated frame callback:
+Release builds on real phones, 24 copies fed a new value on every frame, frames per second the UI thread delivered and how many it missed in five seconds (the JS thread is the other half of the story: see the full tables):
 
-| | iPhone 13 Pro Max (120 Hz) | Pixel 10 (60 Hz) |
-| --- | --- | --- |
-| **Nitro Rolling Number** | **120 fps, 0 dropped** | **60 fps, 0 dropped** |
-| NumberFlow (View) | 35 fps | 33 fps |
-| NumberFlow (Skia) | 95 fps | 59 fps |
-| AnimatedNumbers | 114 fps | 56 fps |
+| | iPhone 13 Pro Max (120 Hz) | iPhone 11 Pro (60 Hz) | Galaxy A22 (90 Hz, low-end) |
+| --- | --- | --- | --- |
+| **Nitro Rolling Number** (`value` prop) | 120 fps (0 dropped) | 59.9 fps (0 dropped) | 72.1 fps (91 dropped) |
+| **Nitro Rolling Number** (`jumpTo`) | 120 fps (0 dropped) | 59.9 fps (0 dropped) | 90.0 fps (2 dropped) |
+| react-native-number-animation (native) | 115 fps (27 dropped) | 54.5 fps (27 dropped) | 50.2 fps (199 dropped) |
+| react-native-animated-rolling-numbers | 114 fps (28 dropped) | 58.7 fps (6 dropped) | 19.0 fps (352 dropped) |
+| NumberFlow (View) | 81.6 fps (193 dropped) | 46.1 fps (71 dropped) | 26.2 fps (330 dropped) |
+| NumberFlow (Skia) | 86.1 fps (203 dropped) | 51.2 fps (48 dropped) | 29.7 fps (303 dropped) |
+| react-native-number-bloom | 65.9 fps (271 dropped) | 46.6 fps (70 dropped) | 48.9 fps (212 dropped) |
+| react-native-animated-numbers | 115 fps (25 dropped) | 56.9 fps (15 dropped) | 49.1 fps (215 dropped) |
+| react-native-ticker | 13.3 fps (523 dropped) | 7.1 fps (257 dropped) | 13.0 fps (401 dropped) |
 
-Method and full tables: [BENCHMARKS.md](BENCHMARKS.md).
+Method, the JS-thread and CPU columns, the ten-a-second and one-copy cases and the Instruments cross-check: [BENCHMARKS.md](BENCHMARKS.md).
 
 ## Also in this repo: a morphing input
 

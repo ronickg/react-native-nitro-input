@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "packages/*",
-    "example"
+    "example",
+    "example/modules/*"
   ],
   "scripts": {
     "specs": "bun run --filter './packages/*' specs",

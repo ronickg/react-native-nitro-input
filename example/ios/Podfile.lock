@@ -1,4 +1,26 @@
 PODS:
+  - BenchProbe (0.1.0):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-bridging
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - boost (1.84.0):
     - ReactNativeDependencies
   - DoubleConversion (1.1.6):
@@ -148,6 +170,28 @@ PODS:
     - RCTTypeSafety
     - React-bridging
     - React-callinvoker
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - NumberAnimation (0.1.5):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-bridging
     - React-Core
     - React-Core-prebuilt
     - React-debug
@@ -1397,6 +1441,53 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - react-native-animateable-text (0.19.3):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-bridging
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-FabricComponents
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - react-native-animateable-text/newarch (= 0.19.3)
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - react-native-animateable-text/newarch (0.19.3):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-bridging
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-FabricComponents
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - react-native-keyboard-controller (1.22.5):
     - hermes-engine
     - RCTRequired
@@ -2116,6 +2207,7 @@ PODS:
     - React-Core-prebuilt
 
 DEPENDENCIES:
+  - BenchProbe (from `../../node_modules/bench-probe`)
   - boost (from `build/rndeps-facades/boost`)
   - DoubleConversion (from `build/rndeps-facades/DoubleConversion`)
   - EXConstants (from `../../node_modules/expo-constants/ios`)
@@ -2139,6 +2231,7 @@ DEPENDENCIES:
   - NitroInput (from `../../node_modules/react-native-nitro-input`)
   - NitroModules (from `../../node_modules/react-native-nitro-modules`)
   - NitroRollingNumber (from `../../node_modules/react-native-nitro-rolling-number`)
+  - NumberAnimation (from `../../node_modules/react-native-number-animation`)
   - RCT-Folly (from `build/rndeps-facades/RCT-Folly`)
   - RCTDeprecation (from `build/rncore-facades/RCTDeprecation`)
   - RCTRequired (from `build/rncore-facades/RCTRequired`)
@@ -2180,6 +2273,7 @@ DEPENDENCIES:
   - React-Mapbuffer (from `../../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
   - React-mutationobservernativemodule (from `../../node_modules/react-native/ReactCommon/react/nativemodule/mutationobserver`)
+  - react-native-animateable-text (from `../../node_modules/react-native-animateable-text`)
   - react-native-keyboard-controller (from `../../node_modules/react-native-keyboard-controller`)
   - react-native-safe-area-context (from `../../node_modules/react-native-safe-area-context`)
   - "react-native-skia (from `../../node_modules/@shopify/react-native-skia`)"
@@ -2226,6 +2320,8 @@ DEPENDENCIES:
   - Yoga (from `build/rncore-facades/Yoga`)
 
 EXTERNAL SOURCES:
+  BenchProbe:
+    :path: "../../node_modules/bench-probe"
   boost:
     :path: build/rndeps-facades/boost
   DoubleConversion:
@@ -2273,6 +2369,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/react-native-nitro-modules"
   NitroRollingNumber:
     :path: "../../node_modules/react-native-nitro-rolling-number"
+  NumberAnimation:
+    :path: "../../node_modules/react-native-number-animation"
   RCT-Folly:
     :path: build/rndeps-facades/RCT-Folly
   RCTDeprecation:
@@ -2353,6 +2451,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
   React-mutationobservernativemodule:
     :path: "../../node_modules/react-native/ReactCommon/react/nativemodule/mutationobserver"
+  react-native-animateable-text:
+    :path: "../../node_modules/react-native-animateable-text"
   react-native-keyboard-controller:
     :path: "../../node_modules/react-native-keyboard-controller"
   react-native-safe-area-context:
@@ -2443,6 +2543,7 @@ EXTERNAL SOURCES:
     :path: build/rncore-facades/Yoga
 
 SPEC CHECKSUMS:
+  BenchProbe: a1ca4e8966513edf2045b5189a2e9ace0cf0fc4a
   boost: 8502bfdc46e2804408af2e163049ece181009af4
   DoubleConversion: 501a575c40c0b50c89685762dd3e415e6bb26fb0
   EXConstants: 846d7281efc95e1b82745829db7dedea7a67ae64
@@ -2466,6 +2567,7 @@ SPEC CHECKSUMS:
   NitroInput: d23739dca055eafcfc9d7e6b56bfcc1d7813b40b
   NitroModules: b4d92f95f7e70027935b09736d7a589181bc0912
   NitroRollingNumber: e3b5841a8ab8fdab7ac9a489629cea35bf69a61e
+  NumberAnimation: e6d4595fba7f7daf20fadf3e6e49c173d258fea9
   RCT-Folly: 82921e585c0400eda46fac1068297aa9dfb035e4
   RCTDeprecation: 5cc865306ce4974b7a57ddbc575fd1f3fef41957
   RCTRequired: ea6f2c41f2670961ce9a48a4bf17a190dd53e493
@@ -2506,6 +2608,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: 295203fc648a43acf7fba609ddf573aa9fca849f
   React-microtasksnativemodule: 269f81deee27a2a9bedb6b2d1088c1ae93de9bd3
   React-mutationobservernativemodule: 877e9f730e0d8175c2e952901b55c170fc3d372f
+  react-native-animateable-text: b1a0b9e8d969a71c373cafe7cb16dffb954a8b95
   react-native-keyboard-controller: 84a367945ee9155a576a37f648a79039a8862666
   react-native-safe-area-context: b3e507b0dbfb44dfadb29f7a31e884ac13789723
   react-native-skia: 5ef297a9eff3d3f2b190d7a352600bb0feb26e5d
@@ -2551,6 +2654,6 @@ SPEC CHECKSUMS:
   SocketRocket: 37aec555668fb852ec12e3c0de59a86ca58f0871
   Yoga: d1c536142c5ff8ec8cd856ab2a7c227a1d875c8e
 
-PODFILE CHECKSUM: 4d2cd8f673761a62f9e3f47a5aea3a6476b37233
+PODFILE CHECKSUM: 0d8111af7d22889b54cb972930e3d010c1654b1b
 
 COCOAPODS: 1.16.2
