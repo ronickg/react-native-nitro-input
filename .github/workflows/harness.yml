@@ -71,6 +71,13 @@ jobs:
           app: android/app/build/outputs/apk/debug/app-debug.apk
           projectRoot: example
           packageManager: bun
+          # No Metro transform cache across runs: the worklets Babel plugin in
+          # bundle mode writes each worklet it extracts into
+          # node_modules/react-native-worklets/.worklets/ as a side effect of
+          # transforming, and a cache hit skips the transform. A restored cache
+          # on a fresh runner then points at files that were never written and
+          # every suite fails to bundle with ENOENT.
+          cacheSavePolicy: never
           preRunHook: |
             adb shell settings put global window_animation_scale 0
             adb shell settings put global transition_animation_scale 0
@@ -129,3 +136,5 @@ jobs:
           app: ios/build/Build/Products/Debug-iphonesimulator/RollingNumberExample.app
           projectRoot: example
           packageManager: bun
+          # See the Android job.
+          cacheSavePolicy: never
