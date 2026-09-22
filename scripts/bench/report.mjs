@@ -288,6 +288,83 @@ export function deviceTitle(run) {
   return `${deviceName(d)} (${d.model}, ${d.platform === 'ios' ? 'iOS' : 'Android'} ${d.os}, ${hz} Hz)`
 }
 
+/** The paths a chart may want, medianed over a scenario's repeats; a missing one is left out. */
+const METRIC_PATHS = [
+  'ui.fps', 'ui.dropped', 'ui.hz', 'ui.long', 'js.fps', 'cpu.main', 'cpu.js', 'cpu.process',
+  'mountMs.p50', 'mountMs.min', 'mountMs.max', 'unmountMs.p50', 'mountMainMs', 'mountJsMs',
+  'rewrites.p50', 'rewrites.max', 'rewrites.keysWithRewrites', 'settledMs.p50', 'settledMs.p95', 'mainMsPerKey', 'jsMsPerKey', 'changeEventsPerKey', 'dropped', 'typed', 'achievedRate',
+  'ms.p50', 'ms.p95', 'first',
+  'rssFirstMb', 'rssLastMb', 'rssMaxMb', 'growthKbPerCycle', 'growthKbPerSecond', 'nativeHeapFirstMb', 'nativeHeapLastMb', 'meminfo.viewsStart', 'meminfo.viewsEnd',
+  'perViewFootprintKb', 'perViewNativeKb', 'perViewJavaKb', 'leftFootprintKb',
+]
+const OURS = new Set(['nitro-prop', 'nitro-jump', 'nitro-text', 'morph-text', 'nitro-number', 'morph-number', 'nitro-mask'])
+const dig = (o, p) => p.split('.').reduce((x, k) => (x == null ? undefined : x[k]), o)
+
+/**
+ * The same groups and medians the tables show, as data: one object per device,
+ * its groups in table order, each row an implementation with its medians keyed
+ * by metric path. What the docs' charts read.
+ */
+export function summarizeRun(run) {
+  const groups = new Map()
+  for (const r of run.results) {
+    const key = groupKey(r)
+    if (!groups.has(key)) groups.set(key, { key, kind: kindOf(r), sample: r, byImpl: new Map() })
+    const g = groups.get(key)
+    if (!g.byImpl.has(r.impl)) g.byImpl.set(r.impl, [])
+    g.byImpl.get(r.impl).push(r)
+  }
+  const ordered = [...groups.values()].sort((a, b) => {
+    const ka = KIND_ORDER[a.kind] ?? 9
+    const kb = KIND_ORDER[b.kind] ?? 9
+    if (ka !== kb) return ka - kb
+    if (a.kind === 'stream') {
+      const ra = a.sample.rate === 'frame' ? 0 : 1
+      const rb = b.sample.rate === 'frame' ? 0 : 1
+      return b.sample.count - a.sample.count || ra - rb
+    }
+    if (a.kind === 'type') return a.sample.rate - b.sample.rate
+    return 0
+  })
+  const d = run.device
+  return {
+    key: d ? `${d.platform}|${d.model}` : run.file,
+    name: deviceName(d),
+    model: d?.model ?? null,
+    platform: d?.platform ?? null,
+    os: d?.os ?? null,
+    hz: d?.refreshRate ?? null,
+    groups: ordered.map((g) => ({
+      key: g.key,
+      kind: g.kind,
+      title: groupTitle(g.sample),
+      scenario: { count: g.sample.count, rate: g.sample.rate, rows: g.sample.rows, passes: g.sample.passes, cycles: g.sample.cycles, seconds: g.sample.seconds },
+      rows: [...g.byImpl.entries()]
+        .sort((a, b) => (ORDER.get(a[0]) ?? 99) - (ORDER.get(b[0]) ?? 99))
+        .map(([impl, rs]) => {
+          const ok = rs.filter((r) => !r.error)
+          const row = { impl, label: LABEL.get(impl) ?? impl, ours: OURS.has(impl), runs: ok.length, throttled: ok.filter((r) => THROTTLED.has(thermalBefore(r))).length, error: ok.length ? null : rs[0].error ?? 'failed' }
+          for (const p of METRIC_PATHS) {
+            const v = median(ok.map((r) => dig(r, p)))
+            if (v != null) row[p] = Math.round(v * 100) / 100
+          }
+          return row
+        }),
+    })),
+  }
+}
+
+/** Every device's summary, files of one device merged, as the docs' charts read it. */
+export function summarizeAll(files) {
+  const byDevice = new Map()
+  for (const run of files.map(loadRun)) {
+    const key = run.device ? `${run.device.platform}|${run.device.model}` : run.file
+    if (!byDevice.has(key)) byDevice.set(key, { ...run, results: [] })
+    byDevice.get(key).results.push(...run.results)
+  }
+  return { generatedAt: new Date().toISOString().slice(0, 10), devices: [...byDevice.values()].map(summarizeRun) }
+}
+
 /** Every file of one device merged into one run, so a matrix and an input plan measured separately share a section. */
 export function renderAll(files) {
   const byDevice = new Map()
@@ -300,12 +377,16 @@ export function renderAll(files) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const files = process.argv.slice(2).length
-    ? process.argv.slice(2)
+  const args = process.argv.slice(2)
+  const json = args.includes('--json')
+  const named = args.filter((a) => a !== '--json')
+  const files = named.length
+    ? named
     : fs
         .readdirSync(RESULTS_DIR)
         .filter((f) => f.endsWith('.ndjson'))
         .sort()
         .map((f) => path.join(RESULTS_DIR, f))
-  process.stdout.write(renderAll(files))
+  // --json: the same groups as data, for docs/src/data/benchmarks.json and the charts built on it.
+  process.stdout.write(json ? JSON.stringify(summarizeAll(files), null, 1) + '\n' : renderAll(files))
 }

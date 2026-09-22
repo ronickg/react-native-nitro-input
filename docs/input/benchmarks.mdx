@@ -6,6 +6,8 @@ description: Typing, focus and mount cost of NitroInput and MorphInput against T
 
 # Benchmarks
 
+import BenchChart from '@site/src/components/BenchChart';
+
 Measured on 2026‑09‑22 on an iPhone 13 Pro Max (iOS 26.6.2), an iPhone 11
 Pro (iOS 26.6.1) and a Samsung Galaxy A22 (Android 13, a low-end phone),
 release builds, React Native 0.87.1, by the same harness as the rolling
@@ -64,6 +66,8 @@ how much on each phone. Unmounting costs about the same for every field.
 
 ### Typing at 8 keys a second
 
+<BenchChart group="type|8" metrics={['rewrites.keysWithRewrites', 'settledMs.p95', 'jsMsPerKey', 'mainMsPerKey', 'dropped']} caption="Hover a bar for every column of its row; the tables have the same figures." />
+
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
 | Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
@@ -112,6 +116,8 @@ how much on each phone. Unmounting costs about the same for every field.
 
 ### Typing at 15 keys a second
 
+<BenchChart group="type|15" metrics={['rewrites.keysWithRewrites', 'settledMs.p95', 'jsMsPerKey', 'mainMsPerKey', 'dropped']} />
+
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
 | Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
@@ -159,6 +165,8 @@ how much on each phone. Unmounting costs about the same for every field.
 | Expo UI TextField | 12.9 | 0 | 0 of 12 | 0 | 49.2 | 3.3 | 0.0 | 15 | 1 |
 
 ### Focus latency
+
+<BenchChart group="focus" metrics={['ms.p50', 'first']} />
 
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
@@ -212,6 +220,8 @@ how much on each phone. Unmounting costs about the same for every field.
 
 ### Mounting 20 fields
 
+<BenchChart group="mount|20" metrics={['mountMs.p50', 'unmountMs.p50', 'mountMainMs', 'mountJsMs']} />
+
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
 | Implementation | mount ms | min | max | unmount ms | main-thread ms | JS-thread ms | runs |
@@ -259,6 +269,8 @@ how much on each phone. Unmounting costs about the same for every field.
 | Expo UI TextField | 506.7 | 119.8 | 957.9 | 111.5 | 780.0 | 150.0 | 1 |
 
 ### Memory over 40 mount/unmount cycles of 20 fields
+
+<BenchChart group="leak|20|40" metrics={['growthKbPerCycle']} caption="Growth per cycle of the footprint floor; a bar to the left of the line is a floor that fell." />
 
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
