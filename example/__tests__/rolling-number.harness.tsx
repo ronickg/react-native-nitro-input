@@ -129,12 +129,14 @@ describe('RollingNumber', () => {
     const small = { ...state.current! }
 
     await rerender(<RollingNumber value={1234567} fontSize={40} style={content} onLayout={onLayout} />)
-    await waitFor(() => expect(state.current!.height).toBeGreaterThan(small.height))
+    // A relayout has to travel native -> onLayout -> React on a loaded CI
+    // simulator mid-morph; the default wait was cutting it fine there.
+    await waitFor(() => expect(state.current!.height).toBeGreaterThan(small.height), { timeout: 3000 })
     expect(state.current!.width).toBeGreaterThan(small.width)
     const large = { ...state.current! }
 
     await rerender(<RollingNumber value={1234567} fontSize={40} groupingSeparator="," prefix="$" suffix=" USD" style={content} onLayout={onLayout} />)
-    await waitFor(() => expect(state.current!.width).toBeGreaterThan(large.width))
+    await waitFor(() => expect(state.current!.width).toBeGreaterThan(large.width), { timeout: 3000 })
     const affixed = { ...state.current! }
 
     // The glint recolours the ink; the box does not move.
