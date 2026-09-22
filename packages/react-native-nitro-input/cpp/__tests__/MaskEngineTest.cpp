@@ -363,9 +363,28 @@ static void stagedNotationsMatchTheVectorForm() {
   CHECK(!staged.setFormat("[Q]"));
 }
 
+// An empty input never gains the mask's leading literals, whatever
+// `autocomplete` says: `clear()`, `setText("")` and an empty prop leave the
+// field showing its placeholder, the same as deleting everything by hand.
+static void emptyInputStaysEmpty() {
+  MaskEngine engine;
+  CHECK(engine.setFormat("+1 ([000]) [000]-[0000]"));
+  const auto autocompleted = engine.apply("", 0, true, true, false);
+  CHECK(autocompleted.formattedText.empty());
+  CHECK(autocompleted.extractedValue.empty());
+  CHECK(autocompleted.tailPlaceholder == "+1 (000) 000-0000");
+  CHECK(!autocompleted.complete);
+  CHECK(autocompleted.caret == 0);
+  // The first character still pulls the literals in front of it.
+  CHECK(engine.apply("5", 1, true, true, false).formattedText == "+1 (5");
+  // And deleting it takes them out again, as before.
+  CHECK(engine.applyEdit("+1 (5", 4, 5, "", true, true).formattedText.empty());
+}
+
 int main() {
   copiesShareTheCompiledMask();
   stagedNotationsMatchTheVectorForm();
+  emptyInputStaysEmpty();
   mandatoryAndOptionalSlots();
   ellipsisTakesEverything();
   fixedAndFreeLiterals();

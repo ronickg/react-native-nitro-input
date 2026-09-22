@@ -317,9 +317,10 @@ export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' 
   /** `'mask'`: backspace walks back over autocompleted constants. Default: `false`. */
   maskAutoSkip?: boolean
   /**
-   * `'mask'` mode: called after every edit with the masked text, the characters
-   * the user contributed, what is still missing, and whether every mandatory
-   * slot is filled.
+   * `'mask'` mode: called whenever the text changes, from a keystroke,
+   * `setText` / `clear` or the `value` prop alike, with the masked text, the
+   * characters the user contributed, what is still missing, and whether every
+   * mandatory slot is filled. A mount with an unchanged text does not report.
    */
   onChangeMask?: (
     formatted: string,
@@ -826,10 +827,18 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     // Nitro callbacks must be wrapped with `callback()` and the wrapper object
     // has to be referentially stable, otherwise every render re-sets the prop.
     // Handlers are read through a ref so inline arrows don't re-set them either.
+    // Commands sent before the native view attaches (from a ref callback, a
+    // layout effect or an effect on mount) are kept and replayed the moment it
+    // does, as React Native queues a `TextInput`'s view commands. Without this
+    // the common `useEffect(() => ref.current?.focus(), [])` was a silent no-op.
+    const pendingCommands = useRef<Array<(native: NitroInputRef) => void>>([])
     const hybridRef = useMemo(
       () =>
         callback((instance: NitroInputRef) => {
           nativeRef.current = instance
+          const queued = pendingCommands.current
+          pendingCommands.current = []
+          for (const command of queued) command(instance)
           latest.current.onNativeRef?.(instance)
         }),
       []
@@ -1008,30 +1017,36 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     // through a ref, so a value change never hands the parent a new object.
     useImperativeHandle(
       ref,
-      () => ({
-        focus: () => nativeRef.current?.focus(),
-        blur: () => nativeRef.current?.blur(),
-        clear: () => nativeRef.current?.clear(),
-        setText: (text) => nativeRef.current?.replaceText(text),
-        setValue: (next) => nativeRef.current?.setValue(next),
-        // Before the native view attaches, `textRef` is a controlled field's
-        // `value` and an uncontrolled one's initial text.
-        getText: () => nativeRef.current?.currentText() ?? textRef.current,
-        getValue: () => nativeRef.current?.getValue() ?? NaN,
-        // The native view is the truth once there is one - it knows whether it
-        // actually holds first responder. Before it attaches, fall back to the
-        // registry this field already keeps up to date, which is the same place
-        // `TextInput.isFocused()` reads from.
-        isFocused: () =>
-          nativeRef.current?.isFocused() ??
-          (registryKeyRef.current != null &&
-            textInputRegistry?.currentlyFocusedInput() === registryKeyRef.current),
-        setSelection: (start: number, end?: number) =>
-          nativeRef.current?.setSelection(start, end ?? start),
-        get native() {
-          return nativeRef.current
-        },
-      }),
+      () => {
+        const send = (command: (native: NitroInputRef) => void) => {
+          const native = nativeRef.current
+          if (native != null) command(native)
+          else pendingCommands.current.push(command)
+        }
+        return {
+          focus: () => send((native) => native.focus()),
+          blur: () => send((native) => native.blur()),
+          clear: () => send((native) => native.clear()),
+          setText: (text) => send((native) => native.replaceText(text)),
+          setValue: (next) => send((native) => native.setValue(next)),
+          // Before the native view attaches, `textRef` is a controlled field's
+          // `value` and an uncontrolled one's initial text.
+          getText: () => nativeRef.current?.currentText() ?? textRef.current,
+          getValue: () => nativeRef.current?.getValue() ?? NaN,
+          // The native view is the truth once there is one - it knows whether it
+          // actually holds first responder. Before it attaches, fall back to the
+          // registry this field already keeps up to date, which is the same place
+          // `TextInput.isFocused()` reads from.
+          isFocused: () =>
+            nativeRef.current?.isFocused() ??
+            (registryKeyRef.current != null &&
+              textInputRegistry?.currentlyFocusedInput() === registryKeyRef.current),
+          setSelection: (start: number, end?: number) => send((native) => native.setSelection(start, end ?? start)),
+          get native() {
+            return nativeRef.current
+          },
+        }
+      },
       []
     )
 
@@ -1125,15 +1140,59 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     const {
       accessibilityLabel,
       'aria-label': ariaLabel,
+      'aria-busy': ariaBusy,
+      'aria-checked': ariaChecked,
+      'aria-disabled': ariaDisabled,
+      'aria-expanded': ariaExpanded,
+      'aria-selected': ariaSelected,
+      'aria-hidden': ariaHidden,
+      'aria-labelledby': ariaLabelledBy,
+      accessibilityState,
+      accessibilityElementsHidden,
+      accessibilityLabelledBy,
+      importantForAccessibility,
       id,
       nativeID,
       ...restViewProps
     } = viewProps as typeof viewProps & { 'aria-label'?: string }
     const resolvedAccessibilityLabel = ariaLabel ?? accessibilityLabel
     const resolvedNativeID = id ?? nativeID
+    // The `aria-*` state, hidden and labelled-by props, folded the way
+    // `TextInput` folds them: the aria spelling wins over the older one, and
+    // `aria-hidden` becomes the platform's own notion of hidden.
+    const hasState =
+      accessibilityState != null ||
+      ariaBusy != null ||
+      ariaChecked != null ||
+      ariaDisabled != null ||
+      ariaExpanded != null ||
+      ariaSelected != null
+    const resolvedAccessibilityState = hasState
+      ? {
+          busy: ariaBusy ?? accessibilityState?.busy,
+          checked: ariaChecked ?? accessibilityState?.checked,
+          disabled: ariaDisabled ?? accessibilityState?.disabled,
+          expanded: ariaExpanded ?? accessibilityState?.expanded,
+          selected: ariaSelected ?? accessibilityState?.selected,
+        }
+      : undefined
+    const resolvedElementsHidden = ariaHidden ?? accessibilityElementsHidden
+    const resolvedImportance =
+      ariaHidden === true ? ('no-hide-descendants' as const) : importantForAccessibility
+    const resolvedLabelledBy = ariaLabelledBy ?? accessibilityLabelledBy
     // Added only when there is one: a native prop is never sent `undefined`.
-    const hostViewProps =
-      resolvedNativeID != null ? { ...restViewProps, nativeID: resolvedNativeID } : restViewProps
+    const hostViewProps: typeof restViewProps & {
+      nativeID?: string
+      accessibilityState?: typeof resolvedAccessibilityState
+      accessibilityElementsHidden?: boolean
+      importantForAccessibility?: typeof resolvedImportance
+      accessibilityLabelledBy?: typeof resolvedLabelledBy
+    } = { ...restViewProps }
+    if (resolvedNativeID != null) hostViewProps.nativeID = resolvedNativeID
+    if (resolvedAccessibilityState != null) hostViewProps.accessibilityState = resolvedAccessibilityState
+    if (resolvedElementsHidden != null) hostViewProps.accessibilityElementsHidden = resolvedElementsHidden
+    if (resolvedImportance != null) hostViewProps.importantForAccessibility = resolvedImportance
+    if (resolvedLabelledBy != null) hostViewProps.accessibilityLabelledBy = resolvedLabelledBy
 
     const autoSize = useMemo(
       () =>
@@ -1258,6 +1317,8 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     )
   }
 )
+// The name DevTools and error stacks show, as `TextInput` names itself.
+NitroInput.displayName = 'NitroInput'
 
 /**
  * Registers `fn` on the UI runtime for as long as it stays the same function

@@ -435,6 +435,13 @@ MaskEngine::Result MaskEngine::apply(const std::string& text, int caret, bool ca
     passthrough.complete = true;
     return passthrough;
   }
+  // Nothing typed, nothing filled: no literal is completed into an empty field
+  // (the placeholder shows, as it does after deleting everything), whatever
+  // `autocomplete` says. `clear()`, `setText("")` and an empty `value` prop
+  // used to leave a mask's leading literals ("+1 (") behind.
+  if (text.empty() && autocomplete) {
+    return apply(text, caret, caretForward, false, autoSkip);
+  }
 
   const CodePoints input = AmountFormatter::decode(text);
   const int caretPosition = std::clamp(caret, 0, static_cast<int>(input.size()));

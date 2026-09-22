@@ -166,6 +166,29 @@ describe('per-render stability', () => {
     expect(nativeProps(renderer).maskNotations).toBe(empty)
   })
 
+  it('replays commands sent before the native view attached, in order', () => {
+    const ref = createRef<NitroInputHandle>()
+    const renderer = render(<NitroInput ref={ref} />)
+    // Nothing is attached yet: the calls must not be lost.
+    ref.current!.setText('queued')
+    ref.current!.setSelection(1, 3)
+    ref.current!.focus()
+    const calls: string[] = []
+    const native = {
+      replaceText: (text: string) => calls.push(`setText ${text}`),
+      setSelection: (start: number, end: number) => calls.push(`setSelection ${start} ${end}`),
+      focus: () => calls.push('focus'),
+      currentText: () => 'queued',
+    }
+    act(() => {
+      ;(nativeProps(renderer).hybridRef as { f: (instance: unknown) => void }).f(native)
+    })
+    expect(calls).toEqual(['setText queued', 'setSelection 1 3', 'focus'])
+    // Once attached, a call goes straight through.
+    ref.current!.focus()
+    expect(calls).toEqual(['setText queued', 'setSelection 1 3', 'focus', 'focus'])
+  })
+
   it('hands the parent one handle for the field’s lifetime', () => {
     const ref = createRef<NitroInputHandle>()
     const renderer = render(<NitroInput ref={ref} value="one" onChangeText={() => {}} />)
