@@ -409,6 +409,48 @@ static void numericTextSlidesLikeAnAmount() {
   CHECK(three && three->kind == MorphEngine::Text && near(three->y, 0) && near(three->scale, 0.95));
 }
 
+/// In a plain field, the one '.' (or ',') of a number is its decimal point. It
+/// used to be classified as a grouping separator, and every edit after it
+/// re-paired the separators from the units end, so the point left downwards
+/// and rose again in the same place on each keystroke.
+static void textModeDecimalPointStaysPut() {
+  const auto plain = [](MorphEngine& e, const std::string& body, int caret, double now) {
+    e.beginText();
+    for (char c : body) e.addGlyph(static_cast<uint32_t>(c), MorphEngine::Body, MorphEngine::Text, 10, false);
+    e.commitText(caret, now);
+  };
+  MorphEngine e;
+  e.setTiming(0.4, 3, 0.15);
+  plain(e, "23423432.233", 12, 0);
+  const auto* dot = liveGlyph(e, '.');
+  CHECK(dot && dot->kind == MorphEngine::Decimal);
+  const int64_t dotId = dot->id;
+  plain(e, "23423432.23", 11, 1);            // backspace over a fraction digit
+  dot = liveGlyph(e, '.');
+  CHECK(dot && dot->id == dotId && near(dot->y, 0) && near(dot->opacity, 1)); // never moved, so never animated
+  CHECK(countExiting(e) == 1);                // the "3" is the only thing on its way out
+  plain(e, "23423432.235", 12, 2);           // type one
+  dot = liveGlyph(e, '.');
+  CHECK(dot && dot->id == dotId && near(dot->y, 0));
+  plain(e, "234234321.235", 9, 3);           // a digit before the point: it glides, it does not re-enter
+  dot = liveGlyph(e, '.');
+  CHECK(dot && dot->id == dotId && near(dot->y, 0));
+
+  // Grouping stays grouping next to a lone point, and repeated points are structure.
+  MorphEngine g;
+  g.setTiming(0.4, 3, 0.15);
+  plain(g, "1,234,567.89", 12, 0);
+  int commas = 0;
+  for (const auto& gl : g.glyphs()) if (gl.character == ',') { CHECK(gl.kind == MorphEngine::Separator); ++commas; }
+  CHECK(commas == 2);
+  const auto* point = liveGlyph(g, '.');
+  CHECK(point && point->kind == MorphEngine::Decimal);
+  MorphEngine ip;
+  ip.setTiming(0.4, 3, 0.15);
+  plain(ip, "192.168.0.1", 11, 0);
+  for (const auto& gl : ip.glyphs()) if (gl.character == '.') CHECK(gl.kind == MorphEngine::Separator);
+}
+
 /// A placeholder is what the field shows *instead of* a value, so trading it
 /// for one is a change of state and not a morph: nothing rolls, nothing leaves.
 static void replacingThePlaceholderDoesNotAnimate() {
@@ -667,6 +709,7 @@ int main() {
   placeMatchingSwapsChangedColumns();
   textMatchesBySubsequence();
   numericTextSlidesLikeAnAmount();
+  textModeDecimalPointStaysPut();
   replacingThePlaceholderDoesNotAnimate();
   snapsWithoutMotion();
   rightToLeftMirrorsTheAffixesNotTheDigits();
