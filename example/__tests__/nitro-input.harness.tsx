@@ -27,6 +27,58 @@ function layoutOf() {
 }
 
 describe('NitroInput', () => {
+  it('sizes a plain field with autoWidth to its text, not to the morph engine', async () => {
+    // A plain field never feeds the glyph engine, so its width has to come
+    // from the system field. This is the shape `MorphInput` has by default,
+    // asked of the plain component.
+    const { state, onLayout } = layoutOf()
+    await render(
+      <View style={{ alignSelf: 'flex-start' }}>
+        <NitroInput autoWidth fontSize={20} value="Hello world" onLayout={onLayout} />
+      </View>
+    )
+    // "Hello world" at 20pt is well over 60pt wide on every platform font.
+    await waitFor(() => expect(state.current?.width ?? 0).toBeGreaterThan(60))
+    expect(state.current!.width).toBeLessThan(200)
+  })
+
+  it('keeps the caret where it is when a controlled parent echoes the same text back', async () => {
+    // The parent below does what every controlled form does: onChangeText
+    // into state, state back into `value`. That echo must be a no-op on the
+    // native side; re-applying an unchanged text is what threw the caret to
+    // the end after every keystroke typed mid-word.
+    const ref = createRef<NitroInputHandle>()
+    const selections: string[] = []
+    const echoed = deferred<string>()
+    function Controlled() {
+      const [value, setValue] = React.useState('hello')
+      useEffect(() => {
+        if (value === 'hello!') echoed.resolve(value)
+      }, [value])
+      return (
+        <NitroInput
+          ref={ref}
+          value={value}
+          onChangeText={setValue}
+          onSelectionChange={(e: NitroInputSelectionEvent) => selections.push(`${e.start}-${e.end}`)}
+        />
+      )
+    }
+    await render(<Controlled />)
+    await waitFor(() => expect(ref.current?.getText()).toBe('hello'))
+
+    // A method edit lands the caret at the end and reports the change; the
+    // caret is then moved back inside the word before the echo can arrive.
+    ref.current!.setText('hello!')
+    ref.current!.setSelection(2, 2)
+    await withTimeout(echoed.promise, 4000, 'the parent never echoed the edit back')
+    await sleep(150)
+    // Asking for the same caret again is silent only if it never moved.
+    ref.current!.setSelection(2, 2)
+    await sleep(150)
+    expect(selections.filter((s) => s === '2-2')).toEqual(['2-2'])
+  })
+
   it('mounts empty, stretches to its parent and hands out its handle', async () => {
     const ref = createRef<NitroInputHandle>()
     const { state, onLayout } = layoutOf()
@@ -305,7 +357,14 @@ describe('MorphInput', () => {
   it('morphs an amount and sizes to it', async () => {
     const ref = createRef<MorphInputHandle>()
     const { state, onLayout } = layoutOf()
-    await render(<MorphInput ref={ref} mode="number" prefix="$" fontSize={40} onLayout={onLayout} />)
+    // `flex-start` keeps the box content-sized from the first layout. Left to
+    // stretch, the first `onLayout` can carry the parent's full width before
+    // the native measurement lands, and "wider than empty" never holds.
+    await render(
+      <View style={{ alignSelf: 'flex-start' }}>
+        <MorphInput ref={ref} mode="number" prefix="$" fontSize={40} onLayout={onLayout} />
+      </View>
+    )
     await waitFor(() => expect(ref.current?.native).not.toBeNull())
     await waitFor(() => expect(state.current?.width ?? 0).toBeGreaterThan(0))
     const empty = state.current!.width
