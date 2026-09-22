@@ -770,8 +770,15 @@ node scripts/bench/run.mjs --android <serial> --plan quick --impls text,nitro-pr
 # the tables, from whatever is in scripts/bench/results/
 node scripts/bench/report.mjs
 
+# the other plans: the fields, mount and unmount, the scrolling list, memory, what one copy costs, or everything
+node scripts/bench/run.mjs --ios <CoreDevice id> --android <adb serial> --plan inputs   # mount | list | leak | footprint | all
+
 # the Instruments cross-check (iOS)
 node scripts/bench/hitches.mjs --ios <CoreDevice id> --impls nitro-prop,nitro-jump,rnna,arn,nf-view
+
+# the recycling check: the example's "Recycle check" screen driven through argent,
+# every visible row compared with what it reports and what it painted, mid-roll frames included
+node scripts/ui/recycle-check.mjs --udid <simulator UDID, adb serial or phone>
 ```
 
 `xcrun devicectl list devices` gives the iOS ids (pair a cabled phone once

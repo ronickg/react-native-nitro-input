@@ -122,64 +122,13 @@ Typed into at eight keys a second by the benchmark probe, the way a keyboard typ
 
 Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inputs).
 
-Typed into at eight keys a second by the benchmark probe, the way a keyboard types: how many of 12 keys were rewritten a frame later (the flicker of formatting in JavaScript), how long a key took to settle at p95, and JavaScript per key:
-
-| | iPhone 13 Pro Max | iPhone 11 Pro | Galaxy A22 |
-| --- | --- | --- | --- |
-| **NitroInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 1 ms/key | 0 of 12 keys, 0 ms, JS 2 ms/key | 0 of 12 keys, 0 ms, JS 5 ms/key |
-| **MorphInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 19 ms/key |
-| TextInput + formatting in `onChangeText` | 10 of 12 keys, 50 ms, JS 9 ms/key | 10 of 12 keys, 54 ms, JS 10 ms/key | 10 of 12 keys, 77 ms, JS 47 ms/key |
-| react-native-currency-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 55 ms, JS 11 ms/key | 10 of 12 keys, 67 ms, JS 48 ms/key |
-| react-native-mask-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 66 ms, JS 11 ms/key | 10 of 12 keys, 66 ms, JS 41 ms/key |
-| TextInput (plain, no formatting) | 0 of 12 keys, 0 ms, JS 6 ms/key | 0 of 12 keys, 0 ms, JS 8 ms/key | 0 of 12 keys, 0 ms, JS 22 ms/key |
-
-Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inputs).
-
-Typed into at eight keys a second by the benchmark probe, the way a keyboard types: how many of 12 keys were rewritten a frame later (the flicker of formatting in JavaScript), how long a key took to settle at p95, and JavaScript per key:
-
-| | iPhone 13 Pro Max | iPhone 11 Pro | Galaxy A22 |
-| --- | --- | --- | --- |
-| **NitroInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 1 ms/key | 0 of 12 keys, 0 ms, JS 2 ms/key | 0 of 12 keys, 0 ms, JS 5 ms/key |
-| **MorphInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 19 ms/key |
-| TextInput + formatting in `onChangeText` | 10 of 12 keys, 50 ms, JS 9 ms/key | 10 of 12 keys, 54 ms, JS 10 ms/key | 10 of 12 keys, 77 ms, JS 47 ms/key |
-| react-native-currency-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 55 ms, JS 11 ms/key | 10 of 12 keys, 67 ms, JS 48 ms/key |
-| react-native-mask-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 66 ms, JS 11 ms/key | 10 of 12 keys, 66 ms, JS 41 ms/key |
-| TextInput (plain, no formatting) | 0 of 12 keys, 0 ms, JS 6 ms/key | 0 of 12 keys, 0 ms, JS 8 ms/key | 0 of 12 keys, 0 ms, JS 22 ms/key |
-
-Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inputs).
-
-Typed into at eight keys a second by the benchmark probe, the way a keyboard types: how many of 12 keys were rewritten a frame later (the flicker of formatting in JavaScript), how long a key took to settle at p95, and JavaScript per key:
-
-| | iPhone 13 Pro Max | iPhone 11 Pro | Galaxy A22 |
-| --- | --- | --- | --- |
-| **NitroInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 1 ms/key | 0 of 12 keys, 0 ms, JS 2 ms/key | 0 of 12 keys, 0 ms, JS 5 ms/key |
-| **MorphInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 19 ms/key |
-| TextInput + formatting in `onChangeText` | 10 of 12 keys, 50 ms, JS 9 ms/key | 10 of 12 keys, 54 ms, JS 10 ms/key | 10 of 12 keys, 77 ms, JS 47 ms/key |
-| react-native-currency-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 55 ms, JS 11 ms/key | 10 of 12 keys, 67 ms, JS 48 ms/key |
-| react-native-mask-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 66 ms, JS 11 ms/key | 10 of 12 keys, 66 ms, JS 41 ms/key |
-| TextInput (plain, no formatting) | 0 of 12 keys, 0 ms, JS 6 ms/key | 0 of 12 keys, 0 ms, JS 8 ms/key | 0 of 12 keys, 0 ms, JS 22 ms/key |
-
-Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inputs).
-
-Typed into at eight keys a second by the benchmark probe, the way a keyboard types: how many of 12 keys were rewritten a frame later (the flicker of formatting in JavaScript), how long a key took to settle at p95, and JavaScript per key:
-
-| | iPhone 13 Pro Max | iPhone 11 Pro | Galaxy A22 |
-| --- | --- | --- | --- |
-| **NitroInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 1 ms/key | 0 of 12 keys, 0 ms, JS 2 ms/key | 0 of 12 keys, 0 ms, JS 5 ms/key |
-| **MorphInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 19 ms/key |
-| TextInput + formatting in `onChangeText` | 10 of 12 keys, 50 ms, JS 9 ms/key | 10 of 12 keys, 54 ms, JS 10 ms/key | 10 of 12 keys, 77 ms, JS 47 ms/key |
-| react-native-currency-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 55 ms, JS 11 ms/key | 10 of 12 keys, 67 ms, JS 48 ms/key |
-| react-native-mask-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 66 ms, JS 11 ms/key | 10 of 12 keys, 66 ms, JS 41 ms/key |
-| TextInput (plain, no formatting) | 0 of 12 keys, 0 ms, JS 6 ms/key | 0 of 12 keys, 0 ms, JS 8 ms/key | 0 of 12 keys, 0 ms, JS 22 ms/key |
-
-Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inputs).
-
 ## Repository
 
 - [`packages/react-native-nitro-rolling-number`](packages/react-native-nitro-rolling-number) – the rolling number: the shared C++ engine (`cpp/`), the Swift and Kotlin views, the Nitro spec and the JS wrapper. Its [README](packages/react-native-nitro-rolling-number/README.md) is the API reference.
 - [`packages/react-native-nitro-input`](packages/react-native-nitro-input) – the morphing input, same layout: `cpp/MorphEngine` + `cpp/AmountFormatter`, a Swift and a Kotlin view around a hidden system text field.
 - [`example/`](example) – React Native 0.87 app with every demo, the benchmark harness and the showcase screens the recordings come from. Its [`__tests__/*.harness.tsx`](example/__tests__) are on-device suites run by [React Native Harness](https://www.react-native-harness.dev) inside the app (see [`example/__tests__/README.md`](example/__tests__/README.md)); CI runs them on an Android emulator and an iOS simulator.
 - [`docs/`](docs) – the Docusaurus site. Its live demos run the very same `RollingEngine.cpp` and `MorphEngine.cpp`, compiled to WebAssembly.
+- [`scripts/bench`](scripts/bench) – the device benchmarks behind [BENCHMARKS.md](BENCHMARKS.md): `run.mjs` builds, installs and drives the example app on real phones, `report.mjs` renders the tables from `results/`. [`scripts/ui`](scripts/ui) – `recycle-check.mjs` drives the example's "Recycle check" screen through [argent](https://github.com/software-mansion/argent) on a simulator, an emulator or a phone and checks that every row shows and paints the value it should, mid-roll frames included; the release-time check for view recycling.
 
 ```sh
 bun install                 # hoisted linker, see bunfig.toml
@@ -189,6 +138,7 @@ bun run test:cpp            # C++ engine tests for both packages (host clang++)
 bun run build               # lib/ for both packages: ES modules, CommonJS and declarations
 bun example ios             # or: bun example android
 bun run test:harness:ios    # on-device suites (example/__tests__/*.harness.tsx) in the example app on a simulator; `:android` for the emulator
+node scripts/ui/recycle-check.mjs --udid <device>   # the recycling check, on a device with the example app installed (needs argent)
 cd docs && npm install && npm start                                  # docs site
 ```
 
