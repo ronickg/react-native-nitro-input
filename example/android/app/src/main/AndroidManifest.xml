@@ -11,6 +11,8 @@
       android:theme="@style/AppTheme"
       android:usesCleartextTraffic="${usesCleartextTraffic}"
       android:supportsRtl="true">
+      <!-- Lets the shell run heapprofd / Perfetto against release builds of the example (scripts/bench). -->
+      <profileable android:shell="true" />
       <activity
         android:name=".MainActivity"
         android:label="@string/app_name"

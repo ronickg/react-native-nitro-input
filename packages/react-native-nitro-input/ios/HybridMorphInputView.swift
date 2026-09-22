@@ -245,9 +245,28 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     commit()
   }
 
+  /// Fabric dropped the view. The hybrid lives on until the JS handle to it
+  /// (`hybridRef`) is garbage-collected, so the animation stops now.
   func onDropView() {
     onMain { self.inputView.stopAnimation() }
   }
+
+  /// JS called `dispose()` on the ref: same as a drop.
+  func dispose() {
+    onMain { self.inputView.stopAnimation() }
+  }
+
+  /// Reported to the JS garbage collector so a dropped field's handle counts as
+  /// the memory it holds rather than as an empty object. Measured, not
+  /// estimated: the example's `footprint` benchmark mounts 50 fields, asks
+  /// malloc to return freed pages before and with them, and divides the
+  /// difference, on the first mount (Fabric hands later mounts the pooled
+  /// views of earlier ones). iPhone 11 Pro and 13 Pro Max, 2026-09-22: a
+  /// NitroInput is about 120 KB of malloc and 140–155 KB of footprint per
+  /// field (a `TextInput` 120 and 100–110), a MorphInput 20–30 and 30–65.
+  /// One constant for both, because Nitro reads it once when the handle is
+  /// created, before the props say which one this is.
+  var memorySize: Int { 96 * 1024 }
 
   /// Fabric is about to reuse this view for another element: forget every prop
   /// and all state. Nitro re-applies the new element's props next.

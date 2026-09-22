@@ -81,16 +81,21 @@ The count follows how slot machines present a win: a constant-rate tally per tie
 
 ## Performance
 
-Release builds, 24 copies fed a new value on every frame, UI-thread frame rate from a Reanimated frame callback:
+Release builds on real phones, 24 copies fed a new value on every frame, frames per second the UI thread delivered and how many it missed in five seconds (the JS thread is the other half of the story: see the full tables):
 
-| | iPhone 13 Pro Max (120 Hz) | Pixel 10 (60 Hz) |
-| --- | --- | --- |
-| **Nitro Rolling Number** | **120 fps, 0 dropped** | **60 fps, 0 dropped** |
-| NumberFlow (View) | 35 fps | 33 fps |
-| NumberFlow (Skia) | 95 fps | 59 fps |
-| AnimatedNumbers | 114 fps | 56 fps |
+| | iPhone 13 Pro Max (120 Hz) | iPhone 11 Pro (60 Hz) | Galaxy A22 (90 Hz, low-end) |
+| --- | --- | --- | --- |
+| **Nitro Rolling Number** (`value` prop) | 120 fps (0 dropped) | 59.9 fps (0 dropped) | 90.4 fps (0 dropped) |
+| **Nitro Rolling Number** (`jumpTo`) | 120 fps (0 dropped) | 59.9 fps (0 dropped) | 89.8 fps (3 dropped) |
+| react-native-number-animation (native) | 117 fps (13 dropped) | 59.1 fps (4 dropped) | 56.2 fps (170 dropped) |
+| react-native-animated-rolling-numbers | 117 fps (17 dropped) | 58.7 fps (5 dropped) | 18.8 fps (370 dropped) |
+| NumberFlow (View) | 76.1 fps (222 dropped) | 49.1 fps (56 dropped) | 24.9 fps (352 dropped) |
+| NumberFlow (Skia) | 86.7 fps (182 dropped) | 53.1 fps (37 dropped) | 28.2 fps (309 dropped) |
+| react-native-number-bloom | 64.8 fps (281 dropped) | 48.3 fps (60 dropped) | 49.5 fps (207 dropped) |
+| react-native-animated-numbers | 116 fps (21 dropped) | 56.7 fps (16 dropped) | 51.2 fps (199 dropped) |
+| react-native-ticker | 11.8 fps (544 dropped) | 7.6 fps (258 dropped) | 12.6 fps (379 dropped) |
 
-Method and full tables: [BENCHMARKS.md](BENCHMARKS.md).
+Method, the JS-thread and CPU columns, the ten-a-second and one-copy cases, a scrolling list, mount cost and the Instruments cross-check: [BENCHMARKS.md](BENCHMARKS.md).
 
 ## Also in this repo: a morphing input
 
@@ -103,6 +108,71 @@ import { NitroInput } from 'react-native-nitro-input'
 ```
 
 [Guide and live demo →](https://ronickg.github.io/react-native-nitro-rolling-number/input) · [Package README](packages/react-native-nitro-input/README.md)
+
+Typed into at eight keys a second by the benchmark probe, the way a keyboard types: how many of 12 keys were rewritten a frame later (the flicker of formatting in JavaScript), how long a key took to settle at p95, and JavaScript per key:
+
+| | iPhone 13 Pro Max | iPhone 11 Pro | Galaxy A22 |
+| --- | --- | --- | --- |
+| **NitroInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 1 ms/key | 0 of 12 keys, 0 ms, JS 2 ms/key | 0 of 12 keys, 0 ms, JS 5 ms/key |
+| **MorphInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 19 ms/key |
+| TextInput + formatting in `onChangeText` | 10 of 12 keys, 50 ms, JS 9 ms/key | 10 of 12 keys, 54 ms, JS 10 ms/key | 10 of 12 keys, 77 ms, JS 47 ms/key |
+| react-native-currency-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 55 ms, JS 11 ms/key | 10 of 12 keys, 67 ms, JS 48 ms/key |
+| react-native-mask-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 66 ms, JS 11 ms/key | 10 of 12 keys, 66 ms, JS 41 ms/key |
+| TextInput (plain, no formatting) | 0 of 12 keys, 0 ms, JS 6 ms/key | 0 of 12 keys, 0 ms, JS 8 ms/key | 0 of 12 keys, 0 ms, JS 22 ms/key |
+
+Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inputs).
+
+Typed into at eight keys a second by the benchmark probe, the way a keyboard types: how many of 12 keys were rewritten a frame later (the flicker of formatting in JavaScript), how long a key took to settle at p95, and JavaScript per key:
+
+| | iPhone 13 Pro Max | iPhone 11 Pro | Galaxy A22 |
+| --- | --- | --- | --- |
+| **NitroInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 1 ms/key | 0 of 12 keys, 0 ms, JS 2 ms/key | 0 of 12 keys, 0 ms, JS 5 ms/key |
+| **MorphInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 19 ms/key |
+| TextInput + formatting in `onChangeText` | 10 of 12 keys, 50 ms, JS 9 ms/key | 10 of 12 keys, 54 ms, JS 10 ms/key | 10 of 12 keys, 77 ms, JS 47 ms/key |
+| react-native-currency-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 55 ms, JS 11 ms/key | 10 of 12 keys, 67 ms, JS 48 ms/key |
+| react-native-mask-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 66 ms, JS 11 ms/key | 10 of 12 keys, 66 ms, JS 41 ms/key |
+| TextInput (plain, no formatting) | 0 of 12 keys, 0 ms, JS 6 ms/key | 0 of 12 keys, 0 ms, JS 8 ms/key | 0 of 12 keys, 0 ms, JS 22 ms/key |
+
+Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inputs).
+
+Typed into at eight keys a second by the benchmark probe, the way a keyboard types: how many of 12 keys were rewritten a frame later (the flicker of formatting in JavaScript), how long a key took to settle at p95, and JavaScript per key:
+
+| | iPhone 13 Pro Max | iPhone 11 Pro | Galaxy A22 |
+| --- | --- | --- | --- |
+| **NitroInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 1 ms/key | 0 of 12 keys, 0 ms, JS 2 ms/key | 0 of 12 keys, 0 ms, JS 5 ms/key |
+| **MorphInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 19 ms/key |
+| TextInput + formatting in `onChangeText` | 10 of 12 keys, 50 ms, JS 9 ms/key | 10 of 12 keys, 54 ms, JS 10 ms/key | 10 of 12 keys, 77 ms, JS 47 ms/key |
+| react-native-currency-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 55 ms, JS 11 ms/key | 10 of 12 keys, 67 ms, JS 48 ms/key |
+| react-native-mask-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 66 ms, JS 11 ms/key | 10 of 12 keys, 66 ms, JS 41 ms/key |
+| TextInput (plain, no formatting) | 0 of 12 keys, 0 ms, JS 6 ms/key | 0 of 12 keys, 0 ms, JS 8 ms/key | 0 of 12 keys, 0 ms, JS 22 ms/key |
+
+Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inputs).
+
+Typed into at eight keys a second by the benchmark probe, the way a keyboard types: how many of 12 keys were rewritten a frame later (the flicker of formatting in JavaScript), how long a key took to settle at p95, and JavaScript per key:
+
+| | iPhone 13 Pro Max | iPhone 11 Pro | Galaxy A22 |
+| --- | --- | --- | --- |
+| **NitroInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 1 ms/key | 0 of 12 keys, 0 ms, JS 2 ms/key | 0 of 12 keys, 0 ms, JS 5 ms/key |
+| **MorphInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 19 ms/key |
+| TextInput + formatting in `onChangeText` | 10 of 12 keys, 50 ms, JS 9 ms/key | 10 of 12 keys, 54 ms, JS 10 ms/key | 10 of 12 keys, 77 ms, JS 47 ms/key |
+| react-native-currency-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 55 ms, JS 11 ms/key | 10 of 12 keys, 67 ms, JS 48 ms/key |
+| react-native-mask-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 66 ms, JS 11 ms/key | 10 of 12 keys, 66 ms, JS 41 ms/key |
+| TextInput (plain, no formatting) | 0 of 12 keys, 0 ms, JS 6 ms/key | 0 of 12 keys, 0 ms, JS 8 ms/key | 0 of 12 keys, 0 ms, JS 22 ms/key |
+
+Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inputs).
+
+Typed into at eight keys a second by the benchmark probe, the way a keyboard types: how many of 12 keys were rewritten a frame later (the flicker of formatting in JavaScript), how long a key took to settle at p95, and JavaScript per key:
+
+| | iPhone 13 Pro Max | iPhone 11 Pro | Galaxy A22 |
+| --- | --- | --- | --- |
+| **NitroInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 1 ms/key | 0 of 12 keys, 0 ms, JS 2 ms/key | 0 of 12 keys, 0 ms, JS 5 ms/key |
+| **MorphInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 19 ms/key |
+| TextInput + formatting in `onChangeText` | 10 of 12 keys, 50 ms, JS 9 ms/key | 10 of 12 keys, 54 ms, JS 10 ms/key | 10 of 12 keys, 77 ms, JS 47 ms/key |
+| react-native-currency-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 55 ms, JS 11 ms/key | 10 of 12 keys, 67 ms, JS 48 ms/key |
+| react-native-mask-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 66 ms, JS 11 ms/key | 10 of 12 keys, 66 ms, JS 41 ms/key |
+| TextInput (plain, no formatting) | 0 of 12 keys, 0 ms, JS 6 ms/key | 0 of 12 keys, 0 ms, JS 8 ms/key | 0 of 12 keys, 0 ms, JS 22 ms/key |
+
+Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inputs).
 
 ## Repository
 

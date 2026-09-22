@@ -1,6 +1,6 @@
 import React from 'react'
 import { DevSettings, I18nManager, ScrollView, Text } from 'react-native'
-import { NavigationContainer } from '@react-navigation/native'
+import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { useNavigation } from '@react-navigation/native'
 import { Btn, Card, Row, styles } from './harness'
@@ -12,6 +12,10 @@ import { KeyboardControllerScreen } from './screens/KeyboardControllerScreen'
 import { BenchScreen } from './screens/BenchScreen'
 import { ViewPropsReproScreen } from './screens/ViewPropsRepro'
 import { RtlScreen } from './screens/RtlScreen'
+import { RecycleCheckScreen } from './screens/RecycleCheckScreen'
+import { RollingBenchScreen, type RollingBenchParams } from './bench/RollingBenchScreen'
+import { parsePlan } from './bench/plan'
+import { launchPlan } from './bench/probe'
 import {
   FlowAmountScreen,
   FlowEmailScreen,
@@ -30,12 +34,14 @@ export type RootStackParamList = {
   StateChange: undefined
   KeyboardController: undefined
   Bench: undefined
+  RollingBench: RollingBenchParams
   FlowEmail: { impl: Impl }
   FlowAmount: { impl: Impl }
   FlowForm: { impl: Impl }
   FlowSheet: { impl: Impl }
   ViewPropsRepro: undefined
   Rtl: undefined
+  RecycleCheck: undefined
 }
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
@@ -110,6 +116,10 @@ function HomeScreen() {
           <Btn testID="home-sheet-rn-manual" title="Sheet (rn, manual)" onPress={() => nav.navigate('Sheet', { kind: 'rn', autoFocus: false })} />
         </Row>
       </Card>
+      <Card title="Rolling number" hint="This library against every other animated-number library on npm that builds here: frame pacing on both threads and per-thread CPU, on this device.">
+        <Row><Btn testID="home-rolling-bench" tone="primary" title="Benchmark vs other libraries" onPress={() => nav.navigate('RollingBench')} /></Row>
+        <Row><Btn testID="home-recycle" title="Recycle check (400-row lists)" onPress={() => nav.navigate('RecycleCheck')} /></Row>
+      </Card>
       <Card title="Original demo" hint="The rolling number and morph input showcase this example shipped with.">
         <Row><Btn testID="home-demo" title="Open demo" onPress={() => nav.navigate('Demo')} /></Row>
       </Card>
@@ -118,9 +128,31 @@ function HomeScreen() {
   )
 }
 
+/**
+ * Launched with a benchmark plan (scripts/bench/run.mjs passes one through the
+ * probe), the app goes straight to the benchmark screen and runs it. Android
+ * reports the activity's intent a beat after the bundle loads, hence the retries.
+ */
+function useLaunchPlan(navRef: ReturnType<typeof useNavigationContainerRef<RootStackParamList>>) {
+  return React.useCallback(() => {
+    let tries = 0
+    const check = () => {
+      const plan = parsePlan(launchPlan())
+      if (plan) {
+        navRef.navigate('RollingBench', { plan })
+        return
+      }
+      if (++tries < 6) setTimeout(check, 500)
+    }
+    check()
+  }, [navRef])
+}
+
 export function RootNavigator() {
+  const navRef = useNavigationContainerRef<RootStackParamList>()
+  const onReady = useLaunchPlan(navRef)
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navRef} onReady={onReady}>
       <Stack.Navigator screenOptions={STACK_OPTIONS}>
         <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Input parity' }} />
         <Stack.Screen name="Parity" component={ParityScreen} options={{ title: 'Parity' }} />
@@ -129,12 +161,14 @@ export function RootNavigator() {
         <Stack.Screen name="StateChange" component={StateChangeScreen} options={{ title: 'State change' }} />
         <Stack.Screen name="KeyboardController" component={KeyboardControllerScreen} options={{ title: 'keyboard-controller' }} />
         <Stack.Screen name="Bench" component={BenchScreen} options={{ title: 'Benchmark' }} />
+        <Stack.Screen name="RollingBench" component={RollingBenchScreen} options={{ title: 'Rolling number benchmark' }} />
         <Stack.Screen name="FlowEmail" component={FlowEmailScreen} options={FLOW_STEP} />
         <Stack.Screen name="FlowAmount" component={FlowAmountScreen} options={FLOW_STEP} />
         <Stack.Screen name="FlowForm" component={FlowFormScreen} options={FLOW_STEP} />
         <Stack.Screen name="Demo" component={DemoScreen} options={{ title: 'Demo' }} />
         <Stack.Screen name="ViewPropsRepro" component={ViewPropsReproScreen} options={{ title: 'View props' }} />
         <Stack.Screen name="Rtl" component={RtlScreen} options={{ title: 'Right-to-left' }} />
+        <Stack.Screen name="RecycleCheck" component={RecycleCheckScreen} options={{ title: 'Recycle check' }} />
         <Stack.Screen
           name="FlowSheet"
           component={FlowSheetScreen}

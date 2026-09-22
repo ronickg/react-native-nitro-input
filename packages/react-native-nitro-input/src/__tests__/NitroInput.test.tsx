@@ -247,14 +247,14 @@ describe('colours', () => {
     expect(props.selectionColor).toBe(0xffff0000)
   })
 
-  it('sends NaN for an unset colour, which native reads as the platform default', () => {
+  it('sends Infinity for an unset colour, which native reads as the platform default', () => {
     const props = nativeProps(render(<NitroInput />))
-    for (const key of FRAME_COLOURS) expect(Number.isNaN(props[key])).toBe(true)
+    for (const key of FRAME_COLOURS) expect(props[key]).toBe(Infinity)
   })
 
-  it('sends NaN for a colour it cannot process, rather than undefined', () => {
+  it('sends Infinity for a colour it cannot process, rather than undefined', () => {
     const props = nativeProps(render(<NitroInput strokeColor="not a colour" fillColor={undefined} />))
-    expect(Number.isNaN(props.strokeColor)).toBe(true)
-    expect(Number.isNaN(props.fillColor)).toBe(true)
+    expect(props.strokeColor).toBe(Infinity)
+    expect(props.fillColor).toBe(Infinity)
   })
 })

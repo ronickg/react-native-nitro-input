@@ -2,6 +2,22 @@
 
 ## 0.1.0 (unreleased)
 
+- Memory: a dropped field is freed when Fabric drops it. The Nitro hybrid
+  behind a view is kept alive by its C++ part until the JS handle from
+  `hybridRef` is garbage-collected, and Hermes collects a handle it takes for
+  an empty object only when the JS heap fills up. On Android the hybrid held
+  the platform view, so in a mount/unmount loop on a Galaxy A22 every dropped
+  field stayed allocated (about 60 live `View`s more per cycle, linear). Now
+  the Android hybrid lets go of its view on drop (unless Fabric is recycling
+  it); iOS pools and reuses the component view. The hybrid reports its
+  `memorySize` to Nitro so the handle is collected in time, and `dispose()`
+  on the ref stops the animation eagerly, as a drop does.
+- An unset colour is sent as `Infinity`, not `NaN`: Nitro only calls a native
+  setter when a prop's value changed, and NaN never equals itself, so every
+  render of a controlled field (every keystroke) re-set the colours and had
+  the whole configuration applied again. Native already read a non-finite
+  colour as the platform default.
+
 - Initial release: native single-line text / amount input (iOS + Android) with Torph-style text morphing, built with Nitro Modules.
 - One shared C++ engine (`cpp/MorphEngine`): caret matching for edits (grouping separators paired from the units end), place matching for programmatic sets, longest-common-subsequence for text; digits slide through the line box, separators from below, text fades and scales; entering and leaving characters ride with their nearest persisting neighbour; `expo` / `easeOut` / `easeInOut` / `linear` / `spring` timing; Reduce Motion snaps.
 - `mode="number"`: every edit is formatted natively before a frame is drawn (`cpp/AmountFormatter`): grouping, one decimal, `fractionDigits` / `maxIntegerDigits` limits that reject the keystroke, backspace over a separator removes the digit before it, a decimal typed in the integer part moves the decimal point, `prefix` / `suffix` with their own sizes and alignment.

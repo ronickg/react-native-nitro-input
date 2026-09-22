@@ -1052,32 +1052,35 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
 
     // Every native prop is sent with an explicit value: an optional prop that
     // is *removed* reaches native as `null`, which Nitro's parser rejects and
-    // React Native turns into a fatal error. `NaN` stands for "platform default"
+    // React Native turns into a fatal error. `Infinity` stands for "platform default"
     // where there is no value to express it (colors), `''` for fonts.
-    const processedColor = useMemo(() => toProcessedColor(color) ?? NaN, [color])
+    // Not `NaN`: Nitro only calls a native setter when a prop's value changed,
+    // and NaN never equals itself, so a NaN sentinel re-applied the whole
+    // configuration on every render (every keystroke of a controlled field).
+    const processedColor = useMemo(() => toProcessedColor(color) ?? Infinity, [color])
     const processedPlaceholderColor = useMemo(
-      () => toProcessedColor(placeholderTextColor) ?? NaN,
+      () => toProcessedColor(placeholderTextColor) ?? Infinity,
       [placeholderTextColor]
     )
     const processedCursorColor = useMemo(
-      () => toProcessedColor(cursorColor) ?? NaN,
+      () => toProcessedColor(cursorColor) ?? Infinity,
       [cursorColor]
     )
     const processedSelectionColor = useMemo(
-      () => toProcessedColor(selectionColor) ?? NaN,
+      () => toProcessedColor(selectionColor) ?? Infinity,
       [selectionColor]
     )
-    const processedLabelColor = useMemo(() => toProcessedColor(labelColor) ?? NaN, [labelColor])
+    const processedLabelColor = useMemo(() => toProcessedColor(labelColor) ?? Infinity, [labelColor])
     const processedLabelFocusedColor = useMemo(
-      () => toProcessedColor(labelFocusedColor) ?? NaN,
+      () => toProcessedColor(labelFocusedColor) ?? Infinity,
       [labelFocusedColor]
     )
-    const processedStrokeColor = useMemo(() => toProcessedColor(strokeColor) ?? NaN, [strokeColor])
+    const processedStrokeColor = useMemo(() => toProcessedColor(strokeColor) ?? Infinity, [strokeColor])
     const processedFocusedStrokeColor = useMemo(
-      () => toProcessedColor(focusedStrokeColor) ?? NaN,
+      () => toProcessedColor(focusedStrokeColor) ?? Infinity,
       [focusedStrokeColor]
     )
-    const processedFillColor = useMemo(() => toProcessedColor(fillColor) ?? NaN, [fillColor])
+    const processedFillColor = useMemo(() => toProcessedColor(fillColor) ?? Infinity, [fillColor])
     const numericWeight = toNumericWeight(fontWeight) ?? 400
     const resolvedFontSize = fontSize ?? 32
     const resolvedAffixAlign = affixAlign ?? 'baseline'

@@ -375,11 +375,14 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
 
     // Every native prop is sent with an explicit value: an optional prop that
     // is *removed* reaches native as `null`, which Nitro's parser rejects and
-    // React Native turns into a fatal error. `NaN` stands for "platform default"
-    // where there is no value to express it (colors), `''` for fonts.
-    const processedColor = useMemo(() => toProcessedColor(color) ?? NaN, [color])
+    // React Native turns into a fatal error. `Infinity` stands for "platform
+    // default" where there is no value to express it (colors), `''` for fonts.
+    // Not `NaN`: Nitro only calls a native setter when a prop's value changed,
+    // and NaN never equals itself, so a NaN sentinel re-set the colour on every
+    // render and had the whole configuration re-applied on every value change.
+    const processedColor = useMemo(() => toProcessedColor(color) ?? Infinity, [color])
     const processedShimmerColor = useMemo(
-      () => toProcessedColor(shimmerColor) ?? NaN,
+      () => toProcessedColor(shimmerColor) ?? Infinity,
       [shimmerColor]
     )
     const numericWeight = toNumericWeight(fontWeight) ?? 400

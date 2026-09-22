@@ -161,9 +161,22 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
     commit()
   }
 
+  /// Fabric dropped the view. The hybrid lives on until the JS handle to it
+  /// (`hybridRef`) is garbage-collected, so the view lets go of what is
+  /// sizeable now and keeps only itself.
   func onDropView() {
-    onMain { self.rollingView.stopAnimation() }
+    onMain { self.rollingView.release() }
   }
+
+  /// JS called `dispose()` on the ref: same as a drop.
+  func dispose() {
+    onMain { self.rollingView.release() }
+  }
+
+  /// Reported to the JS garbage collector so a dropped view's handle counts as
+  /// the memory it holds rather than as an empty object; that is what makes
+  /// Hermes collect the handles, and with them the views, in time.
+  var memorySize: Int { RollingNumberView.memoryEstimateBytes }
 
   /// Fabric is about to reuse this view for another element: forget every prop
   /// and all animation state. Nitro re-applies the new element's props next.

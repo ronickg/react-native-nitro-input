@@ -1,0 +1,32 @@
+apply plugin: "com.android.library"
+apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: "com.facebook.react"
+
+react {
+  jsRootDir = file("../src/")
+  libraryName = "BenchProbe"
+  codegenJavaPackageName = "com.benchprobe"
+}
+
+android {
+  namespace "com.benchprobe"
+  compileSdk rootProject.ext.compileSdkVersion
+
+  buildFeatures {
+    buildConfig true
+  }
+
+  defaultConfig {
+    minSdk rootProject.ext.minSdkVersion
+    targetSdk rootProject.ext.targetSdkVersion
+  }
+}
+
+repositories {
+  mavenCentral()
+  google()
+}
+
+dependencies {
+  implementation "com.facebook.react:react-android"
+}

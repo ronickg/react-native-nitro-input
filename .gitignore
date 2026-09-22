@@ -35,5 +35,14 @@ example/.recordings/
 # behaviour against. Kept out of the PR like the other internals notes.
 native/
 
+# Benchmark traces are large; the pulled device copies are scratch
+scripts/bench/results/hitches/*.trace
+scripts/bench/results/hitches/bench-results.ndjson
+scripts/bench/results/hitches/device.json
+scripts/bench/results/hitches/*.stdout.txt
+scripts/bench/results/leaks/
+example/modules/*/android/build/
+example/modules/*/android/.cxx/
+
 # React Native Harness cache and crash reports (example/__tests__/*.harness.tsx runs)
 example/.harness/
