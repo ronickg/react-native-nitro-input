@@ -1,43 +1,229 @@
 ---
 sidebar_position: 7
 title: Props
-description: 'Every prop of NitroInput and MorphInput.'
+description: 'Every prop, method and event of NitroInput and MorphInput, with types and defaults.'
 ---
 
-The full table is in the package [README](https://github.com/ronickg/react-native-nitro-rolling-number/tree/main/packages/react-native-nitro-input#props). The ones you will reach for first:
+# Props
 
-| Prop | Default | |
+`NitroInput` takes every `View` prop (`style`, `testID`, `accessibilityLabel`, …) plus the ones below. All are optional. `MorphInput` is the same component with [`morph`](#the-morph) on and [`autoWidth`](#size-and-alignment) set to `'auto'`, and takes every prop here except `morph`.
+
+A test in the package fails when this page misses a prop the component declares, so what is listed here is what the component takes.
+
+## Text and value
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `value` | `string` | – | The text to show (controlled). The native side formats and shows what the user types on its own; the prop is applied when it changes to something other than what the field already shows, so echoing `onChangeText` back into state never fights the user. A `value` carrying a stale `mostRecentEventCount` is ignored, as `TextInput` ignores it. |
+| `defaultValue` | `string` | – | The initial text (uncontrolled). |
+| `placeholder` | `string` | `''` | Shown while the field is empty. With `morph` the first character morphs it away. In `'number'` mode `'0'` reads well. |
+| `placeholderTextColor` | `ColorValue` | platform | Colour of the placeholder. |
+| `maxLength` | `number` | unlimited | `'text'` mode: the most characters accepted. |
+| `editable` | `boolean` | `true` | Whether the user can edit the field. |
+| `readOnly` | `boolean` | `false` | Alias of `editable={false}`, as in React Native. |
+
+## Mode
+
+One prop picks how the field edits. It is separate from `inputMode` and `keyboardType`, which only pick the keyboard. See [An amount field](/input/amount-field) and [A masked field](/input/masked-field).
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `mode` | `'text' \| 'number' \| 'mask'` | `'text'` | `'text'` is a plain field. `'number'` formats natively as you type: grouping separators, one decimal separator, up to `fractionDigits` decimals, a currency `prefix` / `suffix`; the value comes out of `onChangeValue` and `getValue()`. `'mask'` applies the fixed pattern in `mask`. |
+
+### Number mode
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `fractionDigits` | `number` | `2` | Most digits allowed after the decimal separator; a keystroke past it is rejected. `0` disables the decimal. |
+| `maxIntegerDigits` | `number` | `15` | Most integer digits accepted. |
+| `groupingSeparator` | `string` | `','` | Inserted between every three integer digits. `''` disables grouping. |
+| `decimalSeparator` | `string` | `'.'` | Placed between integer and fraction digits. Whatever the keyboard's decimal key produces (`.` or `,`) is accepted as it. |
+| `signPlacement` | `'beforeAffix' \| 'afterAffix'` | `'beforeAffix'` | Where a negative amount's sign sits relative to `prefix`: `-$1,234.56`, or `$-1,234.56` with `'afterAffix'`. Only the morph honours it; a plain field's affixes are accessory views outside the text, so it is always `'afterAffix'` there. See [Negative amounts](/input/amount-field#negative-amounts). |
+
+### Mask mode
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `mask` | `string` | `''` | The pattern, e.g. `'+1 ([000]) [000]-[0000]'`. `[0]` mandatory digit, `[9]` optional digit, `[A]` mandatory letter, `[a]` optional letter, `[_]` mandatory alphanumeric, `[-]` optional alphanumeric, `[…]` an unbounded run of the preceding type. `{…}` is a fixed block whose characters count towards the extracted value; a literal outside brackets is shown but not extracted. `\\` escapes. An invalid pattern leaves the field unmasked rather than breaking it. |
+| `maskNotations` | `{ character: string; characterSet: string }[]` | `[]` | Your own slot characters beyond the built-in ones: the character that stands for the slot in the mask, and every character it accepts. |
+| `maskAutocomplete` | `boolean` | `true` | Fill in constants as the caret reaches them. Only with the caret at the end, so editing mid-value does not fight you. |
+| `maskAutoSkip` | `boolean` | `false` | Backspace walks back over autocompleted constants. |
+
+## Affixes
+
+Static text around the field's text, drawn at their own sizes. See [An amount field](/input/amount-field).
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `prefix` | `string` | `''` | Drawn before the text, e.g. `'$'`. |
+| `suffix` | `string` | `''` | Drawn after the text, e.g. `' USD'`. |
+| `prefixFontSize` | `number` | `fontSize` | Font size of `prefix`, e.g. a smaller currency symbol. |
+| `suffixFontSize` | `number` | `fontSize` | Font size of `suffix`. |
+| `affixAlign` | `'baseline' \| 'center' \| 'top' \| 'bottom'` | `'baseline'` | How prefix and suffix line up with the text: `'top'` pins glyph tops, `'bottom'` the bottom of the ink, `'baseline'` shares the baseline, `'center'` centres. |
+| `prefixAlign` | same | `affixAlign` | Alignment of `prefix` only. |
+| `suffixAlign` | same | `affixAlign` | Alignment of `suffix` only. |
+
+## Frame and label
+
+An outlined or filled box with a floating label, drawn natively. See [Frames](/input/frames).
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `variant` | `'none' \| 'outlined' \| 'filled'` | `'none'` | `'outlined'` strokes a rounded rectangle notched around the floating label; the notch is a real hole in the path, so whatever is behind the field shows through. `'filled'` tints the box. `'none'` leaves the border to `style`. |
+| `label` | `string` | `''` | The floating label. Needs a `variant` other than `'none'`. Also the field's accessible name when nothing else supplies one. |
+| `labelBehavior` | `'float' \| 'always'` | `'float'` | `'float'` sits inline while the field is empty and unfocused and floats once it is focused or has text; `'always'` stays floated. |
+| `labelColor` | `ColorValue` | `placeholderTextColor` | Label colour at rest. |
+| `labelFocusedColor` | `ColorValue` | `focusedStrokeColor` | Label colour while focused. |
+| `labelFontSize` | `number` | from `fontSize` | Label size when floated, in points. |
+| `strokeColor` | `ColorValue` | hairline grey | Outline colour. |
+| `focusedStrokeColor` | `ColorValue` | `strokeColor` | Outline colour while focused. |
+| `strokeWidth` | `number` | `1` | Outline width in points, doubled while focused. |
+| `cornerRadius` | `number` | `8` | Corner radius of the frame. |
+| `fillColor` | `ColorValue` | – | `'filled'`: the box tint. |
+
+## Typography
+
+Resolved the way `Text` resolves its style.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `fontSize` | `number` | `32` | Font size in points. |
+| `fontWeight` | `TextStyle['fontWeight']` | `'normal'` | Font weight, as `Text`'s. |
+| `fontFamily` | `string` | system | Font family, as `Text`'s; bundled and expo-font fonts work. |
+| `color` | `ColorValue` | label colour | Text colour. |
+| `lineHeight` | `number` | the font's | Height of the line box in points, in the CSS sense: the total height a line occupies. Unlike `TextInput`, a line height tighter than the font is centred correctly too, and it applies to single-line and morphing fields as well as wrapped ones. |
+| `allowFontScaling` | `boolean` | `false` | Scale the fonts with the system text size, like `Text`. Off by default so amounts keep their design size. |
+| `maxFontSizeMultiplier` | `number` | `0` | Upper bound for `allowFontScaling`, e.g. `1.3`. `0` is no cap. |
+
+## Size and alignment
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `autoWidth` | `boolean \| 'auto'` | `false` | Whether the field sizes itself to its content. `false` takes its width from the parent the way a `TextInput` does, which is what makes it a drop-in. `true` always sizes to content. `'auto'` infers it: on unless `style` gives a `width` or `flex`, which lets an amount grow as digits arrive, and is what `MorphInput` uses. |
+| `textAlign` | `'auto' \| 'left' \| 'center' \| 'right'` | `'auto'` | Where the text sits when the view is wider than it. `'auto'` is the start edge of the layout direction, as `TextInput`; `'left'` and `'right'` are absolute. See [Right-to-left](/input/react-native#right-to-left). |
+| `adjustsFontSizeToFit` | `boolean` | `false` | Scale the text down when it is wider than the view (give the view a fixed `width` in `style`), and back up when it fits again. |
+| `minimumFontScale` | `number` | `0.5` | Smallest scale `adjustsFontSizeToFit` may apply, `0`–`1`. |
+
+## Multiline
+
+A wrapping field is drawn by the system view and is always `'text'` mode: `morph`, a non-text `mode` and the affixes are ignored alongside it, with one warning each in development. See [Multiline](/input/multiline).
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `multiline` | `boolean` | `false` | Let the text wrap onto more than one line. The return key inserts a line break unless `submitBehavior` says otherwise. |
+| `numberOfLines` | `number` | – | Lines tall before it scrolls. Omit to grow with the content. |
+| `rows` | `number` | – | Alias of `numberOfLines`, matching `TextInput`. |
+| `textAlignVertical` | `'auto' \| 'top' \| 'center' \| 'bottom'` | `'auto'` | Where the text sits in the box; `'auto'` is the top. |
+| `scrollEnabled` | `boolean` | `true` | Whether it scrolls once the text outgrows it. |
+
+## Keyboard and return key
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `keyboardType` | `'default' \| 'number-pad' \| 'decimal-pad' \| 'numeric' \| 'email-address' \| 'phone-pad' \| 'url' \| 'ascii-capable' \| 'numbers-and-punctuation'` | by mode | Keyboard to show. `'number'` mode defaults to `'decimal-pad'` (`'number-pad'` with `fractionDigits={0}`), the others to `'default'`. |
+| `inputMode` | `'none' \| 'text' \| 'decimal' \| 'numeric' \| 'tel' \| 'search' \| 'email' \| 'url'` | – | React Native's alias for `keyboardType`, following the HTML attribute and mapped with React Native's own table. Ignored when `keyboardType` is given. `'none'` focuses without a keyboard, as in `TextInput`. |
+| `returnKeyType` | `'default' \| 'done' \| 'go' \| 'next' \| 'search' \| 'send'` | `'default'` | Label of the return key. |
+| `enterKeyHint` | `'enter' \| 'done' \| 'go' \| 'next' \| 'previous' \| 'search' \| 'send'` | – | React Native's alias for `returnKeyType`, following the HTML attribute. Ignored when `returnKeyType` is given. |
+| `keyboardAppearance` | `'default' \| 'light' \| 'dark'` | `'default'` | iOS: a light or dark keyboard; `'default'` follows the system appearance. |
+| `enablesReturnKeyAutomatically` | `boolean` | `false` | Disables the return key until the field has text. |
+| `showSoftInputOnFocus` | `boolean` | `true` | `false` keeps focus and the caret without the soft keyboard, for a field driven by an in-app keypad. |
+| `submitBehavior` | `'blurAndSubmit' \| 'submit' \| 'newline'` | `'blurAndSubmit'`, `'newline'` when `multiline` | What the return key does: `'blurAndSubmit'` fires `onSubmitEditing` and dismisses the keyboard; `'submit'` fires it and keeps focus, so a form can move to the next field itself; `'newline'` inserts a line break (`multiline` only). The defaults are `TextInput`'s. |
+| `blurOnSubmit` | `boolean` | – | Deprecated alias of `submitBehavior`, resolved as `TextInput` resolves it: `false` means `'submit'` on a single-line field, `true` means `'blurAndSubmit'` on a multiline one. Ignored when `submitBehavior` is given. |
+| `autoFocus` | `boolean` | `false` | Focus the field when it mounts. Taken synchronously as soon as the view has a window, so on iOS a screen pushed over a focused field swaps the keyboard in place instead of dismissing and re-presenting it. |
+
+## Editing behaviour
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `autoCapitalize` | `'none' \| 'sentences' \| 'words' \| 'characters'` | `'sentences'` | Auto-capitalisation in `'text'` mode. |
+| `autoCorrect` | `boolean` | `true` | Auto-correction in `'text'` mode. |
+| `spellCheck` | `boolean` | `autoCorrect` | Spell checking in `'text'` mode. |
+| `secureTextEntry` | `boolean` | `false` | Draws bullets and turns off autocorrect; the field keeps the real text for editing and autofill. |
+| `textContentType` | `string` | `''` | iOS `textContentType`, the autofill kind: `'username'`, `'password'`, `'oneTimeCode'`, … |
+| `autoComplete` | `string` | `''` | The cross-platform autofill hint, as `TextInput`'s. Used as `textContentType` on iOS when that is not set. |
+| `selectTextOnFocus` | `boolean` | `false` | Select all the text when the field gains focus. |
+| `clearTextOnFocus` | `boolean` | `false` | Empty the field when it gains focus. |
+| `contextMenuHidden` | `boolean` | `false` | Hides the Cut / Copy / Paste menu. |
+
+## Caret and selection
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `cursorColor` | `ColorValue` | platform tint | Caret colour. |
+| `selectionColor` | `ColorValue` | platform tint | Selection highlight colour. |
+| `caretHidden` | `boolean` | `false` | Hides the caret. |
+| `selection` | `{ start: number; end?: number }` | – | The caret or selection to apply, in code points into the (formatted) text. `onSelectionChange` reports moves in the same units. |
+
+## The morph
+
+The opt-in glyph animation: every edit morphs from the old text to the new one. See [The morph](/input/morph).
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `morph` | `boolean` | `false` | Run the glyph engine, so text morphs as it changes rather than simply appearing. Off by default: this is a text field first, and a `TextInput` does not animate its characters. `MorphInput` is this component with it on. |
+| `duration` | `number` | `400` | Duration in ms of the morph played on every change. `0` snaps. |
+| `easing` | `'expo' \| 'easeOut' \| 'easeInOut' \| 'linear' \| 'spring'` | `'expo'` | Timing curve of the morph. `'expo'` is Torph's `cubic-bezier(0.19, 1, 0.22, 1)`. |
+| `bounce` | `number` | `0.15` | Overshoot of the `'spring'` easing, `0`–`1`. |
+| `effect` | `'auto' \| 'slide' \| 'fade'` | `'auto'` | How characters enter and leave. `'auto'`: digits and separators slide through the line box (digits from above, separators from below), other characters fade and scale. |
+
+## Worklets
+
+With `react-native-worklets` installed, work can run on the UI thread inside the native edit, before a frame is drawn. See [Worklets](/input/worklets).
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `transform` | `NitroInputTransform` | – | A worklet that rewrites the text after every edit, synchronously on the UI thread: masks, custom formats, anything JS can express. It receives the edited text, the previous text and both selections (code point offsets) and returns the new text and optionally where the caret goes; `null` keeps the edit. In `'number'` mode it runs after the native formatter. Create it once (module scope or `useCallback`): a new function re-registers the worklet. |
+
+Any event handler below marked `'worklet'` runs on the UI thread instead of the JS one.
+
+## Events
+
+Every event is a superset of `TextInput`'s: `nativeEvent` carries React Native's fields under React Native's names, so a handler written for a `TextInput` works unchanged, and the same fields are repeated at the top level, so `({ text }) => …` reads better than `(e) => e.nativeEvent.text`.
+
+| Prop | Type | Description |
 | --- | --- | --- |
-| `mode` | `'text'` | `'number'` formats as you type, `'mask'` applies a pattern. |
-| `fractionDigits`, `maxIntegerDigits` | `2`, `15` | Limits; digits past them are rejected. |
-| `groupingSeparator`, `decimalSeparator` | `','`, `'.'` | |
-| `mask`, `maskNotations`, `maskAutocomplete`, `maskAutoSkip` | `''`, `[]`, `true`, `false` | `'mask'`: the pattern, your own slots, and how literals are inserted and deleted — see [A masked field](/input/masked-field). |
-| `prefix`, `suffix`, `affixAlign` | `''`, `''`, `'baseline'` | Drawn at `prefixFontSize` / `suffixFontSize`; `prefixAlign` / `suffixAlign` override one side. |
-| `signPlacement` | `'beforeAffix'` | Where a negative amount's sign sits relative to `prefix`: `-$1,234.56`, or `$-1,234.56` with `'afterAffix'`. Morph only — see [Negative amounts](/input/amount-field#negative-amounts). |
-| `placeholder`, `placeholderTextColor` | `''` | Shown instead of a value. |
-| `variant`, `label`, `labelBehavior` | `'none'`, `''`, `'float'` | A frame and a floating label — see [Frames](/input/frames). |
-| `strokeColor`, `focusedStrokeColor`, `strokeWidth`, `cornerRadius`, `fillColor` | | The frame's stroke, corners and fill. |
-| `multiline`, `numberOfLines`, `textAlignVertical`, `scrollEnabled` | `false`, `0`, `'auto'`, `true` | A wrapping field — see [Multiline](/input/multiline). |
-| `morph`, `duration`, `easing`, `bounce`, `effect` | `false`, `400`, `'expo'`, `0.15`, `'auto'` | The opt-in animation — see [The morph](/input/morph). |
-| `autoWidth` | `false` | `false` takes its width from the parent like a `TextInput`; `'auto'` sizes to the content (what `MorphInput` uses). |
-| `fontSize`, `fontWeight`, `fontFamily`, `color`, `lineHeight` | | Typography, resolved like `Text`. |
-| `textAlign` | `'auto'` | The start edge of the layout direction, as `TextInput`; `'left'`, `'center'` and `'right'` are absolute. |
-| `adjustsFontSizeToFit`, `minimumFontScale`, `allowFontScaling`, `maxFontSizeMultiplier` | `false`, `0.5`, `false`, `0` | Shrinking to fit a width, and following the system text size. |
-| `cursorColor`, `selectionColor`, `caretHidden` | | The caret and the selection. |
-| `keyboardType`, `returnKeyType`, `autoCapitalize`, `autoCorrect`, `maxLength`, `editable`, `autoFocus` | | Input traits. |
-| `inputMode`, `enterKeyHint` | | React Native's HTML-style aliases for `keyboardType` and `returnKeyType`, mapped with its tables; the explicit prop wins. `inputMode="none"` focuses without a keyboard. |
-| `transform` | | A worklet mask, run synchronously on the UI thread. |
-| `onChangeText`, `onChange`, `onChangeValue`, `onFocus`, `onBlur`, `onSubmitEditing`, `onEndEditing`, `onSelectionChange`, `onKeyPress` | | `TextInput`'s edit callbacks, plus `onChangeValue`. Each event carries `nativeEvent` as `TextInput`'s does, with the same fields repeated at the top level. Any of them marked `'worklet'` runs on the UI thread instead of the JS one — see [Worklets](/input/worklets). |
-| `onChangeMask` | | `'mask'`: the formatted text, the extracted value, the missing tail and whether every mandatory slot is filled. |
-| `value`, `defaultValue` | | Controlled and uncontrolled text. A `value` with a stale `mostRecentEventCount` is ignored, like `TextInput`. |
-| `submitBehavior` | `'blurAndSubmit'`, `'newline'` when `multiline` | `'submit'` keeps focus so a form can move to the next field itself; `'newline'` inserts a line break (`multiline` only). `blurOnSubmit` is the deprecated alias, resolved as `TextInput` resolves it. |
-| `secureTextEntry` | `false` | Draws bullets; the field keeps the real text for autofill. |
-| `textContentType` / `autoComplete` | `''` | Autofill: `'username'`, `'password'`, `'oneTimeCode'`, … |
-| `keyboardAppearance`, `enablesReturnKeyAutomatically`, `showSoftInputOnFocus` | | Keyboard behaviour. |
-| `selectTextOnFocus`, `clearTextOnFocus`, `contextMenuHidden`, `spellCheck`, `readOnly` | | As on `TextInput`. |
-| `selection` | | `{ start, end? }` in code points, controlled. |
-| `id`, `aria-label`, `testID`, `accessibilityLabel` | | `id` and `aria-label` are resolved like `TextInput`'s and win over the older spellings; `testID` and the label are forwarded to the system field, the element VoiceOver, TalkBack and e2e tools interact with. |
+| `onChangeText` | `(text: string) => void` | After every edit, with the field's (formatted) text. Marked `'worklet'`, it runs on the UI thread and can write shared values before the next frame. |
+| `onChange` | `({ nativeEvent: { text, eventCount, target } }) => void` | React Native's other change callback, fired alongside `onChangeText` with the same text. `eventCount` is the native edit counter, as in `TextInput`. |
+| `onChangeValue` | `(value: number) => void` | `'number'` mode: after every edit, with the numeric value; `NaN` when empty. A `'worklet'` runs on the UI thread. |
+| `onChangeMask` | `(formatted, extracted, tailPlaceholder, complete) => void` | `'mask'` mode: after every edit, with the masked text, the characters the user contributed, what is still missing, and whether every mandatory slot is filled. |
+| `onFocus` | `(event: NitroInputFocusEvent) => void` | Focused. The event carries `text`, `eventCount` and `target`. |
+| `onBlur` | `(event: NitroInputFocusEvent) => void` | Blurred. Same event as `onFocus`. |
+| `onSubmitEditing` | `(event: NitroInputTextEvent) => void` | The return key was pressed. |
+| `onEndEditing` | `(event: NitroInputTextEvent) => void` | Editing finished: focus lost or the keyboard dismissed, as `TextInput`'s. |
+| `onSelectionChange` | `(event: NitroInputSelectionEvent) => void` | The caret or selection moved. `selection`, `start` and `end` are code points. |
+| `onKeyPress` | `(event: NitroInputKeyPressEvent) => void` | A key was pressed, before the text changes: the character, `'Backspace'` or `'Enter'`. |
+| `onNativeRef` | `(ref: NitroInputRef) => void` | Receives the native Nitro object once the view is mounted. |
 
-Imperative handle: `focus()`, `blur()`, `clear()`, `setText()`, `setValue()`, `getText()`, `getValue()`, `isFocused()`, `setSelection()`, and `native`, the Nitro object.
+## Accessibility and identity
 
-Hook: `useNitroInputState(useSharedValue)` — the field's `text`, `value`, `focused` and `selection` as shared values, plus the worklet `handlers` that keep them current. See [the field's state as shared values](/input/worklets#the-fields-state-as-shared-values).
+The system field is the accessibility element, with the formatted text as its value (`$1,234.50 USD` reads as such). See [Working with React Native](/input/react-native).
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `accessibilityLabel`, `aria-label` | `string` | The field's name for VoiceOver and TalkBack, forwarded to the system field. `aria-label` wins over the older spelling, as in `TextInput`. Without either, `label` is used. |
+| `aria-labelledby` | `string` | Forwarded as `accessibilityLabelledBy`. |
+| `aria-busy`, `aria-checked`, `aria-disabled`, `aria-expanded`, `aria-selected` | `boolean` | Fold into `accessibilityState`, as on any view. |
+| `aria-hidden` | `boolean` | Hides the field from assistive tech, as on any view. |
+| `testID`, `nativeID`, `id` | `string` | Forwarded to the system field, the element e2e tools find. `id` wins over `nativeID`, as in `TextInput`. |
+| `style` | `ViewStyle` | The host view's style. Width comes from it unless `autoWidth` says otherwise; `direction: 'rtl'` flips a single field. |
+
+## Methods (`ref`)
+
+The handle queues a call made before the native view exists and replays it once mounted, so `focus()` in an effect on mount works.
+
+| Method | Description |
+| --- | --- |
+| `focus()` | Focuses the field. |
+| `blur()` | Blurs it. |
+| `clear()` | Empties the field; with `morph` the characters morph away. |
+| `setText(text)` | Replaces the text (formatted in `'number'` mode), caret at the end. |
+| `setValue(value)` | `'number'` mode: shows `value` formatted; `NaN` empties the field. |
+| `getText()` | The field's current (formatted) text. |
+| `getValue()` | `'number'` mode: the numeric value, `NaN` when empty. |
+| `isFocused()` | Whether the field has focus. |
+| `setSelection(start, end?)` | Moves the caret or selection; code points into the (formatted) text. |
+| `native` | The native Nitro object, or `null` before mount. |
+
+## Hook
+
+`useNitroInputState(useSharedValue)` returns the field's `text`, `value`, `focused` and `selection` as shared values, plus the worklet `handlers` to spread onto the field that keep them current. See [the field's state as shared values](/input/worklets#the-fields-state-as-shared-values).
