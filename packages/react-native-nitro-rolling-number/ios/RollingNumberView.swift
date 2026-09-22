@@ -513,11 +513,16 @@ final class RollingNumberView: UIView {
     layer.contents = nil
   }
 
-  /// What this view holds beyond its Swift object, for the JS garbage
-  /// collector (Nitro's `memorySize`): a masked layer per element, each with
-  /// a backing store of its own, and the engine, roughly. A constant, because
-  /// Nitro reads it from the JS thread.
-  static let memoryEstimateBytes = 48 * 1024
+  /// What one mounted rolling number costs, for the JS garbage collector
+  /// (Nitro's `memorySize`). Measured, not estimated: the example's
+  /// `footprint` benchmark mounts 100 copies, asks malloc to return freed
+  /// pages before and with them, and divides the difference. iPhone 11 Pro
+  /// and 13 Pro Max, 2026-09-22: 57 KB of malloc (layers, engine, buffers)
+  /// and a 60–79 KB physical footprint per copy; a plain `Text` is 28 KB of
+  /// malloc and 122 KB of footprint. The layers' render-server side is not
+  /// in this process and not counted. A constant, because Nitro reads it
+  /// from the JS thread.
+  static let memoryEstimateBytes = 64 * 1024
 
   /// Returns the view to its pristine state so Fabric can reuse it for a new
   /// element (`RecyclableView`). Props are re-applied by Nitro afterwards.

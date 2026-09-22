@@ -257,10 +257,15 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   }
 
   /// Reported to the JS garbage collector so a dropped field's handle counts as
-  /// the memory it holds (the field, its layers and their backing stores,
-  /// roughly) rather than as an empty object; that is what makes Hermes
-  /// collect the handles, and with them the views, in time.
-  var memorySize: Int { 48 * 1024 }
+  /// the memory it holds rather than as an empty object. Measured, not
+  /// estimated: the example's `footprint` benchmark mounts 50 fields, asks
+  /// malloc to return freed pages before and with them, and divides the
+  /// difference. iPhone 11 Pro and 13 Pro Max, 2026-09-22: a plain NitroInput
+  /// is 130 KB of malloc and 135–140 KB of footprint per field (a `TextInput`
+  /// 88 and 113–136), a MorphInput 55–67 and 79–96. One constant for both,
+  /// because Nitro reads it once when the handle is created, before the props
+  /// say which one this is.
+  var memorySize: Int { 128 * 1024 }
 
   /// Fabric is about to reuse this view for another element: forget every prop
   /// and all state. Nitro re-applies the new element's props next.

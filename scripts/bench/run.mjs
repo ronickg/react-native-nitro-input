@@ -98,6 +98,10 @@ function buildPlan(o) {
       for (const impl of rolling) scenarios.push({ kind: 'leak', impl, count: 24, cycles: 40 })
       for (const impl of inputs) scenarios.push({ kind: 'leak', impl, count: 20, cycles: 40 })
       for (const impl of rolling) scenarios.push({ kind: 'leaklist', impl, rows: 200, rate: 10, seconds: 30 })
+    } else if (part === 'footprint') {
+      // Per-view memory: what one mounted copy costs, after forced collections.
+      for (const impl of rolling) scenarios.push({ kind: 'footprint', impl, count: 100 })
+      for (const impl of inputs) scenarios.push({ kind: 'footprint', impl, count: 50 })
     } else {
       return JSON.parse(fs.readFileSync(part, 'utf8'))
     }
@@ -118,6 +122,8 @@ const scenarioSeconds = (plan, s) => {
       return plan.settle + s.cycles * 2
     case 'leaklist':
       return plan.settle + 2 + s.seconds
+    case 'footprint':
+      return plan.settle + 10
     default:
       return plan.settle + plan.warmup + plan.seconds + 1
   }
@@ -184,6 +190,8 @@ function describe(r) {
       return `memory ${r.cycles} × mount ${r.count} × ${r.impl} → RSS ${r.rssFirstMb?.toFixed(1)} → ${r.rssLastMb?.toFixed(1)} MB, ${r.growthKbPerCycle?.toFixed(1)} KB/cycle${r.meminfo ? `, views ${r.meminfo.viewsStart} → ${r.meminfo.viewsEnd}` : ''}`
     case 'leaklist':
       return `memory ${r.impl} list ${Math.round(r.seconds)} s → RSS ${r.rssFirstMb?.toFixed(1)} → ${r.rssLastMb?.toFixed(1)} MB, ${r.growthKbPerSecond?.toFixed(1)} KB/s${r.meminfo ? `, views ${r.meminfo.viewsStart} → ${r.meminfo.viewsEnd}` : ''}`
+    case 'footprint':
+      return `footprint ${r.count} × ${r.impl} → ${r.perViewFootprintKb?.toFixed(1)} KB per copy (malloc ${r.perViewNativeKb?.toFixed(1)}${r.perViewJavaKb != null ? `, java ${r.perViewJavaKb.toFixed(1)}` : ''}), left ${r.leftFootprintKb?.toFixed(1)} KB`
     default: {
       const ui = r.ui ? `UI ${r.ui.fps.toFixed(1)}/${r.ui.hz} fps, ${r.ui.dropped} dropped` : 'UI –'
       const what = r.kind === 'list' ? `${r.impl} list of ${r.rows} @${r.rate}` : `${r.impl} ×${r.count} @${r.rate}`

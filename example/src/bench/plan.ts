@@ -20,8 +20,10 @@ export type FocusScenario = { kind: 'focus'; impl: InputImplKey; runs: number }
 export type LeakScenario = { kind: 'leak'; impl: ImplKey | InputImplKey; count: number; cycles: number }
 /** A list of `rows` scrolled for `seconds` with values arriving at `rate`, resident memory sampled every second. */
 export type LeakListScenario = { kind: 'leaklist'; impl: ImplKey; rows: number; rate: Rate; seconds: number }
-export type Scenario = StreamScenario | ListScenario | MountScenario | TypeScenario | FocusScenario | LeakScenario | LeakListScenario
-export type Kind = 'stream' | 'list' | 'mount' | 'type' | 'focus' | 'leak' | 'leaklist'
+/** `count` copies mounted at once, memory read after a forced collection before, with them, and after: the per-view footprint. */
+export type FootprintScenario = { kind: 'footprint'; impl: ImplKey | InputImplKey; count: number }
+export type Scenario = StreamScenario | ListScenario | MountScenario | TypeScenario | FocusScenario | LeakScenario | LeakListScenario | FootprintScenario
+export type Kind = 'stream' | 'list' | 'mount' | 'type' | 'focus' | 'leak' | 'leaklist' | 'footprint'
 
 export const kindOf = (s: Scenario): Kind => s.kind ?? 'stream'
 
@@ -72,6 +74,8 @@ function isScenario(s: unknown): s is Scenario {
       return (IMPL_KEYS.has(impl) || INPUT_KEYS.has(impl)) && isPositive(o.count) && isPositive(o.cycles)
     case 'leaklist':
       return IMPL_KEYS.has(impl) && isPositive(o.rows) && isRate(o.rate) && isPositive(o.seconds)
+    case 'footprint':
+      return (IMPL_KEYS.has(impl) || INPUT_KEYS.has(impl)) && isPositive(o.count)
     default:
       return false
   }
@@ -185,6 +189,14 @@ export function leakPlan(): Plan {
   return withDefaults('leak', scenarios)
 }
 
+/** Per-view memory: 100 numbers, 50 fields, each impl once. */
+export function footprintPlan(): Plan {
+  const scenarios: Scenario[] = []
+  for (const impl of RUN_ORDER) scenarios.push({ kind: 'footprint', impl, count: 100 })
+  for (const i of INPUTS_HERE) scenarios.push({ kind: 'footprint', impl: i.key, count: 50 })
+  return withDefaults('footprint', scenarios)
+}
+
 export function rateLabel(rate: Rate) {
   return rate === 'frame' ? 'every frame' : `${rate}/s`
 }
@@ -205,6 +217,8 @@ export function scenarioSeconds(plan: Plan, s: Scenario) {
       return plan.settle + (s as LeakScenario).cycles * 2
     case 'leaklist':
       return plan.settle + 2 + (s as LeakListScenario).seconds
+    case 'footprint':
+      return plan.settle + 10
   }
 }
 
@@ -240,6 +254,10 @@ export function scenarioLabel(s: Scenario): string {
     case 'leaklist': {
       const l = s as LeakListScenario
       return `memory: ${impl} list of ${l.rows} for ${l.seconds} s`
+    }
+    case 'footprint': {
+      const f = s as FootprintScenario
+      return `footprint: ${f.count} × ${impl} mounted`
     }
   }
 }

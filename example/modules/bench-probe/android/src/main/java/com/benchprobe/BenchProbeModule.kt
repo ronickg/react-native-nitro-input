@@ -165,6 +165,7 @@ class BenchProbeModule(reactContext: ReactApplicationContext) : NativeBenchProbe
       .put("wallMs", SystemClock.elapsedRealtimeNanos() / 1_000_000.0)
       .put("rssMb", rssMb)
       .put("nativeHeapMb", android.os.Debug.getNativeHeapAllocatedSize() / (1024.0 * 1024.0))
+      .put("javaHeapMb", (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024.0 * 1024.0))
       .put("threads", threads)
       .toString()
   }

@@ -4,7 +4,7 @@ import type { RollingNumberHandle } from 'react-native-nitro-rolling-number'
 import { BENCH_START, BenchItem, IMPLS, ImplBoundary, type ImplKey } from './impls'
 import { INPUT_IMPLS, InputItem, type InputHandle, type InputImplKey } from './inputs'
 import { cpuBetween, forceGc, sample, thermalState, typeText, type Sample, type TypeStats } from './probe'
-import type { FocusScenario, LeakListScenario, LeakScenario, ListScenario, MountScenario, Rate, TypeScenario } from './plan'
+import type { FocusScenario, FootprintScenario, LeakListScenario, LeakScenario, ListScenario, MountScenario, Rate, TypeScenario } from './plan'
 import { benchValue } from './impls'
 import { quantile, useBenchValue, useMeasuredStream, type StreamStats } from './runner'
 
@@ -738,5 +738,119 @@ export function LeakListRun({ scenario, running, onDone }: { scenario: LeakListS
         </View>
       )}
     />
+  )
+}
+
+export type FootprintResult = {
+  kind: 'footprint'
+  impl: ImplKey | InputImplKey
+  count: number
+  /** Memory with `count` copies mounted minus memory before, per copy, after a forced collection each time. */
+  perViewFootprintKb: number | null
+  perViewNativeKb: number | null
+  perViewJavaKb: number | null
+  /** The same delta after unmounting: what the copies left behind, per copy. */
+  leftFootprintKb: number | null
+  leftNativeKb: number | null
+  seconds: number
+  thermal: string
+  error?: string
+}
+
+/**
+ * What one mounted copy costs: `count` of them mounted at once, memory read
+ * after a forced collection before, with them on screen, and after they are
+ * gone. The number behind a Nitro hybrid's `memorySize`.
+ */
+export function FootprintRun({ scenario, running, onDone }: { scenario: FootprintScenario; running: boolean; onDone: (r: FootprintResult) => void }) {
+  const { impl, count } = scenario
+  const [mounted, setMounted] = useState(false)
+  const { fmt, sv, font } = useBenchValue(LIST_FONT)
+  const laidOut = useRef(new Set<number>())
+  const resolveLayout = useRef<(() => void) | null>(null)
+  const onDoneRef = useRef(onDone)
+  onDoneRef.current = onDone
+  const errorRef = useRef<string | null>(null)
+
+  const onItemLayout = useCallback(
+    (index: number) => {
+      laidOut.current.add(index)
+      if (laidOut.current.size >= count) resolveLayout.current?.()
+    },
+    [count],
+  )
+
+  useEffect(() => {
+    if (!running) return
+    let cancelled = false
+    ;(async () => {
+      const thermal = thermalState()
+      const t0 = performance.now()
+      const floor = async () => {
+        forceGc()
+        await pause(400)
+        forceGc()
+        await pause(300)
+        return sample()
+      }
+      const before = await floor()
+      laidOut.current.clear()
+      const laid = new Promise<void>((resolve) => {
+        resolveLayout.current = resolve
+        setTimeout(resolve, 6000)
+      })
+      setMounted(true)
+      await laid
+      resolveLayout.current = null
+      await nextFrame()
+      await pause(800)
+      const withCopies = await floor()
+      setMounted(false)
+      await nextFrame()
+      await nextFrame()
+      await pause(500)
+      const after = await floor()
+      if (cancelled) return
+      const per = (a: number | undefined, b: number | undefined) => (a == null || b == null ? null : ((a - b) * 1024) / count)
+      onDoneRef.current({
+        kind: 'footprint',
+        impl,
+        count,
+        perViewFootprintKb: per(withCopies?.rssMb, before?.rssMb),
+        perViewNativeKb: per(withCopies?.nativeHeapMb, before?.nativeHeapMb),
+        perViewJavaKb: per(withCopies?.javaHeapMb, before?.javaHeapMb),
+        leftFootprintKb: per(after?.rssMb, before?.rssMb),
+        leftNativeKb: per(after?.nativeHeapMb, before?.nativeHeapMb),
+        seconds: (performance.now() - t0) / 1000,
+        thermal,
+        ...(errorRef.current ? { error: errorRef.current } : {}),
+      })
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [running, impl, count])
+
+  return (
+    <View style={styles.mountBox}>
+      {mounted
+        ? Array.from({ length: count }, (_, i) => (
+            <View key={i} onLayout={() => onItemLayout(i)} style={styles.mountItem}>
+              <ImplBoundary
+                onError={(e) => {
+                  errorRef.current = e.message || String(e)
+                  resolveLayout.current?.()
+                }}
+              >
+                {isRolling(impl) ? (
+                  <BenchItem impl={impl} value={BENCH_START + i} fontSize={LIST_FONT} fmt={fmt} sv={sv} font={font} nitroRef={() => {}} />
+                ) : (
+                  <InputItem impl={impl} />
+                )}
+              </ImplBoundary>
+            </View>
+          ))
+        : null}
+    </View>
   )
 }

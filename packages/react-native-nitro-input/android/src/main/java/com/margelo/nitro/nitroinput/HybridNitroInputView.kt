@@ -337,12 +337,16 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
 
   /**
    * Reported to the JS garbage collector so a dropped field's handle counts as
-   * the memory it holds (the field, its edit text, outline and label views and
-   * their display lists, roughly) rather than as an empty object; that is what
-   * makes Hermes collect the handles, and with them the views, in time.
+   * the memory it holds rather than as an empty object. Measured, not
+   * estimated: the example's `footprint` benchmark mounts 50 fields, forces a
+   * collection before and with them, and divides the difference. Galaxy A22,
+   * Android 13, 2026-09-22: a plain NitroInput is 48 KB of malloc and 28 KB
+   * of Java heap per field (a `TextInput` 73 + 20), a MorphInput 204 + 24 KB.
+   * One constant for both, in between, because Nitro reads it once when the
+   * handle is created, before the props say which one this is.
    */
   override val memorySize: Long
-    get() = if (attachedView != null) 48L * 1024 else 0L
+    get() = if (attachedView != null) 128L * 1024 else 0L
 
   /**
    * Fabric is about to reuse this view for another element: forget every prop,

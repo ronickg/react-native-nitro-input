@@ -18,7 +18,8 @@ export interface Spec extends TurboModule {
    * `rssMb` is the physical footprint on iOS (what Xcode and jetsam count) and
    * the resident set on Android; `nativeHeapMb` is malloc's bytes in use (the
    * C++ and native-view side; iOS `malloc_zone_statistics`, Android
-   * `Debug.getNativeHeapAllocatedSize`).
+   * `Debug.getNativeHeapAllocatedSize`); `javaHeapMb` (Android only) is the
+   * Java heap in use.
    */
   sample(): string
   /**

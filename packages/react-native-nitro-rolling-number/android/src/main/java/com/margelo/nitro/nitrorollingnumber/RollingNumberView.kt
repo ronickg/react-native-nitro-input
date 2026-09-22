@@ -1000,12 +1000,15 @@ class RollingNumberView(context: Context) : View(context) {
   }
 
   /**
-   * What this view holds beyond its Java object, for the JS garbage collector
-   * (Nitro's `memorySize`): the display list and the engine, roughly. The
-   * strips are shared and not counted. A constant, because Nitro reads it from
-   * the JS thread.
+   * What one mounted rolling number costs, for the JS garbage collector
+   * (Nitro's `memorySize`). Measured, not estimated: the example's
+   * `footprint` benchmark mounts 100 copies, forces a collection before and
+   * with them, and divides the difference. Galaxy A22, Android 13,
+   * 2026-09-22: 54 KB of malloc (engine, display list, paints) and 9 KB of
+   * Java heap per copy; plain `Text` is 32 + 48 KB. A constant, because Nitro
+   * reads it from the JS thread; the shared strips are not per copy.
    */
-  fun memoryEstimateBytes(): Long = 24L * 1024
+  fun memoryEstimateBytes(): Long = 64L * 1024
 
   /** Interior wheels wrap modulo 10; a roll can be any real, so fold it onto 0 ≤ p < 10. */
   private fun wrap10(position: Double): Double {

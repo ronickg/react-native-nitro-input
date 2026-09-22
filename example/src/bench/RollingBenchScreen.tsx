@@ -22,6 +22,8 @@ import { deviceInfo, hasProbe, report, thermalState } from './probe'
 import { BenchRun, type BenchResult } from './runner'
 import {
   FocusRun,
+  FootprintRun,
+  type FootprintResult,
   LeakListRun,
   LeakRun,
   ListRun,
@@ -38,7 +40,7 @@ import {
 
 export type RollingBenchParams = { plan?: Plan } | undefined
 
-export type AnyResult = BenchResult | ListResult | MountResult | TypeResult | FocusResult | LeakResult | LeakListResult
+export type AnyResult = BenchResult | ListResult | MountResult | TypeResult | FocusResult | LeakResult | LeakListResult | FootprintResult
 
 type Phase = 'idle' | 'settling' | 'running'
 
@@ -84,6 +86,8 @@ function fmtLine(r: AnyResult) {
       return `memory, ${r.cycles} × mount ${r.count} × ${implShort(r.impl)}: RSS ${f1(r.rssFirstMb)} → ${f1(r.rssLastMb)} MB (max ${f1(r.rssMaxMb)}), ${f1(r.growthKbPerCycle)} KB/cycle`
     case 'leaklist':
       return `memory, ${implShort(r.impl)} list for ${f0(r.seconds)} s: RSS ${f1(r.rssFirstMb)} → ${f1(r.rssLastMb)} MB (max ${f1(r.rssMaxMb)}), ${f1(r.growthKbPerSecond)} KB/s`
+    case 'footprint':
+      return `footprint, ${r.count} × ${implShort(r.impl)}: ${f1(r.perViewFootprintKb)} KB per copy (malloc ${f1(r.perViewNativeKb)} KB${r.perViewJavaKb != null ? `, java ${f1(r.perViewJavaKb)} KB` : ''}), left behind ${f1(r.leftFootprintKb)} KB`
   }
 }
 
@@ -112,6 +116,8 @@ function Stage({ scenario, plan, running, onMeasureStart, onDone }: { scenario: 
       return <LeakRun scenario={scenario as Extract<Scenario, { kind: 'leak' }>} running={running} onDone={onDone} />
     case 'leaklist':
       return <LeakListRun scenario={scenario as Extract<Scenario, { kind: 'leaklist' }>} running={running} onDone={onDone} />
+    case 'footprint':
+      return <FootprintRun scenario={scenario as Extract<Scenario, { kind: 'footprint' }>} running={running} onDone={onDone} />
   }
 }
 

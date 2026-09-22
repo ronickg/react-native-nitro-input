@@ -1,7 +1,7 @@
 import NativeBenchProbe from 'bench-probe'
 
 export type ThreadSample = { id: number; name: string; main: boolean; cpuMs: number }
-export type Sample = { wallMs: number; rssMb: number; nativeHeapMb?: number; threads: ThreadSample[] }
+export type Sample = { wallMs: number; rssMb: number; nativeHeapMb?: number; javaHeapMb?: number; threads: ThreadSample[] }
 export type FrameStats = {
   frames: number
   seconds: number

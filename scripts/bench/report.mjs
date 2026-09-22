@@ -70,7 +70,7 @@ const rateText = (rate) => (rate === 'frame' ? 'new value every frame' : `${rate
 const thermalBefore = (r) => (typeof r.thermal === 'string' ? r.thermal : r.thermal?.before)
 const THROTTLED = new Set(['serious', 'severe', 'critical', 'emergency', 'shutdown'])
 /** Tables in this order: the stream matrix (heavier first), then the list, mount, typing and focus. */
-const KIND_ORDER = { stream: 0, list: 1, mount: 2, leak: 3, leaklist: 4, type: 5, focus: 6 }
+const KIND_ORDER = { stream: 0, list: 1, mount: 2, leak: 3, leaklist: 4, footprint: 5, type: 6, focus: 7 }
 
 export function groupKey(r) {
   switch (kindOf(r)) {
@@ -89,6 +89,8 @@ export function groupKey(r) {
     case 'leaklist':
       // A starved JS thread overshoots the planned seconds; the rows, not the overshoot, define the group.
       return `leaklist|${r.rows}`
+    case 'footprint':
+      return `footprint|${r.count}`
     default:
       return kindOf(r)
   }
@@ -110,6 +112,8 @@ export function groupTitle(r) {
       return `Memory over ${r.cycles} mount/unmount cycles of ${r.count} copies`
     case 'leaklist':
       return `Memory over about ${Math.round(r.seconds / 10) * 10} s of a list of ${r.rows} rows scrolling`
+    case 'footprint':
+      return `Memory per copy, ${r.count} mounted at once`
     default:
       return kindOf(r)
   }
@@ -134,6 +138,12 @@ function columns(kind, android) {
     case 'leaklist': {
       const cols = ['Implementation', 'footprint, start', 'footprint, end', 'peak', kind === 'leak' ? 'growth per cycle' : 'growth per second', 'malloc heap, start → end']
       if (android) cols.push('live Views, start → end')
+      return cols
+    }
+    case 'footprint': {
+      const cols = ['Implementation', 'footprint per copy', 'malloc per copy']
+      if (android) cols.push('Java heap per copy')
+      cols.push('left behind per copy')
       return cols
     }
     default:
@@ -197,6 +207,13 @@ function cells(kind, ok, android) {
         const mi = ok.filter((r) => r.meminfo)
         out.push(mi.length ? `${f0(median(mi.map((r) => r.meminfo.viewsStart)))} → ${f0(median(mi.map((r) => r.meminfo.viewsEnd)))}` : '–')
       }
+      return out
+    }
+    case 'footprint': {
+      const kb = (x) => (x == null ? '–' : `${x.toFixed(1)} KB`)
+      const out = [kb(m((r) => r.perViewFootprintKb)), kb(m((r) => r.perViewNativeKb))]
+      if (android) out.push(kb(m((r) => r.perViewJavaKb)))
+      out.push(kb(m((r) => r.leftFootprintKb)))
       return out
     }
     default:
