@@ -860,7 +860,7 @@ function Flag({ flag }: { flag: string }) {
 }
 
 /**
- * A transfer: the keypad types in bursts of about twelve keys a second and
+ * A transfer: the keypad types in quick bursts, about seven keys a second, and
  * every keystroke is formatted in C++ before the frame is drawn. What they
  * receive, the fee and the amount converted are NitroNumbers following it,
  * the rate ticks live, and the payout currency changes format as it goes.
@@ -896,9 +896,12 @@ export function TransferShowcase({ onExit }: { onExit: () => void }) {
         })
         t += step
       }
-      // A fast burst: the commas reflow as the magnitude grows, and
-      // everything below follows each keystroke.
-      for (const k of ['1', '2', '4', '8', '5', '.', '7', '5']) type(k, 85)
+      // A quick human burst: the commas reflow as the magnitude grows, and
+      // everything below follows each keystroke. Uneven, like fingers; any
+      // faster than the reflow and every new digit is still in the air.
+      const burst = ['1', '2', '4', '8', '5', '.', '7', '5']
+      const rhythm = [150, 130, 170, 140, 190, 130, 150, 150]
+      burst.forEach((k, i) => type(k, rhythm[i]))
       t += 700
       // The payout currency changes: the same money, formatted for each.
       for (let i = 1; i < PAYOUTS.length; i++) {
@@ -908,7 +911,7 @@ export function TransferShowcase({ onExit }: { onExit: () => void }) {
       }
       at(t, () => setPayout(0))
       t += 800
-      for (const k of ['⌫', '⌫', '⌫', '⌫', '⌫']) type(k, 90)
+      for (const k of ['⌫', '⌫', '⌫', '⌫', '⌫']) type(k, 125)
       t += 900
       // A value set from code: the columns reshape.
       at(t, () => field.current?.setValue(2500))
@@ -1038,6 +1041,17 @@ export function TransferShowcase({ onExit }: { onExit: () => void }) {
             <Text style={s.tLineValue}>In seconds</Text>
           </View>
         </View>
+
+        <View style={s.tRecipient}>
+          <View style={s.tAvatar}>
+            <Text style={s.tAvatarText}>AL</Text>
+          </View>
+          <View style={s.tRecipientText}>
+            <Text style={s.tRecipientLabel}>Sending to</Text>
+            <Text style={s.tRecipientName}>Amélie Laurent</Text>
+          </View>
+          <Text style={s.tRecipientAccount}>•••• 4821</Text>
+        </View>
       </View>
 
       <View style={[s.tBottom, { paddingBottom: insets.bottom + 14 }]}>
@@ -1109,7 +1123,9 @@ const s = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   kicker: { color: '#FCD34D', fontFamily: FONT.bold, fontSize: 15, letterSpacing: 4, textTransform: 'uppercase' },
   bannerSlot: { height: 64, justifyContent: 'center', alignItems: 'center', marginTop: 6 },
-  banner: { fontFamily: FONT.bold, fontSize: 44, letterSpacing: 1.5, paddingHorizontal: 36, paddingVertical: 18, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 16 },
+  // Out of the slot's flow so it keeps its full height: the padding leaves
+  // room for the glow, which Android clips to the text's box.
+  banner: { position: 'absolute', flexShrink: 0, fontFamily: FONT.bold, fontSize: 44, letterSpacing: 1.5, paddingHorizontal: 36, paddingVertical: 18, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 16 },
   stage: { width: '100%', alignItems: 'center', justifyContent: 'center', height: 230 },
   rays: { position: 'absolute', width: 0, height: 0, alignItems: 'center', justifyContent: 'center' },
   ray: { position: 'absolute', width: 34, height: 260, borderRadius: 17, backgroundImage: 'linear-gradient(0deg, transparent, rgba(253,224,71,0.30) 55%, transparent)' },
@@ -1156,9 +1172,16 @@ const s = StyleSheet.create({
   tLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   tLineLabel: { color: 'rgba(255,255,255,0.5)', fontFamily: FONT.medium, fontSize: 14 },
   tLineValue: { color: '#5EEAD4', fontFamily: FONT.semibold, fontSize: 14 },
+  tRecipient: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 20, padding: 14, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.08)' },
+  tAvatar: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundImage: 'linear-gradient(135deg, #5EEAD4, #3B82F6)' },
+  tAvatarText: { color: '#04201C', fontFamily: FONT.bold, fontSize: 15 },
+  tRecipientText: { flex: 1 },
+  tRecipientLabel: { color: 'rgba(255,255,255,0.45)', fontFamily: FONT.medium, fontSize: 12 },
+  tRecipientName: { color: '#fff', fontFamily: FONT.semibold, fontSize: 16, marginTop: 2 },
+  tRecipientAccount: { color: 'rgba(255,255,255,0.55)', fontFamily: FONT.medium, fontSize: 14 },
   tBottom: { paddingHorizontal: 18, gap: 12 },
   keypad: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 4 },
-  key: { width: '31.5%', height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  key: { width: '31.5%', height: 58, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   keyText: { color: '#fff', fontFamily: FONT.semibold, fontSize: 26 },
   tCta: { borderRadius: 999, paddingVertical: 17, alignItems: 'center', backgroundColor: '#5EEAD4', boxShadow: '0 8px 28px rgba(45,212,191,0.35)' },
   tCtaText: { color: '#04201C', fontFamily: FONT.bold, fontSize: 17 },
