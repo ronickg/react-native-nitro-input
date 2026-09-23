@@ -402,7 +402,8 @@ void RollingEngine::planNumeric(Transition& next, const Target& target, bool inc
     Wheel to;
     from.width = current.width;
     from.fromGlyph = static_cast<double>(showing);
-    from.fromAbove = increasing;
+    // A value that grew moves the glyphs up (the new one arrives from below).
+    from.fromAbove = !increasing;
     from.linear = false;
     from.blankZero = false;
     if (power < target.powerCount) {
@@ -787,6 +788,7 @@ void RollingEngine::apply(double elapsed) {
       w.fromGlyph = -1;
       w.toGlyph = -1;
       w.blend = 1;
+      w.focus = 1;
     } else if (tr.style == 2) {
       // Scramble: a different digit every step until the wheel locks.
       const int from = static_cast<int>(wt.from.fromGlyph);
@@ -810,6 +812,7 @@ void RollingEngine::apply(double elapsed) {
       w.fromGlyph = -1;
       w.toGlyph = -1;
       w.blend = 1;
+      w.focus = 1;
     } else if (tr.numeric) {
       // Numeric: the glyphs swap in place; the position is the digit
       // arriving and `blend` is how far the swap is.
@@ -818,11 +821,13 @@ void RollingEngine::apply(double elapsed) {
       w.toGlyph = wt.from.toGlyph;
       w.fromAbove = wt.from.fromAbove;
       w.blend = t;
+      w.focus = 1 - std::pow(1 - raw, kNumericFocusPower);
     } else {
       w.position = wt.from.position + (wt.to.position - wt.from.position) * t;
       w.fromGlyph = -1;
       w.toGlyph = -1;
       w.blend = 1;
+      w.focus = 1;
     }
   }
   const double signRaw = tr.duration > 0 ? clamp01(elapsed / tr.duration) : 1.0;

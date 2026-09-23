@@ -130,15 +130,17 @@ interface Wheel {
   fromAbove: boolean;
   flash: number;
   flashUp: boolean;
+  /** The arriving glyph coming into focus, on a slower clock than `blend`. */
+  focus: number;
 }
 
 const TRANSITIONS: Record<string, number> = {roll: 0, numeric: 1, scramble: 2};
 
 // The numeric transition's geometry, in line heights; mirrors
 // `RollingEngine::kNumeric*`, where the effect is described.
-const NUMERIC_OFFSET = 0.4;
-const NUMERIC_SCALE = 0.6;
-const NUMERIC_BLUR = 0.16;
+const NUMERIC_OFFSET = 0.55;
+const NUMERIC_SCALE = 0.9;
+const NUMERIC_BLUR = 0.14;
 
 interface Element {
   wheel: number; // -1 for glyphs
@@ -382,7 +384,7 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
 
     const measureSettled = (engine: RollingEngine, f: FontSet): number => {
       const count = engine.settledPowerCount();
-      const wheels: Wheel[] = Array.from({length: count}, () => ({position: 0, width: 1, linear: false, blankZero: false, fromGlyph: -1, toGlyph: -1, blend: 1, fromAbove: true, flash: 0, flashUp: true}));
+      const wheels: Wheel[] = Array.from({length: count}, () => ({position: 0, width: 1, linear: false, blankZero: false, fromGlyph: -1, toGlyph: -1, blend: 1, fromAbove: true, flash: 0, flashUp: true, focus: 1}));
       return buildElements(f, wheels, engine.settledNegative() ? 1 : 0).reduce((sum, e) => sum + e.width, 0);
     };
 
@@ -498,7 +500,7 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
       const canBlur = 'filter' in ctx;
       const pair = [
         {glyph: wheel.fromGlyph, dy: d * offset * b, scale: 1 - (1 - NUMERIC_SCALE) * b, alpha: 1 - b, blur: Math.min(1, 2 * b)},
-        {glyph: wheel.toGlyph, dy: -d * offset * (1 - b), scale: NUMERIC_SCALE + (1 - NUMERIC_SCALE) * b, alpha: b, blur: 1 - b},
+        {glyph: wheel.toGlyph, dy: -d * offset * (1 - b), scale: NUMERIC_SCALE + (1 - NUMERIC_SCALE) * b, alpha: b, blur: 1 - wheel.focus},
       ];
       ctx.font = f.digit;
       for (const item of pair) {

@@ -538,7 +538,8 @@ static void numericTransitionSwapsGlyphsInPlace() {
   CHECK(near(units.fromGlyph, 4));
   CHECK(near(units.toGlyph, 9));
   CHECK(near(units.blend, 0));
-  CHECK(units.fromAbove);
+  CHECK(!units.fromAbove);          // a value that grew: the 9 comes up from below
+  CHECK(near(units.focus, 0));
   CHECK(near(units.position, 9));   // the position is the digit arriving, never a glyph in between
   CHECK(near(e.wheelAt(1).blend, 1));
   CHECK(near(e.wheelAt(3).blend, 1));
@@ -546,18 +547,20 @@ static void numericTransitionSwapsGlyphsInPlace() {
 
   e.tick(0.25);
   CHECK(near(e.wheelAt(0).blend, 0.5));
+  CHECK(near(e.wheelAt(0).focus, 1 - std::pow(0.5, 1.5)));   // still out of focus half way through
   CHECK(near(e.wheelAt(0).position, 9));
   e.tick(0.5);
   CHECK(!e.needsFrames());
   CHECK(near(e.wheelAt(0).blend, 1));
+  CHECK(near(e.wheelAt(0).focus, 1));
   CHECK(near(e.wheelAt(0).position, 9));
   CHECK(near(e.wheelAt(0).fromGlyph, -1));   // settled: no pair to draw
 
-  e.animateTo(1230, 0);   // decreasing: 9 → 0 arrives from below
+  e.animateTo(1230, 0.5);   // decreasing: 9 → 0 arrives from above
   units = e.wheelAt(0);
   CHECK(near(units.fromGlyph, 9));
   CHECK(near(units.toGlyph, 0));
-  CHECK(!units.fromAbove);
+  CHECK(units.fromAbove);
   e.tick(1);
   CHECK(near(e.wheelAt(0).position, 0));
 }
@@ -625,7 +628,7 @@ static void numericTransitionGrowsAndShrinksColumns() {
   CHECK(near(e.wheelAt(2).fromGlyph, 1));
   CHECK(near(e.wheelAt(2).toGlyph, -1));
   CHECK(near(e.wheelAt(2).width, 1));
-  CHECK(!e.wheelAt(2).fromAbove);
+  CHECK(e.wheelAt(2).fromAbove);
   e.tick(1.25);
   CHECK(near(e.wheelAt(2).width, 0.5));
   e.tick(1.5);

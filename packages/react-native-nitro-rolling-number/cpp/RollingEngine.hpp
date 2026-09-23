@@ -41,11 +41,16 @@ public:
     // that is settled or not part of the change; while it is below 1 a
     // renderer draws the two glyphs as `kNumeric*` below describes and ignores
     // `position`. `fromAbove`: the new glyph arrives from above and the old one
-    // leaves downwards (a value that grew); otherwise mirrored.
+    // leaves downwards, which is how a value that shrank plays; a value that
+    // grew is the mirror image, the glyphs moving up the way an odometer's do
+    // (checked frame by frame against SwiftUI's own transition). `focus` is the
+    // arriving glyph coming into focus, on a slower clock than its motion: 0
+    // out of focus, 1 sharp, still well below 1 when the glyph has landed.
     double fromGlyph = -1;
     double toGlyph = -1;
     double blend = 1;
     bool fromAbove = true;
+    double focus = 1;
     /// The change flash (`setFlash`): 1 the moment this wheel's glyph changed,
     /// fading to 0; a renderer tints the glyph towards the up or the down
     /// colour by this much. `flashUp`: the value grew.
@@ -54,20 +59,24 @@ public:
   };
 
   // The numeric transition as the renderers draw it, in line heights, so all
-  // three (Core Animation, Canvas, the docs' canvas) agree. With b = `blend`
-  // and d = +1 when `fromAbove`, else -1:
+  // three (Core Animation, Canvas, the docs' canvas) agree. With b = `blend`,
+  // f = `focus` and d = +1 when `fromAbove`, else -1:
   //   leaving glyph:  offset d · kNumericOffset · b,        scale 1 → kNumericScale,  alpha 1 → 0
   //   arriving glyph: offset -d · kNumericOffset · (1 - b), scale kNumericScale → 1, alpha 0 → 1
   // both scaled about their centre, the leaving one blurring in as it goes
-  // (blur = min(1, 2b)) and the arriving one coming into focus (blur = 1 - b),
+  // (blur = min(1, 2b)) and the arriving one coming into focus (blur = 1 - f),
   // with kNumericBlur line heights of blur radius at full blur. The figures
-  // are ours, chosen against the effect on an iPhone: a glyph appears a bit
-  // under half a line height away along the axis, a little small and out of
-  // focus, and resolves into place; the one it replaces softens first, then
-  // fades and shrinks as it goes.
-  static constexpr double kNumericOffset = 0.4;
-  static constexpr double kNumericScale = 0.6;
-  static constexpr double kNumericBlur = 0.16;
+  // are ours, measured against SwiftUI's transition frame by frame on an
+  // iPhone: a glyph comes in from half a line height away along the axis,
+  // nearly full size and well out of focus, is in place within a couple of
+  // hundred milliseconds and resolves into focus over the rest of the
+  // duration; the one it replaces softens at once, then fades as it goes.
+  static constexpr double kNumericOffset = 0.55;
+  static constexpr double kNumericScale = 0.9;
+  static constexpr double kNumericBlur = 0.14;
+  /// The focus clock: `focus` = 1 - (1 - t)^kNumericFocusPower over the
+  /// wheel's whole duration, t linear; the motion's spring lands first.
+  static constexpr double kNumericFocusPower = 1.5;
 
   // The scramble (2) is planned like the numeric transition but the wheel
   // shows a different random digit every kScrambleStepSeconds until it locks

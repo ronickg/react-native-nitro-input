@@ -64,7 +64,7 @@ each with its own defaults.
 
 - **`numeric`**, after SwiftUI's `.contentTransition(.numericText())`: the
   old glyph softens, shrinks and slides out; the new one slides in from the
-  other side, a little small and out of focus, and resolves. The glyphs move
+  other side, nearly full size and out of focus, and resolves. The glyphs move
   up when the value grows and down when it shrinks (`direction` overrides
   that). The blur is real on all three platforms: a blurred copy of each
   glyph rendered once per font and cross-faded with the sharp one, so a frame

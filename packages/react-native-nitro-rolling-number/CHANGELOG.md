@@ -18,7 +18,19 @@
   our own reading of the SwiftUI one; Giulio Amato's
   [react-native-numeric-text](https://github.com/AmatoGiulio/react-native-numeric-text)
   is a native re-implementation of it for React Native `Text` if a whole
-  text should transition rather than a rolling number.
+  text should transition rather than a rolling number. Checked frame by
+  frame against SwiftUI's own transition (a small reference app on the
+  simulator, same font size and colour): the direction had been ours the
+  wrong way round, so a value that grows now moves the glyphs up, the way
+  SwiftUI and an odometer do; the glyphs come in nearly full size from half
+  a line height away; and the arriving glyph comes into focus on its own
+  slower clock (`Wheel::focus`, over the whole duration) after the spring
+  has landed it, which is what makes the effect read as SwiftUI's rather
+  than as a quick fade. On iOS the blurred glyph images are a vImage tent
+  convolution now instead of Core Image, whose first render of a session
+  stalled the main thread for longer than the swap, and the ten digits'
+  sharp and blurred images are rendered a turn after mount, so the first
+  change of a session plays whole.
 
 - `transition="scramble"`, on the same machinery: each changed digit shows
   a different random digit every few frames, never the one it is leaving or

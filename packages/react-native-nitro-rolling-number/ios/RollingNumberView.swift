@@ -18,6 +18,7 @@
 //    the source-atop sweep needs a Core Graphics transparency layer.
 //
 
+import Accelerate
 import CoreText
 import UIKit
 
@@ -140,6 +141,7 @@ final class RollingNumberView: UIView {
     didSet {
       engine.setTiming(timing.duration, timing.easing.rawValue, timing.bounce, timing.stagger, timing.direction.rawValue)
       engine.setTransition(timing.transition.rawValue)
+      if timing.transition != oldValue.transition { warmSwapImages() }
       engine.setPopOnChange(timing.popOnChange)
       engine.setRevealTiming(timing.revealDuration, timing.revealBounce, timing.revealStyle.rawValue, timing.revealStagger)
       engine.setRevealGrow(timing.revealGrow)
@@ -270,7 +272,6 @@ final class RollingNumberView: UIView {
     private static var sharedTinted: [TintKey: UIImage] = [:]
     private static var sharedStrips: [StripKey: UIImage] = [:]
     private static let sharedCapacity = 512
-    private static let ciContext = CIContext(options: [.useSoftwareRenderer: false])
     private let colorKey: UInt32
     private func fontTag(_ role: GlyphRole) -> String {
       let font = self.font(for: role)
@@ -357,14 +358,46 @@ final class RollingNumberView: UIView {
       if let cached = Self.sharedBlurred[key] { return cached }
       guard let sharp = image(text, role: .digit), let cg = sharp.cgImage else { return nil }
       let sigma = lineHeight * RollingNumberView.numericBlur * renderScale
-      let pad = ceil(sigma * 3)
-      let input = CIImage(cgImage: cg)
-      let output = input.clampedToExtent().applyingGaussianBlur(sigma: sigma).cropped(to: input.extent.insetBy(dx: -pad, dy: -pad))
-      guard let blurred = Self.ciContext.createCGImage(output, from: output.extent) else { return nil }
+      guard let blurred = Self.blur(cg, sigma: sigma, pad: Int(ceil(sigma * 3))) else { return nil }
       let image = UIImage(cgImage: blurred, scale: renderScale, orientation: .up)
       if Self.sharedBlurred.count >= 64 { Self.sharedBlurred.removeAll(keepingCapacity: true) }
       Self.sharedBlurred[key] = image
       return image
+    }
+
+    /// `cg` blurred by about `sigma` pixels, with `pad` transparent pixels added
+    /// on every side for the blur to spread into: a tent convolution on the CPU
+    /// with vImage, which is a box blur run twice and reads as a gaussian at this
+    /// size, in well under a millisecond for a glyph. Core Image did this before,
+    /// and its first render of a session stalled the main thread for longer than
+    /// the swap itself, so the spring had finished behind it.
+    private static func blur(_ cg: CGImage, sigma: CGFloat, pad: Int) -> CGImage? {
+      var format = vImage_CGImageFormat(
+        bitsPerComponent: 8, bitsPerPixel: 32, colorSpace: nil,
+        bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue),
+        version: 0, decode: nil, renderingIntent: .defaultIntent)
+      var source = vImage_Buffer()
+      guard vImageBuffer_InitWithCGImage(&source, &format, nil, cg, vImage_Flags(kvImageNoFlags)) == kvImageNoError else { return nil }
+      defer { free(source.data) }
+      let width = Int(source.width) + 2 * pad
+      let height = Int(source.height) + 2 * pad
+      var padded = vImage_Buffer()
+      guard vImageBuffer_Init(&padded, vImagePixelCount(height), vImagePixelCount(width), 32, vImage_Flags(kvImageNoFlags)) == kvImageNoError else { return nil }
+      defer { free(padded.data) }
+      memset(padded.data, 0, padded.rowBytes * height)
+      for row in 0..<Int(source.height) {
+        memcpy(padded.data.advanced(by: (row + pad) * padded.rowBytes + pad * 4),
+               source.data.advanced(by: row * source.rowBytes),
+               Int(source.width) * 4)
+      }
+      var out = vImage_Buffer()
+      guard vImageBuffer_Init(&out, vImagePixelCount(height), vImagePixelCount(width), 32, vImage_Flags(kvImageNoFlags)) == kvImageNoError else { return nil }
+      defer { free(out.data) }
+      // A tent kernel of half-width h has a standard deviation of h / √6.
+      let half = max(1, Int((sigma * 2.45).rounded()))
+      let kernel = UInt32(half * 2 + 1)
+      guard vImageTentConvolve_ARGB8888(&padded, &out, nil, 0, 0, kernel, kernel, nil, vImage_Flags(kvImageEdgeExtend)) == kvImageNoError else { return nil }
+      return vImageCreateCGImageFromBuffer(&out, &format, nil, nil, vImage_Flags(kvImageNoFlags), nil)?.takeRetainedValue()
     }
 
     /// The glyph in another colour, for the change flash: the same raster as
@@ -785,6 +818,23 @@ final class RollingNumberView: UIView {
       reportIntrinsicSize()
     }
     render()
+    warmSwapImages()
+  }
+
+  /// Renders the ten digits' sharp and blurred images ahead of the first
+  /// numeric swap, on the next turn of the main queue so the mount itself
+  /// pays nothing. Rendered on demand instead, the first change of a session
+  /// spent its opening frames drawing glyphs, and the spring had landed by
+  /// the time the second frame was on screen.
+  private func warmSwapImages() {
+    guard timing.transition == .numeric else { return }
+    DispatchQueue.main.async { [weak self] in
+      guard let self, self.timing.transition == .numeric else { return }
+      for digit in Self.digitStrings {
+        _ = self.fonts.image(digit, role: .digit)
+        _ = self.fonts.blurredImage(digit)
+      }
+    }
   }
 
   /// Shrink-to-fit scale for the current bounds and the content as it is drawn
@@ -957,7 +1007,7 @@ final class RollingNumberView: UIView {
     let count = Int(engine.settledPowerCount())
     settledWheels.removeAll(keepingCapacity: true)
     for _ in 0..<count {
-      settledWheels.append(Engine.Wheel(position: 0, width: 1, linear: false, blankZero: false, fromGlyph: -1, toGlyph: -1, blend: 1, fromAbove: true, flash: 0, flashUp: true))
+      settledWheels.append(Engine.Wheel(position: 0, width: 1, linear: false, blankZero: false, fromGlyph: -1, toGlyph: -1, blend: 1, fromAbove: true, focus: 1, flash: 0, flashUp: true))
     }
     buildElements(into: &settledBuffer, wheels: settledWheels, signFactor: engine.settledNegative() ? 1 : 0)
     return settledBuffer.reduce(CGFloat(0)) { $0 + $1.width }
@@ -1149,9 +1199,9 @@ final class RollingNumberView: UIView {
 
   // The numeric transition's geometry, in line heights; mirrors
   // `RollingEngine::kNumeric*`, where the effect is described.
-  static let numericOffset: CGFloat = 0.4
-  static let numericScale: CGFloat = 0.6
-  static let numericBlur: CGFloat = 0.16
+  static let numericOffset: CGFloat = 0.55
+  static let numericScale: CGFloat = 0.9
+  static let numericBlur: CGFloat = 0.14
 
   /// Places the leaving and the arriving glyph of a swapping wheel for this
   /// frame: each scaled about its centre, offset along the axis, faded, and
@@ -1167,7 +1217,7 @@ final class RollingNumberView: UIView {
                    scale: 1 - (1 - Self.numericScale) * b, alpha: 1 - b, blur: min(1, 2 * b))
     placeSwapGlyph(sharp: swap.inSharp, blur: swap.inBlur, glyph: Int(wheel.toGlyph), shown: &swap.inGlyph, fonts: fonts,
                    center: CGPoint(x: center.x, y: center.y - d * offset * (1 - b)),
-                   scale: Self.numericScale + (1 - Self.numericScale) * b, alpha: b, blur: 1 - b)
+                   scale: Self.numericScale + (1 - Self.numericScale) * b, alpha: b, blur: 1 - CGFloat(wheel.focus))
     swap.hidden = false
   }
 

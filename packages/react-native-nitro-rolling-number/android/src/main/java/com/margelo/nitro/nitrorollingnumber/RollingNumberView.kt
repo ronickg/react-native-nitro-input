@@ -45,9 +45,9 @@ import kotlin.math.min
  */
 // The numeric transition's geometry, in line heights; mirrors
 // `RollingEngine::kNumeric*`, where the effect is described.
-private const val NUMERIC_OFFSET = 0.4f
-private const val NUMERIC_SCALE = 0.6f
-private const val NUMERIC_BLUR = 0.16f
+private const val NUMERIC_OFFSET = 0.55f
+private const val NUMERIC_SCALE = 0.9f
+private const val NUMERIC_BLUR = 0.14f
 
 class RollingNumberView(context: Context) : View(context) {
 
@@ -480,6 +480,7 @@ class RollingNumberView(context: Context) : View(context) {
     var fromAbove: Boolean = true,
     var flash: Double = 0.0,
     var flashUp: Boolean = true,
+    var focus: Double = 1.0,
   )
 
   private val engine = RollingEngine()
@@ -697,7 +698,7 @@ class RollingNumberView(context: Context) : View(context) {
   }
 
   /** Reused per frame so the JNI hop never allocates (room for far more wheels than the engine's 18). */
-  private val frameBuffer = DoubleArray(4 + 10 * 32)
+  private val frameBuffer = DoubleArray(4 + 11 * 32)
 
   /** Pulls the engine's render state into reusable [Wheel] objects (no per-frame allocation once warm). */
   private fun syncFromEngine() {
@@ -710,7 +711,7 @@ class RollingNumberView(context: Context) : View(context) {
     while (wheels.size < count) wheels.add(Wheel())
     while (wheels.size > count) wheels.removeAt(wheels.size - 1)
     for (i in 0 until count) {
-      val base = 4 + i * 10
+      val base = 4 + i * 11
       val w = wheels[i]
       w.position = f[base]
       w.width = f[base + 1]
@@ -722,6 +723,7 @@ class RollingNumberView(context: Context) : View(context) {
       w.fromAbove = f[base + 7] != 0.0
       w.flash = f[base + 8]
       w.flashUp = f[base + 9] != 0.0
+      w.focus = f[base + 10]
     }
   }
 
@@ -1153,7 +1155,7 @@ class RollingNumberView(context: Context) : View(context) {
       drawSwapGlyph(canvas, fonts, from % 10, cx, cy + d * offset * b, 1f - (1f - NUMERIC_SCALE) * b, (1f - b) * column, min(1f, 2f * b))
     }
     if (to >= 0) {
-      drawSwapGlyph(canvas, fonts, to % 10, cx, cy - d * offset * (1f - b), NUMERIC_SCALE + (1f - NUMERIC_SCALE) * b, b * column, 1f - b)
+      drawSwapGlyph(canvas, fonts, to % 10, cx, cy - d * offset * (1f - b), NUMERIC_SCALE + (1f - NUMERIC_SCALE) * b, b * column, 1f - wheel.focus.toFloat())
     }
     canvas.restore()
   }
