@@ -1,7 +1,7 @@
-<h1 align="center">Nitro Rolling Number &amp; Nitro Input</h1>
+<h1 align="center">react-native-nitro-input</h1>
 
 <p align="center">
-  One package, <a href="https://www.npmjs.com/package/react-native-nitro-input"><code>react-native-nitro-input</code></a>, two native components for React Native, built with <a href="https://nitro.margelo.com">Nitro Modules</a>:<br/>
+  Two native components for React Native in one package, built with <a href="https://nitro.margelo.com">Nitro Modules</a>:<br/>
   a <b>rolling number</b> whose digits are wheels, and a <b>text input</b> that formats amounts and applies masks natively, with a reflow you can turn on.<br/>
   One C++ engine each, iOS and Android, the new architecture.
 </p>
@@ -18,7 +18,7 @@
       <img src="docs/static/img/readme/market.webp" width="400" alt="A live market screen with about thirty rolling numbers, on an iPhone and a Pixel" />
       <p>An odometer for React Native. Every digit is a wheel driven by one C++ engine, with currency layouts, shrink-to-fit, a loading shimmer and the jackpot reveal.</p>
       <p>
-        <a href="#rolling-number">Below</a> ·
+        <a href="#rollingnumber">Below</a> ·
         <a href="https://ronickg.github.io/react-native-nitro-input/docs/rolling-number">Guide</a> ·
         <a href="https://ronickg.github.io/react-native-nitro-input/docs/loading-and-reveal#jackpot-reveal">Jackpot reveal</a> ·
         <a href="https://ronickg.github.io/react-native-nitro-input/docs/benchmarks">Benchmarks</a> ·
@@ -30,7 +30,7 @@
       <img src="docs/static/img/readme/input.webp" width="400" alt="An amount being typed into a native field, formatted as it is typed and reflowing into place, on an iPhone and a Pixel" />
       <p>A native text input. The system keyboard and accessibility stay; amounts are formatted and masks applied in C++ before a frame is drawn, the floating label is native, and the reflow is there when you turn it on.</p>
       <p>
-        <a href="#text-input">Below</a> ·
+        <a href="#nitroinput">Below</a> ·
         <a href="https://ronickg.github.io/react-native-nitro-input/docs/nitro-input">Guide</a> ·
         <a href="https://ronickg.github.io/react-native-nitro-input/docs/nitro-input#amounts">Amount field</a> ·
         <a href="https://ronickg.github.io/react-native-nitro-input/docs/nitro-input#masks">Masks</a> ·
@@ -54,7 +54,7 @@ cd ios && pod install
 
 `react-native-nitro-rolling-number` was the rolling number's own package until 0.1.0; `RollingNumber` now comes from `react-native-nitro-input`, with the same props.
 
-## Rolling number
+## RollingNumber
 
 - **Native on both platforms.** A `value` change is one JSI call; the roll runs on a `CADisplayLink` (Core Animation layers) or a `Choreographer` (Canvas). A busy JS thread never delays an animation in flight.
 - **Every digit is a wheel.** Shortest path in the direction of the change, columns sliding in and out as the number grows, easing, spring or a cascading stagger.
@@ -118,8 +118,8 @@ Release builds on real phones, 24 copies fed a new value on every frame, frames 
 
 | | iPhone 13 Pro Max (120 Hz) | iPhone 11 Pro (60 Hz) | Galaxy A22 (90 Hz, low-end) |
 | --- | --- | --- | --- |
-| **Nitro Rolling Number** (`value` prop) | 120 fps (0 dropped) | 59.9 fps (0 dropped) | 90.4 fps (0 dropped) |
-| **Nitro Rolling Number** (`jumpTo`) | 120 fps (0 dropped) | 59.9 fps (0 dropped) | 89.8 fps (3 dropped) |
+| **RollingNumber** (`value` prop) | 120 fps (0 dropped) | 59.9 fps (0 dropped) | 90.4 fps (0 dropped) |
+| **RollingNumber** (`jumpTo`) | 120 fps (0 dropped) | 59.9 fps (0 dropped) | 89.8 fps (3 dropped) |
 | react-native-number-animation (native) | 117 fps (13 dropped) | 59.1 fps (4 dropped) | 56.2 fps (170 dropped) |
 | react-native-animated-rolling-numbers | 117 fps (17 dropped) | 58.7 fps (5 dropped) | 18.8 fps (370 dropped) |
 | NumberFlow (View) | 76.1 fps (222 dropped) | 49.1 fps (56 dropped) | 24.9 fps (352 dropped) |
@@ -130,7 +130,7 @@ Release builds on real phones, 24 copies fed a new value on every frame, frames 
 
 Method, the JS-thread and CPU columns, the ten-a-second and one-copy cases, a scrolling list, mount cost and the Instruments cross-check: [BENCHMARKS.md](BENCHMARKS.md); the same tables as charts you can hover and switch between metrics: [the benchmark pages of the docs](https://ronickg.github.io/react-native-nitro-input/docs/benchmarks).
 
-## Text input
+## NitroInput
 
 `NitroInput` is a system text field (`UITextField` / `EditText`) that owns the keyboard, editing, selection, paste and accessibility, with native formatting, native masking and an outlined or filled frame with a floating label on top of it. `transition="reflow"` animates the characters as they change, for the one case where that is the point: an amount.
 
