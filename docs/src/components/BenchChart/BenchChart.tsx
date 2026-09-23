@@ -5,9 +5,10 @@ import styles from './BenchChart.module.css';
 
 /**
  * The benchmark tables as bars: one row per implementation, one column per
- * phone, the metric picked from a row of buttons. This library's rows are
- * the accent, everything else is gray, so the chart answers one question at
- * a time. The data is `docs/src/data/benchmarks.json`, which
+ * phone (a `group` across every phone) or per scenario (a `device` with its
+ * `groups`), the metric picked from a row of buttons. This library's rows
+ * are the accent, everything else is gray, so the chart answers one question
+ * at a time. The data is `docs/src/data/benchmarks.json`, which
  * `scripts/bench/report.mjs --json` writes from the result files, the same
  * groups and medians the tables under each chart print.
  *
@@ -20,7 +21,10 @@ import styles from './BenchChart.module.css';
 
 type Row = {impl: string; label: string; ours: boolean; runs: number; error: string | null} & Record<string, unknown>;
 type Group = {key: string; kind: string; title: string; rows: Row[]};
-type Device = {key: string; name: string; platform: string | null; hz: number | null; groups: Group[]};
+type Device = {key: string; name: string; model: string | null; platform: string | null; hz: number | null; groups: Group[]};
+
+/** A column: one phone for a group, or one scenario for a phone. */
+type Column = {key: string; title: string; device: Device; group: Group};
 
 type Spec = {
   /** The button's text. */
@@ -53,7 +57,10 @@ export const METRICS = {
   'dropped': {short: 'Dropped', label: 'Frames the main thread missed while typing', unit: 'frames', better: 'lower', digits: 0},
   'ms.p50': {short: 'Focus', label: 'focus() to onFocus, milliseconds, median of eight', unit: 'ms', better: 'lower'},
   'first': {short: 'First focus', label: 'The first focus, which pays for the keyboard, milliseconds', unit: 'ms', better: 'lower'},
-  'perViewFootprintKb': {short: 'Per copy', label: 'Footprint per mounted copy, kilobytes', unit: 'KB', better: 'lower', digits: 0},
+  'perViewFootprintKb': {short: 'Footprint', label: 'Footprint per mounted copy, kilobytes, the difference of two settled floors divided by the count', unit: 'KB', better: 'lower', digits: 0},
+  'perViewNativeKb': {short: 'malloc', label: 'malloc bytes in use per mounted copy, kilobytes', unit: 'KB', better: 'lower', digits: 0},
+  'perViewJavaKb': {short: 'Java heap', label: 'Java heap per mounted copy, kilobytes (Android)', unit: 'KB', better: 'lower', digits: 0},
+  'leftFootprintKb': {short: 'Left behind', label: 'Footprint still there after the copies unmounted, kilobytes per copy', unit: 'KB', better: 'lower', digits: 0},
 } satisfies Record<string, Spec>;
 
 export type MetricKey = keyof typeof METRICS;
@@ -68,7 +75,12 @@ const REVEAL_MS = 800;
 const STAGGER_MS = 40;
 
 function deviceTitle(d: Device) {
-  return d.name.replace(/^Samsung /, '').replace(/^iPhone /, 'iPhone ');
+  return d.name.replace(/^Samsung /, '');
+}
+
+/** The report's scenario title, shortened for a column head. */
+function scenarioTitle(g: Group) {
+  return g.title.replace('new value every frame', 'every frame').replace('values a second', 'a second').replace(/^Memory over about /, '').replace(/^Memory over /, '');
 }
 
 function format(v: number, spec: Spec) {
@@ -133,15 +145,21 @@ function Figure({to, spec, run, delay, instant}: {to: number; spec: Spec; run: b
   return <>{format(run ? shown : 0, spec)}</>;
 }
 
-type Tip = {device: Device; row: Row; x: number; y: number};
+type Tip = {column: Column; row: Row; x: number; y: number};
 
 export default function BenchChart({
   group,
+  groups,
+  device,
   metrics,
   caption,
 }: {
-  /** A group key as `report.mjs` builds it: `stream|24|frame`, `mount|24`, `type|8`, `focus`. */
-  group: string;
+  /** A group key as `report.mjs` builds it: `stream|24|frame`, `mount|24`, `type|8`, `focus`. One column per phone. */
+  group?: string;
+  /** With `device`: the groups that are the columns, for that phone alone. */
+  groups?: string[];
+  /** A phone (its model, `iPhone14,3`, or a part of its name); the columns are then its `groups`. */
+  device?: string;
   /** The metrics to offer, the first selected. */
   metrics: MetricKey[];
   caption?: string;
@@ -180,14 +198,21 @@ export default function BenchChart({
     return () => clearTimeout(t);
   }, [armed]);
 
-  const panels = useMemo(
-    () =>
-      DEVICES.flatMap((device) => {
-        const g = device.groups.find((x) => x.key === group);
-        return g ? [{device, group: g}] : [];
-      }),
-    [group],
-  );
+  const panels = useMemo<Column[]>(() => {
+    if (device) {
+      const d = DEVICES.find((x) => x.key === device || x.model === device || x.name.includes(device));
+      if (!d) return [];
+      return (groups ?? (group ? [group] : [])).flatMap((k) => {
+        const g = d.groups.find((x) => x.key === k);
+        return g ? [{key: k, title: scenarioTitle(g), device: d, group: g}] : [];
+      });
+    }
+    return DEVICES.flatMap((d) => {
+      const g = d.groups.find((x) => x.key === group);
+      return g ? [{key: d.key, title: deviceTitle(d), device: d, group: g}] : [];
+    });
+  }, [group, groups, device]);
+  const byScenario = Boolean(device);
 
   // Every implementation any phone ran, in the tables' order.
   const impls = useMemo(() => {
@@ -206,7 +231,7 @@ export default function BenchChart({
   const all = panels.flatMap((p) => impls.map((r) => value(p, r.impl))).filter((v): v is number => v != null);
   const sharedMin = Math.min(0, ...all);
   const sharedMax = Math.max(0, ...all);
-  const domainFor = (p: {device: Device; group: Group}): [number, number] => {
+  const domainFor = (p: Column): [number, number] => {
     if (spec.domain === 'hz') {
       const own = impls.map((r) => value(p, r.impl)).filter((v): v is number => v != null);
       return [0, Math.max(p.device.hz ?? 60, ...own)];
@@ -218,13 +243,14 @@ export default function BenchChart({
 
   if (!panels.length) return null;
 
-  const showTip = (device: Device, row: Row, e: React.MouseEvent | React.FocusEvent) => {
+  const showTip = (column: Column, row: Row, e: React.MouseEvent | React.FocusEvent) => {
     const host = root.current;
     if (!host) return;
     const cell = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const box = host.getBoundingClientRect();
-    setTip({device, row, x: cell.left - box.left + cell.width / 2, y: cell.top - box.top});
+    setTip({column, row, x: cell.left - box.left + cell.width / 2, y: cell.top - box.top});
   };
+  const hz = panels[0]?.device.hz;
 
   return (
     <figure ref={root} className={clsx(styles.figure, armed && styles.armed, settled && styles.settled)}>
@@ -251,15 +277,15 @@ export default function BenchChart({
       </div>
       <div className={styles.axisTitle}>
         {spec.label}. {spec.better === 'higher' ? 'Longer is better' : 'Shorter is better'}
-        {spec.domain === 'hz' ? '; the column is the phone’s refresh rate.' : '.'}
+        {spec.domain === 'hz' ? (byScenario && hz ? `; the column is the phone’s refresh rate, ${hz} Hz.` : '; the column is the phone’s refresh rate.') : '.'}
       </div>
       <div className={styles.scroll}>
         <div className={styles.grid} style={{gridTemplateColumns: `minmax(150px, 1fr) repeat(${panels.length}, minmax(140px, 1.3fr))`}}>
           <div className={styles.corner} />
           {panels.map((p) => (
-            <div key={p.device.key} className={styles.head}>
-              {deviceTitle(p.device)}
-              {spec.domain === 'hz' && p.device.hz ? <span className={styles.hz}> · {p.device.hz} Hz</span> : null}
+            <div key={p.key} className={styles.head}>
+              {p.title}
+              {spec.domain === 'hz' && !byScenario && p.device.hz ? <span className={styles.hz}> · {p.device.hz} Hz</span> : null}
             </div>
           ))}
           {impls.map((row, i) => (
@@ -276,23 +302,23 @@ export default function BenchChart({
                 const delay = instant ? 0 : i * STAGGER_MS;
                 if (v == null) {
                   return (
-                    <div key={p.device.key} className={styles.cell}>
-                      <span className={styles.missing}>{r?.error ? 'did not finish' : 'not run'}</span>
+                    <div key={p.key} className={styles.cell}>
+                      <span className={styles.missing}>{r?.error ? 'did not finish' : r ? 'n/a' : 'not run'}</span>
                     </div>
                   );
                 }
                 const left = v >= 0 ? zero : ((v - lo) / span) * 100;
                 const width = (Math.abs(v) / span) * 100;
-                const text = `${deviceTitle(p.device)}, ${row.label.replace(/[*`]/g, '')}: ${format(v, spec)} ${spec.unit}`;
+                const text = `${p.title}, ${row.label.replace(/[*`]/g, '')}: ${format(v, spec)} ${spec.unit}`;
                 return (
                   <div
-                    key={p.device.key}
+                    key={p.key}
                     className={styles.cell}
                     role="img"
                     aria-label={text}
                     tabIndex={0}
-                    onMouseEnter={(e) => showTip(p.device, r!, e)}
-                    onFocus={(e) => showTip(p.device, r!, e)}
+                    onMouseEnter={(e) => showTip(p, r!, e)}
+                    onFocus={(e) => showTip(p, r!, e)}
                     onMouseLeave={() => setTip(null)}
                     onBlur={() => setTip(null)}>
                     <div className={styles.track}>
@@ -321,7 +347,7 @@ export default function BenchChart({
         <div className={styles.tip} style={{left: tip.x, top: tip.y}} role="presentation">
           <div className={styles.tipTitle}>
             <Label text={tip.row.label} />
-            <span className={styles.tipDevice}>{deviceTitle(tip.device)}</span>
+            <span className={styles.tipDevice}>{tip.column.title}</span>
           </div>
           <dl className={styles.tipList}>
             {metrics.map((m) => {
