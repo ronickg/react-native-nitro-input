@@ -108,15 +108,20 @@
     "git": {
       "requireBranch": "main",
       "requireCleanWorkingDir": true,
+      "requireCommits": true,
+      "commitsPath": ".",
+      "tagMatch": "v[0-9]*",
+      "tagName": "v${version}",
       "commitMessage": "chore: release v${version}",
-      "tagName": "v${version}"
+      "changelog": "git log --no-merges --pretty=format:\"* %s (%h)\" ${from}...${to} -- ."
     },
     "npm": {
       "publish": true
     },
     "github": {
       "release": true,
-      "releaseName": "v${version}"
+      "releaseName": "rolling-number v${version}",
+      "releaseNotes": "node ../../scripts/release/changelog-section.mjs ${version}"
     },
     "hooks": {
       "before:init": [
