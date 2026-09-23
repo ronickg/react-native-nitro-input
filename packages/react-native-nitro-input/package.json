@@ -1,6 +1,6 @@
 {
   "name": "react-native-nitro-input",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Native text and amount input for React Native with Torph-style text morphing: characters slide, fade and reflow as you type, currency formatting applied natively, no JS round trip. Built with Nitro.",
   "main": "lib/commonjs/src/index.js",
   "module": "lib/module/src/index.js",
