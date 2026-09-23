@@ -28,6 +28,8 @@ public:
   void setFlash(double seconds);
   void setPopOnChange(double overshoot);
   void setReduceMotion(bool reduceMotion);
+  void changeText(int slot, double now);
+  void changeFormat(int fractionDigits, int minimumIntegerDigits, double now);
   void setValue(double value);
   void animateTo(double value, double now);
   void setLoading(bool loading, double now);

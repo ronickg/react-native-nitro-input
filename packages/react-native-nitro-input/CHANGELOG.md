@@ -23,6 +23,21 @@
 
 ### NitroNumber
 
+- A change of `prefix`, `suffix`, `groupingSeparator` or `decimalSeparator`
+  plays instead of snapping: the old text softens and fades out while the
+  new one comes into focus, on the numeric transition's springs, and its
+  width eases from one to the other (`RollingEngine::changeText`). In
+  `numeric` and `scramble` a change of `fractionDigits` plays too
+  (`RollingEngine::changeFormat`): the digits keep their place value, the
+  decimal columns that go close, new ones open blank and swap their digit
+  in, and the decimal separator fades with them. A currency switch is one
+  transition, as SwiftUI's numeric text makes it.
+- `transition="numeric"`: a column opens on the arriving glyph's spring and
+  closes on the leaving glyph's blur, instead of the transition's easing,
+  which lagged the glyph and left a gap where a digit had just left.
+- Android: a glyph fading with its column (a separator, the sign) left the
+  shared paint faded, and the next frame's digits were drawn faint or not at
+  all; a translucent `color` also turned opaque after the first change.
 - A figure that hugs its content no longer jumps when it gains or loses a
   digit at the end of a row. The view takes its new width at once, and with
   the digits kept to its start edge a right-pinned figure (a fee at the end

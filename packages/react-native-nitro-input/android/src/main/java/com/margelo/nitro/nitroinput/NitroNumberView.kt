@@ -53,6 +53,13 @@ private const val NUMERIC_BLUR = 0.08f
 /** Blurred copies per digit, from a touch of blur to the full one. */
 private const val NUMERIC_BLUR_LEVELS = 6
 
+/** `RollingEngine::TextSlot`. */
+private const val TEXT_PREFIX = 0
+private const val TEXT_SUFFIX = 1
+private const val TEXT_GROUPING = 2
+private const val TEXT_DECIMAL = 3
+private const val TEXT_SLOTS = 4
+
 class NitroNumberView(context: Context) : View(context) {
 
   // region Configuration
@@ -136,11 +143,31 @@ class NitroNumberView(context: Context) : View(context) {
   var format: Format = Format()
     set(value) {
       if (field == value) return
+      val old = field
       field = value
+      // A prefix, suffix or separator that changes while a value is shown
+      // swaps like a digit (`RollingEngine::changeText`): keep the text that leaves.
+      if (engine.hasShownValue()) {
+        val rtl = isRtl
+        fun ink(prefix: String) = if (rtl) splitAffix(prefix, spaceAtEnd = true).first else prefix
+        fun suffixInk(suffix: String) = if (rtl) splitAffix(suffix, spaceAtEnd = false).first else suffix
+        val t = now()
+        fun change(slot: Int, from: String, to: String) {
+          if (from == to) return
+          leavingText[slot] = from
+          engine.changeText(slot, t)
+        }
+        change(TEXT_PREFIX, ink(old.prefix), ink(value.prefix))
+        change(TEXT_SUFFIX, suffixInk(old.suffix), suffixInk(value.suffix))
+        change(TEXT_GROUPING, old.groupingSeparator, value.groupingSeparator)
+        change(TEXT_DECIMAL, old.decimalSeparator, value.decimalSeparator)
+      }
       affixBlocksDirty = true
-      engine.setFormat(value.fractionDigits, value.minimumIntegerDigits)
+      // Played in a glyph-swap transition; snaps otherwise (see the engine).
+      engine.changeFormat(value.fractionDigits, value.minimumIntegerDigits, now())
       if (engine.hasShownValue()) reportIntrinsicSize()
       invalidate()
+      scheduleFrameIfNeeded()
     }
 
   var typography: Typography = Typography()
@@ -325,6 +352,31 @@ class NitroNumberView(context: Context) : View(context) {
         // Immutable and uploaded ahead of its first draw: HWUI re-pins a mutable
         // bitmap at every sync, and the first frame that drew a fresh mask paid
         // for its texture upload.
+        val done = mask.copy(Bitmap.Config.ALPHA_8, false) ?: mask
+        if (done !== mask) mask.recycle()
+        done.prepareToDraw()
+        done
+      }
+    }
+
+    /**
+     * [text] of [role] as an alpha mask blurred to [level] (of
+     * [NUMERIC_BLUR_LEVELS]; 0 sharp), `width + 2 pad` by `lineHeight + 2 pad`
+     * with the text's left edge at `pad`: a prefix, suffix or separator
+     * changing text, drawn the way a swapping digit is.
+     */
+    fun blurredText(text: String, role: GlyphRole, level: Int): Bitmap? {
+      if (text.isEmpty() || lineHeight <= 0f) return null
+      val radius = if (level <= 0 || numericBlur <= 0f) 0 else Math.round(lineHeight * numericBlur * level / NUMERIC_BLUR_LEVELS).coerceAtLeast(1)
+      return BlurredGlyphCache.get("$stripKey|t|${role.ordinal}|$text|$radius|$blurPad") {
+        val pad = blurPad
+        val w = ceil(width(text, role)).toInt() + 2 * pad
+        val h = ceil(lineHeight).toInt() + 2 * pad
+        val mask = Bitmap.createBitmap(w.coerceAtLeast(1), h, Bitmap.Config.ALPHA_8)
+        val canvas = Canvas(mask)
+        val paint = TextPaint(paint(role)).apply { alpha = 255 }
+        canvas.drawText(text, pad.toFloat(), pad + baseline(role, text, 0f), paint)
+        if (radius > 0) boxBlurMask(mask, radius)
         val done = mask.copy(Bitmap.Config.ALPHA_8, false) ?: mask
         if (done !== mask) mask.recycle()
         done.prepareToDraw()
@@ -738,8 +790,21 @@ class NitroNumberView(context: Context) : View(context) {
     return scale <= 0f
   }
 
-  /** Reused per frame so the JNI hop never allocates (room for far more wheels than the engine's 18). */
-  private val frameBuffer = DoubleArray(4 + 13 * 32)
+  /** Reused per frame so the JNI hop never allocates (room for far more wheels than the engine's 18), then the text slots. */
+  private val frameBuffer = DoubleArray(4 + 13 * 32 + 4 * TEXT_SLOTS + 2)
+
+  // The decimal columns laid out now (more than the format's while dropped
+  // ones close) and the decimal separator's factor.
+  private var displayFractionDigits = 0
+  private var decimalFactor = 1.0
+
+  // Each text slot's swap (prefix, suffix, grouping, decimal): the text
+  // leaving, and the engine's clocks for it.
+  private val leavingText = arrayOfNulls<String>(TEXT_SLOTS)
+  private val textGrow = DoubleArray(TEXT_SLOTS) { 1.0 }
+  private val textFocus = DoubleArray(TEXT_SLOTS) { 1.0 }
+  private val textBlurOut = DoubleArray(TEXT_SLOTS) { 1.0 }
+  private val textActive = BooleanArray(TEXT_SLOTS)
 
   /** Pulls the engine's render state into reusable [Wheel] objects (no per-frame allocation once warm). */
   private fun syncFromEngine() {
@@ -768,6 +833,16 @@ class NitroNumberView(context: Context) : View(context) {
       w.grow = f[base + 11]
       w.blurOut = f[base + 12]
     }
+    val text = 4 + count * 13
+    for (slot in 0 until TEXT_SLOTS) {
+      textGrow[slot] = f[text + slot * 4]
+      textFocus[slot] = f[text + slot * 4 + 1]
+      textBlurOut[slot] = f[text + slot * 4 + 2]
+      textActive[slot] = f[text + slot * 4 + 3] != 0.0
+      if (!textActive[slot]) leavingText[slot] = null
+    }
+    displayFractionDigits = f[text + TEXT_SLOTS * 4].toInt()
+    decimalFactor = f[text + TEXT_SLOTS * 4 + 1]
   }
 
   // endregion
@@ -826,6 +901,10 @@ class NitroNumberView(context: Context) : View(context) {
     var width = 0f
     var fullWidth = 0f
     var factor = 0.0
+    /** A text slot swapping: its slot, the text leaving, and the side it keeps to (-1 left, 0 centre, 1 right). */
+    var slot = -1
+    var fromText: String? = null
+    var anchor = 1
   }
 
   /** A list of pooled [Element]s: filling it allocates nothing once it has grown to the run's length. */
@@ -853,12 +932,32 @@ class NitroNumberView(context: Context) : View(context) {
   }
 
   /** Lays the run out into [out] (emptied first). */
-  private fun buildElements(fonts: FontSet, wheels: List<Wheel>, signFactor: Double, out: ElementList) {
+  private fun buildElements(fonts: FontSet, wheels: List<Wheel>, signFactor: Double, out: ElementList, animated: Boolean = true) {
     out.clear()
-    val fd = format.fractionDigits
+    val fd = if (animated) displayFractionDigits else format.fractionDigits
+    val decimal = if (animated) decimalFactor else 1.0
 
-    fun addGlyph(text: String, role: GlyphRole, factor: Double) {
-      if (text.isEmpty() || factor <= 0.0) return
+    fun addGlyph(text: String, role: GlyphRole, factor: Double, slot: Int = -1, anchor: Int = 1) {
+      if (factor <= 0.0) return
+      // A slot swapping its text: the width eases from the old text's to the new one's.
+      val from = if (animated && slot >= 0 && textActive[slot]) leavingText[slot] else null
+      if (from != null && from != text) {
+        val g = textGrow[slot].coerceIn(0.0, 1.0)
+        val fromWidth = fonts.width(from, role)
+        val toWidth = if (text.isEmpty()) 0f else fonts.width(text, role)
+        val e = out.next()
+        e.wheelIndex = -1
+        e.text = text
+        e.role = role
+        e.width = ((fromWidth + (toWidth - fromWidth) * g) * factor).toFloat()
+        e.fullWidth = max(fromWidth, toWidth)
+        e.factor = factor
+        e.slot = slot
+        e.fromText = from
+        e.anchor = anchor
+        return
+      }
+      if (text.isEmpty()) return
       val width = fonts.width(text, role)
       val e = out.next()
       e.wheelIndex = -1
@@ -867,6 +966,9 @@ class NitroNumberView(context: Context) : View(context) {
       e.width = (width * factor).toFloat()
       e.fullWidth = width
       e.factor = factor
+      e.slot = -1
+      e.fromText = null
+      e.anchor = 1
     }
 
     // Under a right-to-left layout the prefix belongs at the start edge - the
@@ -877,13 +979,14 @@ class NitroNumberView(context: Context) : View(context) {
     // the number is "USD " before it.
     val rtl = isRtl
     if (affixBlocksDirty || affixRtl != rtl) updateAffixBlocks(rtl)
+    // A swapping affix keeps to the digits' side; a separator is centred.
     if (rtl) {
-      addGlyph(suffixInk, GlyphRole.SUFFIX, 1.0)
+      addGlyph(suffixInk, GlyphRole.SUFFIX, 1.0, TEXT_SUFFIX, anchor = 1)
       addGlyph(suffixGap, GlyphRole.SUFFIX, 1.0)
     } else {
       // Sign first, then the currency prefix: "-$1,234.50".
       addGlyph("-", GlyphRole.DIGIT, signFactor)
-      addGlyph(prefixInk, GlyphRole.PREFIX, 1.0)
+      addGlyph(prefixInk, GlyphRole.PREFIX, 1.0, TEXT_PREFIX, anchor = 1)
     }
     for (power in wheels.indices.reversed()) {
       val wheel = wheels[power]
@@ -895,16 +998,18 @@ class NitroNumberView(context: Context) : View(context) {
         e.width = (fonts.digitWidth * wheel.width).toFloat()
         e.fullWidth = fonts.digitWidth
         e.factor = wheel.width
+        e.slot = -1
+        e.fromText = null
       }
-      if (power > fd && (power - fd) % 3 == 0) addGlyph(format.groupingSeparator, GlyphRole.DIGIT, wheel.width)
-      if (fd > 0 && power == fd) addGlyph(format.decimalSeparator, GlyphRole.DIGIT, 1.0)
+      if (power > fd && (power - fd) % 3 == 0) addGlyph(format.groupingSeparator, GlyphRole.DIGIT, wheel.width, TEXT_GROUPING, anchor = 0)
+      if (fd > 0 && power == fd) addGlyph(format.decimalSeparator, GlyphRole.DIGIT, decimal, TEXT_DECIMAL, anchor = 0)
     }
     if (rtl) {
       addGlyph(prefixGap, GlyphRole.PREFIX, 1.0)
-      addGlyph(prefixInk, GlyphRole.PREFIX, 1.0)
+      addGlyph(prefixInk, GlyphRole.PREFIX, 1.0, TEXT_PREFIX, anchor = -1)
       addGlyph("-", GlyphRole.DIGIT, signFactor)
     } else {
-      addGlyph(suffixInk, GlyphRole.SUFFIX, 1.0)
+      addGlyph(suffixInk, GlyphRole.SUFFIX, 1.0, TEXT_SUFFIX, anchor = -1)
     }
   }
 
@@ -996,7 +1101,7 @@ class NitroNumberView(context: Context) : View(context) {
     val count = engine.settledPowerCount()
     while (settledWheels.size < count) settledWheels.add(Wheel())
     while (settledWheels.size > count) settledWheels.removeAt(settledWheels.size - 1)
-    buildElements(fonts, settledWheels, if (engine.settledNegative()) 1.0 else 0.0, settledElements)
+    buildElements(fonts, settledWheels, if (engine.settledNegative()) 1.0 else 0.0, settledElements, animated = false)
     return settledElements.totalWidth()
   }
 
@@ -1093,6 +1198,8 @@ class NitroNumberView(context: Context) : View(context) {
       val text = element.text
       if (element.wheelIndex >= 0) {
         drawWheel(canvas, fonts, wheels[element.wheelIndex], x, element.width, originX, originY, scale)
+      } else if (element.fromText != null) {
+        drawTextSwap(canvas, fonts, element, x)
       } else if (text != null) {
         drawGlyph(canvas, fonts, text, element.role, x, element.width, element.fullWidth, element.factor)
       }
@@ -1150,8 +1257,14 @@ class NitroNumberView(context: Context) : View(context) {
     // An opening or closing cell (a separator, the sign) keeps its glyph whole
     // against the text it joins and fades with the cell; see [openingAlpha].
     canvas.clipRect(x + width - fullWidth, 0f, x + width, fonts.lineHeight)
-    paint.alpha = (openingAlpha(factor) * 255).toInt().coerceIn(0, 255)
+    // The paint is shared and its alpha is the ink colour's: scale it for this
+    // draw and put it back. Left faded, the next frame's digits inherited it
+    // (a separator easing in drew them invisible), and set to 255 a
+    // translucent colour turned opaque.
+    val ink = paint.alpha
+    paint.alpha = (openingAlpha(factor) * ink).toInt().coerceIn(0, 255)
     canvas.drawText(text, x + width - fullWidth, fonts.baseline(role, text, 0f), paint)
+    paint.alpha = ink
     canvas.restore()
   }
 
@@ -1215,7 +1328,9 @@ class NitroNumberView(context: Context) : View(context) {
     val index = base.toInt()
     val columnLeft = x + width - fonts.digitWidth
     fun glyphs(paint: TextPaint, alpha: Float) {
-      paint.alpha = (alpha * 255).toInt().coerceIn(0, 255)
+      // Scaled from the ink colour's alpha and put back (see [drawGlyph]).
+      val ink = paint.alpha
+      paint.alpha = (alpha * ink).toInt().coerceIn(0, 255)
       glyphAt(index, wheel)?.let { glyph ->
         canvas.drawText(glyph, columnLeft + (fonts.digitWidth - fonts.width(glyph, GlyphRole.DIGIT)) / 2f, baseline - fraction * lineHeight, paint)
       }
@@ -1224,7 +1339,7 @@ class NitroNumberView(context: Context) : View(context) {
           canvas.drawText(glyph, columnLeft + (fonts.digitWidth - fonts.width(glyph, GlyphRole.DIGIT)) / 2f, baseline + (1f - fraction) * lineHeight, paint)
         }
       }
-      paint.alpha = 255
+      paint.alpha = ink
     }
     val opening = openingAlpha(wheel.width).toFloat()
     glyphs(fonts.digit, opening)
@@ -1314,9 +1429,10 @@ class NitroNumberView(context: Context) : View(context) {
       val mask = fonts.blurred(digitIndex, level)
       if (mask == null) {
         // No font metrics yet: the text itself.
-        paint.alpha = (levelAlpha * 255f).toInt().coerceIn(0, 255)
+        val ink = paint.alpha
+        paint.alpha = (levelAlpha * ink).toInt().coerceIn(0, 255)
         canvas.drawText(text, -fonts.width(text, GlyphRole.DIGIT) / 2f, fonts.baseline(GlyphRole.DIGIT, text, 0f) - lineHeight / 2f, paint)
-        paint.alpha = 255
+        paint.alpha = ink
       } else {
         // An alpha mask draws in the paint's colour; the ink's own alpha scales with the level's.
         blurPaint.color = paint.color
@@ -1325,6 +1441,52 @@ class NitroNumberView(context: Context) : View(context) {
       }
     }
     canvas.restore()
+  }
+
+  /**
+   * A prefix, suffix or separator changing its text, drawn like a swapping
+   * digit without the travel: the old text blurs and fades out as the new one
+   * comes into focus, each kept to the side of the cell that faces the digits
+   * (a separator centred). Not clipped: the blur's haze reaches past the cell.
+   */
+  private fun drawTextSwap(canvas: Canvas, fonts: FontSet, element: Element, x: Float) {
+    val slot = element.slot
+    val g = textGrow[slot].toFloat().coerceIn(0f, 1f)
+    val opening = openingAlpha(element.factor).toFloat()
+    fun left(text: String): Float {
+      val w = fonts.width(text, element.role)
+      return when (element.anchor) {
+        -1 -> x
+        0 -> x + (element.width - w) / 2f
+        else -> x + element.width - w
+      }
+    }
+    element.fromText?.let { from ->
+      if (from.isNotEmpty()) drawBlurredText(canvas, fonts, from, element.role, left(from), (1f - g) * opening, textBlurOut[slot].toFloat())
+    }
+    element.text?.let { to ->
+      if (to.isNotEmpty()) drawBlurredText(canvas, fonts, to, element.role, left(to), g * opening, 1f - textFocus[slot].toFloat())
+    }
+  }
+
+  /** [text] at [left], faded to [alpha] and blurred by [blur] (0…1), the two nearest levels cross-faded as a digit's are. */
+  private fun drawBlurredText(canvas: Canvas, fonts: FontSet, text: String, role: GlyphRole, left: Float, alpha: Float, blur: Float) {
+    if (alpha <= 0.002f) return
+    val levels = blur.coerceIn(0f, 1f) * NUMERIC_BLUR_LEVELS
+    val lo = min(NUMERIC_BLUR_LEVELS, floor(levels).toInt())
+    val hi = min(NUMERIC_BLUR_LEVELS, lo + 1)
+    val w = if (lo == NUMERIC_BLUR_LEVELS) 0f else levels - lo
+    val hiAlpha = alpha * w
+    val loAlpha = if (hiAlpha >= 0.999f) 0f else alpha * (1f - w) / (1f - hiAlpha)
+    val paint = fonts.paint(role)
+    val pad = fonts.blurPad.toFloat()
+    for ((level, levelAlpha) in arrayOf(lo to loAlpha, hi to hiAlpha)) {
+      if (levelAlpha <= 0.002f) continue
+      val mask = fonts.blurredText(text, role, level) ?: continue
+      blurPaint.color = paint.color
+      blurPaint.alpha = (levelAlpha * (paint.color ushr 24)).toInt().coerceIn(0, 255)
+      canvas.drawBitmap(mask, left - pad, -pad, blurPaint)
+    }
   }
 
   /**

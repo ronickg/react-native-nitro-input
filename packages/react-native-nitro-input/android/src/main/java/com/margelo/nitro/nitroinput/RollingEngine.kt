@@ -23,6 +23,10 @@ class RollingEngine {
   external fun setFlash(seconds: Double)
   external fun setPopOnChange(overshoot: Double)
   external fun setReduceMotion(reduceMotion: Boolean)
+  /** A text slot (0 prefix, 1 suffix, 2 grouping, 3 decimal) changed; see `RollingEngine::changeText`. */
+  external fun changeText(slot: Int, now: Double)
+  /** `setFormat`, the change played; see `RollingEngine::changeFormat`. */
+  external fun changeFormat(fractionDigits: Int, minimumIntegerDigits: Int, now: Double)
   external fun setValue(value: Double)
   external fun animateTo(value: Double, now: Double)
   external fun setLoading(loading: Boolean, now: Double)

@@ -30,8 +30,19 @@ EMSCRIPTEN_BINDINGS(rolling_engine) {
       .field("grow", &RollingEngine::Wheel::grow)
       .field("blurOut", &RollingEngine::Wheel::blurOut);
 
+  value_object<RollingEngine::TextChange>("TextChange")
+      .field("grow", &RollingEngine::TextChange::grow)
+      .field("focus", &RollingEngine::TextChange::focus)
+      .field("blurOut", &RollingEngine::TextChange::blurOut)
+      .field("active", &RollingEngine::TextChange::active);
+
   class_<RollingEngine>("RollingEngine")
       .constructor<>()
+      .function("changeFormat", &RollingEngine::changeFormat)
+      .function("displayFractionDigits", &RollingEngine::displayFractionDigits)
+      .function("decimalFactor", &RollingEngine::decimalFactor)
+      .function("changeText", &RollingEngine::changeText)
+      .function("textChange", &RollingEngine::textChange)
       .function("setFormat", &RollingEngine::setFormat)
       .function("setTiming", &RollingEngine::setTiming)
       .function("setTransition", &RollingEngine::setTransition)

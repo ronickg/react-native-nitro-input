@@ -27,7 +27,19 @@ export type Wheel = {
   blurOut: number
 };
 
+export type TextChange = {
+  grow: number,
+  focus: number,
+  blurOut: number,
+  active: boolean
+};
+
 export interface RollingEngine extends ClassHandle {
+  changeFormat(_0: number, _1: number, _2: number): void;
+  displayFractionDigits(): number;
+  decimalFactor(): number;
+  changeText(_0: number, _1: number): void;
+  textChange(_0: number): TextChange;
   setFormat(_0: number, _1: number): void;
   setTiming(_0: number, _1: number, _2: number, _3: number, _4: number): void;
   setTransition(_0: number): void;

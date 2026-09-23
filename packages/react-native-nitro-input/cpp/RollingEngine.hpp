@@ -120,6 +120,20 @@ public:
   /// Digits after the decimal separator (0…9) and zero-padding of the integer
   /// part (1…15). Snaps to the current target when they change.
   void setFormat(int fractionDigits, int minimumIntegerDigits);
+  /// `setFormat` with the change played: in a glyph-swap transition
+  /// (numeric, scramble) the digits keep their place value, the decimal
+  /// columns that go close and the ones that come open blank and swap their
+  /// digit in, the decimal separator fading with them (a currency switch:
+  /// "£9,587.05" to "¥1,856,853"). Snaps as `setFormat` does in a roll, during
+  /// a reveal, before a value has been shown, with a zero duration or under
+  /// Reduce Motion.
+  void changeFormat(int fractionDigits, int minimumIntegerDigits, double now);
+  /// The decimal columns laid out now: `fractionDigits` plus the ones still
+  /// closing after `changeFormat` took some away.
+  int displayFractionDigits() const { return fractionDigits_ + trailingPad_; }
+  /// Opacity and width of the decimal separator, 0…1: 1 while there are
+  /// decimals, easing in or out as `changeFormat` adds or removes them.
+  double decimalFactor() const { return decimalFactor_; }
   void setTiming(double durationSeconds, int easing, double bounce, double staggerSeconds, int direction);
   /// How a value change plays: 0 rolls every digit through the ones between
   /// (the odometer), 1 swaps each changed glyph in place (the numeric
@@ -217,6 +231,36 @@ public:
   /// The value (in the figure's units) of the reveal's `index`-th usable milestone.
   double revealMilestoneValue(int index) const;
 
+  // MARK: Text changes
+  //
+  // The text around the digits (the prefix, the suffix and the two
+  // separators) is laid out by the renderers, but when one of them changes
+  // while a value is on screen (a currency switch: "11.459,69 €" becomes
+  // "£9,587.05") it plays like SwiftUI's numeric text, the characters being
+  // part of its string: the old text softens and fades out while the new one
+  // comes into focus, and the slot's width eases from one to the other. The
+  // engine runs each slot's clocks so every renderer agrees; a renderer keeps
+  // the text that is leaving.
+
+  enum TextSlot : int { PrefixText = 0, SuffixText = 1, GroupingText = 2, DecimalText = 3 };
+  static constexpr int kTextSlots = 4;
+  struct TextChange {
+    /// Opacity of the arriving text and of the leaving one's complement, and
+    /// how far the slot's width has gone from the old text's to the new one's.
+    double grow = 1;
+    /// The arriving text's focus (0 fully blurred, 1 sharp).
+    double focus = 1;
+    /// The leaving text's blur (0 sharp, 1 fully blurred).
+    double blurOut = 1;
+    bool active = false;
+  };
+  /// A slot's text changed at `now`: its swap starts over, from the text on
+  /// screen. Snaps (no swap) before a value has been shown, with a zero
+  /// duration, or under Reduce Motion. Uses the numeric transition's clocks
+  /// and the duration of `setTiming`, whatever the transition.
+  void changeText(int slot, double now);
+  TextChange textChange(int slot) const;
+
   // MARK: Render state
 
   const std::vector<Wheel>& wheels() const { return wheels_; }
@@ -271,6 +315,8 @@ private:
     std::vector<WheelTransition> wheels;
     double signFrom = 0;
     double signTo = 0;
+    double decimalFrom = 1;
+    double decimalTo = 1;
     std::vector<Wheel> finals;
     /// True when this roll re-targeted wheels that were already moving. Such a
     /// roll skips the ease-in half of the curve so rapid updates keep flowing
@@ -353,6 +399,9 @@ private:
 
   // configuration
   int fractionDigits_ = 0;
+  /// Decimal columns below the format's, closing after `changeFormat` (0 at rest).
+  int trailingPad_ = 0;
+  double decimalFactor_ = 1;
   int minimumIntegerDigits_ = 1;
   double duration_ = 0.5;
   int easing_ = 3;
@@ -386,6 +435,13 @@ private:
   std::vector<Flash> flashes_;
   double popStart_ = -1;
   double popScale_ = 1;
+  struct TextClock {
+    double start = -1;
+  };
+  TextClock textClocks_[kTextSlots];
+  TextChange textChanges_[kTextSlots];
+  bool textActive_ = false;
+  void applyText(double now);
   /// The clock of the last `tick`, for `needsFrames` on the effects.
   double lastNow_ = 0;
   bool effectsActive_ = false;

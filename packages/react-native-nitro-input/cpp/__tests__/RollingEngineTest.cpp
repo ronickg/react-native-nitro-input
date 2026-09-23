@@ -628,10 +628,12 @@ static void numericTransitionGrowsAndShrinksColumns() {
   CHECK(near(e.wheelAt(0).fromGlyph, 9));
   CHECK(near(e.wheelAt(0).toGlyph, 0));
   e.tick(0.1);
-  CHECK(near(e.wheelAt(2).width, 0.2));   // the column opens over the whole duration
+  // The column opens on the glyph's size-and-opacity spring (the easing is not consulted).
+  CHECK(e.wheelAt(2).width > 0.4 && e.wheelAt(2).width < 0.7);
+  CHECK(near(e.wheelAt(2).width, e.wheelAt(2).grow));
   CHECK(e.wheelAt(2).blend > 0 && e.wheelAt(2).blend < 1);   // the glyph on its way
   e.tick(0.25);
-  CHECK(near(e.wheelAt(2).width, 0.5));
+  CHECK(e.wheelAt(2).width > 0.9 && e.wheelAt(2).width < 1);
   e.tick(0.5);
   CHECK(e.wheelCount() == 3);
   CHECK(near(e.wheelAt(2).width, 1));
@@ -646,7 +648,7 @@ static void numericTransitionGrowsAndShrinksColumns() {
   CHECK(near(e.wheelAt(2).width, 1));
   CHECK(e.wheelAt(2).fromAbove);
   e.tick(1.25);
-  CHECK(near(e.wheelAt(2).width, 0.5));
+  CHECK(e.wheelAt(2).width < 0.15);   // closed as its glyph left, no gap behind it
   e.tick(1 + 0.5 * RollingEngine::kNumericTail);
   CHECK(e.wheelCount() == 2);
   CHECK(near(e.wheelAt(1).position, 9));
@@ -847,6 +849,117 @@ static void numericTransitionCarriesASwapAcrossARetarget() {
   CHECK(near(e.wheelAt(1).fromGlyph, -1));
 }
 
+static void textChangesSwapLikeTheDigits() {
+  RollingEngine e;
+  e.setFormat(2, 1);
+  e.setTiming(0.5, /* linear */ 0, 0.15, 0, 0);
+  e.setTransition(1);
+  // Nothing on screen yet: a new prefix just appears.
+  e.changeText(RollingEngine::PrefixText, 0);
+  CHECK(!e.textChange(RollingEngine::PrefixText).active);
+  CHECK(!e.needsFrames());
+
+  e.animateTo(12.5, 0);
+  e.changeText(RollingEngine::PrefixText, 1);
+  RollingEngine::TextChange t = e.textChange(RollingEngine::PrefixText);
+  CHECK(t.active);
+  CHECK(near(t.grow, 0));      // the new text arrives from nothing
+  CHECK(near(t.focus, 0));     // fully blurred
+  CHECK(near(t.blurOut, 0));   // the old one still sharp
+  CHECK(e.needsFrames());
+  CHECK(!e.textChange(RollingEngine::SuffixText).active);
+
+  e.tick(1.15);
+  t = e.textChange(RollingEngine::PrefixText);
+  CHECK(t.grow > 0.2 && t.grow < 1);
+  CHECK(t.focus > 0 && t.focus < 1);
+  CHECK(t.blurOut > t.grow);   // the old text blurs away sooner than the new one arrives
+
+  // Changed again mid-swap: it starts over.
+  e.changeText(RollingEngine::PrefixText, 1.15);
+  CHECK(near(e.textChange(RollingEngine::PrefixText).grow, 0));
+
+  e.tick(1.15 + 0.5 * RollingEngine::kNumericTail);
+  t = e.textChange(RollingEngine::PrefixText);
+  CHECK(!t.active);
+  CHECK(near(t.grow, 1));
+  CHECK(near(t.focus, 1));
+  CHECK(!e.needsFrames());
+
+  // Reduce Motion snaps.
+  e.setReduceMotion(true);
+  e.changeText(RollingEngine::DecimalText, 3);
+  CHECK(!e.textChange(RollingEngine::DecimalText).active);
+  e.setReduceMotion(false);
+
+  // Out-of-range slots are ignored.
+  e.changeText(7, 3);
+  CHECK(!e.textChange(7).active);
+
+  e.reset();
+  CHECK(!e.textChange(RollingEngine::PrefixText).active);
+}
+
+static void numericFormatChangesPlay() {
+  RollingEngine e;
+  e.setFormat(2, 1);
+  e.setTiming(0.5, /* linear */ 0, 0.15, 0, 0);
+  e.setTransition(1);
+  e.animateTo(9587.05, 0);   // "9,587.05": wheels 5 0 7 8 5 9
+  CHECK(e.wheelCount() == 6);
+  CHECK(e.displayFractionDigits() == 2);
+  CHECK(near(e.decimalFactor(), 1));
+
+  // To no decimals (a currency without cents): the two decimal columns close
+  // on the right while the integer digits keep their place value.
+  e.changeFormat(0, 1, 1);
+  CHECK(e.displayFractionDigits() == 2);   // still laid out while they close
+  CHECK(e.wheelCount() == 6);
+  CHECK(near(e.wheelAt(0).toGlyph, -1));   // the 5 leaves
+  CHECK(near(e.wheelAt(1).toGlyph, -1));   // the 0 leaves
+  CHECK(near(e.wheelAt(0).width, 1));
+  CHECK(near(e.wheelAt(2).blend, 1));      // the 7 of 9,587 stays where it is
+  e.animateTo(1856853, 1);                 // and the new value arrives with them
+  CHECK(e.displayFractionDigits() == 2);
+  CHECK(near(e.wheelAt(0).toGlyph, -1));
+  CHECK(near(e.wheelAt(2).toGlyph, 3));    // units
+  CHECK(near(e.wheelAt(8).toGlyph, 1));    // millions
+  e.tick(1.25);
+  CHECK(e.wheelAt(0).width < 1 && e.wheelAt(0).width > 0);
+  CHECK(e.decimalFactor() < 1 && e.decimalFactor() > 0);
+  e.tick(1 + 0.5 * RollingEngine::kNumericTail + 0.01);
+  CHECK(!e.needsFrames());
+  CHECK(e.displayFractionDigits() == 0);
+  CHECK(e.wheelCount() == 7);              // 1,856,853
+  CHECK(near(e.wheelAt(0).position, 3));
+  CHECK(near(e.wheelAt(6).position, 1));
+  CHECK(near(e.decimalFactor(), 0));
+
+  // Back to two decimals: new columns open blank below the units and swap
+  // their digits in, the separator easing in.
+  e.changeFormat(2, 1, 3);
+  CHECK(e.displayFractionDigits() == 2);
+  CHECK(e.wheelCount() == 9);
+  CHECK(near(e.wheelAt(0).width, 0));
+  CHECK(near(e.wheelAt(0).fromGlyph, -1));
+  CHECK(near(e.wheelAt(0).toGlyph, 0));    // 1,856,853.00
+  CHECK(near(e.wheelAt(2).blend, 1));      // the units 3 is not part of it
+  CHECK(near(e.decimalFactor(), 0));
+  e.tick(3.25);
+  CHECK(e.decimalFactor() > 0 && e.decimalFactor() < 1);
+  e.tick(3 + 0.5 * RollingEngine::kNumericTail + 0.01);
+  CHECK(e.wheelCount() == 9);
+  CHECK(near(e.wheelAt(0).width, 1));
+  CHECK(near(e.decimalFactor(), 1));
+
+  // The roll still snaps.
+  e.setTransition(0);
+  e.changeFormat(0, 1, 5);
+  CHECK(!e.needsFrames());
+  CHECK(e.wheelCount() == 7);
+  CHECK(e.displayFractionDigits() == 0);
+}
+
 int main() {
   odometerPositions();
   tickerRollsShortestPathInDirection();
@@ -866,6 +979,8 @@ int main() {
   numericTransitionGrowsAndShrinksColumns();
   numericTransitionRetargetsFromTheArrivingGlyph();
   numericTransitionCarriesASwapAcrossARetarget();
+  textChangesSwapLikeTheDigits();
+  numericFormatChangesPlay();
   scrambleShowsRandomDigitsUntilItLocks();
   changeFlashAndPop();
   if (failures == 0) {

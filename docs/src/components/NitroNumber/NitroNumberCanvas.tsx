@@ -145,11 +145,20 @@ const TRANSITIONS: Record<string, number> = {roll: 0, numeric: 1, scramble: 2};
 const NUMERIC_OFFSET = 0.34;
 const NUMERIC_SCALE = 0.4;
 const NUMERIC_BLUR = 0.08;
+/** RollingEngine::TextSlot. */
+const TEXT_PREFIX = 0;
+const TEXT_SUFFIX = 1;
+const TEXT_GROUPING = 2;
+const TEXT_DECIMAL = 3;
 
 interface Element {
   wheel: number; // -1 for glyphs
   text: string;
   role: Role;
+  /** A text slot swapping (RollingEngine::changeText): its slot, the text leaving, the side it keeps to (-1 left, 0 centre, 1 right). */
+  slot?: number;
+  fromText?: string;
+  anchor?: number;
   width: number;
   fullWidth: number;
   factor: number;
@@ -309,6 +318,8 @@ export const NitroNumberCanvas = forwardRef<NitroNumberCanvasHandle, NitroNumber
     const module = useEngineModule();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const engineRef = useRef<RollingEngine | null>(null);
+    /** Each text slot's text on its way out (prefix, suffix, grouping, decimal). */
+    const leavingRef = useRef<(string | null)[]>([null, null, null, null]);
     const fontsRef = useRef<FontSet | null>(null);
     const frameRef = useRef<number | null>(null);
     const appliedRevealRef = useRef<boolean | null | undefined>(undefined);
@@ -364,25 +375,42 @@ export const NitroNumberCanvas = forwardRef<NitroNumberCanvasHandle, NitroNumber
 
     // --- Layout helpers (ports of buildElements / settledWidth) -------------
 
-    const buildElements = (f: FontSet, wheels: Wheel[], signFactor: number): Element[] => {
+    const buildElements = (f: FontSet, wheels: Wheel[], signFactor: number, engine?: RollingEngine): Element[] => {
       const elements: Element[] = [];
-      const fd = fractionDigits;
-      const addGlyph = (text: string, role: Role, factor: number) => {
-        if (!text || factor <= 0) return;
+      // Animated (an engine given): the decimal columns laid out now, more than
+      // the format's while dropped ones close, and the separator's factor.
+      const fd = engine ? engine.displayFractionDigits() : fractionDigits;
+      const decimal = engine ? engine.decimalFactor() : 1;
+      const addGlyph = (text: string, role: Role, factor: number, slot = -1, anchor = 1) => {
+        if (factor <= 0) return;
+        // A slot swapping its text: the width eases from the old text's to the new one's.
+        const from = engine && slot >= 0 ? leavingRef.current[slot] : null;
+        if (engine && from != null && from !== text) {
+          const change = engine.textChange(slot);
+          if (change.active) {
+            const g = Math.min(1, Math.max(0, change.grow));
+            const fromWidth = f.width(from, role);
+            const toWidth = text ? f.width(text, role) : 0;
+            elements.push({wheel: -1, text, role, width: (fromWidth + (toWidth - fromWidth) * g) * factor, fullWidth: Math.max(fromWidth, toWidth), factor, slot, fromText: from, anchor});
+            return;
+          }
+        }
+        if (!text) return;
         const w = f.width(text, role);
         elements.push({wheel: -1, text, role, width: w * factor, fullWidth: w, factor});
       };
+      // A swapping affix keeps to the digits' side; a separator is centred.
       addGlyph('-', 'digit', signFactor);
-      addGlyph(prefix, 'prefix', 1);
+      addGlyph(prefix, 'prefix', 1, TEXT_PREFIX, 1);
       for (let power = wheels.length - 1; power >= 0; power--) {
         const wheel = wheels[power];
         if (wheel.width > 0) {
           elements.push({wheel: power, text: '', role: 'digit', width: f.digitWidth * wheel.width, fullWidth: f.digitWidth, factor: wheel.width});
         }
-        if (power > fd && (power - fd) % 3 === 0) addGlyph(groupingSeparator, 'digit', wheel.width);
-        if (fd > 0 && power === fd) addGlyph(decimalSeparator, 'digit', 1);
+        if (power > fd && (power - fd) % 3 === 0) addGlyph(groupingSeparator, 'digit', wheel.width, TEXT_GROUPING, 0);
+        if (fd > 0 && power === fd) addGlyph(decimalSeparator, 'digit', decimal, TEXT_DECIMAL, 0);
       }
-      addGlyph(suffix, 'suffix', 1);
+      addGlyph(suffix, 'suffix', 1, TEXT_SUFFIX, -1);
       return elements;
     };
 
@@ -408,7 +436,10 @@ export const NitroNumberCanvas = forwardRef<NitroNumberCanvasHandle, NitroNumber
       const wheels: Wheel[] = [];
       const count = engine.wheelCount();
       for (let i = 0; i < count; i++) wheels.push(engine.wheelAt(i));
-      const elements = buildElements(f, wheels, engine.signFactor());
+      for (let slot = 0; slot < 4; slot++) {
+        if (leavingRef.current[slot] != null && !engine.textChange(slot).active) leavingRef.current[slot] = null;
+      }
+      const elements = buildElements(f, wheels, engine.signFactor(), engine);
       const total = elements.reduce((sum, e) => sum + e.width, 0);
 
       let fit = 1;
@@ -452,6 +483,7 @@ export const NitroNumberCanvas = forwardRef<NitroNumberCanvasHandle, NitroNumber
       let x = 0;
       for (const e of elements) {
         if (e.wheel >= 0) drawWheel(ctx, f, wheels[e.wheel], x, e.width);
+        else if (e.fromText != null) drawTextSwap(ctx, f, engine, e, x);
         else drawGlyph(ctx, f, e.text, e.role, x, e.width, e.fullWidth, e.factor);
         x += e.width;
       }
@@ -484,6 +516,31 @@ export const NitroNumberCanvas = forwardRef<NitroNumberCanvasHandle, NitroNumber
       ctx.font = f.font(role);
       ctx.fillText(text, x + w - fullWidth, f.baseline(role, text, 0));
       ctx.restore();
+    };
+
+    // A prefix, suffix or separator changing its text, drawn like a swapping
+    // digit without the travel: the old text blurs and fades out as the new
+    // one comes into focus, each kept to the side facing the digits.
+    const drawTextSwap = (ctx: CanvasRenderingContext2D, f: FontSet, engine: RollingEngine, e: Element, x: number) => {
+      const change = engine.textChange(e.slot ?? 0);
+      const g = Math.min(1, Math.max(0, change.grow));
+      const opening = openingAlpha(e.factor);
+      const canBlur = 'filter' in ctx;
+      const left = (text: string) => {
+        const w = f.width(text, e.role);
+        return e.anchor === -1 ? x : e.anchor === 0 ? x + (e.width - w) / 2 : x + e.width - w;
+      };
+      const one = (text: string, alpha: number, blur: number) => {
+        if (!text || alpha <= 0.002) return;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        if (canBlur && blur > 0.02) ctx.filter = `blur(${(f.lineHeight * NUMERIC_BLUR * blur).toFixed(2)}px)`;
+        ctx.font = f.font(e.role);
+        ctx.fillText(text, left(text), f.baseline(e.role, text, 0));
+        ctx.restore();
+      };
+      one(e.fromText ?? '', (1 - g) * opening, Math.min(1, Math.max(0, change.blurOut)));
+      one(e.text, g * opening, 1 - Math.min(1, Math.max(0, change.focus)));
     };
 
     // Opacity of a cell `width` open (0…1): squared, so while a glyph
@@ -661,9 +718,12 @@ export const NitroNumberCanvas = forwardRef<NitroNumberCanvasHandle, NitroNumber
     useEffect(() => {
       const e = engineRef.current;
       if (!e || !module) return;
-      e.setFormat(fractionDigits, minimumIntegerDigits);
       e.setTiming(duration / 1000, EASINGS[easing], bounce, stagger / 1000, DIRECTIONS[direction]);
       e.setTransition(TRANSITIONS[transition] ?? 0);
+      // Played in a glyph-swap transition; snaps otherwise (see the engine).
+      e.setReduceMotion(reduceMotion());
+      e.changeFormat(fractionDigits, minimumIntegerDigits, now());
+      scheduleFrames();
       e.setFlash(flashUpColor || flashDownColor ? flashDuration / 1000 : 0);
       e.setPopOnChange(popOnChange);
       e.setRevealTiming(revealDuration / 1000, revealBounce, revealStyle === 'spin' ? 1 : 0, revealStagger / 1000);
@@ -675,6 +735,28 @@ export const NitroNumberCanvas = forwardRef<NitroNumberCanvasHandle, NitroNumber
       draw();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [module, fractionDigits, minimumIntegerDigits, duration, easing, transition, flashUpColor, flashDownColor, flashDuration, popOnChange, bounce, stagger, direction, revealDuration, revealBounce, revealGrow, revealStyle, revealStagger, revealMilestoneHold, milestonesKey]);
+
+    // A prefix, suffix or separator that changes while a value is shown swaps
+    // like a digit (RollingEngine::changeText): keep the text that leaves.
+    const textsRef = useRef<string[] | null>(null);
+    useEffect(() => {
+      const e = engineRef.current;
+      if (!e || !module) return;
+      const next = [prefix, suffix, groupingSeparator, decimalSeparator];
+      const previous = textsRef.current;
+      textsRef.current = next;
+      if (!previous || !e.hasShownValue()) return;
+      e.setReduceMotion(reduceMotion());
+      for (let slot = 0; slot < 4; slot++) {
+        if (previous[slot] === next[slot]) continue;
+        leavingRef.current[slot] = previous[slot];
+        e.changeText(slot, now());
+      }
+      reportSize();
+      scheduleFrames();
+      draw();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [module, prefix, suffix, groupingSeparator, decimalSeparator]);
 
     // Loading glint.
     useEffect(() => {

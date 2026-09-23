@@ -169,17 +169,41 @@ const TRANSITION_DEFAULTS: Record<Transition, {duration: number; easing: Easing;
   scramble: {duration: 500, easing: 'linear', stagger: 60},
 };
 
+/** One amount in four currencies: the affixes, separators and decimals change with it. */
+const CURRENCIES = [
+  {rate: 1, prefix: '$', suffix: '', grouping: ',', decimal: '.', digits: 2},
+  {rate: 0.9218, prefix: '', suffix: ' €', grouping: '.', decimal: ',', digits: 2},
+  {rate: 149.31, prefix: '¥', suffix: '', grouping: ',', decimal: '.', digits: 0},
+  {rate: 0.8634, prefix: 'CHF ', suffix: '', grouping: '’', decimal: '.', digits: 2},
+];
+
 export function TransitionsDemo() {
   const [value, setValue] = useState(4280);
   const [transition, setTransition] = useState<Transition>('numeric');
   const [duration, setDuration] = useState<number | null>(null);
   const [stagger, setStagger] = useState<number | null>(null);
+  const [currency, setCurrency] = useState(0);
   const defaults = TRANSITION_DEFAULTS[transition];
   const bump = () => setValue((v) => v + 1 + Math.round(Math.random() * 9));
+  const c = CURRENCIES[currency];
+  const shown = Math.round(value * c.rate * 10 ** c.digits) / 10 ** c.digits;
   return (
     <>
       <Stage>
-        <NitroNumberCanvas value={value} groupingSeparator="," fontSize={56} fontWeight={800} transition={transition} easing={defaults.easing} duration={duration ?? defaults.duration} stagger={stagger ?? defaults.stagger} />
+        <NitroNumberCanvas
+          value={shown}
+          prefix={c.prefix}
+          suffix={c.suffix}
+          groupingSeparator={c.grouping}
+          decimalSeparator={c.decimal}
+          fractionDigits={c.digits}
+          fontSize={56}
+          fontWeight={800}
+          transition={transition}
+          easing={defaults.easing}
+          duration={duration ?? defaults.duration}
+          stagger={stagger ?? defaults.stagger}
+        />
       </Stage>
       <Controls>
         <Btn primary onClick={bump}>
@@ -187,6 +211,7 @@ export function TransitionsDemo() {
         </Btn>
         <Btn onClick={() => setValue((v) => v + 1000 + Math.round(Math.random() * 9000))}>Big change</Btn>
         <Btn onClick={() => setValue((v) => Math.max(0, v - 1 - Math.round(Math.random() * 9)))}>Down</Btn>
+        <Btn onClick={() => setCurrency((i) => (i + 1) % CURRENCIES.length)}>Switch currency</Btn>
         {(['numeric', 'scramble', 'roll'] as const).map((t) => (
           <Btn key={t} selected={transition === t} onClick={() => setTransition(t)}>
             {t}

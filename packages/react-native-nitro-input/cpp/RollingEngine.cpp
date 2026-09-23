@@ -138,6 +138,8 @@ void RollingEngine::setFormat(int fractionDigits, int minimumIntegerDigits) {
   }
   fractionDigits_ = fd;
   minimumIntegerDigits_ = minInt;
+  trailingPad_ = 0;
+  decimalFactor_ = fd > 0 ? 1.0 : 0.0;
   if (hasShownValue_) {
     if (reveal_.holding) {
       holdReveal(targetValue_);
@@ -145,6 +147,37 @@ void RollingEngine::setFormat(int fractionDigits, int minimumIntegerDigits) {
       snap(makeTarget(targetValue_));
     }
   }
+}
+
+void RollingEngine::changeFormat(int fractionDigits, int minimumIntegerDigits, double now) {
+  const int fd = std::min(9, std::max(0, fractionDigits));
+  const int minInt = std::min(15, std::max(1, minimumIntegerDigits));
+  const bool swaps = transitionStyle_ != 0;
+  if (fd == fractionDigits_ || !hasShownValue_ || !swaps || reveal_.active || reveal_.holding || duration_ <= 0 ||
+      reduceMotion_ || trailingPad_ > 0) {
+    setFormat(fractionDigits, minimumIntegerDigits);
+    return;
+  }
+  const int display = std::max(fractionDigits_, fd);
+  const size_t added = static_cast<size_t>(display - fractionDigits_);
+  if (added > 0) {
+    // New decimal columns open below the ones on screen, blank: the columns
+    // keep their place value, so a transition in flight keeps its wheels too.
+    wheels_.insert(wheels_.begin(), added, Wheel{-1.0, 0.0, true, false});
+    if (flashes_.size() > 0) {
+      flashes_.insert(flashes_.begin(), added, Flash{});
+    }
+    if (transition_.active) {
+      transition_.wheels.insert(transition_.wheels.begin(), added, WheelTransition{});
+      transition_.delays.insert(transition_.delays.begin(), added, 0.0);
+    }
+  }
+  fractionDigits_ = fd;
+  minimumIntegerDigits_ = minInt;
+  // Decimal columns the format no longer has: they close where they are.
+  trailingPad_ = display - fd;
+  // The same value in the new format, as a change.
+  animateTo(targetValue_, now);
 }
 
 void RollingEngine::setTiming(double durationSeconds, int easing, double bounce, double staggerSeconds, int direction) {
@@ -260,7 +293,7 @@ void RollingEngine::animateTo(double value, double now) {
   }
   const int mandatory = minimumIntegerDigits_ + fractionDigits_;
   const int currentCount = static_cast<int>(wheels_.size());
-  const int count = std::max(currentCount, target.powerCount);
+  const int count = std::max(currentCount, target.powerCount + trailingPad_);
 
   Transition next;
   next.active = true;
@@ -319,6 +352,8 @@ void RollingEngine::animateTo(double value, double now) {
   }
   next.signFrom = signFactor_;
   next.signTo = target.negative ? 1.0 : 0.0;
+  next.decimalFrom = decimalFactor_;
+  next.decimalTo = fractionDigits_ > 0 ? 1.0 : 0.0;
 
   // The change flash lights every wheel whose glyph changes; the pop kicks once.
   flashes_.resize(static_cast<size_t>(count));
@@ -403,6 +438,7 @@ int RollingEngine::shownGlyph(const Wheel& wheel) {
 void RollingEngine::planNumeric(Transition& next, const Target& target, bool increasing, int count, int mandatory, double now) const {
   (void)mandatory;
   const int currentCount = static_cast<int>(wheels_.size());
+  const int pad = trailingPad_;
   for (int power = 0; power < count; power++) {
     const Wheel current = power < currentCount ? wheels_[static_cast<size_t>(power)] : Wheel{-1.0, 0.0, true, false};
     // The glyph the wheel shows, or was arriving at when re-targeted: that is
@@ -416,8 +452,9 @@ void RollingEngine::planNumeric(Transition& next, const Target& target, bool inc
     from.fromAbove = !increasing;
     from.linear = false;
     from.blankZero = false;
-    if (power < target.powerCount) {
-      const int digit = target.digit(power);
+    // Below `pad`: decimal columns the format dropped (`changeFormat`).
+    if (power >= pad && power - pad < target.powerCount) {
+      const int digit = target.digit(power - pad);
       from.toGlyph = static_cast<double>(digit);
       from.position = static_cast<double>(digit);
       to = Wheel{static_cast<double>(digit), 1.0, false, false};
@@ -456,6 +493,8 @@ void RollingEngine::planNumeric(Transition& next, const Target& target, bool inc
 
 void RollingEngine::snap(const Target& target) {
   transition_.active = false;
+  trailingPad_ = 0;
+  decimalFactor_ = fractionDigits_ > 0 ? 1.0 : 0.0;
   cancelReveal();
   wheels_.clear();
   wheels_.reserve(static_cast<size_t>(target.powerCount));
@@ -810,7 +849,15 @@ void RollingEngine::apply(double elapsed) {
     // a column opens and closes over the duration itself.
     const double span = tr.style == 1 ? tr.duration / kNumericTail : tr.duration;
     const double rawSpan = span > 0 ? clamp01((elapsed - delay) / span) : 1.0;
-    const double t = tr.fromMotion ? easeFromMotion(rawSpan) : ease(rawSpan);
+    double t = tr.fromMotion ? easeFromMotion(rawSpan) : ease(rawSpan);
+    if (tr.numeric) {
+      // A column opens on the arriving glyph's size-and-opacity spring and
+      // closes on the leaving glyph's blur, the faster one: on the
+      // transition's easing it lagged the glyph, and a digit that had already
+      // left stood as a gap in the number until its column caught up.
+      const double settle = wt.to.width < wt.from.width ? kNumericBlurOutSettle : kNumericGrowSettle;
+      t = rawSpan >= 1 ? 1.0 : damped(std::max(0.0, elapsed - delay), 1.0, settle * span);
+    }
     Wheel& w = wheels_[i];
     w.width = clamp01(wt.from.width + (wt.to.width - wt.from.width) * t);
     w.linear = wt.from.linear;
@@ -881,11 +928,26 @@ void RollingEngine::apply(double elapsed) {
   const double signRaw = tr.duration > 0 ? clamp01(elapsed / tr.duration) : 1.0;
   const double signT = tr.fromMotion ? easeFromMotion(signRaw) : ease(signRaw);
   signFactor_ = clamp01(tr.signFrom + (tr.signTo - tr.signFrom) * signT);
+  if (tr.decimalFrom != tr.decimalTo) {
+    // With the columns, on the same spring.
+    const double span = tr.style == 1 ? tr.duration / kNumericTail : tr.duration;
+    const double t = elapsed >= span ? 1.0 : damped(std::max(0.0, elapsed), 1.0, kNumericGrowSettle * span);
+    decimalFactor_ = clamp01(tr.decimalFrom + (tr.decimalTo - tr.decimalFrom) * t);
+  } else {
+    decimalFactor_ = tr.decimalTo;
+  }
 }
 
 void RollingEngine::finish() {
   wheels_ = transition_.finals;
   signFactor_ = transition_.signTo;
+  decimalFactor_ = transition_.decimalTo;
+  if (trailingPad_ > 0) {
+    // The closed decimal columns go; the flashes keep their place values.
+    const size_t pad = std::min(flashes_.size(), static_cast<size_t>(trailingPad_));
+    flashes_.erase(flashes_.begin(), flashes_.begin() + static_cast<std::ptrdiff_t>(pad));
+    trailingPad_ = 0;
+  }
   transition_.active = false;
 }
 
@@ -955,12 +1017,57 @@ bool RollingEngine::tick(double now) {
     }
   }
   applyEffects(now);
+  applyText(now);
   return needsFrames();
 }
 
 bool RollingEngine::needsFrames() const {
   const bool sweeping = loadingProgress_ > 0 && !reduceMotion_;
-  return transition_.active || reveal_.active || loadingFadeActive_ || sweeping || effectsActive_;
+  return transition_.active || reveal_.active || loadingFadeActive_ || sweeping || effectsActive_ || textActive_;
+}
+
+void RollingEngine::changeText(int slot, double now) {
+  if (slot < 0 || slot >= kTextSlots) {
+    return;
+  }
+  if (!hasShownValue_ || duration_ <= 0 || reduceMotion_) {
+    textClocks_[slot].start = -1;
+    textChanges_[slot] = TextChange{};
+    textActive_ = false;
+    for (const TextChange& t : textChanges_) {
+      textActive_ = textActive_ || t.active;
+    }
+    return;
+  }
+  textClocks_[slot].start = now;
+  applyText(now);
+}
+
+RollingEngine::TextChange RollingEngine::textChange(int slot) const {
+  return slot >= 0 && slot < kTextSlots ? textChanges_[slot] : TextChange{};
+}
+
+void RollingEngine::applyText(double now) {
+  // The numeric transition's clocks for one glyph, over the transition's
+  // duration (not its tail: there is no position spring to ring out).
+  const double d = duration_;
+  bool any = false;
+  for (int i = 0; i < kTextSlots; i++) {
+    TextChange& t = textChanges_[i];
+    const double start = textClocks_[i].start;
+    const double local = now - start;
+    if (start < 0 || d <= 0 || local >= d * kNumericTail) {
+      textClocks_[i].start = -1;
+      t = TextChange{};
+      continue;
+    }
+    t.active = true;
+    t.grow = damped(local, 1.0, kNumericGrowSettle * d);
+    t.focus = std::min(1.0, damped(local, kNumericFocusZeta, kNumericFocusSettle * d));
+    t.blurOut = damped(local, 1.0, kNumericBlurOutSettle * d);
+    any = true;
+  }
+  textActive_ = any;
 }
 
 bool RollingEngine::isRolling() const {
@@ -1052,6 +1159,13 @@ void RollingEngine::reset() {
   popScale_ = 1;
   lastNow_ = 0;
   effectsActive_ = false;
+  trailingPad_ = 0;
+  decimalFactor_ = 1;
+  for (int i = 0; i < kTextSlots; i++) {
+    textClocks_[i] = TextClock{};
+    textChanges_[i] = TextChange{};
+  }
+  textActive_ = false;
   revealDuration_ = 2.2;
   revealBounce_ = 0.12;
   revealStyle_ = 0;

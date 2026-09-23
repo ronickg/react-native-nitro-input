@@ -122,13 +122,39 @@ final class NitroNumberView: UIView {
   var format = Format() {
     didSet {
       guard format != oldValue else { return }
-      engine.setFormat(Int32(format.fractionDigits), Int32(format.minimumIntegerDigits))
+      // A prefix, suffix or separator that changes while a value is shown
+      // swaps like a digit (`Engine.changeText`): keep the text that leaves.
+      if engine.hasShownValue() {
+        let rtl = isRTL
+        func prefixInk(_ text: String) -> String { rtl ? Self.splitAffix(text, spaceAtEnd: true).ink : text }
+        func suffixInk(_ text: String) -> String { rtl ? Self.splitAffix(text, spaceAtEnd: false).ink : text }
+        let now = CACurrentMediaTime()
+        func change(_ slot: Int, _ from: String, _ to: String) {
+          guard from != to else { return }
+          leavingText[slot] = from
+          engine.changeText(Int32(slot), now)
+        }
+        change(Self.prefixText, prefixInk(oldValue.prefix), prefixInk(format.prefix))
+        change(Self.suffixText, suffixInk(oldValue.suffix), suffixInk(format.suffix))
+        change(Self.groupingText, oldValue.groupingSeparator, format.groupingSeparator)
+        change(Self.decimalText, oldValue.decimalSeparator, format.decimalSeparator)
+      }
+      // Played in a glyph-swap transition; snaps otherwise (see the engine).
+      engine.changeFormat(Int32(format.fractionDigits), Int32(format.minimumIntegerDigits), CACurrentMediaTime())
       if engine.hasShownValue() {
         reportIntrinsicSize()
       }
+      updateDisplayLinkNeed()
       render()
     }
   }
+
+  // `Engine.TextSlot`, and the text each slot is swapping away from.
+  static let prefixText = 0
+  static let suffixText = 1
+  static let groupingText = 2
+  static let decimalText = 3
+  private var leavingText: [String?] = [nil, nil, nil, nil]
 
   var typography = Typography() {
     didSet {
@@ -367,11 +393,11 @@ final class NitroNumberView: UIView {
     /// a blurred glyph is not a sharp one cross-faded with a blurred one, which
     /// reads as a sharp digit inside a glow, but the two levels nearest its
     /// blur cross-faded, so it never shows a sharp core.
-    func blurredImage(_ text: String, level: Int) -> UIImage? {
-      if level <= 0 || numericBlur <= 0 { return image(text, role: .digit) }
-      let key = TintKey(image: ImageKey(font: fontTag(.digit), color: colorKey, scale: renderScale, text: text, role: .digit), tint: 0, level: level, blur: blurKey)
+    func blurredImage(_ text: String, role: GlyphRole = .digit, level: Int) -> UIImage? {
+      if level <= 0 || numericBlur <= 0 { return image(text, role: role) }
+      let key = TintKey(image: ImageKey(font: fontTag(role), color: colorKey, scale: renderScale, text: text, role: role), tint: 0, level: level, blur: blurKey)
       if let cached = Self.sharedBlurred[key] { return cached }
-      guard let sharp = image(text, role: .digit), let image = blurred(sharp, level: level) else { return nil }
+      guard let sharp = image(text, role: role), let image = blurred(sharp, level: level) else { return nil }
       if Self.sharedBlurred.count >= 256 { Self.sharedBlurred.removeAll(keepingCapacity: true) }
       Self.sharedBlurred[key] = image
       return image
@@ -595,6 +621,26 @@ final class NitroNumberView: UIView {
     var glyph = -2
     var level = -1
     var tint: UInt32 = 0
+    /// Text swaps only: the text the layer shows.
+    var text: String?
+  }
+
+  /// A prefix, suffix or separator changing its text (`Engine.changeText`):
+  /// the leaving and the arriving text, each a pair of layers holding the two
+  /// blur levels nearest its blur, cross-faded as a swapping digit's are. On
+  /// the slot's overlay, unclipped, so the haze stays whole.
+  private final class TextSwapLayers {
+    let leaving = (GlyphLayer(), GlyphLayer())
+    let arriving = (GlyphLayer(), GlyphLayer())
+    var hidden = true
+    var all: [CALayer] { [leaving.0, leaving.1, arriving.0, arriving.1].map { $0.layer } }
+
+    init(scale: CGFloat) {
+      for layer in all {
+        layer.contentsScale = scale
+        layer.isHidden = true
+      }
+    }
   }
 
   /// The numeric transition's layers of one wheel: the leaving glyph and the
@@ -633,6 +679,8 @@ final class NitroNumberView: UIView {
     /// on an unclipped layer of their own over the containers.
     var swap: SwapLayers?
     var overlay: CALayer?
+    /// Glyphs only: a text swap's layers, on `overlay`, once the text has changed.
+    var textSwap: TextSwapLayers?
     /// Wheels only: the change flash of a wheel that is not swapping, a
     /// tinted copy of the strip over the strip.
     var flashLayer: CALayer?
@@ -767,6 +815,7 @@ final class NitroNumberView: UIView {
     engine.reset()
     fontScale = 1
     lastReportedSize = .zero
+    leavingText = [nil, nil, nil, nil]
     autoAnchor = nil
     laidFrame = nil
     pendingSizeReport = false
@@ -1014,6 +1063,10 @@ final class NitroNumberView: UIView {
     var width: CGFloat
     var fullWidth: CGFloat
     var factor: Double
+    /// A text slot swapping: its slot, the text leaving, and the side it keeps to (-1 left, 0 centre, 1 right).
+    var slot = -1
+    var fromText: String?
+    var anchor = 1
   }
 
   /// Pulls the engine's wheels into `wheelBuffer`.
@@ -1026,13 +1079,35 @@ final class NitroNumberView: UIView {
   }
 
   /// Lays the run out into `elements` (emptied first, capacity kept).
-  private func buildElements(into elements: inout [Element], wheels: [Engine.Wheel], signFactor: Double) {
+  private func buildElements(into elements: inout [Element], wheels: [Engine.Wheel], signFactor: Double, animated: Bool = true) {
     elements.removeAll(keepingCapacity: true)
     let fonts = self.fonts
-    let fd = format.fractionDigits
+    // The decimal columns laid out now: more than the format's while dropped ones close.
+    let fd = animated ? Int(engine.displayFractionDigits()) : format.fractionDigits
+    let decimal = animated ? engine.decimalFactor() : 1
 
-    func addGlyph(_ text: String, role: GlyphRole, factor: Double) {
-      guard !text.isEmpty, factor > 0 else { return }
+    func addGlyph(_ text: String, role: GlyphRole, factor: Double, slot: Int = -1, anchor: Int = 1) {
+      guard factor > 0 else { return }
+      // A slot swapping its text: the width eases from the old text's to the new one's.
+      if animated, slot >= 0, let from = leavingText[slot], from != text {
+        let change = engine.textChange(Int32(slot))
+        if change.active {
+          let g = CGFloat(max(0, min(1, change.grow)))
+          let fromWidth = fonts.width(of: from, role: role)
+          let toWidth = text.isEmpty ? 0 : fonts.width(of: text, role: role)
+          elements.append(Element(
+            kind: .glyph(text, role),
+            width: (fromWidth + (toWidth - fromWidth) * g) * CGFloat(factor),
+            fullWidth: max(fromWidth, toWidth),
+            factor: factor,
+            slot: slot,
+            fromText: from,
+            anchor: anchor
+          ))
+          return
+        }
+      }
+      guard !text.isEmpty else { return }
       let width = fonts.width(of: text, role: role)
       elements.append(Element(kind: .glyph(text, role), width: width * CGFloat(factor), fullWidth: width, factor: factor))
     }
@@ -1048,13 +1123,14 @@ final class NitroNumberView: UIView {
       affixBlocks = AffixBlocks(prefix: format.prefix, suffix: format.suffix, rtl: rtl)
     }
     let affixes = affixBlocks
+    // A swapping affix keeps to the digits' side; a separator is centred.
     if rtl {
-      addGlyph(affixes.suffixInk, role: .suffix, factor: 1)
+      addGlyph(affixes.suffixInk, role: .suffix, factor: 1, slot: Self.suffixText, anchor: 1)
       addGlyph(affixes.suffixGap, role: .suffix, factor: 1)
     } else {
       // Sign first, then the currency prefix: "-$1,234.50".
       addGlyph("-", role: .digit, factor: signFactor)
-      addGlyph(affixes.prefixInk, role: .prefix, factor: 1)
+      addGlyph(affixes.prefixInk, role: .prefix, factor: 1, slot: Self.prefixText, anchor: 1)
     }
     var power = wheels.count - 1
     while power >= 0 {
@@ -1063,19 +1139,19 @@ final class NitroNumberView: UIView {
         elements.append(Element(kind: .wheel(power), width: fonts.digitWidth * CGFloat(wheel.width), fullWidth: fonts.digitWidth, factor: wheel.width))
       }
       if power > fd, (power - fd) % 3 == 0 {
-        addGlyph(format.groupingSeparator, role: .digit, factor: wheel.width)
+        addGlyph(format.groupingSeparator, role: .digit, factor: wheel.width, slot: Self.groupingText, anchor: 0)
       }
       if fd > 0, power == fd {
-        addGlyph(format.decimalSeparator, role: .digit, factor: 1)
+        addGlyph(format.decimalSeparator, role: .digit, factor: decimal, slot: Self.decimalText, anchor: 0)
       }
       power -= 1
     }
     if rtl {
       addGlyph(affixes.prefixGap, role: .prefix, factor: 1)
-      addGlyph(affixes.prefixInk, role: .prefix, factor: 1)
+      addGlyph(affixes.prefixInk, role: .prefix, factor: 1, slot: Self.prefixText, anchor: -1)
       addGlyph("-", role: .digit, factor: signFactor)
     } else {
-      addGlyph(affixes.suffixInk, role: .suffix, factor: 1)
+      addGlyph(affixes.suffixInk, role: .suffix, factor: 1, slot: Self.suffixText, anchor: -1)
     }
   }
 
@@ -1150,7 +1226,7 @@ final class NitroNumberView: UIView {
     for _ in 0..<count {
       settledWheels.append(Engine.Wheel(position: 0, width: 1, linear: false, blankZero: false, fromGlyph: -1, toGlyph: -1, blend: 1, fromAbove: true, focus: 1, grow: 1, blurOut: 1, flash: 0, flashUp: true))
     }
-    buildElements(into: &settledBuffer, wheels: settledWheels, signFactor: engine.settledNegative() ? 1 : 0)
+    buildElements(into: &settledBuffer, wheels: settledWheels, signFactor: engine.settledNegative() ? 1 : 0, animated: false)
     return settledBuffer.reduce(CGFloat(0)) { $0 + $1.width }
   }
 
@@ -1243,6 +1319,9 @@ final class NitroNumberView: UIView {
 
   private func renderLayers() {
     let fonts = self.fonts
+    for slot in 0..<leavingText.count where leavingText[slot] != nil && !engine.textChange(Int32(slot)).active {
+      leavingText[slot] = nil
+    }
     syncWheels()
     buildElements(into: &elementBuffer, wheels: wheelBuffer, signFactor: engine.signFactor())
     let wheels = wheelBuffer
@@ -1331,7 +1410,31 @@ final class NitroNumberView: UIView {
           }
         }
         layoutFlash(slotIndex: i, wheel: wheel, tint: swapping ? nil : tint, fonts: fonts, stripFrame: stripFrame)
-      case .glyph:
+      case .glyph(let text, let role):
+        if let from = element.fromText {
+          // Swapping its text: the overlay's pair of pairs instead of the image.
+          if !slot.layer.isHidden { slot.layer.isHidden = true }
+          let swap: TextSwapLayers
+          if let existing = slot.textSwap {
+            swap = existing
+          } else {
+            swap = TextSwapLayers(scale: fonts.renderScale)
+            let overlay = CALayer()
+            overlay.frame = frame
+            for layer in swap.all { overlay.addSublayer(layer) }
+            contentLayer.addSublayer(overlay)
+            slots[i].overlay = overlay
+            slots[i].textSwap = swap
+          }
+          layoutTextSwap(swap, element: element, from: from, to: text, role: role, fonts: fonts)
+          x += element.width
+          continue
+        }
+        if slot.layer.isHidden { slot.layer.isHidden = false }
+        if let swap = slot.textSwap, !swap.hidden {
+          for layer in swap.all { layer.isHidden = true }
+          swap.hidden = true
+        }
         let opacity = Self.openingOpacity(element.factor)
         if slot.opacity != opacity {
           slot.layer.opacity = opacity
@@ -1400,6 +1503,62 @@ final class NitroNumberView: UIView {
     placeSwapGlyph(swap.leavingTint, glyph: outGlyph, fonts: fonts, tint: tint, center: outCenter, scale: outScale, alpha: outAlpha * tintAlpha, blur: outBlur)
     placeSwapGlyph(swap.arrivingTint, glyph: inGlyph, fonts: fonts, tint: tint, center: inCenter, scale: inScale, alpha: inAlpha * tintAlpha, blur: inBlur)
     swap.hidden = false
+  }
+
+  /// A prefix, suffix or separator changing its text, drawn like a swapping
+  /// digit without the travel: the old text blurs and fades out as the new
+  /// one comes into focus, each kept to the side of the cell that faces the
+  /// digits (a separator centred).
+  private func layoutTextSwap(_ swap: TextSwapLayers, element: Element, from: String, to: String, role: GlyphRole, fonts: FontSet) {
+    let change = engine.textChange(Int32(element.slot))
+    let g = CGFloat(max(0, min(1, change.grow)))
+    let opening = CGFloat(Self.openingOpacity(element.factor))
+    func left(_ text: String) -> CGFloat {
+      let width = fonts.width(of: text, role: role)
+      switch element.anchor {
+      case -1: return 0
+      case 0: return (element.width - width) / 2
+      default: return element.width - width
+      }
+    }
+    placeTextGlyph(swap.leaving, text: from, role: role, fonts: fonts, left: left(from), alpha: (1 - g) * opening, blur: CGFloat(change.blurOut))
+    placeTextGlyph(swap.arriving, text: to, role: role, fonts: fonts, left: left(to), alpha: g * opening, blur: 1 - CGFloat(change.focus))
+    swap.hidden = false
+  }
+
+  /// One text of a text swap, its left edge at `left` in the cell: the two
+  /// blur levels nearest `amount`, cross-faded as `placeSwapGlyph` does.
+  private func placeTextGlyph(_ pair: (GlyphLayer, GlyphLayer), text: String, role: GlyphRole, fonts: FontSet, left: CGFloat, alpha: CGFloat, blur amount: CGFloat) {
+    guard !text.isEmpty, alpha > 0.002, let sharp = fonts.image(text, role: role) else {
+      if !pair.0.layer.isHidden { pair.0.layer.isHidden = true }
+      if !pair.1.layer.isHidden { pair.1.layer.isHidden = true }
+      return
+    }
+    let levels = Self.numericBlurLevels
+    let x = max(0, min(1, amount)) * CGFloat(levels)
+    let lo = min(levels, Int(floor(x)))
+    let hi = min(levels, lo + 1)
+    let w = lo == levels ? 0 : x - CGFloat(lo)
+    let hiAlpha = alpha * w
+    let loAlpha = hiAlpha >= 0.999 ? 0 : alpha * (1 - w) / (1 - hiAlpha)
+    // Blurred images are padded evenly, so each shares the sharp one's centre.
+    let center = CGPoint(x: left + sharp.size.width / 2, y: fonts.top(for: role, text: text, lineTop: 0) + sharp.size.height / 2)
+    for (slot, level, layerAlpha) in [(pair.0, lo, loAlpha), (pair.1, hi, hiAlpha)] {
+      let layer = slot.layer
+      let hidden = layerAlpha <= 0.002
+      if layer.isHidden != hidden { layer.isHidden = hidden }
+      if hidden { continue }
+      if slot.text != text || slot.level != level {
+        if let image = fonts.blurredImage(text, role: role, level: level) {
+          layer.contents = image.cgImage
+          layer.bounds = CGRect(origin: .zero, size: image.size)
+        }
+        slot.text = text
+        slot.level = level
+      }
+      layer.position = center
+      layer.opacity = Float(layerAlpha)
+    }
   }
 
   /// Places one glyph of a swap: the two blur levels nearest `amount` (of
