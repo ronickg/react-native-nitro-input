@@ -231,6 +231,11 @@
   opacity: 1;
 }
 
+/* A growth that is negative: a floor that fell, nothing to draw, the figure kept for the record. */
+.valueFell {
+  color: var(--nitro-ink-muted);
+}
+
 .missing {
   font-size: 0.75rem;
   font-style: italic;

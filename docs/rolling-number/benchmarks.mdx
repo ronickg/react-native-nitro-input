@@ -651,7 +651,7 @@ flatter.
 
 ### Mount and unmount cycles
 
-<BenchChart group="leak|24|40" metrics={['growthKbPerCycle']} caption="Growth per cycle of the footprint floor; a bar to the left of the line is a floor that fell." />
+<BenchChart group="leak|24|40" metrics={['growthKbPerCycle']} caption="Growth per cycle of the footprint floor, the end minus the start over 40 cycles. A negative figure is a floor that ended lower than it began, nothing leaked and nothing to draw; a bar is what stayed allocated." />
 
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
@@ -706,7 +706,7 @@ flatter.
 
 ### A list scrolling for 30 seconds
 
-<BenchChart group="leaklist|200" metrics={['growthKbPerSecond']} caption="Footprint growth per second of scrolling, after the first six seconds; a bar to the left of the line is a footprint that fell." />
+<BenchChart group="leaklist|200" metrics={['growthKbPerSecond']} caption="Footprint growth per second of scrolling, after the first six seconds. A negative figure is a footprint that fell over the run, nothing to draw; a bar is what kept rising." />
 
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 

@@ -16,6 +16,21 @@ short: the probe module in the example app types into the focused field the
 way a keyboard does and watches every frame; every result is in
 `scripts/bench/results/` in the repository.
 
+## At a glance
+
+Eleven fields typed into at eight keys a second by the probe, the way a
+keyboard types. The figure to read first is **rewritten keys**: a field that
+formats in JavaScript shows the raw keystroke first and the formatted text a
+frame or two later, which is the flicker people report with formatted
+inputs; NitroInput and MorphInput format inside the native edit and never
+rewrite a key. Then **JS per key**, what a fast typist costs the app's JS
+thread, and how long a key takes to **settle**. Focus latency and mount cost
+have their own sections below.
+
+<BenchChart group="type|8" metrics={['rewrites.keysWithRewrites', 'jsMsPerKey', 'settledMs.p95', 'dropped', 'mainMsPerKey']} caption="Hover a bar for every column of its row; the tables below have the same figures." />
+
+## Method
+
 - **Typing.** The probe types into the focused field one key at a time
   through the path real typing takes (`insertText` on the first responder on
   iOS, the input connection's `commitText` on Android), at 8 and at 15 keys a
@@ -66,7 +81,7 @@ how much on each phone. Unmounting costs about the same for every field.
 
 ### Typing at 8 keys a second
 
-<BenchChart group="type|8" metrics={['rewrites.keysWithRewrites', 'settledMs.p95', 'jsMsPerKey', 'mainMsPerKey', 'dropped']} caption="Hover a bar for every column of its row; the tables have the same figures." />
+<BenchChart group="type|8" metrics={['rewrites.keysWithRewrites', 'jsMsPerKey', 'settledMs.p95', 'dropped', 'mainMsPerKey']} caption="Hover a bar for every column of its row; the tables have the same figures." />
 
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
@@ -116,7 +131,7 @@ how much on each phone. Unmounting costs about the same for every field.
 
 ### Typing at 15 keys a second
 
-<BenchChart group="type|15" metrics={['rewrites.keysWithRewrites', 'settledMs.p95', 'jsMsPerKey', 'mainMsPerKey', 'dropped']} />
+<BenchChart group="type|15" metrics={['rewrites.keysWithRewrites', 'jsMsPerKey', 'settledMs.p95', 'dropped', 'mainMsPerKey']} />
 
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
@@ -270,7 +285,7 @@ how much on each phone. Unmounting costs about the same for every field.
 
 ### Memory over 40 mount/unmount cycles of 20 fields
 
-<BenchChart group="leak|20|40" metrics={['growthKbPerCycle']} caption="Growth per cycle of the footprint floor; a bar to the left of the line is a floor that fell." />
+<BenchChart group="leak|20|40" metrics={['growthKbPerCycle']} caption="Growth per cycle of the footprint floor, the end minus the start over 40 cycles. A negative figure is a floor that ended lower than it began, nothing leaked and nothing to draw; a bar is what stayed allocated." />
 
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
