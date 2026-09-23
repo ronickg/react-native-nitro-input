@@ -1,0 +1,71 @@
+---
+title: Formatting and layout
+description: Digits and separators, currency symbols and codes at their own size, fonts, sizing and shrink-to-fit.
+---
+
+import {Example, CurrencyDemo, FitDemo} from '@site/src/components/Demo/Demo';
+
+# Formatting and layout
+
+Formatting happens on the native side, so the layout is known before the first frame.
+
+| Prop | Example |
+| --- | --- |
+| `fractionDigits={2}` | `1234.5` → `1234.50` |
+| `minimumIntegerDigits={3}` | `7` → `007` |
+| `groupingSeparator=","` | `1234567` → `1,234,567` |
+| `decimalSeparator=","` | `1234.5` → `1234,5` |
+| `prefix="$"` / `suffix="%"` | `$42` / `42%` |
+
+A negative value gets a leading `-` that slides in and out like a digit column. At most 18 digits are shown.
+
+## Currency
+
+Money is usually set with the currency mark at a different size from the amount. `prefixFontSize` / `suffixFontSize` size the affixes, and `affixAlign` (or `prefixAlign` / `suffixAlign`) says how they line up with the digits. `NitroInput` takes the same props.
+
+<Example
+  code={`// "$" smaller than the amount, aligned to the top of the digits
+<RollingNumber value={total} prefix="$" prefixFontSize={24} affixAlign="top" fontSize={52} />
+
+// a currency code after the amount, smaller, on the digits' baseline
+<RollingNumber value={total} suffix=" USD" suffixFontSize={18} suffixAlign="bottom" fractionDigits={2} />`}>
+  <CurrencyDemo />
+</Example>
+
+| `affixAlign` | What lines up |
+| --- | --- |
+| `baseline` (default) | The affix shares the digits' baseline. |
+| `top` | The affix's cap height meets the digits' cap height. |
+| `bottom` | The bottom of the glyphs' ink, so an all-caps code sits on the digits' baseline. |
+| `center` | The affix's line box is centred on the digits'. |
+
+The affixes are part of the animated layout: when a leading digit appears, the prefix slides left with it.
+
+## Fonts
+
+`fontSize`, `fontWeight`, `fontFamily` and `color` work like `Text`'s, and custom fonts resolve the same way (`UIAppFonts` on iOS, React Native's font manager on Android, including `expo-font`). Digits use tabular figures, so every column has the same width. `allowFontScaling` follows the system text size, capped by `maxFontSizeMultiplier`; it is off by default, so an amount keeps its design size.
+
+## Sizing
+
+The view sizes itself to its content. When a column appears the box grows at once; when the number gets narrower the box shrinks only after the animation has finished, so digits on their way out are never squeezed. Give it a `width` and `textAlign="right"` (or `"center"`) if the layout around it should not move as digits appear; that also removes the one JS round trip, the size report.
+
+`adjustsFontSizeToFit` scales the whole number down when the view is narrower than its content, down to `minimumFontScale` (default `0.5`), and back up when it fits again. The box keeps its height; only the amount scales. The scale follows the content as it is drawn, half-appeared columns included, so it changes continuously with the animation, and it is a layer or canvas transform, so no font is rebuilt while fitting.
+
+<Example
+  code={`<RollingNumber
+  value={total}
+  prefix="$"
+  fractionDigits={2}
+  groupingSeparator=","
+  fontSize={56}
+  adjustsFontSizeToFit
+  minimumFontScale={0.4}
+  textAlign="center"
+  style={{ width: 220 }}
+/>`}>
+  <FitDemo />
+</Example>
+
+## Right-to-left
+
+In a right-to-left app (`I18nManager.isRTL`, or `style={{ direction: 'rtl' }}` on one figure), `textAlign="auto"` means the right edge, the prefix sits at the right and the suffix at the left, and the digits still read left to right.

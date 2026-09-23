@@ -18,11 +18,11 @@ import { fileURLToPath } from 'node:url'
 import { IMPLS, INPUT_IMPLS, RESULTS_DIR, renderAll } from './report.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
-const example = path.resolve(here, '../../example')
+const app = path.resolve(here, '../../bench')
 const IOS_BUNDLE = 'org.reactjs.native.example.RollingNumberExample'
-const IOS_APP = path.join(example, 'ios/build-device/Build/Products/Release-iphoneos/RollingNumberExample.app')
+const IOS_APP = path.join(app, 'ios/build-device/Build/Products/Release-iphoneos/RollingNumberExample.app')
 const ANDROID_PKG = 'com.rollingnumberexample'
-const ANDROID_APK = path.join(example, 'android/app/build/outputs/apk/release/app-release.apk')
+const ANDROID_APK = path.join(app, 'android/app/build/outputs/apk/release/app-release.apk')
 const ANDROID_HOME = process.env.ANDROID_HOME ?? path.join(process.env.HOME ?? '', 'Library/Android/sdk')
 const ADB = path.join(ANDROID_HOME, 'platform-tools/adb')
 
@@ -50,7 +50,7 @@ function parseArgs(argv) {
 }
 
 // A light library, a heavy one, a light one… so the chip cools during the
-// light scenarios instead of the plan idling. Mirrors example/src/bench/plan.ts.
+// light scenarios instead of the plan idling. Mirrors bench/src/bench/plan.ts.
 const RUN_ORDER = ['text', 'nf-view', 'nitro-prop', 'nf-skia', 'nitro-jump', 'bloom', 'nitro-numeric', 'atext', 'ticker', 'rnna', 'nf-skia-sv', 'anim-numbers', 'arn']
 
 // What the typing driver types: digits into a number or text field, a phone number into a masked one.
@@ -62,7 +62,7 @@ const inputKeys = (impl) => INPUT_KEYS[impl] ?? '123456789012'
  * the heavy ones); `inputs` types into every field at two paces and measures
  * focus; `mount` mounts and unmounts 24 numbers and 20 fields ten times;
  * `list` scrolls 200 rows under ten values a second; `all` is all of them.
- * Mirrors example/src/bench/plan.ts.
+ * Mirrors bench/src/bench/plan.ts.
  */
 function buildPlan(o) {
   const scenarios = []
@@ -217,7 +217,7 @@ function save(label, events) {
 async function runIos(udid, plan, o) {
   const tag = `ios ${udid.slice(0, 8)}`
   if (o.build) {
-    run('xcodebuild', ['-workspace', 'ios/RollingNumberExample.xcworkspace', '-scheme', 'RollingNumberExample', '-configuration', 'Release', '-destination', `id=${udid}`, '-derivedDataPath', 'ios/build-device', '-allowProvisioningUpdates', `DEVELOPMENT_TEAM=${o.team}`, 'CODE_SIGN_STYLE=Automatic', '-quiet', 'build'], { cwd: example })
+    run('xcodebuild', ['-workspace', 'ios/RollingNumberExample.xcworkspace', '-scheme', 'RollingNumberExample', '-configuration', 'Release', '-destination', `id=${udid}`, '-derivedDataPath', 'ios/build-device', '-allowProvisioningUpdates', `DEVELOPMENT_TEAM=${o.team}`, 'CODE_SIGN_STYLE=Automatic', '-quiet', 'build'], { cwd: app })
   }
   if (o.install) run('xcrun', ['devicectl', 'device', 'install', 'app', '--device', udid, IOS_APP])
   const encoded = Buffer.from(JSON.stringify(plan)).toString('base64')
@@ -257,7 +257,7 @@ function parseGfxinfo(text) {
 
 async function runAndroid(serial, plan, o) {
   const tag = `android ${serial}`
-  if (o.build) run(path.join(example, 'android/gradlew'), ['assembleRelease', '-q'], { cwd: path.join(example, 'android'), env: { ...process.env, ANDROID_HOME } })
+  if (o.build) run(path.join(app, 'android/gradlew'), ['assembleRelease', '-q'], { cwd: path.join(app, 'android'), env: { ...process.env, ANDROID_HOME } })
   if (o.install) adb(serial, ['install', '-r', '-d', ANDROID_APK])
   adb(serial, ['shell', 'am', 'force-stop', ANDROID_PKG])
   adb(serial, ['logcat', '-c'])
@@ -299,7 +299,7 @@ async function runAndroid(serial, plan, o) {
 
 const o = parseArgs(process.argv.slice(2))
 const plan = buildPlan(o)
-// react-native-advanced-input-mask does not build against React Native 0.87's prebuilt core on iOS (see example/react-native.config.js).
+// react-native-advanced-input-mask does not build against React Native 0.87's prebuilt core on iOS (see bench/react-native.config.js).
 const iosPlan = { ...plan, scenarios: plan.scenarios.filter((s) => s.impl !== 'advanced-mask') }
 console.log(`plan "${plan.label}": ${plan.scenarios.length} scenarios × (${plan.settle} + ${plan.warmup} + ${plan.seconds} s) ≈ ${Math.round(planSeconds(plan) / 60)} min per device`)
 const jobs = [...o.ios.map((udid) => runIos(udid, iosPlan, o)), ...o.android.map((serial) => runAndroid(serial, plan, o))]

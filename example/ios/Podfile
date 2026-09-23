@@ -5,16 +5,7 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
-# Expo modules, for the @expo/ui SwiftUI TextField in the benchmark.
-require Pod::Executable.execute_command('node', ['-p',
-  'require.resolve(
-    "expo/package.json",
-    {paths: [process.argv[1]]},
-  )', __dir__]).strip.then { |p| File.join(File.dirname(p), "scripts/autolinking") }
-
-# Expo modules (@expo/ui) require iOS 16.4; react-native-number-animation, one of
-# the libraries the benchmark compares against, requires 17.
-platform :ios, '17.0'
+platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
 linkage = ENV['USE_FRAMEWORKS']
@@ -24,7 +15,6 @@ if linkage != nil
 end
 
 target 'RollingNumberExample' do
-  use_expo_modules!
   config = use_native_modules!
 
   use_react_native!(

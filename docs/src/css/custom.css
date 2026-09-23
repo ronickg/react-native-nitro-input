@@ -168,23 +168,6 @@ a code {
   font-weight: 500;
 }
 
-/* The two products double as the section switcher: the one you are reading
-   gets a pill, so "where am I" is answered without a dropdown. */
-.navbar__item--product {
-  border-radius: 7px;
-  padding: 5px 10px;
-  transition: background-color 120ms ease, color 120ms ease;
-}
-
-.navbar__item--product:hover {
-  background: var(--nitro-bg-sunken);
-}
-
-.navbar__item--product.navbar__link--active {
-  background: color-mix(in srgb, var(--ifm-color-primary) 14%, transparent);
-  color: var(--ifm-color-primary);
-}
-
 /* GitHub and npm as marks rather than words. The navbar's own horizontal
    padding would otherwise eat the whole 32px box, leaving an 8px glyph. */
 .navbar__icon {

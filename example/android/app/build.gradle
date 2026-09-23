@@ -86,7 +86,7 @@ android {
 
     namespace "com.rollingnumberexample"
     defaultConfig {
-        applicationId "com.rollingnumberexample"
+        applicationId "com.nitroinput.example"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

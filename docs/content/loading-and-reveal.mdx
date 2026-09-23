@@ -1,0 +1,80 @@
+---
+title: Loading and reveal
+description: 'A text-shaped shimmer while the value loads, and the casino "you won" counter: the win-meter rollup with tiers, or slot reels.'
+---
+
+import {Example, LoadingDemo, RevealDemo} from '@site/src/components/Demo/Demo';
+import Phones from '@site/src/components/Phones/Phones';
+
+# Loading and reveal
+
+## Loading
+
+While a balance is being fetched, show the number's shape instead of a grey block. With `loading` the glyphs keep their colour and a slanted glint of `shimmerColor` sweeps through them every `shimmerDuration` (950 ms). The layout is exactly what the real number will occupy, so nothing jumps when the value arrives: flip `loading` off and set `value` in the same render, and the glint fades out while the digits roll to the amount.
+
+<Example
+  code={`const { data: balance } = useBalance()
+
+<RollingNumber
+  value={balance ?? 0}
+  loading={balance === undefined}
+  prefix="$"
+  fractionDigits={2}
+  groupingSeparator=","
+  fontSize={56}
+  style={{ width: 260 }}
+/>`}>
+  <LoadingDemo />
+</Example>
+
+Under Reduce Motion the glint freezes, and the element is announced as loading.
+
+## Jackpot reveal
+
+A rolling number is for values that change; a reveal is for the one value the user has been waiting for: the credit they were granted, the cashback, the jackpot. Casinos have tuned that moment for decades, and two presentations came out of it:
+
+- **The win-meter rollup** (`revealStyle="count"`, the default). The figure opens at `$0`, smaller, and tallies up to the total the way a slot's win counter does: it takes off at once, runs at a constant rate, grows as it climbs and crawls into the total. Leading digits appear as the count reaches their place, so nothing reflows.
+- **The reels** (`revealStyle="spin"`). Every digit spins like a slot reel, then the reels lock one at a time from the left.
+
+Both land with a pop, and all of it runs in the native engine; the JS thread is not involved once the reveal is fired.
+
+<Example
+  caption="Click the number while it plays to skip to the total, the way a player taps to slam the count."
+  code={`const [reveal, setReveal] = useState(false)
+
+<RollingNumber
+  value={50000}
+  reveal={reveal}                    // false: hold "$0.00"; true: play
+  revealStyle="count"                // or "spin"
+  revealMilestones={[1000, 10000, 25000]}
+  revealMilestoneHold={400}
+  revealDuration={4800}              // about 1.2 s per tier
+  onRevealMilestone={(index, at) => playSting(index)}
+  onRevealEnd={() => setShowNextStep(true)}
+  prefix="$"
+  fractionDigits={2}
+  groupingSeparator=","
+  fontSize={52}
+  fontWeight="800"
+  textAlign="center"
+  style={{ width: '100%' }}
+/>`}>
+  <RevealDemo milestones />
+</Example>
+
+<Phones ios="/video/ios-reveal.mp4" android="/video/android-reveal.mp4" caption="The count with tiers, then the reels, on an iPhone 13 Pro Max and a Pixel 10." />
+
+`reveal` has three states. Leave it `undefined` for a normal rolling number. `false` shows the opening frame of `value`, its final layout with every digit blank except the mandatory ones (`$0.00`), so the box is already the right size. `true` plays the reveal; flip it back to `false` to re-arm. Mounted with `true`, it plays on mount.
+
+**Tiers.** `revealMilestones` are the thresholds a casino rollup escalates through ("big win → mega win"), in the figure's units; those at or above `value` are ignored, so you can pass one fixed table. Every tier gets an equal share of `revealDuration` and is one run of its own: the count ramps up out of a milestone and brakes into the next. On each milestone the figure punches, pauses for `revealMilestoneHold` and `onRevealMilestone(index, value)` fires: the moment for your banner, haptic and sound. Budget about a second per tier; the 2.2 s default suits a count without them.
+
+| Prop | Default | |
+| --- | --- | --- |
+| `revealDuration` | `2200` | ms of the count, or until the last reel locks. |
+| `revealBounce` | `0.12` | Overshoot of the landing pop and the milestone punches; `0` turns them off. |
+| `revealGrow` | `0.2` | `count`: how much smaller the figure opens. |
+| `revealStagger` | `200` | `spin`: ms between one reel locking and the next. |
+| `revealMilestones` | none | `count`: the tiers. |
+| `revealMilestoneHold` | `0` | `count`: ms the count pauses on each tier. |
+
+`onRevealEnd` fires once the landing pop has rung out: sequence whatever follows the figure from there. `ref.current.revealTo(value)` plays a reveal whatever the prop says, and `jumpTo(value)` skips a running one. Under Reduce Motion a reveal snaps to `value` and `onRevealEnd` still fires.

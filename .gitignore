@@ -41,10 +41,22 @@ scripts/bench/results/hitches/bench-results.ndjson
 scripts/bench/results/hitches/device.json
 scripts/bench/results/hitches/*.stdout.txt
 scripts/bench/results/leaks/
-example/modules/*/android/build/
-example/modules/*/android/.cxx/
+modules/*/android/build/
+modules/*/android/.cxx/
 
 # React Native Harness cache and crash reports (example/__tests__/*.harness.tsx runs)
 example/.harness/
 scripts/bench/results/heap/
 __pycache__/
+
+# The bench app, the same build outputs as the example's
+bench/ios/Pods/
+bench/ios/build/
+bench/android/build/
+bench/android/app/build/
+bench/android/.gradle/
+bench/android/.cxx/
+bench/android/app/.cxx/
+bench/vendor/
+bench/android/local.properties
+bench/ios/build-device/

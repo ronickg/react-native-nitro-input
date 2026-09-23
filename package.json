@@ -1,10 +1,11 @@
 {
-  "name": "react-native-nitro-rolling-number-monorepo",
+  "name": "react-native-nitro-input-monorepo",
   "private": true,
   "workspaces": [
     "packages/*",
     "example",
-    "example/modules/*"
+    "bench",
+    "modules/*"
   ],
   "scripts": {
     "specs": "bun run --filter './packages/*' specs",
@@ -13,6 +14,7 @@
     "test": "bun run --filter './packages/*' test",
     "test:cpp": "bun run --filter './packages/*' test:cpp",
     "example": "bun --cwd example",
+    "bench": "bun --cwd bench",
     "test:harness:ios": "bun --cwd example test:harness:ios",
     "test:harness:android": "bun --cwd example test:harness:android"
   },

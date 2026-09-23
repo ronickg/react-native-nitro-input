@@ -1,17 +1,21 @@
 name: Packages
 
 # The docs workflow deploys the site; this one is everything else. The root
-# scripts fan out over both packages, so the checks are the same commands a
+# scripts fan out over the package, so the checks are the same commands a
 # developer runs, and a failure here is one they could have seen locally.
 on:
   push:
     branches: [main]
     paths-ignore:
       - 'docs/**'
+      - 'bench/**'
+      - 'scripts/bench/**'
       - '**.md'
   pull_request:
     paths-ignore:
       - 'docs/**'
+      - 'bench/**'
+      - 'scripts/bench/**'
       - '**.md'
   workflow_dispatch:
 
@@ -39,7 +43,7 @@ jobs:
       # The shared engines are host-side clang++ binaries: no toolchain to set up.
       - name: C++ engines
         run: bun run test:cpp
-      # The published lib/: ES modules, CommonJS and the declarations, for both packages.
+      # The published lib/: ES modules, CommonJS and the declarations.
       - name: Build
         run: bun run build
 

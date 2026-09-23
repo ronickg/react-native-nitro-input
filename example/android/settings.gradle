@@ -1,13 +1,5 @@
-pluginManagement {
-  includeBuild("../../node_modules/@react-native/gradle-plugin")
-  // Expo's own Gradle plugins, for @expo/ui in the benchmark.
-  includeBuild("../../node_modules/expo-modules-autolinking/android/expo-gradle-plugin")
-}
-plugins {
-  id("com.facebook.react.settings")
-  id("expo-autolinking-settings")
-}
-expoAutolinking.useExpoModules()
+pluginManagement { includeBuild("../../node_modules/@react-native/gradle-plugin") }
+plugins { id("com.facebook.react.settings") }
 extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
 rootProject.name = 'RollingNumberExample'
 include ':app'

@@ -86,17 +86,6 @@
   padding: 0.7rem 1.4rem;
 }
 
-.buttons :global(.button--secondary) {
-  background: var(--nitro-bg-raised);
-  border: 1px solid var(--nitro-border-strong);
-  color: var(--ifm-font-color-base);
-}
-
-.buttons :global(.button--secondary:hover) {
-  border-color: var(--ifm-color-primary);
-  background: var(--nitro-bg-sunken);
-}
-
 /* ------------------------------------------------------------- sections */
 
 .section {
@@ -107,26 +96,6 @@
   background: var(--nitro-bg-sunken);
   border-top: 1px solid var(--nitro-border);
   border-bottom: 1px solid var(--nitro-border);
-}
-
-.center {
-  text-align: center;
-}
-
-.muted {
-  color: var(--nitro-ink-muted);
-}
-
-/* A small uppercase label above a section heading, so the page has levels. */
-.kicker {
-  display: block;
-  text-align: center;
-  font-size: 0.72rem;
-  font-weight: 650;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ifm-color-primary);
-  margin-bottom: 0.6rem;
 }
 
 .sectionTitle {
@@ -143,139 +112,13 @@
   color: var(--nitro-ink-muted);
 }
 
-/* -------------------------------------------------------------- features */
-
-/* Exactly six cards: three across, then two, then one. Never a lone orphan. */
-.features {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1px;
-  background: var(--nitro-border);
-  border: 1px solid var(--nitro-border);
-  border-radius: 14px;
-  overflow: hidden;
-}
-
-.feature {
-  background: var(--nitro-bg);
-  padding: 1.75rem 1.5rem;
-}
-
-.feature h3 {
-  font-size: 1rem;
-  font-weight: 620;
-  margin: 0 0 0.5rem;
-  letter-spacing: -0.01em;
-}
-
-.feature p {
-  margin: 0;
-  font-size: 0.925rem;
-  line-height: 1.65;
-  color: var(--nitro-ink-muted);
-}
-
-@media (max-width: 996px) {
-  .features {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 640px) {
-  .features {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ----------------------------------------------------------------- split */
-
-.split {
-  display: grid;
-  grid-template-columns: 0.9fr 1.1fr;
-  gap: 3rem;
-  align-items: center;
-}
-
-.split h2 {
-  font-size: clamp(1.5rem, 2.6vw, 1.9rem);
-  letter-spacing: -0.025em;
-  margin-top: 0;
-}
-
-@media (max-width: 900px) {
-  .split {
-    grid-template-columns: 1fr;
-    gap: 1.75rem;
-  }
-}
-
-/* ------------------------------------------------------------ benchmarks */
-
-.benchGrid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin: 0 0 1.75rem;
-}
-
-@media (max-width: 900px) {
-  .benchGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.bench {
-  background: var(--nitro-bg);
-  border: 1px solid var(--nitro-border);
-  border-radius: 12px;
-  padding: 1.15rem 1rem;
-  text-align: center;
-}
-
-.benchHighlight {
-  border-color: color-mix(in srgb, var(--ifm-color-primary) 55%, transparent);
-  background: color-mix(in srgb, var(--ifm-color-primary) 6%, var(--nitro-bg));
-}
-
-.benchName {
-  font-weight: 600;
-  font-size: 0.875rem;
-  margin-bottom: 0.9rem;
-  letter-spacing: -0.01em;
-}
-
-.benchNumbers {
-  display: flex;
-  justify-content: center;
-  gap: 1.25rem;
-  font-size: 1.35rem;
-  font-weight: 650;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-}
-
-.benchNumbers small {
-  display: block;
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--nitro-ink-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 2px;
-}
-
-.benchNote {
-  font-size: 0.78rem;
-  color: var(--nitro-ink-muted);
-  margin-top: 0.75rem;
-}
-
-/* ------------------------------------------------------------ two products */
+/* ------------------------------------------------------------ components */
 
 .products {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 @media (max-width: 800px) {
@@ -300,13 +143,6 @@
   border-color: color-mix(in srgb, var(--ifm-color-primary) 50%, transparent);
   transform: translateY(-2px);
   box-shadow: var(--nitro-shadow);
-}
-
-.productName {
-  font-family: var(--ifm-font-family-monospace);
-  font-size: 0.82rem;
-  color: var(--ifm-color-primary);
-  margin-bottom: 0.6rem;
 }
 
 .product h3 {
