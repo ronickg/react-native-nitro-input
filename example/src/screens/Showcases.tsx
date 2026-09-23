@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Pressable, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Pressable, StatusBar, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, {
   Easing,
@@ -126,60 +126,103 @@ function useJsFps() {
   return fps
 }
 
-function LiveDot() {
-  const o = useSharedValue(1)
-  useEffect(() => {
-    o.value = withRepeat(withSequence(withTiming(0.25, { duration: 700 }), withTiming(1, { duration: 700 })), -1)
-  }, [o])
-  const style = useAnimatedStyle(() => ({ opacity: o.value }))
-  return <Animated.View style={[s.liveDot, style]} />
-}
 
 // ------------------------------------------------------------------ market
 
-const TICKERS = [
-  ['BTC', 64_210.9], ['ETH', 3_412.75], ['SOL', 148.32],
-  ['AAPL', 227.48], ['NVDA', 131.26], ['TSLA', 248.5],
-  ['MSFT', 418.12], ['AMZN', 186.4], ['GOOG', 163.9],
-  ['META', 512.33], ['NFLX', 684.2], ['AMD', 158.71],
-  ['GOLD', 2_412.6], ['EUR', 1.0842], ['OIL', 78.34],
-  ['JPM', 214.3], ['UBER', 71.25], ['XRP', 0.6123],
-] as const
+const POINTS = 56
 
-function Tile({ sym, price, open }: { sym: string; price: number; open: number }) {
-  const change = ((price - open) / open) * 100
-  const up = change >= 0
-  const digits = price < 10 ? 4 : 2
+/** A line chart from plain views: one rotated segment per step, a gradient column under each point. */
+function LineChart({ series, color }: { series: number[]; color: string }) {
+  const [width, setWidth] = useState(0)
+  const height = 150
+  const lo = Math.min(...series)
+  const hi = Math.max(...series)
+  const span = Math.max(hi - lo, 1e-9)
+  const pad = 14
+  const pts = series.map((v, i) => ({
+    x: (i / (series.length - 1)) * width,
+    y: pad + (1 - (v - lo) / span) * (height - pad * 2),
+  }))
+  const step = width / (series.length - 1)
+  const last = pts[pts.length - 1]
   return (
-    <View style={s.tile}>
-      <View style={s.tileTop}>
-        <Text style={s.tileSym}>{sym}</Text>
+    <View style={[s.chart, { height }]} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+      {width > 0 &&
+        pts.map((p, i) => (
+          <View
+            key={`a${i}`}
+            style={[
+              s.area,
+              {
+                left: p.x - step / 2 - 0.75,
+                top: p.y,
+                width: step + 1.5,
+                height: height - p.y,
+                backgroundImage: `linear-gradient(180deg, ${color}40, ${color}00)`,
+              },
+            ]}
+          />
+        ))}
+      {width > 0 &&
+        pts.slice(1).map((p, i) => {
+          const a = pts[i]
+          const dx = p.x - a.x
+          const dy = p.y - a.y
+          return (
+            <View
+              key={`l${i}`}
+              style={[
+                s.segment,
+                {
+                  left: a.x,
+                  top: a.y - 1.25,
+                  width: Math.hypot(dx, dy) + 0.8,
+                  backgroundColor: color,
+                  transform: [{ rotate: `${Math.atan2(dy, dx)}rad` }],
+                },
+              ]}
+            />
+          )
+        })}
+      {width > 0 && last && (
+        <View style={[s.dot, { left: last.x - 5, top: last.y - 5, backgroundColor: color, boxShadow: `0 0 12px ${color}` }]} />
+      )}
+    </View>
+  )
+}
+
+const WATCH = [
+  { sym: 'AAPL', name: 'Apple', from: '#E5E7EB', to: '#9CA3AF', price: 227.48 },
+  { sym: 'NVDA', name: 'NVIDIA', from: '#84CC16', to: '#3F6212', price: 131.26 },
+  { sym: 'TSLA', name: 'Tesla', from: '#F87171', to: '#B91C1C', price: 248.5 },
+  { sym: 'ETH', name: 'Ethereum', from: '#A5B4FC', to: '#4F46E5', price: 3_412.75 },
+  { sym: 'SOL', name: 'Solana', from: '#C084FC', to: '#14B8A6', price: 148.32 },
+]
+
+function WatchRow({ item, price, up }: { item: (typeof WATCH)[number]; price: number; up: boolean }) {
+  return (
+    <View style={s.watchRow}>
+      <View style={[s.logo, { backgroundImage: `linear-gradient(135deg, ${item.from}, ${item.to})` }]}>
+        <Text style={s.logoText}>{item.sym[0]}</Text>
+      </View>
+      <View style={s.watchText}>
+        <Text style={s.watchSym}>{item.sym}</Text>
+        <Text style={s.watchName}>{item.name}</Text>
+      </View>
+      <View style={[s.pill, { backgroundColor: up ? '#10B981' : '#F43F5E' }]}>
         <NitroNumber
-          value={Math.abs(round(change, 2))}
-          prefix={up ? '+' : '−'}
-          suffix="%"
+          value={price}
+          prefix="$"
           fractionDigits={2}
+          groupingSeparator=","
           transition="numeric"
-          fontFamily={FONT.semibold}
-          fontSize={11}
-          color={up ? UP : DOWN}
+          fontFamily={FONT.bold}
+          fontSize={15}
+          color="#FFFFFF"
           textAlign="right"
-          style={s.tileChange}
+          style={s.pillNumber}
         />
       </View>
-      <NitroNumber
-        value={price}
-        fractionDigits={digits}
-        groupingSeparator=","
-        transition="numeric"
-        flashUpColor={UP}
-        flashDownColor={DOWN}
-        flashDuration={500}
-        fontFamily={FONT.semibold}
-        fontSize={17}
-        color="#F8FAFC"
-        style={s.tilePrice}
-      />
     </View>
   )
 }
@@ -187,80 +230,79 @@ function Tile({ sym, price, open }: { sym: string; price: number; open: number }
 type Phase = 'live' | 'blocking' | 'after'
 
 /**
- * A live board: eighteen prices tick several times a second, the portfolio
- * rolls, and every ten seconds the JS thread is blocked for two: the native
- * roll carries on, the UI thread keeps its frame rate, and a Text driven by
- * setState next to it freezes.
+ * An asset page: the price rolls as a live feed arrives, the chart extends,
+ * the watchlist's prices swap their digits in place, and every ten seconds
+ * the JS thread is blocked for two: the price rolls on natively, the UI
+ * thread meter holds the display's rate, and a Text driven by setState next
+ * to it freezes.
  */
 export function MarketShowcase({ onExit }: { onExit: () => void }) {
   const insets = useSafeAreaInsets()
   const later = useTimers()
   const jsFps = useJsFps()
-  const open = useRef(TICKERS.map(([, p]) => p as number)).current
-  const [prices, setPrices] = useState(() => [...open])
-  const [hero, setHero] = useState(248_613.42)
-  const [heroDuration, setHeroDuration] = useState(600)
-  const [jsHero, setJsHero] = useState(248_613.42)
+  const opening = 64_210.9
+  const [price, setPrice] = useState(opening)
+  const [duration, setDuration] = useState(650)
+  const [jsPrice, setJsPrice] = useState(opening)
+  const [series, setSeries] = useState<number[]>(() =>
+    Array.from({ length: POINTS }, (_, i) => opening * (0.985 + 0.012 * Math.sin(i / 5) + 0.006 * Math.cos(i * 1.3) + i * 0.0003))
+  )
+  const [watch, setWatch] = useState(() => WATCH.map((w) => ({ price: w.price, up: true })))
   const [phase, setPhase] = useState<Phase>('live')
   const phaseRef = useRef<Phase>('live')
   phaseRef.current = phase
-  const heroRef = useRef(hero)
-  heroRef.current = hero
+  const priceRef = useRef(price)
+  priceRef.current = price
 
-  // The feed: three prices move every 120 ms, the portfolio every 700.
+  // The feed: a watchlist price moves every 150 ms, the asset every 650.
   useEffect(() => {
-    const prices = setInterval(() => {
+    const rows = setInterval(() => {
       if (phaseRef.current !== 'live') return
-      setPrices((previous) => {
+      setWatch((previous) => {
         const next = [...previous]
-        for (let n = 0; n < 3; n++) {
-          const i = Math.floor(Math.random() * next.length)
-          const digits = next[i] < 10 ? 4 : 2
-          next[i] = round(next[i] * (1 + (Math.random() - 0.48) * 0.006), digits)
-        }
+        const i = Math.floor(Math.random() * next.length)
+        const moved = round(next[i].price * (1 + (Math.random() - 0.47) * 0.004), 2)
+        next[i] = { price: moved, up: moved >= next[i].price }
         return next
       })
-    }, 120)
-    const portfolio = setInterval(() => {
+    }, 150)
+    const asset = setInterval(() => {
       if (phaseRef.current !== 'live') return
-      setHero((h) => {
-        const next = round(h * (1 + (Math.random() - 0.45) * 0.004), 2)
-        setJsHero(next)
-        return next
-      })
-    }, 700)
+      const next = round(priceRef.current * (1 + (Math.random() - 0.44) * 0.0025), 2)
+      setPrice(next)
+      setJsPrice(next)
+      setSeries((sr) => [...sr.slice(1), next])
+    }, 650)
     return () => {
-      clearInterval(prices)
-      clearInterval(portfolio)
+      clearInterval(rows)
+      clearInterval(asset)
     }
   }, [])
 
-  // The stress test, every ten seconds; up one time, down the next, so the
-  // figure stays in range however long the recording runs.
+  // The stress test, every ten seconds; up one time, down the next.
   useEffect(() => {
     let up = true
     const cycle = () => {
       later(6000, () => {
-        const from = heroRef.current
-        const to = round(from * (up ? 1.0873 : 0.9197), 2)
+        const from = priceRef.current
+        const to = round(from * (up ? 1.034 : 0.9671), 2)
         up = !up
         setPhase('blocking')
-        setHeroDuration(2600)
-        setHero(to)
-        // The same climb, driven from JS the way a Text has to be: it can only
-        // move when the JS thread gets a turn.
+        setDuration(2600)
+        setPrice(to)
         const started = Date.now()
         const tween = setInterval(() => {
           const t = Math.min(1, (Date.now() - started) / 2600)
           const eased = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2
-          setJsHero(round(from + (to - from) * eased, 2))
+          setJsPrice(round(from + (to - from) * eased, 2))
           if (t === 1) clearInterval(tween)
         }, 16)
         // Let the new value reach native, then take the JS thread away.
         later(250, () => blockJsThread(2000))
         later(2900, () => {
           setPhase('after')
-          setHeroDuration(600)
+          setDuration(650)
+          setSeries((sr) => [...sr.slice(1), to])
         })
         later(5200, () => {
           setPhase('live')
@@ -272,26 +314,31 @@ export function MarketShowcase({ onExit }: { onExit: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const change = round(price - opening, 2)
+  const pct = round((change / opening) * 100, 2)
+  const up = change >= 0
+  const tone = up ? UP : DOWN
   const blocked = phase === 'blocking'
+
   return (
     <View style={s.root}>
       <StatusBar hidden />
       <Backdrop
-        base="#05070D"
+        base="#06080C"
         lights={[
-          'radial-gradient(circle at 15% 0%, rgba(56,189,248,0.30), transparent 50%)',
-          'radial-gradient(circle at 100% 30%, rgba(99,102,241,0.25), transparent 45%)',
-          blocked
-            ? 'radial-gradient(circle at 50% 100%, rgba(244,63,94,0.28), transparent 55%)'
-            : 'radial-gradient(circle at 50% 100%, rgba(16,185,129,0.14), transparent 55%)',
+          `radial-gradient(circle at 50% 30%, ${up ? 'rgba(16,185,129,0.16)' : 'rgba(244,63,94,0.16)'}, transparent 55%)`,
+          'radial-gradient(circle at 100% 0%, rgba(59,130,246,0.16), transparent 45%)',
         ]}
       />
       <Exit onExit={onExit} />
-      <View style={[s.page, { paddingTop: insets.top + 18 }]}>
-        <View style={s.topBar}>
-          <View style={s.live}>
-            <LiveDot />
-            <Text style={s.liveText}>Live</Text>
+      <View style={[s.page, { paddingTop: insets.top + 16 }]}>
+        <View style={s.assetHeader}>
+          <View style={[s.logo, s.logoLarge, { backgroundImage: 'linear-gradient(135deg, #FDBA74, #F7931A)' }]}>
+            <Text style={[s.logoText, s.logoTextLarge]}>₿</Text>
+          </View>
+          <View style={s.assetTitle}>
+            <Text style={s.assetName}>Bitcoin</Text>
+            <Text style={s.assetSub}>BTC · Crypto</Text>
           </View>
           <View style={s.meters}>
             <View style={s.meter}>
@@ -305,58 +352,89 @@ export function MarketShowcase({ onExit }: { onExit: () => void }) {
           </View>
         </View>
 
-        <Text style={s.label}>Portfolio</Text>
         <NitroNumber
-          value={hero}
+          value={price}
           prefix="$"
-          prefixFontSize={30}
+          prefixFontSize={28}
           affixAlign="top"
           fractionDigits={2}
           groupingSeparator=","
           fontFamily={FONT.bold}
-          fontSize={54}
+          fontSize={50}
           color="#FFFFFF"
           easing={blocked ? 'easeInOut' : 'spring'}
           bounce={0.1}
           stagger={blocked ? 0 : 22}
-          duration={heroDuration}
+          duration={duration}
           style={s.hero}
         />
+        <View style={s.changeRow}>
+          <Text style={[s.changeArrow, { color: tone }]}>{up ? '▲' : '▼'}</Text>
+          <NitroNumber
+            value={Math.abs(change)}
+            prefix="$"
+            fractionDigits={2}
+            groupingSeparator=","
+            transition="numeric"
+            fontFamily={FONT.semibold}
+            fontSize={15}
+            color={tone}
+          />
+          <NitroNumber
+            value={Math.abs(pct)}
+            prefix="("
+            suffix="%)"
+            fractionDigits={2}
+            transition="numeric"
+            fontFamily={FONT.semibold}
+            fontSize={15}
+            color={tone}
+          />
+          <Text style={s.changeToday}>Today</Text>
+        </View>
+
+        <LineChart series={series} color={tone} />
+        <View style={s.ranges}>
+          {['1H', '1D', '1W', '1M', '1Y', 'ALL'].map((r) => (
+            <Text key={r} style={[s.range, r === '1D' && [s.rangeActive, { color: tone }]]}>
+              {r}
+            </Text>
+          ))}
+        </View>
 
         <View style={[s.versus, blocked && s.versusBlocked]}>
           <View style={s.lane}>
             <Text style={s.laneLabel}>NitroNumber · native</Text>
             <NitroNumber
-              value={hero}
+              value={price}
               prefix="$"
               fractionDigits={2}
               groupingSeparator=","
               fontFamily={FONT.semibold}
-              fontSize={19}
+              fontSize={17}
               color={UP}
-              duration={heroDuration}
+              duration={duration}
               easing={blocked ? 'easeInOut' : 'easeOut'}
             />
           </View>
           <View style={s.laneDivider} />
           <View style={s.lane}>
             <Text style={s.laneLabel}>Text · setState</Text>
-            <Text style={[s.laneJs, blocked && s.laneJsFrozen]}>${money(jsHero)}</Text>
+            <Text style={[s.laneJs, blocked && s.laneJsFrozen]}>${money(jsPrice)}</Text>
           </View>
         </View>
         <Text style={[s.caption, blocked && s.captionBlocked]}>
           {phase === 'blocking'
-            ? 'JS thread blocked for 2 s. The roll keeps going natively.'
+            ? 'JS thread blocked for 2 s. The price keeps rolling natively.'
             : phase === 'after'
               ? 'The Text froze. The NitroNumber never waited for JS.'
-              : 'Eighteen prices, several updates a second, every one native.'}
+              : 'Every price on this screen updates natively.'}
         </Text>
 
-        <View style={s.grid}>
-          {TICKERS.map(([sym], i) => (
-            <Tile key={sym} sym={sym} price={prices[i]} open={open[i]} />
-          ))}
-        </View>
+        <Text style={s.sectionTitle}>Watchlist</Text>
+        {WATCH.map((w, i) => (
+          <WatchRow key={w.sym} item={w} price={watch[i].price} up={watch[i].up} />
+        ))}
       </View>
     </View>
   )
@@ -364,141 +442,255 @@ export function MarketShowcase({ onExit }: { onExit: () => void }) {
 
 // ------------------------------------------------------------------- reward
 
-const TIERS = ['Big win', 'Mega win', 'Epic win']
+/** The win levels a slot machine escalates through, one per milestone. */
+const TIERS = [
+  { name: 'BIG WIN', color: '#5EEAD4', glow: 'rgba(45,212,191,0.9)' },
+  { name: 'MEGA WIN', color: '#F0ABFC', glow: 'rgba(232,121,249,0.9)' },
+  { name: 'EPIC WIN', color: '#FDE047', glow: 'rgba(250,204,21,0.95)' },
+]
 const CONFETTI = ['#FBBF24', '#F472B6', '#60A5FA', '#34D399', '#FDE68A', '#C084FC']
+const RAYS = 14
+const COINS = 18
 
 /** One piece of confetti, launched on every change of `burst`. */
 function Piece({ burst, index }: { burst: number; index: number }) {
   const t = useSharedValue(0)
-  const angle = (index / 28) * Math.PI * 2 + (index % 3) * 0.2
-  const speed = 150 + ((index * 37) % 90)
+  const angle = (index / 32) * Math.PI * 2 + (index % 3) * 0.2
+  const speed = 170 + ((index * 37) % 110)
   useEffect(() => {
     if (burst === 0) return
     t.value = 0
-    t.value = withTiming(1, { duration: 1500, easing: Easing.out(Easing.quad) })
+    t.value = withTiming(1, { duration: 1700, easing: Easing.out(Easing.quad) })
   }, [burst, t])
   const style = useAnimatedStyle(() => {
     const x = Math.cos(angle) * speed * t.value
-    const y = Math.sin(angle) * speed * t.value + 260 * t.value * t.value
+    const y = Math.sin(angle) * speed * t.value + 300 * t.value * t.value
     return {
       opacity: t.value === 0 ? 0 : 1 - t.value,
-      transform: [{ translateX: x }, { translateY: y }, { rotate: `${t.value * (index % 2 ? 540 : -540)}deg` }],
+      transform: [{ translateX: x }, { translateY: y }, { rotate: `${t.value * (index % 2 ? 620 : -620)}deg` }],
     }
   })
   return <Animated.View style={[s.piece, { backgroundColor: CONFETTI[index % CONFETTI.length] }, style]} />
 }
 
-/** A reward: the win meter counts up tier by tier, lands with a pop and a burst, then the reels play. */
+/** A gold coin that keeps falling while `rain` is up, flipping as it goes. */
+function Coin({ index, height, rain }: { index: number; height: number; rain: { value: number } }) {
+  const fall = useSharedValue(0)
+  const x = ((index * 61) % 100) / 100
+  const size = 22 + ((index * 13) % 14)
+  useEffect(() => {
+    fall.value = withDelay(
+      (index * 173) % 1400,
+      withRepeat(withTiming(1, { duration: 1500 + ((index * 97) % 900), easing: Easing.in(Easing.quad) }), -1)
+    )
+  }, [fall, index])
+  const style = useAnimatedStyle(() => ({
+    opacity: rain.value,
+    transform: [
+      { translateY: -60 + fall.value * (height + 120) },
+      { scaleX: Math.abs(Math.cos(fall.value * Math.PI * 3 + index)) * 0.8 + 0.2 },
+    ],
+  }))
+  return (
+    <Animated.View style={[s.coin, { left: `${x * 92}%`, width: size, height: size, borderRadius: size / 2 }, style]}>
+      <Text style={[s.coinText, { fontSize: size * 0.5 }]}>$</Text>
+    </Animated.View>
+  )
+}
+
+/**
+ * A casino win: a gift box shakes and bursts open, light rays turn behind the
+ * figure, NitroNumber counts it up tier by tier (BIG WIN, MEGA WIN, EPIC WIN,
+ * each one punching in with a shake and heavier coin rain), and the total
+ * lands with a pop and a confetti burst. The next round plays the reels.
+ */
 export function RewardShowcase({ onExit }: { onExit: () => void }) {
   const insets = useSafeAreaInsets()
+  const { height } = useWindowDimensions()
   const later = useTimers()
   const [style, setStyle] = useState<'count' | 'spin'>('count')
   const [amount, setAmount] = useState(50_000)
   const [reveal, setReveal] = useState(false)
-  const [tier, setTier] = useState<string | null>(null)
+  const [tier, setTier] = useState(-1)
   const [burst, setBurst] = useState(0)
-  const glow = useSharedValue(0.6)
+
+  const box = useSharedValue(1) // 1: the gift is there, 0: it has burst
+  const wiggle = useSharedValue(0)
+  const lid = useSharedValue(0)
+  const rays = useSharedValue(0)
+  const spin = useSharedValue(0)
+  const rain = useSharedValue(0)
+  const shake = useSharedValue(0)
+  const banner = useSharedValue(0)
 
   useEffect(() => {
-    later(900, () => setReveal(true))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    spin.value = withRepeat(withTiming(360, { duration: 14000, easing: Easing.linear }), -1)
+  }, [spin])
 
-  const pulse = () => {
-    glow.value = withSequence(withTiming(1, { duration: 160 }), withTiming(0.6, { duration: 900 }))
+  const punch = () => {
+    banner.value = 0.4
+    banner.value = withSequence(withTiming(1.22, { duration: 160, easing: Easing.out(Easing.back(3)) }), withTiming(1, { duration: 260 }))
+    shake.value = withSequence(
+      withTiming(-10, { duration: 45 }),
+      withTiming(9, { duration: 45 }),
+      withTiming(-6, { duration: 45 }),
+      withTiming(4, { duration: 45 }),
+      withTiming(0, { duration: 45 })
+    )
   }
-  const glowStyle = useAnimatedStyle(() => ({ opacity: glow.value, transform: [{ scale: 0.9 + glow.value * 0.15 }] }))
 
-  // Count with tiers, hold, reels, hold, again.
-  const onRevealEnd = () => {
-    pulse()
-    setBurst((b) => b + 1)
-    later(2200, () => {
-      setReveal(false)
-      setTier(null)
-      later(600, () => {
-        setStyle((v) => (v === 'count' ? 'spin' : 'count'))
-        setAmount((a) => (a === 50_000 ? 25_750 : 50_000))
-        later(400, () => setReveal(true))
-      })
+  const playRound = (next: 'count' | 'spin') => {
+    // The gift: it wiggles, then the lid flies off and the light comes out.
+    setTier(-1)
+    box.value = withTiming(1, { duration: 250 })
+    lid.value = 0
+    rays.value = withTiming(0, { duration: 200 })
+    rain.value = withTiming(0, { duration: 300 })
+    wiggle.value = withDelay(
+      300,
+      withSequence(
+        ...[1, -1, 1, -1, 1, -1].map((d, i) => withTiming(d * (6 + i * 1.5), { duration: 90 })),
+        withTiming(0, { duration: 90 })
+      )
+    )
+    later(1100, () => {
+      lid.value = withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) })
+      box.value = withDelay(220, withTiming(0, { duration: 320 }))
+      rays.value = withTiming(1, { duration: 500 })
+      rain.value = withTiming(0.35, { duration: 400 })
+      setStyle(next)
+      setAmount(next === 'count' ? 50_000 : 25_750)
+      later(350, () => setReveal(true))
     })
   }
 
+  useEffect(() => {
+    later(500, () => playRound('count'))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const onRevealMilestone = (index: number) => {
+    setTier(index)
+    punch()
+    rain.value = withTiming(0.45 + index * 0.25, { duration: 250 })
+  }
+
+  const onRevealEnd = () => {
+    setBurst((b) => b + 1)
+    punch()
+    if (style === 'spin') setTier(2)
+    rain.value = withTiming(1, { duration: 200 })
+    later(2600, () => {
+      setReveal(false)
+      later(500, () => playRound(style === 'count' ? 'spin' : 'count'))
+    })
+  }
+
+  const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shake.value }] }))
+  const raysStyle = useAnimatedStyle(() => ({ opacity: rays.value * 0.9, transform: [{ rotate: `${spin.value}deg` }, { scale: 0.6 + rays.value * 0.5 }] }))
+  const giftStyle = useAnimatedStyle(() => ({ opacity: box.value, transform: [{ rotate: `${wiggle.value}deg` }, { scale: 0.7 + box.value * 0.3 }] }))
+  const lidStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -lid.value * 170 }, { translateX: lid.value * 60 }, { rotate: `${lid.value * 38}deg` }],
+    opacity: 1 - lid.value * 0.9,
+  }))
+  const bannerStyle = useAnimatedStyle(() => ({ transform: [{ scale: banner.value }], opacity: banner.value > 0 ? 1 : 0 }))
+  const numberStyle = useAnimatedStyle(() => ({ opacity: 1 - box.value }))
+
+  const t = tier >= 0 ? TIERS[tier] : null
   return (
     <View style={s.root}>
       <StatusBar hidden />
       <Backdrop
-        base="#0E0A1F"
+        base="#0B0618"
         lights={[
-          'radial-gradient(circle at 50% 42%, rgba(251,191,36,0.30), transparent 42%)',
-          'radial-gradient(circle at 0% 100%, rgba(168,85,247,0.35), transparent 55%)',
-          'radial-gradient(circle at 100% 0%, rgba(59,130,246,0.25), transparent 50%)',
+          'radial-gradient(circle at 50% 45%, rgba(250,204,21,0.26), transparent 45%)',
+          'radial-gradient(circle at 0% 100%, rgba(168,85,247,0.40), transparent 55%)',
+          'radial-gradient(circle at 100% 0%, rgba(236,72,153,0.30), transparent 50%)',
         ]}
       />
+      <View style={StyleSheet.absoluteFill} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        {Array.from({ length: COINS }, (_, i) => (
+          <Coin key={i} index={i} height={height} rain={rain} />
+        ))}
+      </View>
       <Exit onExit={onExit} />
-      <View style={[s.center, { paddingTop: insets.top }]}>
-        <Text style={s.kicker}>Reward unlocked</Text>
-        <View style={s.tierSlot}>
-          {tier != null && (
-            <View style={s.tier}>
-              <Text style={s.tierText}>{tier}</Text>
-            </View>
+      <Animated.View style={[s.center, { paddingTop: insets.top }, shakeStyle]}>
+        <Text style={s.kicker}>Jackpot</Text>
+        <View style={s.bannerSlot}>
+          {t && (
+            <Animated.Text style={[s.banner, { color: t.color, textShadowColor: t.glow }, bannerStyle]}>
+              {t.name}
+            </Animated.Text>
           )}
         </View>
         <View style={s.stage}>
-          <Animated.View style={[s.halo, glowStyle]} />
+          <Animated.View style={[s.rays, raysStyle]} pointerEvents="none">
+            {Array.from({ length: RAYS }, (_, i) => (
+              <View key={i} style={[s.ray, { transform: [{ rotate: `${(i * 360) / RAYS}deg` }, { translateY: -130 }] }]} />
+            ))}
+          </Animated.View>
+          <View style={s.halo} />
+          <Animated.View style={[s.gift, giftStyle]} pointerEvents="none">
+            <Animated.View style={[s.giftLid, lidStyle]}>
+              <View style={[s.bowLoop, s.bowLeft]} />
+              <View style={[s.bowLoop, s.bowRight]} />
+              <View style={s.lidRibbon} />
+            </Animated.View>
+            <View style={s.giftBody}>
+              <View style={s.bodyRibbon} />
+            </View>
+          </Animated.View>
           <View style={s.burst} pointerEvents="none">
-            {Array.from({ length: 28 }, (_, i) => (
+            {Array.from({ length: 32 }, (_, i) => (
               <Piece key={i} burst={burst} index={i} />
             ))}
           </View>
-          <NitroNumber
-            value={amount}
-            reveal={reveal}
-            revealStyle={style}
-            revealMilestones={[1000, 10000, 25000]}
-            revealMilestoneHold={380}
-            revealDuration={style === 'count' ? 4800 : 2400}
-            onRevealMilestone={(index) => {
-              setTier(TIERS[index] ?? null)
-              pulse()
-            }}
-            onRevealEnd={onRevealEnd}
-            prefix="$"
-            prefixFontSize={34}
-            affixAlign="top"
-            fractionDigits={2}
-            groupingSeparator=","
-            fontFamily={FONT.bold}
-            fontSize={60}
-            color="#FFF7E0"
-            textAlign="center"
-            style={s.hero}
-          />
+          <Animated.View style={[s.hero, numberStyle]}>
+            <NitroNumber
+              value={amount}
+              reveal={reveal}
+              revealStyle={style}
+              revealMilestones={[1000, 10000, 25000]}
+              revealMilestoneHold={420}
+              revealDuration={style === 'count' ? 5200 : 2600}
+              revealBounce={0.16}
+              onRevealMilestone={onRevealMilestone}
+              onRevealEnd={onRevealEnd}
+              prefix="$"
+              prefixFontSize={34}
+              affixAlign="top"
+              fractionDigits={2}
+              groupingSeparator=","
+              fontFamily={FONT.bold}
+              fontSize={60}
+              color="#FFF7DB"
+              textAlign="center"
+            />
+          </Animated.View>
         </View>
-        <Text style={s.rewardSub}>added to your balance</Text>
-      </View>
+        <Text style={s.rewardSub}>{style === 'count' ? 'Counted tier by tier, natively' : 'Reels locking from the left, natively'}</Text>
+      </Animated.View>
       <View style={[s.footer, { paddingBottom: insets.bottom + 28 }]}>
         <View style={s.goldButton}>
-          <Text style={s.goldButtonText}>Collect</Text>
+          <Text style={s.goldButtonText}>Collect winnings</Text>
         </View>
-        <Text style={s.footerNote}>Counted, tier by tier, entirely in native code</Text>
       </View>
     </View>
   )
 }
 
-// --------------------------------------------------------------------- send
+// ----------------------------------------------------------------- transfer
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫']
 
-/** What the recipient gets, in their currency: each formatted natively, separators and all. */
+/** Where the money goes: each currency formatted natively, separators and all. */
 const PAYOUTS = [
   { code: 'EUR', flag: '🇪🇺', rate: 0.9218, prefix: '', suffix: ' €', grouping: '.', decimal: ',', digits: 2 },
-  { code: 'JPY', flag: '🇯🇵', rate: 149.31, prefix: '¥', suffix: '', grouping: ',', decimal: '.', digits: 0 },
   { code: 'GBP', flag: '🇬🇧', rate: 0.7712, prefix: '£', suffix: '', grouping: ',', decimal: '.', digits: 2 },
+  { code: 'JPY', flag: '🇯🇵', rate: 149.31, prefix: '¥', suffix: '', grouping: ',', decimal: '.', digits: 0 },
   { code: 'CHF', flag: '🇨🇭', rate: 0.8634, prefix: 'CHF ', suffix: '', grouping: '’', decimal: '.', digits: 2 },
 ]
+const FEE = 0.0041
 
 /** A keypad key; every new `press` count lights it for a moment. */
 function Key({ label, press }: { label: string; press: number }) {
@@ -508,7 +700,7 @@ function Key({ label, press }: { label: string; press: number }) {
     glow.value = withSequence(withTiming(1, { duration: 50 }), withDelay(40, withTiming(0, { duration: 240 })))
   }, [press, glow])
   const style = useAnimatedStyle(() => ({
-    backgroundColor: `rgba(255,255,255,${0.035 + glow.value * 0.2})`,
+    backgroundColor: `rgba(255,255,255,${glow.value * 0.14})`,
     transform: [{ scale: 1 - glow.value * 0.06 }],
   }))
   return (
@@ -518,18 +710,34 @@ function Key({ label, press }: { label: string; press: number }) {
   )
 }
 
+function Flag({ flag }: { flag: string }) {
+  return (
+    <View style={s.flag}>
+      <Text style={s.flagText}>{flag}</Text>
+    </View>
+  )
+}
+
 /**
- * Send money: the keypad types in fast bursts and every keystroke is
- * formatted in C++ before the frame is drawn; the recipient's amount is a
- * NitroNumber that reformats for each currency, and so is the button.
+ * A transfer: the keypad types in bursts of about twelve keys a second and
+ * every keystroke is formatted in C++ before the frame is drawn. What they
+ * receive, the fee and the amount converted are NitroNumbers following it,
+ * the rate ticks live, and the payout currency changes format as it goes.
  */
-export function SendShowcase({ onExit }: { onExit: () => void }) {
+export function TransferShowcase({ onExit }: { onExit: () => void }) {
   const insets = useSafeAreaInsets()
   const field = useRef<NitroInputHandle>(null)
-  const [value, setValue] = useState(0)
+  const [amount, setAmount] = useState(0)
   const [payout, setPayout] = useState(0)
+  const [drift, setDrift] = useState(1)
   const [presses, setPresses] = useState<Record<string, number>>({})
   const pending = useRef<ReturnType<typeof setTimeout>[]>([])
+
+  // The rate is live: it moves a little every 1.4 s.
+  useEffect(() => {
+    const tick = setInterval(() => setDrift((d) => Math.min(1.004, Math.max(0.996, d + (Math.random() - 0.5) * 0.0012))), 1400)
+    return () => clearInterval(tick)
+  }, [])
 
   useEffect(() => {
     const at = (ms: number, fn: () => void) => {
@@ -547,24 +755,23 @@ export function SendShowcase({ onExit }: { onExit: () => void }) {
         })
         t += step
       }
-      // A fast burst, about twelve keys a second: the commas reflow as the
-      // magnitude grows, formatted before every frame.
+      // A fast burst: the commas reflow as the magnitude grows, and
+      // everything below follows each keystroke.
       for (const k of ['1', '2', '4', '8', '5', '.', '7', '5']) type(k, 85)
-      t += 500
-      // The recipient's currency changes: the same amount, formatted natively for each.
+      t += 700
+      // The payout currency changes: the same money, formatted for each.
       for (let i = 1; i < PAYOUTS.length; i++) {
         const next = i
         at(t, () => setPayout(next))
-        t += 1000
+        t += 1100
       }
       at(t, () => setPayout(0))
-      t += 700
-      // Back down, just as fast.
+      t += 800
       for (const k of ['⌫', '⌫', '⌫', '⌫', '⌫']) type(k, 90)
       t += 900
       // A value set from code: the columns reshape.
-      at(t, () => field.current?.setValue(250))
-      t += 1500
+      at(t, () => field.current?.setValue(2500))
+      t += 1600
       at(t, () => field.current?.clear())
       t += 1100
       at(t, run)
@@ -575,90 +782,131 @@ export function SendShowcase({ onExit }: { onExit: () => void }) {
   }, [])
 
   const p = PAYOUTS[payout]
+  const rate = round(p.rate * drift, p.digits === 0 ? 2 : 4)
+  const fee = round(amount * FEE, 2)
+  const converted = round(Math.max(0, amount - fee), 2)
+  const receive = round(converted * rate, p.digits)
+
   return (
     <View style={s.root}>
       <StatusBar hidden />
       <Backdrop
-        base="#08050F"
+        base="#0A0D12"
         lights={[
-          'radial-gradient(circle at 50% 12%, rgba(139,92,246,0.50), transparent 48%)',
-          'radial-gradient(circle at 0% 55%, rgba(59,130,246,0.22), transparent 45%)',
-          'radial-gradient(circle at 100% 70%, rgba(236,72,153,0.26), transparent 45%)',
+          'radial-gradient(circle at 85% 0%, rgba(45,212,191,0.22), transparent 45%)',
+          'radial-gradient(circle at 0% 45%, rgba(59,130,246,0.14), transparent 45%)',
         ]}
       />
       <Exit onExit={onExit} />
-      <View style={[s.sendTop, { paddingTop: insets.top + 22 }]}>
-        <View style={s.recipient}>
-          <View style={s.recipientAvatar}>
-            <Text style={s.recipientInitials}>MJ</Text>
-          </View>
-          <View>
-            <Text style={s.recipientLabel}>Sending to</Text>
-            <Text style={s.recipientName}>Maya Johnson</Text>
-          </View>
+      <View style={[s.tPage, { paddingTop: insets.top + 14 }]}>
+        <View style={s.tHeader}>
+          <Text style={s.tBack}>‹</Text>
+          <Text style={s.tTitle}>Send money</Text>
+          <View style={s.tBackSpacer} />
         </View>
-        <NitroInput
-          ref={field}
-          transition="reflow"
-          mode="number"
-          prefix="$"
-          prefixFontSize={36}
-          affixAlign="top"
-          placeholder="0"
-          fontFamily={FONT.bold}
-          fontSize={72}
-          color="#FFFFFF"
-          placeholderTextColor="rgba(255,255,255,0.28)"
-          textAlign="center"
-          editable={false}
-          adjustsFontSizeToFit
-          minimumFontScale={0.45}
-          onChangeValue={(v) => setValue(Number.isNaN(v) ? 0 : v)}
-          style={s.sendField}
-        />
-        <View style={s.payout}>
-          <Text style={s.payoutFlag}>{p.flag}</Text>
-          <Text style={s.payoutLabel}>They receive</Text>
-          <NitroNumber
-            value={round(value * p.rate, p.digits)}
-            prefix={p.prefix}
-            suffix={p.suffix}
-            groupingSeparator={p.grouping}
-            decimalSeparator={p.decimal}
-            fractionDigits={p.digits}
-            transition="numeric"
-            fontFamily={FONT.semibold}
-            fontSize={17}
-            color="#F5F3FF"
-          />
-        </View>
-        <View style={s.currencies}>
-          {PAYOUTS.map((c, i) => (
-            <View key={c.code} style={[s.currency, i === payout && s.currencyActive]}>
-              <Text style={[s.currencyText, i === payout && s.currencyTextActive]}>{c.code}</Text>
+
+        <View style={s.tCard}>
+          <Text style={s.tCardLabel}>You send</Text>
+          <View style={s.tCardRow}>
+            <View style={s.tCurrency}>
+              <Flag flag="🇺🇸" />
+              <Text style={s.tCode}>USD</Text>
+              <Text style={s.tChevron}>⌄</Text>
             </View>
-          ))}
+            <NitroInput
+              ref={field}
+              transition="reflow"
+              mode="number"
+              placeholder="0"
+              fontFamily={FONT.bold}
+              fontSize={36}
+              color="#FFFFFF"
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              textAlign="right"
+              editable={false}
+              autoWidth={false}
+              adjustsFontSizeToFit
+              minimumFontScale={0.5}
+              onChangeValue={(v) => setAmount(Number.isNaN(v) ? 0 : v)}
+              style={s.tAmount}
+            />
+          </View>
+          <Text style={s.tBalance}>Balance $24,810.20</Text>
         </View>
-        <Text style={s.sendNote}>Formatted in C++ as you type · no JS round trip</Text>
+
+        <View style={s.tSwapRow}>
+          <View style={s.tSwap}>
+            <Text style={s.tSwapText}>⇅</Text>
+          </View>
+        </View>
+
+        <View style={s.tCard}>
+          <Text style={s.tCardLabel}>They receive</Text>
+          <View style={s.tCardRow}>
+            <View style={s.tCurrency}>
+              <Flag flag={p.flag} />
+              <Text style={s.tCode}>{p.code}</Text>
+              <Text style={s.tChevron}>⌄</Text>
+            </View>
+            <NitroNumber
+              value={receive}
+              prefix={p.prefix}
+              suffix={p.suffix}
+              groupingSeparator={p.grouping}
+              decimalSeparator={p.decimal}
+              fractionDigits={p.digits}
+              transition="numeric"
+              fontFamily={FONT.bold}
+              fontSize={36}
+              color="#5EEAD4"
+              textAlign="right"
+              adjustsFontSizeToFit
+              minimumFontScale={0.5}
+              style={s.tAmount}
+            />
+          </View>
+          <View style={s.tRate}>
+            <View style={s.tRateDot} />
+            <Text style={s.tRateText}>1 USD = </Text>
+            <NitroNumber
+              value={rate}
+              suffix={` ${p.code}`}
+              fractionDigits={p.digits === 0 ? 2 : 4}
+              transition="numeric"
+              flashUpColor={UP}
+              flashDownColor={DOWN}
+              fontFamily={FONT.semibold}
+              fontSize={13}
+              color="rgba(255,255,255,0.8)"
+            />
+            <Text style={s.tRateText}> · live</Text>
+          </View>
+        </View>
+
+        <View style={s.tBreakdown}>
+          <View style={s.tLine}>
+            <Text style={s.tLineLabel}>Fee</Text>
+            <NitroNumber value={fee} prefix="$" fractionDigits={2} groupingSeparator="," transition="numeric" fontFamily={FONT.semibold} fontSize={14} color="rgba(255,255,255,0.85)" />
+          </View>
+          <View style={s.tLine}>
+            <Text style={s.tLineLabel}>Amount we'll convert</Text>
+            <NitroNumber value={converted} prefix="$" fractionDigits={2} groupingSeparator="," transition="numeric" fontFamily={FONT.semibold} fontSize={14} color="rgba(255,255,255,0.85)" />
+          </View>
+          <View style={s.tLine}>
+            <Text style={s.tLineLabel}>Arrives</Text>
+            <Text style={s.tLineValue}>In seconds</Text>
+          </View>
+        </View>
       </View>
-      <View style={[s.sendBottom, { paddingBottom: insets.bottom + 18 }]}>
+
+      <View style={[s.tBottom, { paddingBottom: insets.bottom + 14 }]}>
         <View style={s.keypad}>
           {KEYS.map((k) => (
             <Key key={k} label={k} press={presses[k] ?? 0} />
           ))}
         </View>
-        <View style={s.sendButton}>
-          <Text style={s.sendButtonText}>Send </Text>
-          <NitroNumber
-            value={value}
-            prefix="$"
-            fractionDigits={2}
-            groupingSeparator=","
-            transition="numeric"
-            fontFamily={FONT.bold}
-            fontSize={17}
-            color="#0B0716"
-          />
+        <View style={s.tCta}>
+          <Text style={s.tCtaText}>Continue</Text>
         </View>
       </View>
     </View>
@@ -670,72 +918,106 @@ const s = StyleSheet.create({
   exit: { position: 'absolute', top: 0, right: 0, width: 72, height: 72, zIndex: 10 },
   page: { flex: 1, paddingHorizontal: 18 },
 
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 },
-  live: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 11, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(52,211,153,0.12)' },
-  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: UP, boxShadow: `0 0 8px ${UP}` },
-  liveText: { color: UP, fontFamily: FONT.bold, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' },
-  meters: { flexDirection: 'row', gap: 8 },
-  meter: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 11, paddingRight: 8, height: 30, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.12)' },
+  assetHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 18 },
+  assetTitle: { flex: 1 },
+  assetName: { color: '#F8FAFC', fontFamily: FONT.semibold, fontSize: 17 },
+  assetSub: { color: 'rgba(226,232,240,0.5)', fontFamily: FONT.medium, fontSize: 13, marginTop: 1 },
+  logo: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  logoLarge: { width: 42, height: 42, borderRadius: 21 },
+  logoText: { color: '#fff', fontFamily: FONT.bold, fontSize: 15 },
+  logoTextLarge: { fontSize: 22 },
+  meters: { gap: 6, alignItems: 'flex-end' },
+  meter: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 10, paddingRight: 6, height: 26, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.12)' },
   meterBlocked: { backgroundColor: 'rgba(244,63,94,0.18)', borderColor: 'rgba(244,63,94,0.5)' },
-  meterLabel: { color: 'rgba(226,232,240,0.5)', fontFamily: FONT.bold, fontSize: 11, letterSpacing: 0.8 },
-  meterValue: { color: '#F8FAFC', fontFamily: FONT.semibold, fontSize: 13, padding: 0, minWidth: 54 },
+  meterLabel: { color: 'rgba(226,232,240,0.5)', fontFamily: FONT.bold, fontSize: 10, letterSpacing: 0.8 },
+  meterValue: { color: '#F8FAFC', fontFamily: FONT.semibold, fontSize: 12, padding: 0, minWidth: 50 },
   meterValueBlocked: { color: '#FDA4AF' },
 
-  label: { color: 'rgba(226,232,240,0.55)', fontFamily: FONT.medium, fontSize: 14, marginBottom: 2 },
   hero: { width: '100%' },
+  changeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  changeArrow: { fontSize: 11 },
+  changeToday: { color: 'rgba(226,232,240,0.5)', fontFamily: FONT.medium, fontSize: 15 },
 
-  versus: { flexDirection: 'row', marginTop: 14, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.045)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.1)', paddingVertical: 12 },
+  chart: { marginTop: 14, marginHorizontal: -18 },
+  area: { position: 'absolute' },
+  segment: { position: 'absolute', height: 2.5, borderRadius: 1.25, transformOrigin: 'left center' },
+  dot: { position: 'absolute', width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: '#06080C' },
+  ranges: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+  range: { color: 'rgba(226,232,240,0.45)', fontFamily: FONT.semibold, fontSize: 13, paddingHorizontal: 11, paddingVertical: 6, borderRadius: 999, overflow: 'hidden' },
+  rangeActive: { backgroundColor: 'rgba(255,255,255,0.09)' },
+
+  versus: { flexDirection: 'row', marginTop: 16, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.045)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.1)', paddingVertical: 10 },
   versusBlocked: { borderColor: 'rgba(244,63,94,0.55)', backgroundColor: 'rgba(244,63,94,0.07)' },
-  lane: { flex: 1, paddingHorizontal: 14, gap: 4 },
+  lane: { flex: 1, paddingHorizontal: 14, gap: 3 },
   laneDivider: { width: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.12)' },
-  laneLabel: { color: 'rgba(226,232,240,0.5)', fontFamily: FONT.medium, fontSize: 12 },
-  laneJs: { color: '#F8FAFC', fontFamily: FONT.semibold, fontSize: 19, fontVariant: ['tabular-nums'] },
+  laneLabel: { color: 'rgba(226,232,240,0.5)', fontFamily: FONT.medium, fontSize: 11 },
+  laneJs: { color: '#F8FAFC', fontFamily: FONT.semibold, fontSize: 17, fontVariant: ['tabular-nums'] },
   laneJsFrozen: { color: '#FDA4AF' },
-  caption: { color: 'rgba(226,232,240,0.5)', fontFamily: FONT.medium, fontSize: 13, marginTop: 10, marginBottom: 16, textAlign: 'center' },
+  caption: { color: 'rgba(226,232,240,0.45)', fontFamily: FONT.medium, fontSize: 12, marginTop: 8, textAlign: 'center' },
   captionBlocked: { color: '#FDA4AF' },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
-  tile: { flexBasis: '30%', flexGrow: 1, borderRadius: 14, paddingHorizontal: 11, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.045)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.09)' },
-  tileTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  tileSym: { color: 'rgba(226,232,240,0.6)', fontFamily: FONT.bold, fontSize: 11, letterSpacing: 0.6 },
-  tileChange: { width: 56 },
-  tilePrice: { width: '100%', marginTop: 3 },
+  sectionTitle: { color: '#F8FAFC', fontFamily: FONT.semibold, fontSize: 17, marginTop: 18, marginBottom: 4 },
+  watchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 9 },
+  watchText: { flex: 1 },
+  watchSym: { color: '#F8FAFC', fontFamily: FONT.semibold, fontSize: 15 },
+  watchName: { color: 'rgba(226,232,240,0.5)', fontFamily: FONT.medium, fontSize: 12, marginTop: 1 },
+  pill: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, minWidth: 108 },
+  pillNumber: { width: 88, alignSelf: 'flex-end' },
 
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
-  kicker: { color: '#FCD34D', fontFamily: FONT.semibold, fontSize: 14, letterSpacing: 2, textTransform: 'uppercase' },
-  tierSlot: { height: 44, justifyContent: 'center', marginTop: 10 },
-  tier: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 999, backgroundColor: 'rgba(251,191,36,0.16)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.45)' },
-  tierText: { color: '#FDE68A', fontFamily: FONT.bold, fontSize: 15, letterSpacing: 0.5 },
-  stage: { width: '100%', alignItems: 'center', justifyContent: 'center', height: 160 },
-  halo: { position: 'absolute', width: 260, height: 260, borderRadius: 130, backgroundImage: 'radial-gradient(circle, rgba(251,191,36,0.45), transparent 65%)' },
+  kicker: { color: '#FCD34D', fontFamily: FONT.bold, fontSize: 15, letterSpacing: 4, textTransform: 'uppercase' },
+  bannerSlot: { height: 64, justifyContent: 'center', alignItems: 'center', marginTop: 6 },
+  banner: { fontFamily: FONT.bold, fontSize: 44, letterSpacing: 1.5, paddingHorizontal: 36, paddingVertical: 18, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 16 },
+  stage: { width: '100%', alignItems: 'center', justifyContent: 'center', height: 230 },
+  rays: { position: 'absolute', width: 0, height: 0, alignItems: 'center', justifyContent: 'center' },
+  ray: { position: 'absolute', width: 34, height: 260, borderRadius: 17, backgroundImage: 'linear-gradient(0deg, transparent, rgba(253,224,71,0.30) 55%, transparent)' },
+  halo: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundImage: 'radial-gradient(circle, rgba(251,191,36,0.40), transparent 62%)' },
+  gift: { position: 'absolute', alignItems: 'center' },
+  giftLid: { width: 132, height: 30, borderRadius: 8, backgroundImage: 'linear-gradient(180deg, #F43F5E, #BE123C)', alignItems: 'center', zIndex: 2, boxShadow: '0 4px 10px rgba(0,0,0,0.35)' },
+  lidRibbon: { position: 'absolute', top: 0, bottom: 0, width: 20, backgroundImage: 'linear-gradient(180deg, #FDE68A, #F59E0B)' },
+  bowLoop: { position: 'absolute', top: -26, width: 38, height: 30, borderRadius: 16, borderWidth: 7, borderColor: '#FBBF24' },
+  bowLeft: { right: 64, transform: [{ rotate: '-25deg' }] },
+  bowRight: { left: 64, transform: [{ rotate: '25deg' }] },
+  giftBody: { width: 118, height: 96, marginTop: -2, borderBottomLeftRadius: 10, borderBottomRightRadius: 10, backgroundImage: 'linear-gradient(180deg, #E11D48, #881337)', alignItems: 'center' },
+  bodyRibbon: { width: 20, height: '100%', backgroundImage: 'linear-gradient(180deg, #FCD34D, #D97706)' },
   burst: { position: 'absolute', width: 0, height: 0, alignItems: 'center', justifyContent: 'center' },
   piece: { position: 'absolute', width: 8, height: 12, borderRadius: 2 },
-  rewardSub: { color: 'rgba(255,247,224,0.7)', fontFamily: FONT.medium, fontSize: 16, marginTop: 4 },
+  coin: { position: 'absolute', top: 0, alignItems: 'center', justifyContent: 'center', backgroundImage: 'radial-gradient(circle at 35% 30%, #FEF3C7, #F59E0B 60%, #B45309)', borderWidth: 1.5, borderColor: '#FDE68A' },
+  coinText: { color: '#92400E', fontFamily: FONT.bold },
+  rewardSub: { color: 'rgba(255,247,224,0.65)', fontFamily: FONT.medium, fontSize: 15, marginTop: 8 },
   footer: { paddingHorizontal: 24, alignItems: 'center', gap: 14 },
   goldButton: { alignSelf: 'stretch', borderRadius: 999, paddingVertical: 17, alignItems: 'center', backgroundImage: 'linear-gradient(90deg, #F59E0B, #FCD34D)', boxShadow: '0 8px 32px rgba(245,158,11,0.45)' },
   goldButtonText: { color: '#2A1602', fontFamily: FONT.bold, fontSize: 17 },
-  footerNote: { color: 'rgba(255,255,255,0.4)', fontFamily: FONT.medium, fontSize: 12 },
 
-  sendTop: { flex: 1, alignItems: 'center', paddingHorizontal: 24 },
-  recipient: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, paddingLeft: 8, paddingRight: 18, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.12)' },
-  recipientAvatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundImage: 'linear-gradient(135deg, #F472B6, #8B5CF6)' },
-  recipientInitials: { color: '#fff', fontFamily: FONT.bold, fontSize: 14 },
-  recipientLabel: { color: 'rgba(255,255,255,0.5)', fontFamily: FONT.medium, fontSize: 12 },
-  recipientName: { color: '#fff', fontFamily: FONT.semibold, fontSize: 15 },
-  sendField: { width: '100%', marginTop: 44 },
-  payout: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.07)' },
-  payoutFlag: { fontSize: 16 },
-  payoutLabel: { color: 'rgba(255,255,255,0.55)', fontFamily: FONT.medium, fontSize: 14 },
-  currencies: { flexDirection: 'row', gap: 8, marginTop: 18 },
-  currency: { paddingHorizontal: 13, paddingVertical: 6, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.14)' },
-  currencyActive: { backgroundColor: 'rgba(196,181,253,0.18)', borderColor: 'rgba(196,181,253,0.6)' },
-  currencyText: { color: 'rgba(255,255,255,0.45)', fontFamily: FONT.bold, fontSize: 12, letterSpacing: 0.8 },
-  currencyTextActive: { color: '#EDE9FE' },
-  sendNote: { color: 'rgba(255,255,255,0.38)', fontFamily: FONT.medium, fontSize: 12, marginTop: 18 },
-  sendBottom: { paddingHorizontal: 20, gap: 14 },
-  keypad: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 9 },
-  key: { width: '31.5%', height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  tPage: { flex: 1, paddingHorizontal: 18 },
+  tHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
+  tBack: { color: '#fff', fontSize: 34, lineHeight: 36, width: 32 },
+  tBackSpacer: { width: 32 },
+  tTitle: { color: '#fff', fontFamily: FONT.semibold, fontSize: 17 },
+  tCard: { borderRadius: 22, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 14, backgroundColor: 'rgba(255,255,255,0.055)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.1)' },
+  tCardLabel: { color: 'rgba(255,255,255,0.5)', fontFamily: FONT.medium, fontSize: 13 },
+  tCardRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 12 },
+  tCurrency: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 4, paddingRight: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.08)' },
+  flag: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' },
+  flagText: { fontSize: 18 },
+  tCode: { color: '#fff', fontFamily: FONT.bold, fontSize: 16 },
+  tChevron: { color: 'rgba(255,255,255,0.5)', fontSize: 14, marginTop: -6 },
+  tAmount: { flex: 1 },
+  tBalance: { color: 'rgba(255,255,255,0.4)', fontFamily: FONT.medium, fontSize: 12, marginTop: 8 },
+  tSwapRow: { height: 10, alignItems: 'center', justifyContent: 'center', zIndex: 2 },
+  tSwap: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1B2230', borderWidth: 3, borderColor: '#0A0D12' },
+  tSwapText: { color: '#5EEAD4', fontSize: 17, fontFamily: FONT.bold },
+  tRate: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
+  tRateDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: UP, marginRight: 7, boxShadow: `0 0 6px ${UP}` },
+  tRateText: { color: 'rgba(255,255,255,0.5)', fontFamily: FONT.medium, fontSize: 13 },
+  tBreakdown: { marginTop: 14, paddingHorizontal: 6, gap: 9 },
+  tLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  tLineLabel: { color: 'rgba(255,255,255,0.5)', fontFamily: FONT.medium, fontSize: 14 },
+  tLineValue: { color: '#5EEAD4', fontFamily: FONT.semibold, fontSize: 14 },
+  tBottom: { paddingHorizontal: 18, gap: 12 },
+  keypad: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 4 },
+  key: { width: '31.5%', height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   keyText: { color: '#fff', fontFamily: FONT.semibold, fontSize: 26 },
-  sendButton: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderRadius: 999, paddingVertical: 17, backgroundColor: '#F5F3FF', boxShadow: '0 8px 30px rgba(139,92,246,0.45)' },
-  sendButtonText: { color: '#0B0716', fontFamily: FONT.bold, fontSize: 17 },
+  tCta: { borderRadius: 999, paddingVertical: 17, alignItems: 'center', backgroundColor: '#5EEAD4', boxShadow: '0 8px 28px rgba(45,212,191,0.35)' },
+  tCtaText: { color: '#04201C', fontFamily: FONT.bold, fontSize: 17 },
 })

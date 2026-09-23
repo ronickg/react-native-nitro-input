@@ -17,7 +17,7 @@ import {
 import { useNitroInputState } from 'react-native-nitro-input'
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated'
 import { AsYouType } from 'libphonenumber-js/min'
-import { MarketShowcase, RewardShowcase, SendShowcase } from './Showcases'
+import { MarketShowcase, RewardShowcase, TransferShowcase } from './Showcases'
 import { useNavigation } from '@react-navigation/native'
 
 type MaskReadout = { formatted: string; extracted: string; tail: string; complete: boolean }
@@ -685,7 +685,7 @@ export function DemoScreen() {
   }, [navigation, showing])
   if (showing === 'balance') return <MarketShowcase onExit={() => setShowing(null)} />
   if (showing === 'reveal') return <RewardShowcase onExit={() => setShowing(null)} />
-  if (showing === 'morph') return <SendShowcase onExit={() => setShowing(null)} />
+  if (showing === 'morph') return <TransferShowcase onExit={() => setShowing(null)} />
   return (
       <SafeAreaView style={[styles.root, dark && styles.rootDark]} edges={['bottom']}>
         <ScrollView contentContainerStyle={styles.content}>
@@ -693,7 +693,7 @@ export function DemoScreen() {
           <View style={styles.row}>
             <Button title="Showcase: Market" testID="showcase-balance" onPress={() => setShowing('balance')} />
             <Button title="Showcase: Reward" testID="showcase-reveal" onPress={() => setShowing('reveal')} />
-            <Button title="Showcase: Send" testID="showcase-morph" onPress={() => setShowing('morph')} />
+            <Button title="Showcase: Transfer" testID="showcase-morph" onPress={() => setShowing('morph')} />
           </View>
           <ReflowInputDemo />
           <MorphWorkletDemo />
