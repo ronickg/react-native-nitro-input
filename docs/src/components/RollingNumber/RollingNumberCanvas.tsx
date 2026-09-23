@@ -130,17 +130,21 @@ interface Wheel {
   fromAbove: boolean;
   flash: number;
   flashUp: boolean;
-  /** The arriving glyph coming into focus, on a slower clock than `blend`. */
+  /** The blur clock: the arriving glyph coming into focus, on a slower clock than `blend`. */
   focus: number;
+  /** The size-and-opacity clock of the swap. */
+  grow: number;
+  /** The leaving glyph's blur clock. */
+  blurOut: number;
 }
 
 const TRANSITIONS: Record<string, number> = {roll: 0, numeric: 1, scramble: 2};
 
 // The numeric transition's geometry, in line heights; mirrors
 // `RollingEngine::kNumeric*`, where the effect is described.
-const NUMERIC_OFFSET = 0.55;
-const NUMERIC_SCALE = 0.9;
-const NUMERIC_BLUR = 0.14;
+const NUMERIC_OFFSET = 0.34;
+const NUMERIC_SCALE = 0.4;
+const NUMERIC_BLUR = 0.08;
 
 interface Element {
   wheel: number; // -1 for glyphs
@@ -384,7 +388,7 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
 
     const measureSettled = (engine: RollingEngine, f: FontSet): number => {
       const count = engine.settledPowerCount();
-      const wheels: Wheel[] = Array.from({length: count}, () => ({position: 0, width: 1, linear: false, blankZero: false, fromGlyph: -1, toGlyph: -1, blend: 1, fromAbove: true, flash: 0, flashUp: true, focus: 1}));
+      const wheels: Wheel[] = Array.from({length: count}, () => ({position: 0, width: 1, linear: false, blankZero: false, fromGlyph: -1, toGlyph: -1, blend: 1, fromAbove: true, flash: 0, flashUp: true, focus: 1, grow: 1, blurOut: 1}));
       return buildElements(f, wheels, engine.settledNegative() ? 1 : 0).reduce((sum, e) => sum + e.width, 0);
     };
 
@@ -492,15 +496,18 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
     // goes out of, or comes into, focus.
     const drawSwap = (ctx: CanvasRenderingContext2D, f: FontSet, wheel: Wheel, x: number, w: number) => {
       const lineHeight = f.lineHeight;
+      // The position clock overshoots 1 (a spring); only the offsets follow it there.
       const b = wheel.blend;
+      const g = Math.min(1, Math.max(0, wheel.grow));
+      const fc = Math.min(1, Math.max(0, wheel.focus));
       const d = wheel.fromAbove ? 1 : -1;
       const offset = lineHeight * NUMERIC_OFFSET;
       const cx = x + w - f.digitWidth / 2;
       const cy = lineHeight / 2;
       const canBlur = 'filter' in ctx;
       const pair = [
-        {glyph: wheel.fromGlyph, dy: d * offset * b, scale: 1 - (1 - NUMERIC_SCALE) * b, alpha: 1 - b, blur: Math.min(1, 2 * b)},
-        {glyph: wheel.toGlyph, dy: -d * offset * (1 - b), scale: NUMERIC_SCALE + (1 - NUMERIC_SCALE) * b, alpha: b, blur: 1 - wheel.focus},
+        {glyph: wheel.fromGlyph, dy: d * offset * b, scale: 1 - (1 - NUMERIC_SCALE) * g, alpha: 1 - g, blur: Math.min(1, Math.max(0, wheel.blurOut))},
+        {glyph: wheel.toGlyph, dy: -d * offset * (1 - b), scale: NUMERIC_SCALE + (1 - NUMERIC_SCALE) * g, alpha: g, blur: 1 - fc},
       ];
       ctx.font = f.digit;
       for (const item of pair) {
@@ -521,19 +528,21 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
       const lineHeight = f.lineHeight;
       const baseline = f.baseline('digit', '0', 0);
       ctx.save();
-      ctx.beginPath();
-      ctx.rect(x, 0, w, lineHeight);
-      ctx.clip();
       // The change flash tints this wheel's glyphs towards the up or down colour.
       const tint = wheel.flash > 0.002 ? (wheel.flashUp ? flashUpColor : flashDownColor) : undefined;
       if (tint) {
         ctx.fillStyle = mixColor(ctx.fillStyle as string, tint, wheel.flash);
       }
-      if (wheel.blend < 1) {
+      // A swap is not clipped to the cell: a blurred glyph's haze reaches past
+      // it, and cut at the cell it read as a pale box around the digit.
+      if (wheel.blend < 1 || wheel.focus < 1 || wheel.grow < 1) {
         drawSwap(ctx, f, wheel, x, w);
         ctx.restore();
         return;
       }
+      ctx.beginPath();
+      ctx.rect(x, 0, w, lineHeight);
+      ctx.clip();
       ctx.globalAlpha = wheel.width;
       ctx.font = f.digit;
       const base = Math.floor(wheel.position);

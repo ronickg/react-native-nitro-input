@@ -77,18 +77,18 @@ export interface RollingNumberProps extends Omit<ViewProps, 'children'> {
    * locks on its target, from the left.
    *
    * Each swap style has its own defaults for `duration`, `easing` and
-   * `stagger`: numeric 450 / `'spring'` / 50, scramble 500 / `'linear'` / 60.
+   * `stagger`: numeric 480 / (its own clocks) / 150, scramble 500 / `'linear'` / 60.
    */
   transition?: RollingNumberTransition
   /**
    * The change flash: every digit whose glyph changes lights up in this
-   * colour when the value grew (e.g. a green), fading back over
-   * `flashDuration`. Unset: no flash.
+   * colour when the value grew (e.g. a green), stays lit while it moves,
+   * and fades back over `flashDuration` once it has landed. Unset: no flash.
    */
   flashUpColor?: ColorValue
   /** The change flash's colour when the value shrank (e.g. a red). Unset: no flash. */
   flashDownColor?: ColorValue
-  /** Milliseconds a change flash takes to fade. Default: `600`. */
+  /** Milliseconds a change flash takes to fade, once the digit has landed. Default: `600`. */
   flashDuration?: number
   /**
    * A punch of the whole figure on every value change, its peak overshoot
@@ -98,15 +98,17 @@ export interface RollingNumberProps extends Omit<ViewProps, 'children'> {
   popOnChange?: number
   /** Duration in ms of the roll played when `value` changes. `0` snaps. Default: `500` (each swap transition has its own, see `transition`). */
   duration?: number
-  /** Timing curve of the roll. Default: `'easeInOut'` (each swap transition has its own, see `transition`). */
+  /** Timing curve of the roll. Default: `'easeInOut'` (the scramble has its own, see `transition`; the numeric transition keeps SwiftUI's own clocks and ignores it). */
   easing?: RollingNumberEasing
-  /** Overshoot of the `'spring'` easing, `0`–`1`. Default: `0.15`. */
+  /** Overshoot of the `'spring'` easing, `0`–`1`. Default: `0.15` (the numeric transition has its own, fixed). */
   bounce?: number
   /**
    * Delay in ms between the start of each digit's roll, least significant
    * digit first, so a change cascades like a mechanical carry. In the numeric
-   * transition it runs from the leftmost digit to the right instead, the way
-   * the effect cascades on iOS. Default: `0` (`50` for the numeric transition).
+   * transition it is the span of the whole cascade instead: the digits that
+   * change start spread evenly over it from the leftmost to the rightmost,
+   * however many there are, the way the effect cascades on iOS. Default: `0`
+   * (`150` for the numeric transition).
    */
   stagger?: number
   /** Which way the digits roll. `'auto'` follows the sign of the change. Default: `'auto'`. */
@@ -275,7 +277,7 @@ interface Size {
 /** Each transition's own timing, used when the props leave it unsaid. */
 const TRANSITION_DEFAULTS: Record<RollingNumberTransition, { duration: number; easing: RollingNumberEasing; stagger: number }> = {
   roll: { duration: 500, easing: 'easeInOut', stagger: 0 },
-  numeric: { duration: 450, easing: 'spring', stagger: 50 },
+  numeric: { duration: 480, easing: 'spring', stagger: 150 },
   scramble: { duration: 500, easing: 'linear', stagger: 60 },
 }
 

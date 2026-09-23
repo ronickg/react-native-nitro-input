@@ -81,7 +81,8 @@ Two more things happen on a change if you ask for them, with any transition:
 
 `flashUpColor` / `flashDownColor` is the change flash of a trading screen:
 every digit whose glyph changes lights up in the up colour when the value grew
-and the down colour when it shrank, fading back over `flashDuration` (600 ms).
+and the down colour when it shrank, stays lit while it moves, and fades back
+over `flashDuration` (600 ms) once it has landed.
 `popOnChange` punches the whole figure on every change, its peak overshoot as
 a fraction of the size, rung out like the reveal's landing pop.
 
@@ -183,10 +184,10 @@ scroll or drag handler drives the number.
 | `duration` | `number` | `500` | Roll duration in ms; `0` snaps. |
 | `easing` | `'linear' \| 'easeIn' \| 'easeOut' \| 'easeInOut' \| 'spring'` | `'easeInOut'` | Roll timing curve. A value that arrives while the wheels are still rolling continues with the ease-out half of the curve, so rapid updates never stall. |
 | `bounce` | `number` | `0.15` | Overshoot of the `spring` easing (0–1). |
-| `stagger` | `number` | `0` | ms between the start of each digit's roll (least significant first), a cascading carry; from the left in the numeric transition, where it defaults to `50`. |
-| `transition` | `'roll' \| 'numeric' \| 'scramble'` | `'roll'` | How a change plays: the odometer roll; the numeric transition (each changed glyph swaps in place, SwiftUI's `numericText`); or a scramble that locks from the left. Each swap style has its own `duration` / `easing` / `stagger` defaults (numeric 450 / spring / 50, scramble 500 / linear / 60). |
-| `flashUpColor`, `flashDownColor` | `ColorValue` | unset | The change flash: digits whose glyph changes light up in the up colour when the value grew, the down colour when it shrank, fading back over `flashDuration`. Unset: no flash. |
-| `flashDuration` | `number` | `600` | ms a change flash takes to fade. |
+| `stagger` | `number` | `0` | ms between the start of each digit's roll (least significant first), a cascading carry; in the numeric transition it is the span of the whole cascade, spread over the changed digits from the left, default `150`. |
+| `transition` | `'roll' \| 'numeric' \| 'scramble'` | `'roll'` | How a change plays: the odometer roll; the numeric transition (each changed glyph swaps in place, SwiftUI's `numericText`); or a scramble that locks from the left. Each swap style has its own `duration` / `easing` / `stagger` defaults (numeric 480 ms with SwiftUI's own clocks and a 150 ms cascade span, scramble 500 / linear / 60). |
+| `flashUpColor`, `flashDownColor` | `ColorValue` | unset | The change flash: digits whose glyph changes light up in the up colour when the value grew, the down colour when it shrank, stay lit while they move, and fade back over `flashDuration` once they have landed. Unset: no flash. |
+| `flashDuration` | `number` | `600` | ms a change flash takes to fade, once the digit has landed. |
 | `popOnChange` | `number` | `0` | A punch of the whole figure on every change, peak overshoot 0–1, rung out like the reveal's landing pop. |
 | `direction` | `'auto' \| 'up' \| 'down'` | `'auto'` | Roll direction; `auto` follows the sign of the change. |
 | `reveal` | `boolean` | – | `false` holds the opening frame (`$0.00` in the final layout); `true` plays the reveal to `value`. Unset = a normal rolling number. |

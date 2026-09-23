@@ -143,8 +143,8 @@ int JRollingEngine::frameInto(jni::alias_ref<jni::JArrayDouble> out) {
   const auto& wheels = engine_.wheels();
   const size_t count = wheels.size();
   constexpr size_t kMaxWheels = 32;
-  double data[4 + kMaxWheels * 11];
-  const size_t needed = 4 + count * 11;
+  double data[4 + kMaxWheels * 13];
+  const size_t needed = 4 + count * 13;
   if (count > kMaxWheels || static_cast<size_t>(out->size()) < needed) {
     return -1;
   }
@@ -165,6 +165,8 @@ int JRollingEngine::frameInto(jni::alias_ref<jni::JArrayDouble> out) {
     data[i++] = w.flash;
     data[i++] = w.flashUp ? 1.0 : 0.0;
     data[i++] = w.focus;
+    data[i++] = w.grow;
+    data[i++] = w.blurOut;
   }
   out->setRegion(0, needed, data);
   return static_cast<int>(needed);

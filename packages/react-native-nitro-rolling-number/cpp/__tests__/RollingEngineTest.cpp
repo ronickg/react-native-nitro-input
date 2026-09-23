@@ -540,19 +540,29 @@ static void numericTransitionSwapsGlyphsInPlace() {
   CHECK(near(units.blend, 0));
   CHECK(!units.fromAbove);          // a value that grew: the 9 comes up from below
   CHECK(near(units.focus, 0));
+  CHECK(near(units.grow, 0));
   CHECK(near(units.position, 9));   // the position is the digit arriving, never a glyph in between
   CHECK(near(e.wheelAt(1).blend, 1));
   CHECK(near(e.wheelAt(3).blend, 1));
   CHECK(near(e.wheelAt(1).position, 3));
 
+  e.tick(0.1);
+  CHECK(e.wheelAt(0).blend > 0.1 && e.wheelAt(0).blend < 0.9);   // on its way
+  CHECK(e.wheelAt(0).grow > 0.1 && e.wheelAt(0).grow < 0.9);
+  CHECK(e.wheelAt(0).focus > 0 && e.wheelAt(0).focus < 0.7);
   e.tick(0.25);
-  CHECK(near(e.wheelAt(0).blend, 0.5));
-  CHECK(near(e.wheelAt(0).focus, 1 - std::pow(0.5, 1.5)));   // still out of focus half way through
+  CHECK(e.wheelAt(0).blend > 0.95);       // landed (and overshooting) half way through
+  CHECK(e.wheelAt(0).grow > 0.8 && e.wheelAt(0).grow < 1);
+  CHECK(e.wheelAt(0).focus < 0.98);       // still coming into focus
+  CHECK(e.needsFrames());
   CHECK(near(e.wheelAt(0).position, 9));
   e.tick(0.5);
+  CHECK(e.needsFrames());                 // the position spring rings out past the duration
+  e.tick(0.5 * RollingEngine::kNumericTail);
   CHECK(!e.needsFrames());
   CHECK(near(e.wheelAt(0).blend, 1));
   CHECK(near(e.wheelAt(0).focus, 1));
+  CHECK(near(e.wheelAt(0).grow, 1));
   CHECK(near(e.wheelAt(0).position, 9));
   CHECK(near(e.wheelAt(0).fromGlyph, -1));   // settled: no pair to draw
 
@@ -568,35 +578,39 @@ static void numericTransitionSwapsGlyphsInPlace() {
 static void numericTransitionCascadesLeftToRight() {
   RollingEngine e;
   e.setFormat(0, 1);
-  e.setTiming(0.5, /* linear */ 0, 0.15, /* stagger */ 0.1, 0);
+  e.setTiming(0.5, /* linear */ 0, 0.15, /* stagger: the whole cascade's span */ 0.3, 0);
   e.setTransition(1);
   e.animateTo(1111, 0);
   e.animateTo(2222, 0);
   e.tick(0.05);
-  // Leftmost first: the thousands wheel is 10 % in, the units wheel has not started.
-  CHECK(near(e.wheelAt(3).blend, 0.1));
+  // Leftmost first: four columns change, spread over 0.3 s (0, 0.1, 0.2,
+  // 0.3 s), so at 50 ms only the thousands wheel has started.
+  CHECK(e.wheelAt(3).blend > 0);
   CHECK(near(e.wheelAt(2).blend, 0));
   CHECK(near(e.wheelAt(0).blend, 0));
   e.tick(0.35);
-  CHECK(near(e.wheelAt(3).blend, 0.7));
-  CHECK(near(e.wheelAt(0).blend, 0.1));
+  CHECK(e.wheelAt(3).blend > 0.9);
+  CHECK(e.wheelAt(3).focus < 1);
+  CHECK(e.wheelAt(0).blend > 0 && e.wheelAt(0).blend < 0.5);
   CHECK(e.needsFrames());
-  e.tick(0.8);   // duration + the last wheel's delay
+  e.tick(0.3 + 0.5 * RollingEngine::kNumericTail);   // the last wheel's delay + the transition
   CHECK(!e.needsFrames());
   CHECK(near(e.wheelAt(0).blend, 1));
   CHECK(near(e.wheelAt(0).position, 2));
 
   // Only the wheels that change take part in the cascade: a units digit
-  // ticking over starts at once, and 2222 → 2255 runs over two steps.
+  // ticking over starts at once, and 2222 → 2255 spreads the span over two.
   e.animateTo(2223, 1);
   e.tick(1.05);
-  CHECK(near(e.wheelAt(0).blend, 0.1));
+  CHECK(e.wheelAt(0).blend > 0);
   e.tick(2);
   e.animateTo(2255, 2);
   e.tick(2.05);
-  CHECK(near(e.wheelAt(1).blend, 0.1));
-  CHECK(near(e.wheelAt(0).blend, 0));
+  CHECK(e.wheelAt(1).blend > 0);
+  CHECK(near(e.wheelAt(0).blend, 0));   // its turn comes 0.3 s in
   CHECK(near(e.wheelAt(3).blend, 1));
+  e.tick(2.35);
+  CHECK(e.wheelAt(0).blend > 0);
 }
 
 static void numericTransitionGrowsAndShrinksColumns() {
@@ -613,9 +627,11 @@ static void numericTransitionGrowsAndShrinksColumns() {
   CHECK(near(e.wheelAt(2).width, 0));
   CHECK(near(e.wheelAt(0).fromGlyph, 9));
   CHECK(near(e.wheelAt(0).toGlyph, 0));
+  e.tick(0.1);
+  CHECK(near(e.wheelAt(2).width, 0.2));   // the column opens over the whole duration
+  CHECK(e.wheelAt(2).blend > 0 && e.wheelAt(2).blend < 1);   // the glyph on its way
   e.tick(0.25);
   CHECK(near(e.wheelAt(2).width, 0.5));
-  CHECK(near(e.wheelAt(2).blend, 0.5));
   e.tick(0.5);
   CHECK(e.wheelCount() == 3);
   CHECK(near(e.wheelAt(2).width, 1));
@@ -631,7 +647,7 @@ static void numericTransitionGrowsAndShrinksColumns() {
   CHECK(e.wheelAt(2).fromAbove);
   e.tick(1.25);
   CHECK(near(e.wheelAt(2).width, 0.5));
-  e.tick(1.5);
+  e.tick(1 + 0.5 * RollingEngine::kNumericTail);
   CHECK(e.wheelCount() == 2);
   CHECK(near(e.wheelAt(1).position, 9));
   CHECK(near(e.wheelAt(0).position, 9));
@@ -644,13 +660,13 @@ static void numericTransitionRetargetsFromTheArrivingGlyph() {
   e.setTransition(1);
   e.animateTo(5, 0);
   e.animateTo(6, 0);
-  e.tick(0.25);
-  CHECK(near(e.wheelAt(0).blend, 0.5));
-  e.animateTo(7, 0.25);   // mid-swap: the 6 that was arriving is what leaves now
+  e.tick(0.1);
+  CHECK(e.wheelAt(0).blend > 0.2 && e.wheelAt(0).blend < 0.9);
+  e.animateTo(7, 0.1);   // mid-swap: the 6 that was arriving is what leaves now
   CHECK(near(e.wheelAt(0).fromGlyph, 6));
   CHECK(near(e.wheelAt(0).toGlyph, 7));
   CHECK(near(e.wheelAt(0).blend, 0));
-  e.tick(0.75);
+  e.tick(0.1 + 0.5 * RollingEngine::kNumericTail);
   CHECK(near(e.wheelAt(0).position, 7));
   CHECK(!e.needsFrames());
 
@@ -748,6 +764,9 @@ static void changeFlashAndPop() {
   CHECK(near(e.wheelAt(1).flash, 0));
   e.tick(1.1);
   CHECK(e.revealScale() > 1.05);   // the punch peaks at 0.1 s
+  CHECK(near(e.wheelAt(0).flash, 1)); // lit for the whole roll (0.2 s)
+  e.tick(1.19);
+  CHECK(near(e.wheelAt(0).flash, 1));
   e.tick(1.25);
   CHECK(!e.isRolling());
   CHECK(e.needsFrames());          // the flash and the pop are still fading

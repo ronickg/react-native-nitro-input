@@ -26,7 +26,9 @@ EMSCRIPTEN_BINDINGS(rolling_engine) {
       .field("fromAbove", &RollingEngine::Wheel::fromAbove)
       .field("flash", &RollingEngine::Wheel::flash)
       .field("flashUp", &RollingEngine::Wheel::flashUp)
-      .field("focus", &RollingEngine::Wheel::focus);
+      .field("focus", &RollingEngine::Wheel::focus)
+      .field("grow", &RollingEngine::Wheel::grow)
+      .field("blurOut", &RollingEngine::Wheel::blurOut);
 
   class_<RollingEngine>("RollingEngine")
       .constructor<>()

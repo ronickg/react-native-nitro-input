@@ -49,7 +49,7 @@ describe('RollingNumber', () => {
 
     const numeric = nativeProps(render(<RollingNumber value={1} transition="numeric" />))
     expect(numeric.transition).toBe('numeric')
-    expect([numeric.duration, numeric.easing, numeric.stagger]).toEqual([450, 'spring', 50])
+    expect([numeric.duration, numeric.easing, numeric.stagger]).toEqual([480, 'spring', 150])
 
     const tuned = nativeProps(render(<RollingNumber value={1} transition="numeric" duration={200} easing="easeOut" stagger={0} />))
     expect([tuned.duration, tuned.easing, tuned.stagger]).toEqual([200, 'easeOut', 0])

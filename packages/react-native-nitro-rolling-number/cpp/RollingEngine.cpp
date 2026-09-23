@@ -248,7 +248,7 @@ void RollingEngine::animateTo(double value, double now) {
       for (size_t i = 0; i < wheels_.size(); i++) {
         const int was = i < before.size() ? before[i] : -1;
         if (was != shownGlyph(wheels_[i])) {
-          flashes_[i] = Flash{now, increasing};
+          flashes_[i] = Flash{now, 0, increasing};
         }
       }
       if (popOnChange_ > 0) {
@@ -265,7 +265,8 @@ void RollingEngine::animateTo(double value, double now) {
   Transition next;
   next.active = true;
   next.start = now;
-  next.duration = duration_;
+  // The numeric transition rings its position spring out past the duration.
+  next.duration = transitionStyle_ == 1 ? duration_ * kNumericTail : duration_;
   next.fromMotion = transition_.active;
   next.style = transitionStyle_;
   next.numeric = transitionStyle_ != 0;
@@ -285,11 +286,11 @@ void RollingEngine::animateTo(double value, double now) {
   // change: a units digit ticking over does not wait for three columns that
   // stay put.
   std::vector<int> ranks(static_cast<size_t>(count), 0);
+  int changing = 0;
   if (next.numeric) {
-    int rank = 0;
     for (int power = count - 1; power >= 0; power--) {
       if (next.wheels[static_cast<size_t>(power)].from.blend < 1) {
-        ranks[static_cast<size_t>(power)] = rank++;
+        ranks[static_cast<size_t>(power)] = changing++;
       }
     }
   } else {
@@ -301,7 +302,11 @@ void RollingEngine::animateTo(double value, double now) {
     // When re-targeting mid-roll, a wheel that hasn't started yet keeps its
     // original start time instead of being pushed back again, so rapid
     // updates can't starve it.
-    double delay = stagger_ * static_cast<double>(ranks[static_cast<size_t>(power)]);
+    // A roll's stagger is per wheel; the numeric cascade's is the whole
+    // span, shared out over the columns that change.
+    double delay = next.numeric
+        ? (changing > 1 ? stagger_ * static_cast<double>(ranks[static_cast<size_t>(power)]) / static_cast<double>(changing - 1) : 0.0)
+        : stagger_ * static_cast<double>(ranks[static_cast<size_t>(power)]);
     if (transition_.active && power < static_cast<int>(transition_.delays.size())) {
       const double pending = std::max(0.0, (transition_.start + transition_.delays[static_cast<size_t>(power)]) - now);
       delay = std::min(delay, pending);
@@ -319,7 +324,8 @@ void RollingEngine::animateTo(double value, double now) {
     const WheelTransition& wt = next.wheels[static_cast<size_t>(power)];
     const bool changes = next.numeric ? wt.from.blend < 1 : (wt.from.position != wt.to.position || wt.from.width != wt.to.width);
     if (changes) {
-      flashes_[static_cast<size_t>(power)] = Flash{now, increasing};
+      // Lit until the wheel has landed: its delay, then the transition.
+      flashes_[static_cast<size_t>(power)] = Flash{now, next.delays[static_cast<size_t>(power)] + next.duration, increasing};
       anyChange = true;
     }
   }
@@ -777,7 +783,11 @@ void RollingEngine::apply(double elapsed) {
     const WheelTransition& wt = tr.wheels[i];
     const double delay = i < tr.delays.size() ? tr.delays[i] : 0;
     const double raw = tr.duration > 0 ? clamp01((elapsed - delay) / tr.duration) : 1.0;
-    const double t = tr.fromMotion ? easeFromMotion(raw) : ease(raw);
+    // The numeric transition's tail is only its position spring ringing out:
+    // a column opens and closes over the duration itself.
+    const double span = tr.style == 1 ? tr.duration / kNumericTail : tr.duration;
+    const double rawSpan = span > 0 ? clamp01((elapsed - delay) / span) : 1.0;
+    const double t = tr.fromMotion ? easeFromMotion(rawSpan) : ease(rawSpan);
     Wheel& w = wheels_[i];
     w.width = clamp01(wt.from.width + (wt.to.width - wt.from.width) * t);
     w.linear = wt.from.linear;
@@ -789,6 +799,7 @@ void RollingEngine::apply(double elapsed) {
       w.toGlyph = -1;
       w.blend = 1;
       w.focus = 1;
+      w.grow = 1;
     } else if (tr.style == 2) {
       // Scramble: a different digit every step until the wheel locks.
       const int from = static_cast<int>(wt.from.fromGlyph);
@@ -813,21 +824,34 @@ void RollingEngine::apply(double elapsed) {
       w.toGlyph = -1;
       w.blend = 1;
       w.focus = 1;
+      w.grow = 1;
     } else if (tr.numeric) {
       // Numeric: the glyphs swap in place; the position is the digit
-      // arriving and `blend` is how far the swap is.
+      // arriving and the three clocks say how far the swap is (see the header).
       w.position = wt.from.position;
       w.fromGlyph = wt.from.fromGlyph;
       w.toGlyph = wt.from.toGlyph;
       w.fromAbove = wt.from.fromAbove;
-      w.blend = t;
-      w.focus = 1 - std::pow(1 - raw, kNumericFocusPower);
+      if (raw >= 1 || tr.duration <= 0) {
+        w.blend = 1;
+        w.grow = 1;
+        w.focus = 1;
+        w.blurOut = 1;
+      } else {
+        const double local = std::max(0.0, elapsed - delay);
+        const double d = tr.duration / kNumericTail;
+        w.blend = damped(local, kNumericPositionZeta, d);
+        w.grow = damped(local, 1.0, kNumericGrowSettle * d);
+        w.focus = damped(local, kNumericFocusZeta, kNumericFocusSettle * d);
+        w.blurOut = damped(local, 1.0, kNumericBlurOutSettle * d);
+      }
     } else {
       w.position = wt.from.position + (wt.to.position - wt.from.position) * t;
       w.fromGlyph = -1;
       w.toGlyph = -1;
       w.blend = 1;
       w.focus = 1;
+      w.grow = 1;
     }
   }
   const double signRaw = tr.duration > 0 ? clamp01(elapsed / tr.duration) : 1.0;
@@ -854,8 +878,9 @@ void RollingEngine::applyEffects(double now) {
       w.flash = 0;
       continue;
     }
-    const double u = clamp01((now - f.start) / flashSeconds_);
-    // Lights at once, fades with a tail.
+    // Lights at once, holds while the wheel moves, fades with a tail.
+    const double lit = now - f.start;
+    const double u = lit < f.hold ? 0 : clamp01((lit - f.hold) / flashSeconds_);
     w.flash = std::pow(1 - u, 1.5);
     w.flashUp = f.up;
     if (u < 1) {
@@ -963,6 +988,23 @@ double RollingEngine::spring(double t, double bounce) {
     return 1 - (1 + k * t) * std::exp(-k * t);
   }
   const double wd = omega * std::sqrt(1 - zeta * zeta);
+  return 1 - std::exp(-k * t) * (std::cos(wd * t) + (k / wd) * std::sin(wd * t));
+}
+
+double RollingEngine::damped(double t, double zeta, double settle) {
+  if (t <= 0 || settle <= 0) {
+    return 0;
+  }
+  const double z = std::min(1.0, std::max(0.05, zeta));
+  if (z >= 0.999) {
+    // Critically damped: 1 - (1 + kt) e^{-kt} is within 2 % of 1 at kt ≈ 5.83.
+    const double k = 5.83 / settle;
+    return 1 - (1 + k * t) * std::exp(-k * t);
+  }
+  // Underdamped: the envelope e^{-ζωt} is within 2 % at ζωt = 4.
+  const double omega = 4.0 / (z * settle);
+  const double k = z * omega;
+  const double wd = omega * std::sqrt(1 - z * z);
   return 1 - std::exp(-k * t) * (std::cos(wd * t) + (k / wd) * std::sin(wd * t));
 }
 

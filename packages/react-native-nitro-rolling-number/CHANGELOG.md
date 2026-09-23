@@ -10,8 +10,44 @@
   value grows and down when it shrinks, the change cascades from the leftmost
   digit to the right, and digits that don't change stay put. The engine
   plans it as a blend per wheel (`fromGlyph` → `toGlyph`, `blend`), the same
-  `duration`, `easing` and `stagger` apply (with their own defaults of 450 ms,
-  `spring` and 50 ms), and every renderer draws the pair the same way: the
+  `duration` and `stagger` apply (480 ms and, for the numeric transition, a
+  150 ms cascade span shared out over the digits that change; `easing` and
+  `bounce` are not consulted, as SwiftUI's transition does not consult its
+  animation either). A changing digit runs four clocks scaled to the
+  duration, each a damped spring's step response: the position (ζ 0.54,
+  about 12 % overshoot, which is the wave; the glyph travels 0.34 line
+  heights), the size and opacity (critically damped, settled at 65 %; the
+  glyph grows from 0.4× as it fades in), the arriving glyph's blur (ζ 0.85,
+  settled at 74 %) and the leaving glyph's (critically damped, settled at
+  46 %, so the old digit goes soft at once), with 0.08 line heights of blur
+  at full blur, SwiftUI's own; the transition runs 1.45 durations so the
+  position spring rings out instead of snapping its last pixel. The figures are
+  SwiftUI's, fitted to its frames at 60 fps: a model of our renderers was
+  rendered from the real glyphs and optimised until it reproduced SwiftUI's
+  frames, which cut the pixel error to a twentieth, and the result agrees
+  with the constants react-native-numeric-text published. A spring's
+  overshoot past the landing used to read as
+  settled and snapped the glyph sharp half way through. On iOS and Android
+  a glyph part way out of focus is the two nearest of six blurred copies
+  cross-faded, not the sharp glyph cross-faded with one fully blurred copy,
+  which showed a sharp digit inside a glow and read as a highlight rather
+  than a blur. On Android the sharp copy is a mask bitmap like the blurred
+  ones, not hardware text: text snaps to whole pixels as it moves and a
+  bitmap does not, and cross-faded the two slid in and out of register as
+  the spring settled, a bold/pale flicker at low blur; and each glyph's
+  bitmap is landed on whole device pixels, since a sharp bitmap drawn
+  between pixels is resampled and, creeping along the spring's tail, it
+  cycled crisp and soft once per pixel of travel (a shimmer a blurred copy
+  hides), and the last swap frame is now pixel for pixel the strip that
+  takes over from it. The blurred glyph masks are rendered on a background
+  thread as soon as the numeric transition is set, immutable and uploaded
+  ahead of their first draw; made on demand, the first change after launch
+  blocked the UI thread for 120–145 ms and dropped over 30 frames on a Galaxy
+  A22, and now drops none to a few. The two blur levels of a glyph are now weighted so
+  that composited one over the other they add up to the glyph's opacity;
+  weighted (1 − w) and w they came out only 75 % opaque half way between
+  levels, and the digit pulsed at every level crossing. Every renderer
+  draws the pair the same way: the
   glyph's sharp and a blurred image cross-faded (Core Image on iOS, a
   software blur once per font on Android, a canvas filter on the web), so a
   frame of the transition costs what a frame of a roll does. The effect is
@@ -30,7 +66,15 @@
   convolution now instead of Core Image, whose first render of a session
   stalled the main thread for longer than the swap, and the ten digits'
   sharp and blurred images are rendered a turn after mount, so the first
-  change of a session plays whole.
+  change of a session plays whole. On Android the blurred glyph is an
+  `ALPHA_8` mask filled with the digit colour at draw time, a quarter of
+  the memory of the coloured bitmap it was, and its radius matches iOS's.
+  A swapping glyph is no longer clipped to its digit cell, on any platform:
+  a blurred glyph's haze reaches well past the cell, and cut off at it the
+  haze ended in a hard edge, a pale box around every digit in transit (on
+  iOS the swap layers now sit on an unclipped layer above the strip
+  containers; on Android and the web the swap is drawn without the cell's
+  clip rect).
 
 - `transition="scramble"`, on the same machinery: each changed digit shows
   a different random digit every few frames, never the one it is leaving or
@@ -41,12 +85,21 @@
 
 - The change flash and the pop, with any transition. `flashUpColor` /
   `flashDownColor` light every digit whose glyph changes in the up or the
-  down colour and fade it back over `flashDuration`; a snap under Reduce
-  Motion still flashes, a `jumpTo` never does. `popOnChange` punches the
-  whole figure on every change, rung out like the reveal's landing pop and
-  folded into the same scale the renderers already apply. Both are engine
-  state (`Wheel::flash`, `revealScale()`), so every renderer reads them the
-  same way.
+  down colour, keep it lit while it moves, and fade it back over
+  `flashDuration` once it has landed; a snap under Reduce Motion lights and
+  fades at once, a `jumpTo` never flashes. The tint is the digit's own ink
+  mixed towards the colour, whatever it is doing: on a rolling wheel the
+  strip itself is drawn again in the flash colour at the strip's own
+  offset, so the tint rides the roll (a tinted glyph laid over a moving
+  strip read as a doubled digit); on a swapping wheel both glyphs, the
+  leaving one and the arriving one, are drawn again in the colour with the
+  same blur and fade as their originals (a sharp tinted glyph over a
+  blurred one read as a smudge, and a fade that began during the swap
+  showed the digit landing already half way back to blue). `popOnChange`
+  punches the whole figure on every change, rung out like the reveal's
+  landing pop and folded into the same scale the renderers already apply.
+  Both are engine state (`Wheel::flash`, `revealScale()`), so every
+  renderer reads them the same way.
 
 ## 0.1.0
 

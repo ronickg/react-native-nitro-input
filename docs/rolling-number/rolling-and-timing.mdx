@@ -32,7 +32,7 @@ A value that arrives while the wheels are still rolling doesn't restart them fro
 
 The roll is not the only way a change can play. `transition` picks one of two others; both swap each changed glyph in place, digits that don't change stay put, and the change cascades from the leftmost changed digit to the right (`stagger`). `duration` and `easing` apply to each, with their own defaults. Under Reduce Motion every one of them snaps, like a roll.
 
-- **`numeric`** is the effect of SwiftUI's `.contentTransition(.numericText())`: the old glyph softens, shrinks and slides out; the new one slides in from the other side, a little small and out of focus, and resolves. The glyphs move up when the value grows and down when it shrinks. The blur is real on iOS, Android and here: a blurred copy of each glyph rendered once per font and cross-faded with the sharp one, so a frame costs what a frame of a roll does.
+- **`numeric`** is the effect of SwiftUI's `.contentTransition(.numericText())`: the old glyph softens, shrinks and slides out; the new one slides in from the other side, small and out of focus, and resolves. The glyphs move up when the value grows and down when it shrinks. The pacing is SwiftUI's, measured frame by frame and scaled to `duration`: the position is a soft spring that overshoots its landing by about a tenth and settles back (the wave you see run across a big change), the size and opacity resolve by about two thirds of the way, and the blur clears last; `easing` and `bounce` are not consulted. `stagger` is the span of the cascade, shared out over the digits that change from the left. The blur is real on iOS, Android and here: a blurred copy of each glyph rendered once per font and cross-faded with the sharp one, so a frame costs what a frame of a roll does.
 - **`scramble`**: each changed digit shows a different random digit every few frames, never the one it is leaving or arriving at, and locks on its target from the left.
 
 <Example
@@ -48,7 +48,7 @@ The roll is not the only way a change can play. `transition` picks one of two ot
 
 ## The change flash and the pop
 
-Two more things can happen on a change, with any transition. `flashUpColor` and `flashDownColor` are the change flash of a trading screen: every digit whose glyph changes lights up in the up colour when the value grew and the down colour when it shrank, and fades back over `flashDuration` (600 ms). `popOnChange` punches the whole figure on every change, its peak overshoot as a fraction of the size, rung out like the reveal's landing pop; `0.08` is a nudge, `0.2` a slam.
+Two more things can happen on a change, with any transition. `flashUpColor` and `flashDownColor` are the change flash of a trading screen: every digit whose glyph changes lights up in the up colour when the value grew and the down colour when it shrank, stays lit while it moves, and fades back over `flashDuration` (600 ms) once it has landed. `popOnChange` punches the whole figure on every change, its peak overshoot as a fraction of the size, rung out like the reveal's landing pop; `0.08` is a nudge, `0.2` a slam.
 
 <Example
   code={`<RollingNumber

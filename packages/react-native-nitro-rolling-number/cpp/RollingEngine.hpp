@@ -43,40 +43,64 @@ public:
     // `position`. `fromAbove`: the new glyph arrives from above and the old one
     // leaves downwards, which is how a value that shrank plays; a value that
     // grew is the mirror image, the glyphs moving up the way an odometer's do
-    // (checked frame by frame against SwiftUI's own transition). `focus` is the
-    // arriving glyph coming into focus, on a slower clock than its motion: 0
-    // out of focus, 1 sharp, still well below 1 when the glyph has landed.
+    // (checked frame by frame against SwiftUI's own transition). `focus` is
+    // the arriving glyph's blur clock (0 fully blurred, 1 sharp), `blurOut`
+    // the leaving glyph's (0 sharp, 1 fully blurred), and `grow` the
+    // size-and-opacity clock (0 the arriving glyph small and clear, 1 full
+    // size and opaque); see `kNumeric*` below.
     double fromGlyph = -1;
     double toGlyph = -1;
     double blend = 1;
     bool fromAbove = true;
     double focus = 1;
-    /// The change flash (`setFlash`): 1 the moment this wheel's glyph changed,
-    /// fading to 0; a renderer tints the glyph towards the up or the down
-    /// colour by this much. `flashUp`: the value grew.
+    double grow = 1;
+    double blurOut = 1;
+    /// The change flash (`setFlash`): 1 from the moment this wheel's glyph
+    /// changed until the wheel has landed (its stagger delay and the
+    /// transition's duration; a snap lands at once), then fading to 0 over
+    /// the flash's duration; a renderer mixes the wheel's ink towards the up
+    /// or the down colour by this much. `flashUp`: the value grew.
     double flash = 0;
     bool flashUp = true;
   };
 
   // The numeric transition as the renderers draw it, in line heights, so all
-  // three (Core Animation, Canvas, the docs' canvas) agree. With b = `blend`,
-  // f = `focus` and d = +1 when `fromAbove`, else -1:
-  //   leaving glyph:  offset d · kNumericOffset · b,        scale 1 → kNumericScale,  alpha 1 → 0
-  //   arriving glyph: offset -d · kNumericOffset · (1 - b), scale kNumericScale → 1, alpha 0 → 1
-  // both scaled about their centre, the leaving one blurring in as it goes
-  // (blur = min(1, 2b)) and the arriving one coming into focus (blur = 1 - f),
-  // with kNumericBlur line heights of blur radius at full blur. The figures
-  // are ours, measured against SwiftUI's transition frame by frame on an
-  // iPhone: a glyph comes in from half a line height away along the axis,
-  // nearly full size and well out of focus, is in place within a couple of
-  // hundred milliseconds and resolves into focus over the rest of the
-  // duration; the one it replaces softens at once, then fades as it goes.
-  static constexpr double kNumericOffset = 0.55;
-  static constexpr double kNumericScale = 0.9;
-  static constexpr double kNumericBlur = 0.14;
-  /// The focus clock: `focus` = 1 - (1 - t)^kNumericFocusPower over the
-  /// wheel's whole duration, t linear; the motion's spring lands first.
-  static constexpr double kNumericFocusPower = 1.5;
+  // three (Core Animation, Canvas, the docs' canvas) agree. A changing wheel
+  // runs four clocks, each the step response of a damped spring scaled to
+  // the wheel's duration D (`damped()`). The figures are SwiftUI's: fitted to
+  // its frames at 60 fps (a model of the renderers rendered from the real
+  // glyphs and optimised until it reproduced them pixel for pixel), and in
+  // agreement with the constants published by react-native-numeric-text.
+  // The transaction's easing and bounce are not consulted, as SwiftUI's own
+  // transition does not consult its animation:
+  //   `blend`   the position: ζ kNumericPositionZeta (about 12 % overshoot, so it
+  //             runs past 1 and comes back), settled at D
+  //   `grow`    size and opacity: critically damped, settled at kNumericGrowSettle · D
+  //   `focus`   the arriving glyph's blur: ζ kNumericFocusZeta, settled at kNumericFocusSettle · D
+  //   `blurOut` the leaving glyph's blur: critically damped, settled at kNumericBlurOutSettle · D
+  // With b = blend (only the offsets follow it past 1), g = grow, f = focus,
+  // o = blurOut and d = +1 when `fromAbove`, else -1:
+  //   leaving glyph:  offset d · kNumericOffset · b,        scale 1 → kNumericScale by g, alpha 1 - g, blur o
+  //   arriving glyph: offset -d · kNumericOffset · (1 - b), scale kNumericScale → 1 by g, alpha g,     blur 1 - f
+  // both scaled about their centre, blur being kNumericBlur line heights of
+  // gaussian sigma at 1 (SwiftUI's own; a renderer that cannot blur
+  // per frame keeps a ladder of blurred copies and cross-fades the two
+  // nearest, never a sharp copy with a blurred one, which reads as a digit
+  // inside a glow). The transition runs kNumericTail · D. A wheel is swapping while any clock is below 1. The
+  // columns that change start spread evenly over `stagger` seconds from the
+  // leftmost, however many there are (delay = stagger · i / (n - 1)).
+  static constexpr double kNumericOffset = 0.34;
+  static constexpr double kNumericScale = 0.4;
+  static constexpr double kNumericBlur = 0.08;
+  static constexpr double kNumericPositionZeta = 0.54;
+  static constexpr double kNumericGrowSettle = 0.65;
+  static constexpr double kNumericFocusZeta = 0.85;
+  static constexpr double kNumericFocusSettle = 0.74;
+  static constexpr double kNumericBlurOutSettle = 0.46;
+  /// The numeric transition lasts this many durations: the position spring
+  /// settles to 2 % at D, which is still a pixel at a large size, and
+  /// SwiftUI lets it ring out; ended at D the last pixel snapped.
+  static constexpr double kNumericTail = 1.45;
 
   // The scramble (2) is planned like the numeric transition but the wheel
   // shows a different random digit every kScrambleStepSeconds until it locks
@@ -105,9 +129,10 @@ public:
   /// which way the glyphs move. Takes effect from the next `animateTo`.
   void setTransition(int transition);
   int transition() const { return transitionStyle_; }
-  /// The change flash: every digit whose glyph changes lights up and fades
-  /// back over `seconds` (`Wheel::flash`). 0 turns it off. A jump
-  /// (`setValue`) never flashes; a reveal's count never does either.
+  /// The change flash: every digit whose glyph changes lights up, stays lit
+  /// while it moves, and fades back over `seconds` once it has landed
+  /// (`Wheel::flash`). 0 turns it off. A jump (`setValue`) never flashes; a
+  /// reveal's count never does either.
   void setFlash(double seconds);
   /// A punch of the whole figure on every value change, `overshoot` 0 (none)
   /// to 1, rung out like the reveal's landing pop; part of `revealScale()`.
@@ -251,9 +276,12 @@ private:
     /// Any glyph-swap style: wheels blend between glyphs instead of rolling.
     bool numeric = false;
   };
-  /// One wheel's change flash: when its glyph last changed, and which way.
+  /// One wheel's change flash: when its glyph last changed, how long the
+  /// wheel was still moving after that (the tint holds until it lands), and
+  /// which way.
   struct Flash {
     double start = -1;
+    double hold = 0;
     bool up = true;
   };
 
@@ -312,6 +340,9 @@ private:
   /// their ease-out / linear counterparts so a wheel in motion never stalls.
   double easeFromMotion(double t) const;
   static double spring(double t, double bounce);
+  /// Step response of a damped spring with damping ratio `zeta`, scaled so it
+  /// has settled (within 2 %) at t == `settle`; 0 at t <= 0.
+  static double damped(double t, double zeta, double settle);
   static double wrap(double x);
   static int digitCount(uint64_t n);
 
