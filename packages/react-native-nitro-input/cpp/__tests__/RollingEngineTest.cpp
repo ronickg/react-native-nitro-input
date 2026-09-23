@@ -803,6 +803,50 @@ static void changeFlashAndPop() {
   CHECK(!quiet.needsFrames());
 }
 
+static void numericTransitionCarriesASwapAcrossARetarget() {
+  // Typing: 1 → 12 → 124, a new leading column each time, re-targeted
+  // before the last one has opened. A wheel still swapping to the glyph it
+  // keeps carries on: it is not cut out of its swap (which drew it as a
+  // sliver of the half-open column), nor restarted.
+  RollingEngine e;
+  e.setFormat(0, 1);
+  e.setTiming(0.5, /* linear */ 0, 0.15, 0, 0);
+  e.setTransition(1);
+  e.animateTo(1, 0);
+  e.animateTo(12, 0);
+  CHECK(near(e.wheelAt(1).fromGlyph, -1));
+  CHECK(near(e.wheelAt(1).toGlyph, 1));
+  e.tick(0.1);
+  const RollingEngine::Wheel before = e.wheelAt(1);
+  CHECK(before.width > 0 && before.width < 1);
+  CHECK(before.grow > 0 && before.grow < 1);
+
+  e.animateTo(13, 0.1);   // the tens column keeps its 1
+  RollingEngine::Wheel tens = e.wheelAt(1);
+  CHECK(near(tens.fromGlyph, -1));        // still arriving from blank
+  CHECK(near(tens.toGlyph, 1));
+  CHECK(tens.blend < 1);                  // still swapping, where it was
+  CHECK(near(tens.grow, before.grow));
+  CHECK(near(tens.focus, before.focus));
+  CHECK(near(tens.width, before.width));
+  CHECK(near(e.wheelAt(0).fromGlyph, 2)); // the units swap as usual
+  CHECK(near(e.wheelAt(0).toGlyph, 3));
+
+  e.tick(0.2);
+  CHECK(e.wheelAt(1).grow > before.grow);  // and runs on from there
+  e.tick(0.1 + 0.5 * RollingEngine::kNumericTail);
+  CHECK(near(e.wheelAt(1).blend, 1));
+  CHECK(near(e.wheelAt(1).width, 1));
+  CHECK(near(e.wheelAt(1).position, 1));
+  CHECK(near(e.wheelAt(0).position, 3));
+  CHECK(!e.needsFrames());
+
+  // A wheel that has finished its swap is left alone by the next target.
+  e.animateTo(14, 1);
+  CHECK(near(e.wheelAt(1).blend, 1));
+  CHECK(near(e.wheelAt(1).fromGlyph, -1));
+}
+
 int main() {
   odometerPositions();
   tickerRollsShortestPathInDirection();
@@ -821,6 +865,7 @@ int main() {
   numericTransitionCascadesLeftToRight();
   numericTransitionGrowsAndShrinksColumns();
   numericTransitionRetargetsFromTheArrivingGlyph();
+  numericTransitionCarriesASwapAcrossARetarget();
   scrambleShowsRandomDigitsUntilItLocks();
   changeFlashAndPop();
   if (failures == 0) {

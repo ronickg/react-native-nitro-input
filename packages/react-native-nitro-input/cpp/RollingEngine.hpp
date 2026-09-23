@@ -255,6 +255,11 @@ private:
   struct WheelTransition {
     Wheel from;
     Wheel to;
+    /// Numeric: the wheel was already swapping to this glyph when the value
+    /// was re-targeted, and its swap carries on rather than restarting or
+    /// being cut short. `clock` is how far into the swap it was (seconds).
+    bool continues = false;
+    double clock = 0;
   };
   struct Transition {
     bool active = false;
@@ -319,7 +324,7 @@ private:
   /// The digit a wheel shows, or is arriving at: -1 for blank.
   static int shownGlyph(const Wheel& wheel);
   void planRoll(Transition& next, const Target& target, bool increasing, int count, int mandatory) const;
-  void planNumeric(Transition& next, const Target& target, bool increasing, int count, int mandatory) const;
+  void planNumeric(Transition& next, const Target& target, bool increasing, int count, int mandatory, double now) const;
   void apply(double elapsed);
   /// The flash and the pop follow the clock, not the transition: they keep
   /// fading after a roll has finished or a snap had none.

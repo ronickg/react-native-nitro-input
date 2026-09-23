@@ -275,7 +275,7 @@ void RollingEngine::animateTo(double value, double now) {
   next.delays.reserve(static_cast<size_t>(count));
 
   if (next.numeric) {
-    planNumeric(next, target, increasing, count, mandatory);
+    planNumeric(next, target, increasing, count, mandatory, now);
   } else {
     planRoll(next, target, increasing, count, mandatory);
   }
@@ -289,7 +289,8 @@ void RollingEngine::animateTo(double value, double now) {
   int changing = 0;
   if (next.numeric) {
     for (int power = count - 1; power >= 0; power--) {
-      if (next.wheels[static_cast<size_t>(power)].from.blend < 1) {
+      const WheelTransition& wt = next.wheels[static_cast<size_t>(power)];
+      if (wt.from.blend < 1 && !wt.continues) {
         ranks[static_cast<size_t>(power)] = changing++;
       }
     }
@@ -307,9 +308,11 @@ void RollingEngine::animateTo(double value, double now) {
     double delay = next.numeric
         ? (changing > 1 ? stagger_ * static_cast<double>(ranks[static_cast<size_t>(power)]) / static_cast<double>(changing - 1) : 0.0)
         : stagger_ * static_cast<double>(ranks[static_cast<size_t>(power)]);
+    const bool continues = next.numeric && next.wheels[static_cast<size_t>(power)].continues;
     if (transition_.active && power < static_cast<int>(transition_.delays.size())) {
       const double pending = std::max(0.0, (transition_.start + transition_.delays[static_cast<size_t>(power)]) - now);
-      delay = std::min(delay, pending);
+      // A continuing swap is under way, or still waits on its old delay.
+      delay = continues ? pending : std::min(delay, pending);
     }
     next.delays.push_back(delay);
     next.maxDelay = std::max(next.maxDelay, delay);
@@ -322,7 +325,8 @@ void RollingEngine::animateTo(double value, double now) {
   bool anyChange = false;
   for (int power = 0; power < count; power++) {
     const WheelTransition& wt = next.wheels[static_cast<size_t>(power)];
-    const bool changes = next.numeric ? wt.from.blend < 1 : (wt.from.position != wt.to.position || wt.from.width != wt.to.width);
+    // A continuing swap is lit already.
+    const bool changes = next.numeric ? wt.from.blend < 1 && !wt.continues : (wt.from.position != wt.to.position || wt.from.width != wt.to.width);
     if (changes) {
       // Lit until the wheel has landed: its delay, then the transition.
       flashes_[static_cast<size_t>(power)] = Flash{now, next.delays[static_cast<size_t>(power)] + next.duration, increasing};
@@ -396,7 +400,7 @@ int RollingEngine::shownGlyph(const Wheel& wheel) {
   return digit;
 }
 
-void RollingEngine::planNumeric(Transition& next, const Target& target, bool increasing, int count, int mandatory) const {
+void RollingEngine::planNumeric(Transition& next, const Target& target, bool increasing, int count, int mandatory, double now) const {
   (void)mandatory;
   const int currentCount = static_cast<int>(wheels_.size());
   for (int power = 0; power < count; power++) {
@@ -427,7 +431,26 @@ void RollingEngine::planNumeric(Transition& next, const Target& target, bool inc
     // A wheel whose glyph does not change is not part of the transition (it
     // may still be growing to full width).
     from.blend = showing == static_cast<int>(from.toGlyph) ? 1.0 : 0.0;
-    next.wheels.push_back(WheelTransition{from, to});
+    WheelTransition wt{from, to};
+    // Unless it is still swapping to that glyph: typing re-targets every few
+    // frames, and a wheel cut out of its swap there jumped to the settled
+    // glyph, or, a new leading digit whose column was still opening, was
+    // drawn the odometer's way, a sliver clipped to the half-open column. It
+    // carries on from where it was, leaving the glyph it was leaving.
+    if (from.blend >= 1 && transition_.active && transition_.numeric && power < currentCount &&
+        power < static_cast<int>(transition_.wheels.size()) && power < static_cast<int>(transition_.delays.size())) {
+      const WheelTransition& previous = transition_.wheels[static_cast<size_t>(power)];
+      const double ran = now - (transition_.start + transition_.delays[static_cast<size_t>(power)]);
+      const bool swapping = previous.from.blend < 1 || previous.continues;
+      if (swapping && ran + previous.clock < transition_.duration) {
+        wt.continues = true;
+        wt.clock = std::max(0.0, ran) + previous.clock;
+        wt.from.fromGlyph = previous.from.fromGlyph;
+        wt.from.fromAbove = previous.from.fromAbove;
+        wt.from.blend = 0;
+      }
+    }
+    next.wheels.push_back(wt);
   }
 }
 
@@ -832,13 +855,14 @@ void RollingEngine::apply(double elapsed) {
       w.fromGlyph = wt.from.fromGlyph;
       w.toGlyph = wt.from.toGlyph;
       w.fromAbove = wt.from.fromAbove;
-      if (raw >= 1 || tr.duration <= 0) {
+      // A swap carried over from the previous target is `clock` further in.
+      const double local = std::max(0.0, elapsed - delay) + wt.clock;
+      if (local >= tr.duration || tr.duration <= 0) {
         w.blend = 1;
         w.grow = 1;
         w.focus = 1;
         w.blurOut = 1;
       } else {
-        const double local = std::max(0.0, elapsed - delay);
         const double d = tr.duration / kNumericTail;
         w.blend = damped(local, kNumericPositionZeta, d);
         w.grow = damped(local, 1.0, kNumericGrowSettle * d);
