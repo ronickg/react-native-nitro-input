@@ -57,6 +57,88 @@ describe('RollingNumber', () => {
     expect(state.current!.width).toBeLessThan(sevenDigits)
   })
 
+  it('plays the numeric transition and settles on the value, columns included', async () => {
+    const ref = createRef<RollingNumberHandle>()
+    const { state, onLayout } = layoutOf()
+    const props = { transition: 'numeric' as const, duration: 150, stagger: 20, style: content, onLayout }
+    const { rerender } = await render(<RollingNumber ref={ref} value={99} {...props} />)
+    await waitFor(() => expect(state.current?.width ?? 0).toBeGreaterThan(0))
+    const twoDigits = state.current!.width
+
+    // A change that grows a column: the box widens as the new glyph arrives.
+    await rerender(<RollingNumber ref={ref} value={100} {...props} />)
+    await waitFor(() => expect(ref.current?.getValue()).toBe(100))
+    await waitFor(() => expect(state.current!.width).toBeGreaterThan(twoDigits))
+    const threeDigits = state.current!.width
+
+    // Rapid changes re-target the swap; the last one wins and the view settles.
+    for (const v of [105, 118, 123, 131]) {
+      await rerender(<RollingNumber ref={ref} value={v} {...props} />)
+      await sleep(40)
+    }
+    await waitFor(() => expect(ref.current?.getValue()).toBe(131))
+    await sleep(400)
+    expect(state.current!.width).toBe(threeDigits)
+
+    // Back down: the column closes once its glyph has left.
+    await rerender(<RollingNumber ref={ref} value={7} {...props} />)
+    await waitFor(() => expect(ref.current?.getValue()).toBe(7))
+    await waitFor(() => expect(state.current!.width).toBeLessThan(twoDigits), { timeout: 3000 })
+
+    // The imperative path plays it too, and switching back to the roll mid-way is fine.
+    ref.current!.animateTo(42)
+    await waitFor(() => expect(ref.current?.getValue()).toBe(42))
+    await rerender(<RollingNumber ref={ref} value={43} transition="roll" duration={150} style={content} onLayout={onLayout} />)
+    await waitFor(() => expect(ref.current?.getValue()).toBe(43))
+  })
+
+  it('plays the scramble and settles on the value', async () => {
+    for (const transition of ['scramble'] as const) {
+      const ref = createRef<RollingNumberHandle>()
+      const { state, onLayout } = layoutOf()
+      const props = { transition, duration: 150, stagger: 20, style: content, onLayout }
+      const { rerender, unmount } = await render(<RollingNumber ref={ref} value={95} {...props} />)
+      await waitFor(() => expect(state.current?.width ?? 0).toBeGreaterThan(0))
+      const twoDigits = state.current!.width
+
+      // Up through the wrap and into a new column, then back down.
+      await rerender(<RollingNumber ref={ref} value={108} {...props} />)
+      await waitFor(() => expect(ref.current?.getValue()).toBe(108))
+      await waitFor(() => expect(state.current!.width).toBeGreaterThan(twoDigits))
+      await sleep(400)
+      await rerender(<RollingNumber ref={ref} value={7} {...props} />)
+      await waitFor(() => expect(ref.current?.getValue()).toBe(7))
+      await waitFor(() => expect(state.current!.width).toBeLessThan(twoDigits), { timeout: 3000 })
+
+      // Rapid re-targets settle on the last value.
+      for (const v of [12, 23, 31, 48]) {
+        ref.current!.animateTo(v)
+        await sleep(30)
+      }
+      await waitFor(() => expect(ref.current?.getValue()).toBe(48))
+      await sleep(400)
+      await unmount()
+    }
+  })
+
+  it('flashes and pops on a change without disturbing the value or the layout', async () => {
+    const ref = createRef<RollingNumberHandle>()
+    const { state, onLayout } = layoutOf()
+    const props = { flashUpColor: '#16a34a', flashDownColor: '#dc2626', flashDuration: 200, popOnChange: 0.1, duration: 100, style: content, onLayout }
+    const { rerender } = await render(<RollingNumber ref={ref} value={500} {...props} />)
+    await waitFor(() => expect(state.current?.width ?? 0).toBeGreaterThan(0))
+    const width = state.current!.width
+    await rerender(<RollingNumber ref={ref} value={501} {...props} />)
+    await waitFor(() => expect(ref.current?.getValue()).toBe(501))
+    await rerender(<RollingNumber ref={ref} value={499} {...props} />)
+    await waitFor(() => expect(ref.current?.getValue()).toBe(499))
+    // The pop scales about the centre without changing the measured box; the flash is paint only.
+    await sleep(500)
+    expect(state.current!.width).toBe(width)
+    ref.current!.jumpTo(1234)
+    await waitFor(() => expect(ref.current?.getValue()).toBe(1234))
+  })
+
   it('takes imperative values through the handle', async () => {
     const ref = createRef<RollingNumberHandle>()
     await render(<RollingNumber ref={ref} value={1} fractionDigits={1} duration={100} />)

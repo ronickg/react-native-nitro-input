@@ -74,6 +74,16 @@ class HybridRollingNumberView(private val context: ThemedReactContext) : HybridR
     set(v) { field = v; markConfigDirty() }
   override var suffix: String? = null
     set(v) { field = v; markConfigDirty() }
+  override var transition: RollingNumberTransition? = null
+    set(v) { field = v; markConfigDirty() }
+  override var flashUpColor: Double? = null
+    set(v) { field = v; markConfigDirty() }
+  override var flashDownColor: Double? = null
+    set(v) { field = v; markConfigDirty() }
+  override var flashDuration: Double? = null
+    set(v) { field = v; markConfigDirty() }
+  override var popOnChange: Double? = null
+    set(v) { field = v; markConfigDirty() }
   override var duration: Double? = null
     set(v) { field = v; markConfigDirty() }
   override var easing: RollingNumberEasing? = null
@@ -269,6 +279,11 @@ class HybridRollingNumberView(private val context: ThemedReactContext) : HybridR
     decimalSeparator = null
     prefix = null
     suffix = null
+    transition = null
+    flashUpColor = null
+    flashDownColor = null
+    flashDuration = null
+    popOnChange = null
     duration = null
     easing = null
     bounce = null
@@ -376,6 +391,12 @@ class HybridRollingNumberView(private val context: ThemedReactContext) : HybridR
       suffix = suffix ?: "",
     )
     rollingView.timing = RollingNumberView.Timing(
+      transition = when (transition) {
+        RollingNumberTransition.NUMERIC -> RollingNumberView.Transition.NUMERIC
+        RollingNumberTransition.SCRAMBLE -> RollingNumberView.Transition.SCRAMBLE
+        RollingNumberTransition.ROLL, null -> RollingNumberView.Transition.ROLL
+      },
+      popOnChange = (popOnChange ?: 0.0).coerceIn(0.0, 1.0),
       durationMs = Math.max(0.0, duration ?: 500.0).toLong(),
       easing = when (easing) {
         RollingNumberEasing.LINEAR -> RollingNumberView.Easing.LINEAR
@@ -405,6 +426,11 @@ class HybridRollingNumberView(private val context: ThemedReactContext) : HybridR
     rollingView.shimmer = RollingNumberView.Shimmer(
       color = shimmerColor?.let { colorFromARGB(it) },
       durationMs = Math.max(200.0, shimmerDuration ?: 950.0).toLong(),
+    )
+    rollingView.flash = RollingNumberView.Flash(
+      upColor = flashUpColor?.let { colorFromARGB(it) },
+      downColor = flashDownColor?.let { colorFromARGB(it) },
+      durationMs = Math.max(50.0, flashDuration ?: 600.0).toLong(),
     )
     rollingView.alignment = when (textAlign) {
       RollingNumberTextAlign.CENTER -> RollingNumberView.Alignment.CENTER

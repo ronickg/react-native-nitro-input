@@ -8,6 +8,7 @@ export {
 export type {
   RollingNumberAffixAlign,
   RollingNumberDirection,
+  RollingNumberTransition,
   RollingNumberEasing,
   RollingNumberRevealStyle,
   RollingNumberTextAlign,

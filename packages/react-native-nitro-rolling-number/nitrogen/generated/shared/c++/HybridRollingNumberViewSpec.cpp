@@ -36,6 +36,16 @@ namespace margelo::nitro::nitrorollingnumber {
       prototype.registerHybridSetter("bounce", &HybridRollingNumberViewSpec::setBounce);
       prototype.registerHybridGetter("stagger", &HybridRollingNumberViewSpec::getStagger);
       prototype.registerHybridSetter("stagger", &HybridRollingNumberViewSpec::setStagger);
+      prototype.registerHybridGetter("transition", &HybridRollingNumberViewSpec::getTransition);
+      prototype.registerHybridSetter("transition", &HybridRollingNumberViewSpec::setTransition);
+      prototype.registerHybridGetter("flashUpColor", &HybridRollingNumberViewSpec::getFlashUpColor);
+      prototype.registerHybridSetter("flashUpColor", &HybridRollingNumberViewSpec::setFlashUpColor);
+      prototype.registerHybridGetter("flashDownColor", &HybridRollingNumberViewSpec::getFlashDownColor);
+      prototype.registerHybridSetter("flashDownColor", &HybridRollingNumberViewSpec::setFlashDownColor);
+      prototype.registerHybridGetter("flashDuration", &HybridRollingNumberViewSpec::getFlashDuration);
+      prototype.registerHybridSetter("flashDuration", &HybridRollingNumberViewSpec::setFlashDuration);
+      prototype.registerHybridGetter("popOnChange", &HybridRollingNumberViewSpec::getPopOnChange);
+      prototype.registerHybridSetter("popOnChange", &HybridRollingNumberViewSpec::setPopOnChange);
       prototype.registerHybridGetter("rollDirection", &HybridRollingNumberViewSpec::getRollDirection);
       prototype.registerHybridSetter("rollDirection", &HybridRollingNumberViewSpec::setRollDirection);
       prototype.registerHybridGetter("revealState", &HybridRollingNumberViewSpec::getRevealState);

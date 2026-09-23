@@ -164,6 +164,36 @@ using namespace margelo::nitro::nitrorollingnumber::views;
           : !newViewProps.stagger.hasSameValue(oldViewProps->stagger)) {
       swiftPart.setStagger(newViewProps.stagger.get());
     }
+    // transition: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.transition.isProvided()
+          : !newViewProps.transition.hasSameValue(oldViewProps->transition)) {
+      swiftPart.setTransition(newViewProps.transition.get());
+    }
+    // flashUpColor: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.flashUpColor.isProvided()
+          : !newViewProps.flashUpColor.hasSameValue(oldViewProps->flashUpColor)) {
+      swiftPart.setFlashUpColor(newViewProps.flashUpColor.get());
+    }
+    // flashDownColor: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.flashDownColor.isProvided()
+          : !newViewProps.flashDownColor.hasSameValue(oldViewProps->flashDownColor)) {
+      swiftPart.setFlashDownColor(newViewProps.flashDownColor.get());
+    }
+    // flashDuration: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.flashDuration.isProvided()
+          : !newViewProps.flashDuration.hasSameValue(oldViewProps->flashDuration)) {
+      swiftPart.setFlashDuration(newViewProps.flashDuration.get());
+    }
+    // popOnChange: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.popOnChange.isProvided()
+          : !newViewProps.popOnChange.hasSameValue(oldViewProps->popOnChange)) {
+      swiftPart.setPopOnChange(newViewProps.popOnChange.get());
+    }
     // rollDirection: optional
     if (oldViewProps == nullptr
           ? newViewProps.rollDirection.isProvided()

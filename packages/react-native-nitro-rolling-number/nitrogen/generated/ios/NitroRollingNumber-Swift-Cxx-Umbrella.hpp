@@ -20,6 +20,8 @@ namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberEasing; }
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberRevealStyle; }
 // Forward declaration of `RollingNumberTextAlign` to properly resolve imports.
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberTextAlign; }
+// Forward declaration of `RollingNumberTransition` to properly resolve imports.
+namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberTransition; }
 
 // Include C++ defined types
 #include "HybridRollingNumberViewSpec.hpp"
@@ -28,6 +30,7 @@ namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberTextAlign
 #include "RollingNumberEasing.hpp"
 #include "RollingNumberRevealStyle.hpp"
 #include "RollingNumberTextAlign.hpp"
+#include "RollingNumberTransition.hpp"
 #include <NitroModules/Result.hpp>
 #include <exception>
 #include <functional>

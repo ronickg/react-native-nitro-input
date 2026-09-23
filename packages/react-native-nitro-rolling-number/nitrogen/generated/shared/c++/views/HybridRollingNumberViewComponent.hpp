@@ -20,6 +20,7 @@
 #include <optional>
 #include <string>
 #include "RollingNumberEasing.hpp"
+#include "RollingNumberTransition.hpp"
 #include "RollingNumberDirection.hpp"
 #include "RollingNumberRevealStyle.hpp"
 #include <vector>
@@ -60,6 +61,11 @@ namespace margelo::nitro::nitrorollingnumber::views {
     nitro::ReactProp<std::optional<RollingNumberEasing>> easing;
     nitro::ReactProp<std::optional<double>> bounce;
     nitro::ReactProp<std::optional<double>> stagger;
+    nitro::ReactProp<std::optional<RollingNumberTransition>> transition;
+    nitro::ReactProp<std::optional<double>> flashUpColor;
+    nitro::ReactProp<std::optional<double>> flashDownColor;
+    nitro::ReactProp<std::optional<double>> flashDuration;
+    nitro::ReactProp<std::optional<double>> popOnChange;
     nitro::ReactProp<std::optional<RollingNumberDirection>> rollDirection;
     nitro::ReactProp<std::optional<double>> revealState;
     nitro::ReactProp<std::optional<RollingNumberRevealStyle>> revealStyle;
@@ -105,6 +111,11 @@ namespace margelo::nitro::nitrorollingnumber::views {
              easing.hasSameValue(other.easing) &&
              bounce.hasSameValue(other.bounce) &&
              stagger.hasSameValue(other.stagger) &&
+             transition.hasSameValue(other.transition) &&
+             flashUpColor.hasSameValue(other.flashUpColor) &&
+             flashDownColor.hasSameValue(other.flashDownColor) &&
+             flashDuration.hasSameValue(other.flashDuration) &&
+             popOnChange.hasSameValue(other.popOnChange) &&
              rollDirection.hasSameValue(other.rollDirection) &&
              revealState.hasSameValue(other.revealState) &&
              revealStyle.hasSameValue(other.revealStyle) &&
@@ -151,6 +162,11 @@ namespace margelo::nitro::nitrorollingnumber::views {
              easing.isProvided() ||
              bounce.isProvided() ||
              stagger.isProvided() ||
+             transition.isProvided() ||
+             flashUpColor.isProvided() ||
+             flashDownColor.isProvided() ||
+             flashDuration.isProvided() ||
+             popOnChange.isProvided() ||
              rollDirection.isProvided() ||
              revealState.isProvided() ||
              revealStyle.isProvided() ||

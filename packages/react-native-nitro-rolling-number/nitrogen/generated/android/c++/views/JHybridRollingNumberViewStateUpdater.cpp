@@ -109,6 +109,31 @@ void JHybridRollingNumberViewStateUpdater::updateViewProps(jni::alias_ref<jni::J
     hybridView->setStagger(newProps->stagger.get());
   }
   if (oldProps == nullptr
+        ? newProps->transition.isProvided()
+        : !newProps->transition.hasSameValue(oldProps->transition)) {
+    hybridView->setTransition(newProps->transition.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->flashUpColor.isProvided()
+        : !newProps->flashUpColor.hasSameValue(oldProps->flashUpColor)) {
+    hybridView->setFlashUpColor(newProps->flashUpColor.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->flashDownColor.isProvided()
+        : !newProps->flashDownColor.hasSameValue(oldProps->flashDownColor)) {
+    hybridView->setFlashDownColor(newProps->flashDownColor.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->flashDuration.isProvided()
+        : !newProps->flashDuration.hasSameValue(oldProps->flashDuration)) {
+    hybridView->setFlashDuration(newProps->flashDuration.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->popOnChange.isProvided()
+        : !newProps->popOnChange.hasSameValue(oldProps->popOnChange)) {
+    hybridView->setPopOnChange(newProps->popOnChange.get());
+  }
+  if (oldProps == nullptr
         ? newProps->rollDirection.isProvided()
         : !newProps->rollDirection.hasSameValue(oldProps->rollDirection)) {
     hybridView->setRollDirection(newProps->rollDirection.get());

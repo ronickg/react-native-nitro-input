@@ -9,6 +9,8 @@
 
 // Forward declaration of `RollingNumberEasing` to properly resolve imports.
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberEasing; }
+// Forward declaration of `RollingNumberTransition` to properly resolve imports.
+namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberTransition; }
 // Forward declaration of `RollingNumberDirection` to properly resolve imports.
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberDirection; }
 // Forward declaration of `RollingNumberRevealStyle` to properly resolve imports.
@@ -22,6 +24,8 @@ namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberTextAlign
 #include <string>
 #include "RollingNumberEasing.hpp"
 #include "JRollingNumberEasing.hpp"
+#include "RollingNumberTransition.hpp"
+#include "JRollingNumberTransition.hpp"
 #include "RollingNumberDirection.hpp"
 #include "JRollingNumberDirection.hpp"
 #include "RollingNumberRevealStyle.hpp"
@@ -164,6 +168,51 @@ namespace margelo::nitro::nitrorollingnumber {
   void JHybridRollingNumberViewSpec::setStagger(std::optional<double> stagger) {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* stagger */)>("setStagger");
     method(_javaPart, stagger.has_value() ? jni::JDouble::valueOf(stagger.value()) : nullptr);
+  }
+  std::optional<RollingNumberTransition> JHybridRollingNumberViewSpec::getTransition() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JRollingNumberTransition>()>("getTransition");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->toCpp()) : std::nullopt;
+  }
+  void JHybridRollingNumberViewSpec::setTransition(std::optional<RollingNumberTransition> transition) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JRollingNumberTransition> /* transition */)>("setTransition");
+    method(_javaPart, transition.has_value() ? JRollingNumberTransition::fromCpp(transition.value()) : nullptr);
+  }
+  std::optional<double> JHybridRollingNumberViewSpec::getFlashUpColor() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getFlashUpColor");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridRollingNumberViewSpec::setFlashUpColor(std::optional<double> flashUpColor) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* flashUpColor */)>("setFlashUpColor");
+    method(_javaPart, flashUpColor.has_value() ? jni::JDouble::valueOf(flashUpColor.value()) : nullptr);
+  }
+  std::optional<double> JHybridRollingNumberViewSpec::getFlashDownColor() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getFlashDownColor");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridRollingNumberViewSpec::setFlashDownColor(std::optional<double> flashDownColor) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* flashDownColor */)>("setFlashDownColor");
+    method(_javaPart, flashDownColor.has_value() ? jni::JDouble::valueOf(flashDownColor.value()) : nullptr);
+  }
+  std::optional<double> JHybridRollingNumberViewSpec::getFlashDuration() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getFlashDuration");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridRollingNumberViewSpec::setFlashDuration(std::optional<double> flashDuration) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* flashDuration */)>("setFlashDuration");
+    method(_javaPart, flashDuration.has_value() ? jni::JDouble::valueOf(flashDuration.value()) : nullptr);
+  }
+  std::optional<double> JHybridRollingNumberViewSpec::getPopOnChange() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getPopOnChange");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridRollingNumberViewSpec::setPopOnChange(std::optional<double> popOnChange) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* popOnChange */)>("setPopOnChange");
+    method(_javaPart, popOnChange.has_value() ? jni::JDouble::valueOf(popOnChange.value()) : nullptr);
   }
   std::optional<RollingNumberDirection> JHybridRollingNumberViewSpec::getRollDirection() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JRollingNumberDirection>()>("getRollDirection");

@@ -35,6 +35,15 @@ export interface RollingNumberCanvasProps {
   suffix?: string;
   duration?: number;
   easing?: Easing;
+  /** The odometer roll, or one of the glyph-swap transitions. */
+  transition?: 'roll' | 'numeric' | 'scramble';
+  /** The change flash: the colour a changed digit lights up in when the value grew / shrank. */
+  flashUpColor?: string;
+  flashDownColor?: string;
+  /** Milliseconds a change flash takes to fade. Default 600. */
+  flashDuration?: number;
+  /** A punch of the whole figure on every change, peak overshoot 0–1. Default 0. */
+  popOnChange?: number;
   bounce?: number;
   stagger?: number;
   direction?: Direction;
@@ -85,6 +94,29 @@ const SHIMMER_SEED = 0.25;
 const SHIMMER_SLANT = 0.6;
 const DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
+const colorCache = new Map<string, [number, number, number, number]>();
+/** A CSS colour as r g b a, through a canvas so any syntax the browser knows works. */
+function parseColor(color: string): [number, number, number, number] {
+  const cached = colorCache.get(color);
+  if (cached) return cached;
+  const c = document.createElement('canvas');
+  c.width = 1;
+  c.height = 1;
+  const g = c.getContext('2d')!;
+  g.fillStyle = color;
+  g.fillRect(0, 0, 1, 1);
+  const d = g.getImageData(0, 0, 1, 1).data;
+  const out: [number, number, number, number] = [d[0]!, d[1]!, d[2]!, d[3]! / 255];
+  colorCache.set(color, out);
+  return out;
+}
+function mixColor(from: string, to: string, t: number): string {
+  const a = parseColor(from);
+  const b = parseColor(to);
+  const m = (i: 0 | 1 | 2) => Math.round(a[i] + (b[i] - a[i]) * t);
+  return `rgba(${m(0)}, ${m(1)}, ${m(2)}, ${a[3] + (b[3] - a[3]) * t})`;
+}
+
 type Role = 'digit' | 'prefix' | 'suffix';
 
 interface Wheel {
@@ -92,7 +124,27 @@ interface Wheel {
   width: number;
   linear: boolean;
   blankZero: boolean;
+  fromGlyph: number;
+  toGlyph: number;
+  blend: number;
+  fromAbove: boolean;
+  flash: number;
+  flashUp: boolean;
+  /** The blur clock: the arriving glyph coming into focus, on a slower clock than `blend`. */
+  focus: number;
+  /** The size-and-opacity clock of the swap. */
+  grow: number;
+  /** The leaving glyph's blur clock. */
+  blurOut: number;
 }
+
+const TRANSITIONS: Record<string, number> = {roll: 0, numeric: 1, scramble: 2};
+
+// The numeric transition's geometry, in line heights; mirrors
+// `RollingEngine::kNumeric*`, where the effect is described.
+const NUMERIC_OFFSET = 0.34;
+const NUMERIC_SCALE = 0.4;
+const NUMERIC_BLUR = 0.08;
 
 interface Element {
   wheel: number; // -1 for glyphs
@@ -215,6 +267,11 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
       suffix = '',
       duration = 500,
       easing = 'easeInOut',
+      transition = 'roll',
+      flashUpColor,
+      flashDownColor,
+      flashDuration = 600,
+      popOnChange = 0,
       bounce = 0.15,
       stagger = 0,
       direction = 'auto',
@@ -331,7 +388,7 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
 
     const measureSettled = (engine: RollingEngine, f: FontSet): number => {
       const count = engine.settledPowerCount();
-      const wheels: Wheel[] = Array.from({length: count}, () => ({position: 0, width: 1, linear: false, blankZero: false}));
+      const wheels: Wheel[] = Array.from({length: count}, () => ({position: 0, width: 1, linear: false, blankZero: false, fromGlyph: -1, toGlyph: -1, blend: 1, fromAbove: true, flash: 0, flashUp: true, focus: 1, grow: 1, blurOut: 1}));
       return buildElements(f, wheels, engine.settledNegative() ? 1 : 0).reduce((sum, e) => sum + e.width, 0);
     };
 
@@ -434,11 +491,55 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
       return DIGITS[((index % 10) + 10) % 10];
     };
 
+    // The numeric transition: the leaving glyph and the arriving one, each
+    // scaled about its centre, offset along the axis, faded and blurred as it
+    // goes out of, or comes into, focus.
+    const drawSwap = (ctx: CanvasRenderingContext2D, f: FontSet, wheel: Wheel, x: number, w: number) => {
+      const lineHeight = f.lineHeight;
+      // The position clock overshoots 1 (a spring); only the offsets follow it there.
+      const b = wheel.blend;
+      const g = Math.min(1, Math.max(0, wheel.grow));
+      const fc = Math.min(1, Math.max(0, wheel.focus));
+      const d = wheel.fromAbove ? 1 : -1;
+      const offset = lineHeight * NUMERIC_OFFSET;
+      const cx = x + w - f.digitWidth / 2;
+      const cy = lineHeight / 2;
+      const canBlur = 'filter' in ctx;
+      const pair = [
+        {glyph: wheel.fromGlyph, dy: d * offset * b, scale: 1 - (1 - NUMERIC_SCALE) * g, alpha: 1 - g, blur: Math.min(1, Math.max(0, wheel.blurOut))},
+        {glyph: wheel.toGlyph, dy: -d * offset * (1 - b), scale: NUMERIC_SCALE + (1 - NUMERIC_SCALE) * g, alpha: g, blur: 1 - fc},
+      ];
+      ctx.font = f.digit;
+      for (const item of pair) {
+        if (item.glyph < 0 || item.alpha <= 0.002) continue;
+        const text = DIGITS[((item.glyph % 10) + 10) % 10]!;
+        ctx.save();
+        ctx.globalAlpha = wheel.width * item.alpha;
+        if (canBlur && item.blur > 0.02) ctx.filter = `blur(${(lineHeight * NUMERIC_BLUR * item.blur).toFixed(2)}px)`;
+        ctx.translate(cx, cy + item.dy);
+        ctx.scale(item.scale, item.scale);
+        ctx.fillText(text, -f.width(text, 'digit') / 2, f.baseline('digit', text, 0) - lineHeight / 2);
+        ctx.restore();
+      }
+    };
+
     const drawWheel = (ctx: CanvasRenderingContext2D, f: FontSet, wheel: Wheel, x: number, w: number) => {
       if (w <= 0) return;
       const lineHeight = f.lineHeight;
       const baseline = f.baseline('digit', '0', 0);
       ctx.save();
+      // The change flash tints this wheel's glyphs towards the up or down colour.
+      const tint = wheel.flash > 0.002 ? (wheel.flashUp ? flashUpColor : flashDownColor) : undefined;
+      if (tint) {
+        ctx.fillStyle = mixColor(ctx.fillStyle as string, tint, wheel.flash);
+      }
+      // A swap is not clipped to the cell: a blurred glyph's haze reaches past
+      // it, and cut at the cell it read as a pale box around the digit.
+      if (wheel.blend < 1 || wheel.focus < 1 || wheel.grow < 1) {
+        drawSwap(ctx, f, wheel, x, w);
+        ctx.restore();
+        return;
+      }
       ctx.beginPath();
       ctx.rect(x, 0, w, lineHeight);
       ctx.clip();
@@ -551,6 +652,9 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
       if (!e || !module) return;
       e.setFormat(fractionDigits, minimumIntegerDigits);
       e.setTiming(duration / 1000, EASINGS[easing], bounce, stagger / 1000, DIRECTIONS[direction]);
+      e.setTransition(TRANSITIONS[transition] ?? 0);
+      e.setFlash(flashUpColor || flashDownColor ? flashDuration / 1000 : 0);
+      e.setPopOnChange(popOnChange);
       e.setRevealTiming(revealDuration / 1000, revealBounce, revealStyle === 'spin' ? 1 : 0, revealStagger / 1000);
       e.setRevealGrow(revealGrow);
       e.setRevealMilestoneHold(revealMilestoneHold / 1000);
@@ -559,7 +663,7 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
       if (e.hasShownValue()) reportSize();
       draw();
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [module, fractionDigits, minimumIntegerDigits, duration, easing, bounce, stagger, direction, revealDuration, revealBounce, revealGrow, revealStyle, revealStagger, revealMilestoneHold, milestonesKey]);
+    }, [module, fractionDigits, minimumIntegerDigits, duration, easing, transition, flashUpColor, flashDownColor, flashDuration, popOnChange, bounce, stagger, direction, revealDuration, revealBounce, revealGrow, revealStyle, revealStagger, revealMilestoneHold, milestonesKey]);
 
     // Loading glint.
     useEffect(() => {

@@ -42,6 +42,31 @@ describe('RollingNumber', () => {
     expect(props.textAlign).toBe('right')
   })
 
+  it('passes the transition through with its own timing defaults', () => {
+    const roll = nativeProps(render(<RollingNumber value={1} />))
+    expect(roll.transition).toBe('roll')
+    expect([roll.duration, roll.easing, roll.stagger]).toEqual([500, 'easeInOut', 0])
+
+    const numeric = nativeProps(render(<RollingNumber value={1} transition="numeric" />))
+    expect(numeric.transition).toBe('numeric')
+    expect([numeric.duration, numeric.easing, numeric.stagger]).toEqual([480, 'spring', 150])
+
+    const tuned = nativeProps(render(<RollingNumber value={1} transition="numeric" duration={200} easing="easeOut" stagger={0} />))
+    expect([tuned.duration, tuned.easing, tuned.stagger]).toEqual([200, 'easeOut', 0])
+
+    const scramble = nativeProps(render(<RollingNumber value={1} transition="scramble" />))
+    expect([scramble.transition, scramble.duration, scramble.easing, scramble.stagger]).toEqual(['scramble', 500, 'linear', 60])
+  })
+
+  it('passes the change flash and the pop through, off by default', () => {
+    const off = nativeProps(render(<RollingNumber value={1} />))
+    expect([off.flashUpColor, off.flashDownColor, off.flashDuration, off.popOnChange]).toEqual([Infinity, Infinity, 600, 0])
+    const on = nativeProps(render(<RollingNumber value={1} flashUpColor="#00ff00" flashDownColor="#ff0000" flashDuration={300} popOnChange={0.1} />))
+    expect(on.flashUpColor).toBe(processColor('#00ff00'))
+    expect(on.flashDownColor).toBe(processColor('#ff0000'))
+    expect([on.flashDuration, on.popOnChange]).toEqual([300, 0.1])
+  })
+
   it('maps numeric and string font weights', () => {
     expect(nativeProps(render(<RollingNumber value={1} fontWeight="600" />)).fontWeight).toBe(600)
     expect(nativeProps(render(<RollingNumber value={1} fontWeight={300} />)).fontWeight).toBe(300)

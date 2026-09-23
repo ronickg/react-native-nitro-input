@@ -155,6 +155,18 @@ void RollingEngine::setTiming(double durationSeconds, int easing, double bounce,
   direction_ = direction;
 }
 
+void RollingEngine::setTransition(int transition) {
+  transitionStyle_ = transition >= 0 && transition <= 2 ? transition : 0;
+}
+
+void RollingEngine::setFlash(double seconds) {
+  flashSeconds_ = std::max(0.0, seconds);
+}
+
+void RollingEngine::setPopOnChange(double overshoot) {
+  popOnChange_ = clamp01(overshoot);
+}
+
 void RollingEngine::setReduceMotion(bool reduceMotion) {
   reduceMotion_ = reduceMotion;
 }
@@ -211,11 +223,6 @@ void RollingEngine::animateTo(double value, double now) {
   const double previous = targetValue_;
   targetValue_ = value;
   const Target target = makeTarget(value);
-  if (!hasShownValue_ || duration_ <= 0 || reduceMotion_) {
-    snap(target);
-    return;
-  }
-
   bool increasing;
   switch (direction_) {
     case 1:
@@ -228,6 +235,29 @@ void RollingEngine::animateTo(double value, double now) {
       increasing = value >= previous;
       break;
   }
+  if (!hasShownValue_ || duration_ <= 0 || reduceMotion_) {
+    // A snap changes the digits at once; the flash and the pop still say so.
+    const bool first = !hasShownValue_;
+    std::vector<int> before;
+    for (const Wheel& w : wheels_) {
+      before.push_back(shownGlyph(w));
+    }
+    snap(target);
+    if (!first) {
+      flashes_.resize(wheels_.size());
+      for (size_t i = 0; i < wheels_.size(); i++) {
+        const int was = i < before.size() ? before[i] : -1;
+        if (was != shownGlyph(wheels_[i])) {
+          flashes_[i] = Flash{now, 0, increasing};
+        }
+      }
+      if (popOnChange_ > 0) {
+        popStart_ = now;
+      }
+      applyEffects(now);
+    }
+    return;
+  }
   const int mandatory = minimumIntegerDigits_ + fractionDigits_;
   const int currentCount = static_cast<int>(wheels_.size());
   const int count = std::max(currentCount, target.powerCount);
@@ -235,49 +265,48 @@ void RollingEngine::animateTo(double value, double now) {
   Transition next;
   next.active = true;
   next.start = now;
-  next.duration = duration_;
+  // The numeric transition rings its position spring out past the duration.
+  next.duration = transitionStyle_ == 1 ? duration_ * kNumericTail : duration_;
   next.fromMotion = transition_.active;
+  next.style = transitionStyle_;
+  next.numeric = transitionStyle_ != 0;
   next.wheels.reserve(static_cast<size_t>(count));
   next.finals.reserve(static_cast<size_t>(target.powerCount));
   next.delays.reserve(static_cast<size_t>(count));
 
-  for (int power = 0; power < count; power++) {
-    const Wheel current = power < currentCount ? wheels_[static_cast<size_t>(power)] : Wheel{-1.0, 0.0, true, false};
-    Wheel from = current;
-    Wheel to;
-    if (power < target.powerCount) {
-      const double digit = static_cast<double>(target.digit(power));
-      const bool isEdge = power >= mandatory && (power >= currentCount || current.width < 1.0 || current.linear || current.blankZero);
-      if (isEdge) {
-        // Appearing (or still appearing) wheel: linear strip blank → digit.
-        if (!current.linear) {
-          from.position = wrap(current.position);
-        }
-        from.linear = true;
-        to = Wheel{digit, 1.0, true, current.blankZero};
-      } else {
-        // Interior wheel: shortest roll in the direction of the change.
-        const double base = wrap(current.position);
-        from.position = base;
-        from.linear = false;
-        const double delta = increasing ? wrap(digit - base) : -wrap(base - digit);
-        to = Wheel{base + delta, 1.0, false, false};
-      }
-      next.finals.push_back(Wheel{digit, 1.0, false, false});
-    } else {
-      // Disappearing wheel: roll down to blank while shrinking.
-      if (!current.linear) {
-        from.position = wrap(current.position);
-      }
-      from.linear = true;
-      to = Wheel{-1.0, 0.0, true, current.blankZero};
-    }
-    next.wheels.push_back(WheelTransition{from, to});
+  if (next.numeric) {
+    planNumeric(next, target, increasing, count, mandatory);
+  } else {
+    planRoll(next, target, increasing, count, mandatory);
+  }
 
-    // Stagger: wheel i normally starts `stagger * i` late. When re-targeting
-    // mid-roll, a wheel that hasn't started yet keeps its original start time
-    // instead of being pushed back again, so rapid updates can't starve it.
-    double delay = stagger_ * static_cast<double>(power);
+  // Stagger: a roll cascades from the least significant wheel up, like a
+  // carry. The numeric transition cascades from the leftmost digit to the
+  // right, the way the effect moves on iOS, and only across the wheels that
+  // change: a units digit ticking over does not wait for three columns that
+  // stay put.
+  std::vector<int> ranks(static_cast<size_t>(count), 0);
+  int changing = 0;
+  if (next.numeric) {
+    for (int power = count - 1; power >= 0; power--) {
+      if (next.wheels[static_cast<size_t>(power)].from.blend < 1) {
+        ranks[static_cast<size_t>(power)] = changing++;
+      }
+    }
+  } else {
+    for (int power = 0; power < count; power++) {
+      ranks[static_cast<size_t>(power)] = power;
+    }
+  }
+  for (int power = 0; power < count; power++) {
+    // When re-targeting mid-roll, a wheel that hasn't started yet keeps its
+    // original start time instead of being pushed back again, so rapid
+    // updates can't starve it.
+    // A roll's stagger is per wheel; the numeric cascade's is the whole
+    // span, shared out over the columns that change.
+    double delay = next.numeric
+        ? (changing > 1 ? stagger_ * static_cast<double>(ranks[static_cast<size_t>(power)]) / static_cast<double>(changing - 1) : 0.0)
+        : stagger_ * static_cast<double>(ranks[static_cast<size_t>(power)]);
     if (transition_.active && power < static_cast<int>(transition_.delays.size())) {
       const double pending = std::max(0.0, (transition_.start + transition_.delays[static_cast<size_t>(power)]) - now);
       delay = std::min(delay, pending);
@@ -288,9 +317,118 @@ void RollingEngine::animateTo(double value, double now) {
   next.signFrom = signFactor_;
   next.signTo = target.negative ? 1.0 : 0.0;
 
+  // The change flash lights every wheel whose glyph changes; the pop kicks once.
+  flashes_.resize(static_cast<size_t>(count));
+  bool anyChange = false;
+  for (int power = 0; power < count; power++) {
+    const WheelTransition& wt = next.wheels[static_cast<size_t>(power)];
+    const bool changes = next.numeric ? wt.from.blend < 1 : (wt.from.position != wt.to.position || wt.from.width != wt.to.width);
+    if (changes) {
+      // Lit until the wheel has landed: its delay, then the transition.
+      flashes_[static_cast<size_t>(power)] = Flash{now, next.delays[static_cast<size_t>(power)] + next.duration, increasing};
+      anyChange = true;
+    }
+  }
+  if (anyChange && popOnChange_ > 0) {
+    popStart_ = now;
+  }
+
   transition_ = std::move(next);
   apply(0);
+  applyEffects(now);
   settle(target);
+}
+
+void RollingEngine::planRoll(Transition& next, const Target& target, bool increasing, int count, int mandatory) const {
+  const int currentCount = static_cast<int>(wheels_.size());
+  for (int power = 0; power < count; power++) {
+    const Wheel current = power < currentCount ? wheels_[static_cast<size_t>(power)] : Wheel{-1.0, 0.0, true, false};
+    Wheel from = current;
+    // A wheel the numeric transition left mid-swap rolls on from the glyph it was arriving at.
+    if (current.blend < 1) {
+      from.position = std::max(0.0, current.toGlyph);
+      from.linear = current.toGlyph < 0;
+    }
+    from.blend = 1;
+    Wheel to;
+    if (power < target.powerCount) {
+      const double digit = static_cast<double>(target.digit(power));
+      const bool isEdge = power >= mandatory && (power >= currentCount || current.width < 1.0 || from.linear || current.blankZero);
+      if (isEdge) {
+        // Appearing (or still appearing) wheel: linear strip blank → digit.
+        if (!from.linear) {
+          from.position = wrap(from.position);
+        }
+        from.linear = true;
+        to = Wheel{digit, 1.0, true, current.blankZero};
+      } else {
+        // Interior wheel: shortest roll in the direction of the change.
+        const double base = wrap(from.position);
+        from.position = base;
+        from.linear = false;
+        const double delta = increasing ? wrap(digit - base) : -wrap(base - digit);
+        to = Wheel{base + delta, 1.0, false, false};
+      }
+      next.finals.push_back(Wheel{digit, 1.0, false, false});
+    } else {
+      // Disappearing wheel: roll down to blank while shrinking.
+      if (!from.linear) {
+        from.position = wrap(from.position);
+      }
+      from.linear = true;
+      to = Wheel{-1.0, 0.0, true, current.blankZero};
+    }
+    next.wheels.push_back(WheelTransition{from, to});
+  }
+}
+
+int RollingEngine::shownGlyph(const Wheel& wheel) {
+  if (wheel.blend < 1) {
+    return static_cast<int>(wheel.toGlyph);
+  }
+  if (wheel.linear && wheel.position < -0.5) {
+    return -1;
+  }
+  const int digit = static_cast<int>(std::llround(wrap(wheel.position))) % 10;
+  if (wheel.blankZero && digit == 0) {
+    return -1;
+  }
+  return digit;
+}
+
+void RollingEngine::planNumeric(Transition& next, const Target& target, bool increasing, int count, int mandatory) const {
+  (void)mandatory;
+  const int currentCount = static_cast<int>(wheels_.size());
+  for (int power = 0; power < count; power++) {
+    const Wheel current = power < currentCount ? wheels_[static_cast<size_t>(power)] : Wheel{-1.0, 0.0, true, false};
+    // The glyph the wheel shows, or was arriving at when re-targeted: that is
+    // the one that leaves now.
+    const int showing = power < currentCount ? shownGlyph(current) : -1;
+    Wheel from;
+    Wheel to;
+    from.width = current.width;
+    from.fromGlyph = static_cast<double>(showing);
+    // A value that grew moves the glyphs up (the new one arrives from below).
+    from.fromAbove = !increasing;
+    from.linear = false;
+    from.blankZero = false;
+    if (power < target.powerCount) {
+      const int digit = target.digit(power);
+      from.toGlyph = static_cast<double>(digit);
+      from.position = static_cast<double>(digit);
+      to = Wheel{static_cast<double>(digit), 1.0, false, false};
+      next.finals.push_back(Wheel{static_cast<double>(digit), 1.0, false, false});
+    } else {
+      // Disappearing wheel: its glyph leaves and the column closes.
+      from.toGlyph = -1;
+      from.position = static_cast<double>(std::max(0, showing));
+      to = Wheel{from.position, 0.0, false, false};
+    }
+    // A wheel whose glyph does not change is not part of the transition (it
+    // may still be growing to full width).
+    from.blend = showing == static_cast<int>(from.toGlyph) ? 1.0 : 0.0;
+    next.wheels.push_back(WheelTransition{from, to});
+  }
 }
 
 void RollingEngine::snap(const Target& target) {
@@ -645,12 +783,76 @@ void RollingEngine::apply(double elapsed) {
     const WheelTransition& wt = tr.wheels[i];
     const double delay = i < tr.delays.size() ? tr.delays[i] : 0;
     const double raw = tr.duration > 0 ? clamp01((elapsed - delay) / tr.duration) : 1.0;
-    const double t = tr.fromMotion ? easeFromMotion(raw) : ease(raw);
+    // The numeric transition's tail is only its position spring ringing out:
+    // a column opens and closes over the duration itself.
+    const double span = tr.style == 1 ? tr.duration / kNumericTail : tr.duration;
+    const double rawSpan = span > 0 ? clamp01((elapsed - delay) / span) : 1.0;
+    const double t = tr.fromMotion ? easeFromMotion(rawSpan) : ease(rawSpan);
     Wheel& w = wheels_[i];
-    w.position = wt.from.position + (wt.to.position - wt.from.position) * t;
     w.width = clamp01(wt.from.width + (wt.to.width - wt.from.width) * t);
     w.linear = wt.from.linear;
     w.blankZero = wt.from.blankZero;
+    if (tr.numeric && wt.from.blend >= 1) {
+      // A wheel whose glyph does not change (it may still be growing to full width).
+      w.position = wt.from.position;
+      w.fromGlyph = -1;
+      w.toGlyph = -1;
+      w.blend = 1;
+      w.focus = 1;
+      w.grow = 1;
+    } else if (tr.style == 2) {
+      // Scramble: a different digit every step until the wheel locks.
+      const int from = static_cast<int>(wt.from.fromGlyph);
+      const int to = static_cast<int>(wt.from.toGlyph);
+      if (raw >= 1) {
+        w.position = static_cast<double>(std::max(0, to));
+      } else {
+        const uint64_t step = static_cast<uint64_t>(std::max(0.0, elapsed - delay) / kScrambleStepSeconds);
+        // A mixed hash of the step and the wheel (a plain multiply mod 10 is a counter).
+        uint64_t h = step * 2654435761ULL + static_cast<uint64_t>(i) * 40503ULL + 7ULL;
+        h ^= h >> 13;
+        h *= 0x5bd1e995ULL;
+        h ^= h >> 15;
+        int glyph = static_cast<int>(h % 10);
+        // Never sit on the digit the wheel is leaving or arriving at: it would read as a stall.
+        while (glyph == from || glyph == to) {
+          glyph = (glyph + 1) % 10;
+        }
+        w.position = static_cast<double>(glyph);
+      }
+      w.fromGlyph = -1;
+      w.toGlyph = -1;
+      w.blend = 1;
+      w.focus = 1;
+      w.grow = 1;
+    } else if (tr.numeric) {
+      // Numeric: the glyphs swap in place; the position is the digit
+      // arriving and the three clocks say how far the swap is (see the header).
+      w.position = wt.from.position;
+      w.fromGlyph = wt.from.fromGlyph;
+      w.toGlyph = wt.from.toGlyph;
+      w.fromAbove = wt.from.fromAbove;
+      if (raw >= 1 || tr.duration <= 0) {
+        w.blend = 1;
+        w.grow = 1;
+        w.focus = 1;
+        w.blurOut = 1;
+      } else {
+        const double local = std::max(0.0, elapsed - delay);
+        const double d = tr.duration / kNumericTail;
+        w.blend = damped(local, kNumericPositionZeta, d);
+        w.grow = damped(local, 1.0, kNumericGrowSettle * d);
+        w.focus = damped(local, kNumericFocusZeta, kNumericFocusSettle * d);
+        w.blurOut = damped(local, 1.0, kNumericBlurOutSettle * d);
+      }
+    } else {
+      w.position = wt.from.position + (wt.to.position - wt.from.position) * t;
+      w.fromGlyph = -1;
+      w.toGlyph = -1;
+      w.blend = 1;
+      w.focus = 1;
+      w.grow = 1;
+    }
   }
   const double signRaw = tr.duration > 0 ? clamp01(elapsed / tr.duration) : 1.0;
   const double signT = tr.fromMotion ? easeFromMotion(signRaw) : ease(signRaw);
@@ -661,6 +863,44 @@ void RollingEngine::finish() {
   wheels_ = transition_.finals;
   signFactor_ = transition_.signTo;
   transition_.active = false;
+}
+
+void RollingEngine::applyEffects(double now) {
+  lastNow_ = now;
+  bool active = false;
+  if (flashes_.size() < wheels_.size()) {
+    flashes_.resize(wheels_.size());
+  }
+  for (size_t i = 0; i < wheels_.size(); i++) {
+    Wheel& w = wheels_[i];
+    const Flash& f = flashes_[i];
+    if (flashSeconds_ <= 0 || f.start < 0) {
+      w.flash = 0;
+      continue;
+    }
+    // Lights at once, holds while the wheel moves, fades with a tail.
+    const double lit = now - f.start;
+    const double u = lit < f.hold ? 0 : clamp01((lit - f.hold) / flashSeconds_);
+    w.flash = std::pow(1 - u, 1.5);
+    w.flashUp = f.up;
+    if (u < 1) {
+      active = true;
+    }
+  }
+  if (popStart_ >= 0 && popOnChange_ > 0) {
+    const double tau = now - popStart_;
+    const double p = punch(tau, popOnChange_);
+    popScale_ = 1 + p;
+    if (tau < kPunchPeakSeconds * 8) {
+      active = true;
+    } else {
+      popScale_ = 1;
+      popStart_ = -1;
+    }
+  } else {
+    popScale_ = 1;
+  }
+  effectsActive_ = active;
 }
 
 bool RollingEngine::tick(double now) {
@@ -690,12 +930,13 @@ bool RollingEngine::tick(double now) {
       loadingFadeActive_ = false;
     }
   }
+  applyEffects(now);
   return needsFrames();
 }
 
 bool RollingEngine::needsFrames() const {
   const bool sweeping = loadingProgress_ > 0 && !reduceMotion_;
-  return transition_.active || reveal_.active || loadingFadeActive_ || sweeping;
+  return transition_.active || reveal_.active || loadingFadeActive_ || sweeping || effectsActive_;
 }
 
 bool RollingEngine::isRolling() const {
@@ -750,6 +991,23 @@ double RollingEngine::spring(double t, double bounce) {
   return 1 - std::exp(-k * t) * (std::cos(wd * t) + (k / wd) * std::sin(wd * t));
 }
 
+double RollingEngine::damped(double t, double zeta, double settle) {
+  if (t <= 0 || settle <= 0) {
+    return 0;
+  }
+  const double z = std::min(1.0, std::max(0.05, zeta));
+  if (z >= 0.999) {
+    // Critically damped: 1 - (1 + kt) e^{-kt} is within 2 % of 1 at kt ≈ 5.83.
+    const double k = 5.83 / settle;
+    return 1 - (1 + k * t) * std::exp(-k * t);
+  }
+  // Underdamped: the envelope e^{-ζωt} is within 2 % at ζωt = 4.
+  const double omega = 4.0 / (z * settle);
+  const double k = z * omega;
+  const double wd = omega * std::sqrt(1 - z * z);
+  return 1 - std::exp(-k * t) * (std::cos(wd * t) + (k / wd) * std::sin(wd * t));
+}
+
 int RollingEngine::targetDigit(int power) const {
   return target_.digit(power);
 }
@@ -762,6 +1020,14 @@ void RollingEngine::reset() {
   bounce_ = 0.15;
   stagger_ = 0;
   direction_ = 0;
+  transitionStyle_ = 0;
+  flashSeconds_ = 0;
+  popOnChange_ = 0;
+  flashes_.clear();
+  popStart_ = -1;
+  popScale_ = 1;
+  lastNow_ = 0;
+  effectsActive_ = false;
   revealDuration_ = 2.2;
   revealBounce_ = 0.12;
   revealStyle_ = 0;

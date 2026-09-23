@@ -53,6 +53,7 @@ Both packages share the same formatting model (prefix and suffix at their own si
 
 - **Native on both platforms.** A `value` change is one JSI call; the roll runs on a `CADisplayLink` (Core Animation layers) or a `Choreographer` (Canvas). A busy JS thread never delays an animation in flight.
 - **Every digit is a wheel.** Shortest path in the direction of the change, columns sliding in and out as the number grows, easing, spring or a cascading stagger.
+- **Or another transition.** `transition="numeric"` plays a change the way SwiftUI's `numericText` does: each changed glyph swaps in place, softening, shrinking and sliding out as the new one slides in and comes into focus, cascading from the left; unchanged digits stay put. `"scramble"` locks random digits from the left. A change flash (`flashUpColor` / `flashDownColor`) and a pop (`popOnChange`) go with any of them.
 - **Money-ready.** Fraction digits, grouping and decimal separators, a currency symbol or code at its own size pinned to the top or bottom of the digits, zero padding, negatives.
 - **Fits its box.** Auto-sizes to its content, or shrinks continuously to a fixed width without squeezing digits still on their way out.
 - **Jackpot reveal.** The casino win-meter rollup (tiers that punch and hold, a figure that grows as it climbs) and the slot-reel reveal, all native.
@@ -217,6 +218,8 @@ Nitro Modules 0.37 never fills a Hybrid View's raw props on Android from React N
 ## Credits
 
 The input's morph is based on [Torph](https://torph.lochie.me) by [Lochie Axon](https://github.com/lochie). Thanks for building it.
+
+The rolling number's numeric transition follows SwiftUI's `.contentTransition(.numericText())`; it is our own reading of that effect, in the shared engine. [react-native-numeric-text](https://github.com/AmatoGiulio/react-native-numeric-text) by [Giulio Amato](https://github.com/AmatoGiulio) is a native re-implementation of the same effect for React Native `Text`, and the place to go when a whole text should transition rather than a number.
 
 ## License
 

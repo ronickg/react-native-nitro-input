@@ -22,6 +22,7 @@ import RollingNumberViewConfig from '../nitrogen/generated/shared/json/RollingNu
 import type {
   RollingNumberAffixAlign,
   RollingNumberDirection,
+  RollingNumberTransition,
   RollingNumberEasing,
   RollingNumberMethods,
   RollingNumberProps as NativeRollingNumberProps,
@@ -64,15 +65,50 @@ export interface RollingNumberProps extends Omit<ViewProps, 'children'> {
   prefix?: string
   /** Static text drawn after the number, e.g. `'%'`. */
   suffix?: string
-  /** Duration in ms of the roll played when `value` changes. `0` snaps. Default: `500`. */
+  /**
+   * How a value change plays. `'roll'` (default) is the odometer: every
+   * changed digit rolls through the digits between its old and new glyph, in
+   * the direction of the change. `'numeric'` is the numeric transition, the
+   * effect of SwiftUI's `.contentTransition(.numericText())`: each changed
+   * glyph swaps in place, the old one softening, shrinking and sliding out
+   * while the new one slides in from the other side and comes into focus, the
+   * digits cascading from the left; unchanged digits stay put. `'scramble'`
+   * shows a different random digit every few frames until each changed digit
+   * locks on its target, from the left.
+   *
+   * Each swap style has its own defaults for `duration`, `easing` and
+   * `stagger`: numeric 480 / (its own clocks) / 150, scramble 500 / `'linear'` / 60.
+   */
+  transition?: RollingNumberTransition
+  /**
+   * The change flash: every digit whose glyph changes lights up in this
+   * colour when the value grew (e.g. a green), stays lit while it moves,
+   * and fades back over `flashDuration` once it has landed. Unset: no flash.
+   */
+  flashUpColor?: ColorValue
+  /** The change flash's colour when the value shrank (e.g. a red). Unset: no flash. */
+  flashDownColor?: ColorValue
+  /** Milliseconds a change flash takes to fade, once the digit has landed. Default: `600`. */
+  flashDuration?: number
+  /**
+   * A punch of the whole figure on every value change, its peak overshoot
+   * as a fraction of the size, `0` (none, the default) to `1`; rung out like
+   * the reveal's landing pop. `0.08` is a nudge, `0.2` a slam.
+   */
+  popOnChange?: number
+  /** Duration in ms of the roll played when `value` changes. `0` snaps. Default: `500` (each swap transition has its own, see `transition`). */
   duration?: number
-  /** Timing curve of the roll. Default: `'easeInOut'`. */
+  /** Timing curve of the roll. Default: `'easeInOut'` (the scramble has its own, see `transition`; the numeric transition keeps SwiftUI's own clocks and ignores it). */
   easing?: RollingNumberEasing
-  /** Overshoot of the `'spring'` easing, `0`–`1`. Default: `0.15`. */
+  /** Overshoot of the `'spring'` easing, `0`–`1`. Default: `0.15` (the numeric transition has its own, fixed). */
   bounce?: number
   /**
    * Delay in ms between the start of each digit's roll, least significant
-   * digit first, so a change cascades like a mechanical carry. Default: `0`.
+   * digit first, so a change cascades like a mechanical carry. In the numeric
+   * transition it is the span of the whole cascade instead: the digits that
+   * change start spread evenly over it from the leftmost to the rightmost,
+   * however many there are, the way the effect cascades on iOS. Default: `0`
+   * (`150` for the numeric transition).
    */
   stagger?: number
   /** Which way the digits roll. `'auto'` follows the sign of the change. Default: `'auto'`. */
@@ -238,6 +274,13 @@ interface Size {
   height: number
 }
 
+/** Each transition's own timing, used when the props leave it unsaid. */
+const TRANSITION_DEFAULTS: Record<RollingNumberTransition, { duration: number; easing: RollingNumberEasing; stagger: number }> = {
+  roll: { duration: 500, easing: 'easeInOut', stagger: 0 },
+  numeric: { duration: 480, easing: 'spring', stagger: 150 },
+  scramble: { duration: 500, easing: 'linear', stagger: 60 },
+}
+
 /**
  * A natively animated rolling number (odometer / ticker).
  *
@@ -257,6 +300,11 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
       decimalSeparator,
       prefix,
       suffix,
+      transition,
+      flashUpColor,
+      flashDownColor,
+      flashDuration,
+      popOnChange,
       duration,
       easing,
       bounce,
@@ -385,6 +433,8 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
       () => toProcessedColor(shimmerColor) ?? Infinity,
       [shimmerColor]
     )
+    const processedFlashUp = useMemo(() => toProcessedColor(flashUpColor) ?? Infinity, [flashUpColor])
+    const processedFlashDown = useMemo(() => toProcessedColor(flashDownColor) ?? Infinity, [flashDownColor])
     const numericWeight = toNumericWeight(fontWeight) ?? 400
     const resolvedFontSize = fontSize ?? 32
     const resolvedAffixAlign = affixAlign ?? 'baseline'
@@ -418,10 +468,15 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
         decimalSeparator={decimalSeparator ?? '.'}
         prefix={prefix ?? ''}
         suffix={suffix ?? ''}
-        duration={duration ?? 500}
-        easing={easing ?? 'easeInOut'}
+        transition={transition ?? 'roll'}
+        flashUpColor={processedFlashUp}
+        flashDownColor={processedFlashDown}
+        flashDuration={flashDuration ?? 600}
+        popOnChange={popOnChange ?? 0}
+        duration={duration ?? TRANSITION_DEFAULTS[transition ?? 'roll'].duration}
+        easing={easing ?? TRANSITION_DEFAULTS[transition ?? 'roll'].easing}
         bounce={bounce ?? 0.15}
-        stagger={stagger ?? 0}
+        stagger={stagger ?? TRANSITION_DEFAULTS[transition ?? 'roll'].stagger}
         rollDirection={direction ?? 'auto'}
         revealState={reveal === undefined ? 0 : reveal ? 2 : 1}
         revealStyle={revealStyle ?? 'count'}

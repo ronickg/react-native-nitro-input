@@ -50,6 +50,42 @@ import { RollingNumber } from 'react-native-nitro-rolling-number'
 Whenever `value` changes, each digit rolls from its old glyph to its new one in
 the direction of the change. The first value is shown without animation.
 
+### The transitions
+
+```tsx
+<RollingNumber value={count} transition="numeric" fontSize={48} fontWeight="700" />
+<RollingNumber value={count} transition="scramble" />
+```
+
+The roll is the default. The others swap each changed glyph in place, digits
+that don't change staying put, the change cascading from the leftmost changed
+digit to the right (`stagger`); `duration` and `easing` apply to all of them,
+each with its own defaults.
+
+- **`numeric`**, after SwiftUI's `.contentTransition(.numericText())`: the
+  old glyph softens, shrinks and slides out; the new one slides in from the
+  other side, nearly full size and out of focus, and resolves. The glyphs move
+  up when the value grows and down when it shrinks (`direction` overrides
+  that). The blur is real on all three platforms: a blurred copy of each
+  glyph rendered once per font and cross-faded with the sharp one, so a frame
+  costs the same as a frame of a roll.
+- **`scramble`**: each changed digit shows a different random digit every
+  few frames, never the one it is leaving or arriving at, and locks on its
+  target; the lock runs from the left.
+
+Two more things happen on a change if you ask for them, with any transition:
+
+```tsx
+<RollingNumber value={price} flashUpColor="#16a34a" flashDownColor="#dc2626" popOnChange={0.08} />
+```
+
+`flashUpColor` / `flashDownColor` is the change flash of a trading screen:
+every digit whose glyph changes lights up in the up colour when the value grew
+and the down colour when it shrank, stays lit while it moves, and fades back
+over `flashDuration` (600 ms) once it has landed.
+`popOnChange` punches the whole figure on every change, its peak overshoot as
+a fraction of the size, rung out like the reveal's landing pop.
+
 ### Currency layouts and fitting a width
 
 ```tsx
@@ -148,7 +184,11 @@ scroll or drag handler drives the number.
 | `duration` | `number` | `500` | Roll duration in ms; `0` snaps. |
 | `easing` | `'linear' \| 'easeIn' \| 'easeOut' \| 'easeInOut' \| 'spring'` | `'easeInOut'` | Roll timing curve. A value that arrives while the wheels are still rolling continues with the ease-out half of the curve, so rapid updates never stall. |
 | `bounce` | `number` | `0.15` | Overshoot of the `spring` easing (0–1). |
-| `stagger` | `number` | `0` | ms between the start of each digit's roll (least significant first), a cascading carry. |
+| `stagger` | `number` | `0` | ms between the start of each digit's roll (least significant first), a cascading carry; in the numeric transition it is the span of the whole cascade, spread over the changed digits from the left, default `150`. |
+| `transition` | `'roll' \| 'numeric' \| 'scramble'` | `'roll'` | How a change plays: the odometer roll; the numeric transition (each changed glyph swaps in place, SwiftUI's `numericText`); or a scramble that locks from the left. Each swap style has its own `duration` / `easing` / `stagger` defaults (numeric 480 ms with SwiftUI's own clocks and a 150 ms cascade span, scramble 500 / linear / 60). |
+| `flashUpColor`, `flashDownColor` | `ColorValue` | unset | The change flash: digits whose glyph changes light up in the up colour when the value grew, the down colour when it shrank, stay lit while they move, and fade back over `flashDuration` once they have landed. Unset: no flash. |
+| `flashDuration` | `number` | `600` | ms a change flash takes to fade, once the digit has landed. |
+| `popOnChange` | `number` | `0` | A punch of the whole figure on every change, peak overshoot 0–1, rung out like the reveal's landing pop. |
 | `direction` | `'auto' \| 'up' \| 'down'` | `'auto'` | Roll direction; `auto` follows the sign of the change. |
 | `reveal` | `boolean` | – | `false` holds the opening frame (`$0.00` in the final layout); `true` plays the reveal to `value`. Unset = a normal rolling number. |
 | `revealStyle` | `'count' \| 'spin'` | `'count'` | The win-meter rollup, or slot reels locking from the left. |

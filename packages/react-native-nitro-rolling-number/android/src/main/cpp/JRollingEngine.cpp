@@ -16,6 +16,9 @@ void JRollingEngine::registerNatives() {
       makeNativeMethod("initHybrid", JRollingEngine::initHybrid),
       makeNativeMethod("setFormat", JRollingEngine::setFormat),
       makeNativeMethod("setTiming", JRollingEngine::setTiming),
+      makeNativeMethod("setTransition", JRollingEngine::setTransition),
+      makeNativeMethod("setFlash", JRollingEngine::setFlash),
+      makeNativeMethod("setPopOnChange", JRollingEngine::setPopOnChange),
       makeNativeMethod("setReduceMotion", JRollingEngine::setReduceMotion),
       makeNativeMethod("setValue", JRollingEngine::setValue),
       makeNativeMethod("animateTo", JRollingEngine::animateTo),
@@ -50,6 +53,18 @@ void JRollingEngine::setFormat(int fractionDigits, int minimumIntegerDigits) {
 
 void JRollingEngine::setTiming(double durationSeconds, int easing, double bounce, double staggerSeconds, int direction) {
   engine_.setTiming(durationSeconds, easing, bounce, staggerSeconds, direction);
+}
+
+void JRollingEngine::setTransition(int transition) {
+  engine_.setTransition(transition);
+}
+
+void JRollingEngine::setFlash(double seconds) {
+  engine_.setFlash(seconds);
+}
+
+void JRollingEngine::setPopOnChange(double overshoot) {
+  engine_.setPopOnChange(overshoot);
 }
 
 void JRollingEngine::setReduceMotion(bool reduceMotion) {
@@ -128,8 +143,8 @@ int JRollingEngine::frameInto(jni::alias_ref<jni::JArrayDouble> out) {
   const auto& wheels = engine_.wheels();
   const size_t count = wheels.size();
   constexpr size_t kMaxWheels = 32;
-  double data[4 + kMaxWheels * 4];
-  const size_t needed = 4 + count * 4;
+  double data[4 + kMaxWheels * 13];
+  const size_t needed = 4 + count * 13;
   if (count > kMaxWheels || static_cast<size_t>(out->size()) < needed) {
     return -1;
   }
@@ -143,6 +158,15 @@ int JRollingEngine::frameInto(jni::alias_ref<jni::JArrayDouble> out) {
     data[i++] = w.width;
     data[i++] = w.linear ? 1.0 : 0.0;
     data[i++] = w.blankZero ? 1.0 : 0.0;
+    data[i++] = w.fromGlyph;
+    data[i++] = w.toGlyph;
+    data[i++] = w.blend;
+    data[i++] = w.fromAbove ? 1.0 : 0.0;
+    data[i++] = w.flash;
+    data[i++] = w.flashUp ? 1.0 : 0.0;
+    data[i++] = w.focus;
+    data[i++] = w.grow;
+    data[i++] = w.blurOut;
   }
   out->setRegion(0, needed, data);
   return static_cast<int>(needed);

@@ -5,8 +5,9 @@
 //  The platform-independent state machine behind the rolling number view.
 //  Both native views (RollingNumberView.swift, RollingNumberView.kt) feed it
 //  values and time, and draw whatever it reports: one "wheel" per digit with a
-//  continuous position on a 0–9 strip, the sign factor, the loading fade and
-//  the shimmer phase. No rendering, no fonts, no threading in here.
+//  continuous position on a 0–9 strip (or, in the numeric transition, a glyph
+//  swapping in place), the sign factor, the loading fade and the shimmer
+//  phase. No rendering, no fonts, no threading in here.
 //
 //  Time is in seconds on any monotonic clock (CACurrentMediaTime,
 //  Choreographer frame time). The API deliberately uses plain ints/doubles so
@@ -32,10 +33,85 @@ public:
     bool linear;
     /// Glyph 0 is drawn blank (the emerging odometer wheel).
     bool blankZero;
+
+    // The numeric transition (`setTransition(1)`, after SwiftUI's
+    // `.contentTransition(.numericText())`): a wheel swaps its glyph in place
+    // instead of rolling through the ones between. `blend` runs 0 → 1 from
+    // `fromGlyph` to `toGlyph` (a digit, or -1 for blank) and is 1 for a wheel
+    // that is settled or not part of the change; while it is below 1 a
+    // renderer draws the two glyphs as `kNumeric*` below describes and ignores
+    // `position`. `fromAbove`: the new glyph arrives from above and the old one
+    // leaves downwards, which is how a value that shrank plays; a value that
+    // grew is the mirror image, the glyphs moving up the way an odometer's do
+    // (checked frame by frame against SwiftUI's own transition). `focus` is
+    // the arriving glyph's blur clock (0 fully blurred, 1 sharp), `blurOut`
+    // the leaving glyph's (0 sharp, 1 fully blurred), and `grow` the
+    // size-and-opacity clock (0 the arriving glyph small and clear, 1 full
+    // size and opaque); see `kNumeric*` below.
+    double fromGlyph = -1;
+    double toGlyph = -1;
+    double blend = 1;
+    bool fromAbove = true;
+    double focus = 1;
+    double grow = 1;
+    double blurOut = 1;
+    /// The change flash (`setFlash`): 1 from the moment this wheel's glyph
+    /// changed until the wheel has landed (its stagger delay and the
+    /// transition's duration; a snap lands at once), then fading to 0 over
+    /// the flash's duration; a renderer mixes the wheel's ink towards the up
+    /// or the down colour by this much. `flashUp`: the value grew.
+    double flash = 0;
+    bool flashUp = true;
   };
+
+  // The numeric transition as the renderers draw it, in line heights, so all
+  // three (Core Animation, Canvas, the docs' canvas) agree. A changing wheel
+  // runs four clocks, each the step response of a damped spring scaled to
+  // the wheel's duration D (`damped()`). The figures are SwiftUI's: fitted to
+  // its frames at 60 fps (a model of the renderers rendered from the real
+  // glyphs and optimised until it reproduced them pixel for pixel), and in
+  // agreement with the constants published by react-native-numeric-text.
+  // The transaction's easing and bounce are not consulted, as SwiftUI's own
+  // transition does not consult its animation:
+  //   `blend`   the position: ζ kNumericPositionZeta (about 12 % overshoot, so it
+  //             runs past 1 and comes back), settled at D
+  //   `grow`    size and opacity: critically damped, settled at kNumericGrowSettle · D
+  //   `focus`   the arriving glyph's blur: ζ kNumericFocusZeta, settled at kNumericFocusSettle · D
+  //   `blurOut` the leaving glyph's blur: critically damped, settled at kNumericBlurOutSettle · D
+  // With b = blend (only the offsets follow it past 1), g = grow, f = focus,
+  // o = blurOut and d = +1 when `fromAbove`, else -1:
+  //   leaving glyph:  offset d · kNumericOffset · b,        scale 1 → kNumericScale by g, alpha 1 - g, blur o
+  //   arriving glyph: offset -d · kNumericOffset · (1 - b), scale kNumericScale → 1 by g, alpha g,     blur 1 - f
+  // both scaled about their centre, blur being kNumericBlur line heights of
+  // gaussian sigma at 1 (SwiftUI's own; a renderer that cannot blur
+  // per frame keeps a ladder of blurred copies and cross-fades the two
+  // nearest, never a sharp copy with a blurred one, which reads as a digit
+  // inside a glow). The transition runs kNumericTail · D. A wheel is swapping while any clock is below 1. The
+  // columns that change start spread evenly over `stagger` seconds from the
+  // leftmost, however many there are (delay = stagger · i / (n - 1)).
+  static constexpr double kNumericOffset = 0.34;
+  static constexpr double kNumericScale = 0.4;
+  static constexpr double kNumericBlur = 0.08;
+  static constexpr double kNumericPositionZeta = 0.54;
+  static constexpr double kNumericGrowSettle = 0.65;
+  static constexpr double kNumericFocusZeta = 0.85;
+  static constexpr double kNumericFocusSettle = 0.74;
+  static constexpr double kNumericBlurOutSettle = 0.46;
+  /// The numeric transition lasts this many durations: the position spring
+  /// settles to 2 % at D, which is still a pixel at a large size, and
+  /// SwiftUI lets it ring out; ended at D the last pixel snapped.
+  static constexpr double kNumericTail = 1.45;
+
+  // The scramble (2) is planned like the numeric transition but the wheel
+  // shows a different random digit every kScrambleStepSeconds until it locks
+  // on its target; `position` is that digit and `blend` stays 1, so a
+  // renderer needs nothing new.
+  static constexpr double kScrambleStepSeconds = 0.045;
 
   // Easing: 0 linear, 1 easeIn, 2 easeOut, 3 easeInOut, 4 spring.
   // Direction: 0 auto (sign of the change), 1 up, 2 down.
+  // Transition: 0 roll (the odometer), 1 numeric (glyphs swap in place),
+  // 2 scramble.
 
   RollingEngine();
 
@@ -45,6 +121,22 @@ public:
   /// part (1…15). Snaps to the current target when they change.
   void setFormat(int fractionDigits, int minimumIntegerDigits);
   void setTiming(double durationSeconds, int easing, double bounce, double staggerSeconds, int direction);
+  /// How a value change plays: 0 rolls every digit through the ones between
+  /// (the odometer), 1 swaps each changed glyph in place (the numeric
+  /// transition), 2 scrambles each changed digit until it locks. In the
+  /// numeric transition the stagger runs from the leftmost digit to the
+  /// right, the way the effect cascades on iOS, and the direction decides
+  /// which way the glyphs move. Takes effect from the next `animateTo`.
+  void setTransition(int transition);
+  int transition() const { return transitionStyle_; }
+  /// The change flash: every digit whose glyph changes lights up, stays lit
+  /// while it moves, and fades back over `seconds` once it has landed
+  /// (`Wheel::flash`). 0 turns it off. A jump (`setValue`) never flashes; a
+  /// reveal's count never does either.
+  void setFlash(double seconds);
+  /// A punch of the whole figure on every value change, `overshoot` 0 (none)
+  /// to 1, rung out like the reveal's landing pop; part of `revealScale()`.
+  void setPopOnChange(double overshoot);
   /// Reduce Motion / "remove animations": rolls snap and the shimmer freezes.
   void setReduceMotion(bool reduceMotion);
 
@@ -58,7 +150,8 @@ public:
   /// integers up to 2^53, so figures beyond that lose their low digits either way.
   void setValue(double value);
   /// Rolls every wheel to `value` (shortest path in the roll direction,
-  /// blank↔digit for appearing/disappearing wheels). Snaps when nothing has
+  /// blank↔digit for appearing/disappearing wheels), or, in the numeric
+  /// transition, swaps every changed glyph in place. Snaps when nothing has
   /// been shown yet, the duration is 0, or Reduce Motion is on.
   void animateTo(double value, double now);
   /// Toggles the loading glint with a 250 ms cross-fade.
@@ -102,9 +195,9 @@ public:
   void reveal(double value, double now);
   /// True while a reveal counts or its landing pop rings out.
   bool isRevealing() const { return reveal_.active; }
-  /// Scale of the figure during a reveal (its growth times the punches),
-  /// about its centre; 1 when idle.
-  double revealScale() const { return revealScale_; }
+  /// Scale of the figure about its centre: a reveal's growth times its
+  /// punches, times the change pop (`setPopOnChange`); 1 when idle.
+  double revealScale() const { return revealScale_ * popScale_; }
   /// Wall-clock length of a whole reveal (count, milestone holds, landing pop).
   double revealTotalSeconds() const;
 
@@ -178,6 +271,18 @@ private:
     /// roll skips the ease-in half of the curve so rapid updates keep flowing
     /// instead of restarting from rest on every call.
     bool fromMotion = false;
+    /// The transition style this was planned with (see `setTransition`).
+    int style = 0;
+    /// Any glyph-swap style: wheels blend between glyphs instead of rolling.
+    bool numeric = false;
+  };
+  /// One wheel's change flash: when its glyph last changed, how long the
+  /// wheel was still moving after that (the tint holds until it lands), and
+  /// which way.
+  struct Flash {
+    double start = -1;
+    double hold = 0;
+    bool up = true;
   };
 
   /// One slot reel of a spin-style reveal (index 0 is the leftmost digit).
@@ -211,7 +316,14 @@ private:
   Target makeTarget(double value) const;
   void snap(const Target& target);
   void settle(const Target& target);
+  /// The digit a wheel shows, or is arriving at: -1 for blank.
+  static int shownGlyph(const Wheel& wheel);
+  void planRoll(Transition& next, const Target& target, bool increasing, int count, int mandatory) const;
+  void planNumeric(Transition& next, const Target& target, bool increasing, int count, int mandatory) const;
   void apply(double elapsed);
+  /// The flash and the pop follow the clock, not the transition: they keep
+  /// fading after a roll has finished or a snap had none.
+  void applyEffects(double now);
   void finish();
   void cancelReveal();
   void planReels();
@@ -228,6 +340,9 @@ private:
   /// their ease-out / linear counterparts so a wheel in motion never stalls.
   double easeFromMotion(double t) const;
   static double spring(double t, double bounce);
+  /// Step response of a damped spring with damping ratio `zeta`, scaled so it
+  /// has settled (within 2 %) at t == `settle`; 0 at t <= 0.
+  static double damped(double t, double zeta, double settle);
   static double wrap(double x);
   static int digitCount(uint64_t n);
 
@@ -239,6 +354,9 @@ private:
   double bounce_ = 0.15;
   double stagger_ = 0;
   int direction_ = 0;
+  int transitionStyle_ = 0;
+  double flashSeconds_ = 0;
+  double popOnChange_ = 0;
   bool reduceMotion_ = false;
   double revealDuration_ = 2.2;
   double revealBounce_ = 0.12;
@@ -259,6 +377,13 @@ private:
   Transition transition_;
   Reveal reveal_;
   double revealScale_ = 1;
+  /// Per wheel (least significant first), kept across transitions.
+  std::vector<Flash> flashes_;
+  double popStart_ = -1;
+  double popScale_ = 1;
+  /// The clock of the last `tick`, for `needsFrames` on the effects.
+  double lastNow_ = 0;
+  bool effectsActive_ = false;
 
   bool loading_ = false;
   double loadingProgress_ = 0;

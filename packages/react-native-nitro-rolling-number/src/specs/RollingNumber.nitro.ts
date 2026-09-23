@@ -24,6 +24,18 @@ export type RollingNumberEasing =
 export type RollingNumberDirection = 'auto' | 'up' | 'down'
 
 /**
+ * How a value change plays. `'roll'` is the odometer: every changed digit
+ * rolls through the digits between its old and new glyph. `'numeric'` is the
+ * numeric transition of SwiftUI's `.contentTransition(.numericText())`: each
+ * changed glyph swaps in place, the old one softening, shrinking and sliding
+ * out while the new one slides in from the other side and comes into focus,
+ * digits cascading from the left; the unchanged digits stay put. `'scramble'`
+ * shows a different random digit every few frames until each changed digit
+ * locks on its target, from the left.
+ */
+export type RollingNumberTransition = 'roll' | 'numeric' | 'scramble'
+
+/**
  * How a jackpot reveal plays: `'count'` is the casino win-meter rollup (the
  * figure counts up from 0, digits swapping in place); `'spin'` is the jackpot
  * reels (every digit spins like a slot reel, then the reels lock one at a
@@ -80,6 +92,27 @@ export interface RollingNumberProps extends HybridViewProps {
    * significant digit upwards (a cascading carry). Default: `0`.
    */
   stagger?: number
+  /**
+   * How a value change plays: the odometer roll, or the numeric transition
+   * (glyphs swap in place). Default: `'roll'`.
+   */
+  transition?: RollingNumberTransition
+  /**
+   * The change flash: every digit whose glyph changes lights up in this
+   * colour when the value grew, fading back over `flashDuration`. A processed
+   * ARGB integer; `Infinity` (the wrapper's "unset") turns the flash off.
+   */
+  flashUpColor?: number
+  /** The change flash's colour when the value shrank. `Infinity` = off. */
+  flashDownColor?: number
+  /** Milliseconds a change flash takes to fade. Default: `600`. */
+  flashDuration?: number
+  /**
+   * A punch of the whole figure on every value change, its peak overshoot
+   * as a fraction of the size, `0` (none, the default) to `1`; rung out like
+   * the reveal's landing pop.
+   */
+  popOnChange?: number
   /**
    * Which way the digits roll. Default: `'auto'`.
    *
