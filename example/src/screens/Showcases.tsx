@@ -103,38 +103,22 @@ function UiFps() {
   )
 }
 
-/** Frames per second on the JS thread, from requestAnimationFrame: it stops while JS is blocked. */
-function useJsFps() {
-  const [fps, setFps] = useState(0)
-  useEffect(() => {
-    let raf = 0
-    let start = 0
-    let frames = 0
-    const tick = (t: number) => {
-      if (start === 0) start = t
-      frames++
-      if (t - start >= 500) {
-        setFps(Math.round((frames * 1000) / (t - start)))
-        start = t
-        frames = 0
-      }
-      raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [])
-  return fps
-}
 
 
 // ------------------------------------------------------------------ market
+//
+// Built so that a tick re-renders only what it changed: the watchlist owns
+// its feed and its rows are memoised, the chart is memoised on its series,
+// and the setState lane and the JS meter keep their own state. A showcase
+// for speed should not spend the phone's time re-rendering itself.
 
-const POINTS = 56
+const POINTS = 44
+const CHART_HEIGHT = 140
 
 /** A line chart from plain views: one rotated segment per step, a gradient column under each point. */
-function LineChart({ series, color }: { series: number[]; color: string }) {
+const LineChart = React.memo(function LineChart({ series, color }: { series: number[]; color: string }) {
   const [width, setWidth] = useState(0)
-  const height = 150
+  const height = CHART_HEIGHT
   const lo = Math.min(...series)
   const hi = Math.max(...series)
   const span = Math.max(hi - lo, 1e-9)
@@ -189,6 +173,56 @@ function LineChart({ series, color }: { series: number[]; color: string }) {
       )}
     </View>
   )
+})
+
+/** Frames per second on the JS thread, from requestAnimationFrame: it stops while JS is blocked. */
+function JsFps({ blocked }: { blocked: boolean }) {
+  const [fps, setFps] = useState(0)
+  useEffect(() => {
+    let raf = 0
+    let start = 0
+    let frames = 0
+    const tick = (t: number) => {
+      if (start === 0) start = t
+      frames++
+      if (t - start >= 500) {
+        setFps(Math.round((frames * 1000) / (t - start)))
+        start = t
+        frames = 0
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [])
+  return <Text style={[s.meterValue, blocked && s.meterValueBlocked]}>{blocked ? 'blocked' : `${fps} fps`}</Text>
+}
+
+/**
+ * The same figure as a Text driven by setState: over `duration` it tweens on
+ * a JS interval, the way anything drawn by React has to animate, so it can
+ * only move when the JS thread gets a turn.
+ */
+function JsLane({ value, duration, blocked }: { value: number; duration: number; blocked: boolean }) {
+  const [shown, setShown] = useState(value)
+  const shownRef = useRef(value)
+  shownRef.current = shown
+  useEffect(() => {
+    if (duration < 1000) {
+      setShown(value)
+      return
+    }
+    const from = shownRef.current
+    const started = Date.now()
+    const tween = setInterval(() => {
+      const t = Math.min(1, (Date.now() - started) / duration)
+      const eased = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2
+      setShown(round(from + (value - from) * eased, 2))
+      if (t === 1) clearInterval(tween)
+    }, 16)
+    return () => clearInterval(tween)
+  }, [value, duration])
+  return <Text style={[s.laneJs, blocked && s.laneJsFrozen]}>${money(shown)}</Text>
 }
 
 const WATCH = [
@@ -197,9 +231,11 @@ const WATCH = [
   { sym: 'TSLA', name: 'Tesla', from: '#F87171', to: '#B91C1C', price: 248.5 },
   { sym: 'ETH', name: 'Ethereum', from: '#A5B4FC', to: '#4F46E5', price: 3_412.75 },
   { sym: 'SOL', name: 'Solana', from: '#C084FC', to: '#14B8A6', price: 148.32 },
+  { sym: 'MSFT', name: 'Microsoft', from: '#7DD3FC', to: '#0369A1', price: 418.12 },
 ]
+const ROW_HEIGHT = 56
 
-function WatchRow({ item, price, up }: { item: (typeof WATCH)[number]; price: number; up: boolean }) {
+const WatchRow = React.memo(function WatchRow({ item, price, up }: { item: (typeof WATCH)[number]; price: number; up: boolean }) {
   return (
     <View style={s.watchRow}>
       <View style={[s.logo, { backgroundImage: `linear-gradient(135deg, ${item.from}, ${item.to})` }]}>
@@ -225,6 +261,32 @@ function WatchRow({ item, price, up }: { item: (typeof WATCH)[number]; price: nu
       </View>
     </View>
   )
+})
+
+/** The watchlist owns its feed: a price moves every 150 ms, and only that row re-renders. */
+function Watchlist({ paused }: { paused: React.RefObject<boolean> }) {
+  const [rows, setRows] = useState(() => WATCH.map((w) => ({ price: w.price, up: true })))
+  const [fit, setFit] = useState(0)
+  useEffect(() => {
+    const feed = setInterval(() => {
+      if (paused.current) return
+      setRows((previous) => {
+        const next = [...previous]
+        const i = Math.floor(Math.random() * next.length)
+        const moved = round(next[i].price * (1 + (Math.random() - 0.47) * 0.004), 2)
+        next[i] = { price: moved, up: moved >= next[i].price }
+        return next
+      })
+    }, 150)
+    return () => clearInterval(feed)
+  }, [paused])
+  return (
+    <View style={s.watchlist} onLayout={(e) => setFit(Math.floor(e.nativeEvent.layout.height / ROW_HEIGHT))}>
+      {WATCH.slice(0, fit).map((w, i) => (
+        <WatchRow key={w.sym} item={w} price={rows[i].price} up={rows[i].up} />
+      ))}
+    </View>
+  )
 }
 
 type Phase = 'live' | 'blocking' | 'after'
@@ -239,44 +301,27 @@ type Phase = 'live' | 'blocking' | 'after'
 export function MarketShowcase({ onExit }: { onExit: () => void }) {
   const insets = useSafeAreaInsets()
   const later = useTimers()
-  const jsFps = useJsFps()
   const opening = 64_210.9
   const [price, setPrice] = useState(opening)
   const [duration, setDuration] = useState(650)
-  const [jsPrice, setJsPrice] = useState(opening)
   const [series, setSeries] = useState<number[]>(() =>
-    Array.from({ length: POINTS }, (_, i) => opening * (0.985 + 0.012 * Math.sin(i / 5) + 0.006 * Math.cos(i * 1.3) + i * 0.0003))
+    Array.from({ length: POINTS }, (_, i) => opening * (0.985 + 0.012 * Math.sin(i / 4) + 0.006 * Math.cos(i * 1.3) + i * 0.0003))
   )
-  const [watch, setWatch] = useState(() => WATCH.map((w) => ({ price: w.price, up: true })))
   const [phase, setPhase] = useState<Phase>('live')
-  const phaseRef = useRef<Phase>('live')
-  phaseRef.current = phase
+  const paused = useRef(false)
+  paused.current = phase !== 'live'
   const priceRef = useRef(price)
   priceRef.current = price
 
-  // The feed: a watchlist price moves every 150 ms, the asset every 650.
+  // The asset moves every 650 ms, and the chart with it.
   useEffect(() => {
-    const rows = setInterval(() => {
-      if (phaseRef.current !== 'live') return
-      setWatch((previous) => {
-        const next = [...previous]
-        const i = Math.floor(Math.random() * next.length)
-        const moved = round(next[i].price * (1 + (Math.random() - 0.47) * 0.004), 2)
-        next[i] = { price: moved, up: moved >= next[i].price }
-        return next
-      })
-    }, 150)
     const asset = setInterval(() => {
-      if (phaseRef.current !== 'live') return
+      if (paused.current) return
       const next = round(priceRef.current * (1 + (Math.random() - 0.44) * 0.0025), 2)
       setPrice(next)
-      setJsPrice(next)
       setSeries((sr) => [...sr.slice(1), next])
     }, 650)
-    return () => {
-      clearInterval(rows)
-      clearInterval(asset)
-    }
+    return () => clearInterval(asset)
   }, [])
 
   // The stress test, every ten seconds; up one time, down the next.
@@ -284,19 +329,11 @@ export function MarketShowcase({ onExit }: { onExit: () => void }) {
     let up = true
     const cycle = () => {
       later(6000, () => {
-        const from = priceRef.current
-        const to = round(from * (up ? 1.034 : 0.9671), 2)
+        const to = round(priceRef.current * (up ? 1.034 : 0.9671), 2)
         up = !up
         setPhase('blocking')
         setDuration(2600)
         setPrice(to)
-        const started = Date.now()
-        const tween = setInterval(() => {
-          const t = Math.min(1, (Date.now() - started) / 2600)
-          const eased = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2
-          setJsPrice(round(from + (to - from) * eased, 2))
-          if (t === 1) clearInterval(tween)
-        }, 16)
         // Let the new value reach native, then take the JS thread away.
         later(250, () => blockJsThread(2000))
         later(2900, () => {
@@ -331,7 +368,7 @@ export function MarketShowcase({ onExit }: { onExit: () => void }) {
         ]}
       />
       <Exit onExit={onExit} />
-      <View style={[s.page, { paddingTop: insets.top + 16 }]}>
+      <View style={[s.page, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 8 }]}>
         <View style={s.assetHeader}>
           <View style={[s.logo, s.logoLarge, { backgroundImage: 'linear-gradient(135deg, #FDBA74, #F7931A)' }]}>
             <Text style={[s.logoText, s.logoTextLarge]}>₿</Text>
@@ -347,7 +384,7 @@ export function MarketShowcase({ onExit }: { onExit: () => void }) {
             </View>
             <View style={[s.meter, blocked && s.meterBlocked]}>
               <Text style={s.meterLabel}>JS</Text>
-              <Text style={[s.meterValue, blocked && s.meterValueBlocked]}>{blocked ? 'blocked' : `${jsFps} fps`}</Text>
+              <JsFps blocked={blocked} />
             </View>
           </View>
         </View>
@@ -420,7 +457,7 @@ export function MarketShowcase({ onExit }: { onExit: () => void }) {
           <View style={s.laneDivider} />
           <View style={s.lane}>
             <Text style={s.laneLabel}>Text · setState</Text>
-            <Text style={[s.laneJs, blocked && s.laneJsFrozen]}>${money(jsPrice)}</Text>
+            <JsLane value={price} duration={duration} blocked={blocked} />
           </View>
         </View>
         <Text style={[s.caption, blocked && s.captionBlocked]}>
@@ -432,9 +469,7 @@ export function MarketShowcase({ onExit }: { onExit: () => void }) {
         </Text>
 
         <Text style={s.sectionTitle}>Watchlist</Text>
-        {WATCH.map((w, i) => (
-          <WatchRow key={w.sym} item={w} price={watch[i].price} up={watch[i].up} />
-        ))}
+        <Watchlist paused={paused} />
       </View>
     </View>
   )
@@ -957,7 +992,8 @@ const s = StyleSheet.create({
   captionBlocked: { color: '#FDA4AF' },
 
   sectionTitle: { color: '#F8FAFC', fontFamily: FONT.semibold, fontSize: 17, marginTop: 18, marginBottom: 4 },
-  watchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 9 },
+  watchlist: { flex: 1, overflow: 'hidden' },
+  watchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, height: ROW_HEIGHT },
   watchText: { flex: 1 },
   watchSym: { color: '#F8FAFC', fontFamily: FONT.semibold, fontSize: 15 },
   watchName: { color: 'rgba(226,232,240,0.5)', fontFamily: FONT.medium, fontSize: 12, marginTop: 1 },
