@@ -64,7 +64,7 @@ ordinary form field you do not want it.
   the frame geometry, and (with `transition="reflow"`) the glyph matching and curves. Swift
   and Kotlin only measure, draw and talk to the keyboard.
 
-Guide: **https://ronickg.github.io/react-native-nitro-input/input**
+Guide: **https://ronickg.github.io/react-native-nitro-input/docs/nitro-input**
 
 ### A text field
 
@@ -532,7 +532,7 @@ same look on iOS **and** Android.
 - `reveal` plays the casino "you won" presentation natively: the win-meter
   rollup (with tiers that punch and hold) or slot reels that lock from the left.
 
-Guide: **https://ronickg.github.io/react-native-nitro-input/rolling-number/getting-started**
+Guide: **https://ronickg.github.io/react-native-nitro-input/docs/rolling-number**
 
 ```tsx
 import { RollingNumber } from 'react-native-nitro-input'

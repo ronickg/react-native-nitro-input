@@ -1,50 +1,28 @@
 import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 
-/**
- * Sidebar for the Rolling Number section (/rolling-number).
- *
- * Shaped like the other Nitro libraries' docs: Guides gets you running,
- * Concepts is the mental model, Topics is one page per thing the view does,
- * Reference is the generated-feeling prop list.
- */
+/** The one sidebar: the two components, their references and the benchmarks. */
 const sidebars: SidebarsConfig = {
   docs: [
+    'getting-started',
     {
       type: 'category',
-      label: 'Guides',
+      label: 'NitroInput',
       collapsed: false,
-      items: ['getting-started', 'comparison'],
+      items: ['nitro-input', 'reflow', 'worklets'],
     },
     {
       type: 'category',
-      label: 'Concepts',
+      label: 'RollingNumber',
       collapsed: false,
-      items: ['how-it-works'],
-    },
-    {
-      type: 'category',
-      label: 'Topics',
-      collapsed: false,
-      items: [
-        'rolling-and-timing',
-        'formatting',
-        'typography-and-sizing',
-        'currency',
-        'fit-to-width',
-        'loading',
-        'reveal',
-        'imperative',
-        'accessibility',
-        'performance',
-        'benchmarks',
-      ],
+      items: ['rolling-number', 'formatting', 'loading-and-reveal'],
     },
     {
       type: 'category',
       label: 'Reference',
       collapsed: false,
-      items: ['props'],
+      items: ['nitro-input-props', 'rolling-number-props'],
     },
+    'benchmarks',
   ],
 };
 

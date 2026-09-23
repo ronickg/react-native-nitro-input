@@ -1,5 +1,4 @@
 ---
-sidebar_position: 5
 title: Worklets
 description: "Masks, every event handler and the field's state on the UI thread, with react-native-worklets."
 ---
@@ -23,7 +22,7 @@ const usernameTransform: NitroInputTransform = ({ text }) => {
 
 `transform` receives `{ text, previousText, selection, previousSelection }` (code point offsets) and returns `{ text?, selection? }`, or `null` to keep the edit as is. Without a `selection` the caret keeps its place relative to the edit. In `mode="number"` it runs after the native formatter. Create it once, at module scope or in `useCallback`: a new function re-registers the worklet on every render.
 
-For a fixed pattern, [`mode="mask"`](/input/masked-field) does this natively with no worklets at all. `transform` is for what a pattern cannot express.
+For a fixed pattern, [`mode="mask"`](/docs/nitro-input#masks) does this natively with no worklets at all. `transform` is for what a pattern cannot express.
 
 ## Every event can be a worklet
 
