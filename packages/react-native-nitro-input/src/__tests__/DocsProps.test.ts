@@ -1,5 +1,5 @@
 /**
- * The docs' props reference (`docs/input/props.mdx`) is derived from
+ * The docs' props reference (`docs/content/nitro-input-props.mdx`) is derived from
  * `NitroInputProps` and `NitroInputHandle`, not maintained beside them: every
  * prop and method the component declares has to appear in one of its tables,
  * so one added to the component fails here rather than going undocumented.
@@ -33,7 +33,7 @@ function documentedIn(markdown: string): Set<string> {
 const source = readFileSync(join(__dirname, '..', 'NitroInput.tsx'), 'utf8')
 const props = membersOfInterface(source, 'NitroInputProps')
 const methods = membersOfInterface(source, 'NitroInputHandle')
-const page = readFileSync(join(__dirname, '..', '..', '..', '..', 'docs', 'input', 'props.mdx'), 'utf8')
+const page = readFileSync(join(__dirname, '..', '..', '..', '..', 'docs', 'content', 'nitro-input-props.mdx'), 'utf8')
 const documented = documentedIn(page)
 
 describe('docs props reference', () => {

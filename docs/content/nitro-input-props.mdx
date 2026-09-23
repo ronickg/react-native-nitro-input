@@ -1,10 +1,9 @@
 ---
-sidebar_position: 7
-title: Props
+title: NitroInput props
 description: 'Every prop, method and event of NitroInput, with types and defaults.'
 ---
 
-# Props
+# NitroInput props
 
 `NitroInput` takes every `View` prop (`style`, `testID`, `accessibilityLabel`, …) plus the ones below. All are optional.
 
@@ -42,7 +41,7 @@ Alias of `editable={false}`, as in React Native.
 
 ## Mode
 
-One prop picks how the field edits. It is separate from `inputMode` and `keyboardType`, which only pick the keyboard. See [An amount field](/input/amount-field) and [A masked field](/input/masked-field).
+One prop picks how the field edits. It is separate from `inputMode` and `keyboardType`, which only pick the keyboard. See [An amount field](/docs/nitro-input#amounts) and [A masked field](/docs/nitro-input#masks).
 
 <Prop name="mode" type="'text' | 'number' | 'mask'" default="'text'">
 `'text'` is a plain field. `'number'` formats natively as you type: grouping separators, one decimal separator, up to `fractionDigits` decimals, a currency `prefix` / `suffix`; the value comes out of `onChangeValue` and `getValue()`. `'mask'` applies the fixed pattern in `mask`.
@@ -67,7 +66,7 @@ Placed between integer and fraction digits. Whatever the keyboard's decimal key 
 </Prop>
 
 <Prop name="signPlacement" type="'beforeAffix' | 'afterAffix'" default="'beforeAffix'">
-Where a negative amount's sign sits relative to `prefix`: `-$1,234.56`, or `$-1,234.56` with `'afterAffix'`. Only the reflow honours it; a plain field's affixes are accessory views outside the text, so it is always `'afterAffix'` there. See [Negative amounts](/input/amount-field#negative-amounts).
+Where a negative amount's sign sits relative to `prefix`: `-$1,234.56`, or `$-1,234.56` with `'afterAffix'`. Only the reflow honours it; a plain field's affixes are accessory views outside the text, so it is always `'afterAffix'` there. See [Negative amounts](/docs/nitro-input#amounts).
 </Prop>
 
 ### Mask mode
@@ -90,7 +89,7 @@ Backspace walks back over autocompleted constants.
 
 ## Affixes
 
-Static text around the field's text, drawn at their own sizes. See [An amount field](/input/amount-field).
+Static text around the field's text, drawn at their own sizes. See [An amount field](/docs/nitro-input#amounts).
 
 <Prop name="prefix" type="string" default="''">
 Drawn before the text, e.g. `'$'`.
@@ -122,7 +121,7 @@ Alignment of `suffix` only.
 
 ## Frame and label
 
-An outlined or filled box with a floating label, drawn natively. See [Frames](/input/frames).
+An outlined or filled box with a floating label, drawn natively. See [Frames](/docs/nitro-input#frames).
 
 <Prop name="variant" type="'none' | 'outlined' | 'filled'" default="'none'">
 `'outlined'` strokes a rounded rectangle notched around the floating label; the notch is a real hole in the path, so whatever is behind the field shows through. `'filled'` tints the box. `'none'` leaves the border to `style`.
@@ -207,7 +206,7 @@ Whether the field sizes itself to its content. `false` takes its width from the 
 </Prop>
 
 <Prop name="textAlign" type="'auto' | 'left' | 'center' | 'right'" default="'auto'">
-Where the text sits when the view is wider than it. `'auto'` is the start edge of the layout direction, as `TextInput`; `'left'` and `'right'` are absolute. See [Right-to-left](/input/react-native#right-to-left).
+Where the text sits when the view is wider than it. `'auto'` is the start edge of the layout direction, as `TextInput`; `'left'` and `'right'` are absolute. See [Right-to-left](/docs/nitro-input#with-react-native).
 </Prop>
 
 <Prop name="adjustsFontSizeToFit" type="boolean" default="false">
@@ -220,7 +219,7 @@ Smallest scale `adjustsFontSizeToFit` may apply, `0`–`1`.
 
 ## Multiline
 
-A wrapping field is drawn by the system view and is always `'text'` mode: `transition="reflow"`, a non-text `mode` and the affixes are ignored alongside it, with one warning each in development. See [Multiline](/input/multiline).
+A wrapping field is drawn by the system view and is always `'text'` mode: `transition="reflow"`, a non-text `mode` and the affixes are ignored alongside it, with one warning each in development. See [Multiline](/docs/nitro-input#multiline).
 
 <Prop name="multiline" type="boolean" default="false">
 Let the text wrap onto more than one line. The return key inserts a line break unless `submitBehavior` says otherwise.
@@ -342,7 +341,7 @@ The caret or selection to apply, in code points into the (formatted) text. `onSe
 
 ## The reflow
 
-The opt-in glyph animation: every edit reflows from the old text to the new one. See [The reflow](/input/reflow).
+The opt-in glyph animation: every edit reflows from the old text to the new one. See [The reflow](/docs/reflow).
 
 <Prop name="transition" type="'none' | 'reflow'" default="'none'">
 How the text changes. `'none'` draws it the instant it changes: this is a text field first, and a `TextInput` does not animate its characters. `'reflow'` runs the glyph engine, so characters that stay glide to their new place, new ones slide or fade in and removed ones leave alongside their neighbours. A multiline field is always `'none'`.
@@ -366,7 +365,7 @@ How characters enter and leave. `'auto'`: digits and separators slide through th
 
 ## Worklets
 
-With `react-native-worklets` installed, work can run on the UI thread inside the native edit, before a frame is drawn. See [Worklets](/input/worklets).
+With `react-native-worklets` installed, work can run on the UI thread inside the native edit, before a frame is drawn. See [Worklets](/docs/worklets).
 
 <Prop name="transform" type="NitroInputTransform">
 A worklet that rewrites the text after every edit, synchronously on the UI thread: masks, custom formats, anything JS can express. It receives the edited text, the previous text and both selections (code point offsets) and returns the new text and optionally where the caret goes; `null` keeps the edit. In `'number'` mode it runs after the native formatter. Create it once (module scope or `useCallback`): a new function re-registers the worklet.
@@ -424,7 +423,7 @@ Receives the native Nitro object once the view is mounted.
 
 ## Accessibility and identity
 
-The system field is the accessibility element, with the formatted text as its value (`$1,234.50 USD` reads as such). See [Working with React Native](/input/react-native).
+The system field is the accessibility element, with the formatted text as its value (`$1,234.50 USD` reads as such). See [Working with React Native](/docs/nitro-input#with-react-native).
 
 <Prop name="accessibilityLabel, aria-label" type="string">
 The field's name for VoiceOver and TalkBack, forwarded to the system field. `aria-label` wins over the older spelling, as in `TextInput`. Without either, `label` is used.
@@ -469,4 +468,4 @@ The handle queues a call made before the native view exists and replays it once 
 
 ## Hook
 
-`useNitroInputState(useSharedValue)` returns the field's `text`, `value`, `focused` and `selection` as shared values, plus the worklet `handlers` to spread onto the field that keep them current. See [the field's state as shared values](/input/worklets#the-fields-state-as-shared-values).
+`useNitroInputState(useSharedValue)` returns the field's `text`, `value`, `focused` and `selection` as shared values, plus the worklet `handlers` to spread onto the field that keep them current. See [the field's state as shared values](/docs/worklets#the-fields-state-as-shared-values).

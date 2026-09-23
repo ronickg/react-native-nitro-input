@@ -1,10 +1,9 @@
 ---
-sidebar_position: 9
-title: Props
+title: RollingNumber props
 description: Every prop and method of RollingNumber.
 ---
 
-# Props
+# RollingNumber props
 
 `RollingNumber` accepts every `View` prop (`style`, `testID`, `accessibilityLabel`, …) plus the following. All are optional except `value`.
 
@@ -53,7 +52,7 @@ ms between the start of each digit's roll, least significant first (a cascading 
 </Prop>
 
 <Prop name="transition" type="'roll' | 'numeric' | 'scramble'" default="'roll'">
-How a value change plays; see [the transitions](/rolling-number/rolling-and-timing#the-transitions). `roll` is the odometer: every changed digit rolls through the digits between its old and new glyph. `numeric` is the effect of SwiftUI's `.contentTransition(.numericText())`: each changed glyph swaps in place, the old one softening, shrinking and sliding out while the new one slides in from the other side and comes into focus, the digits cascading from the left; unchanged digits stay put. `scramble` shows a different random digit every few frames until each changed digit locks on its target, from the left. Each swap style has its own defaults for `duration`, `easing` and `stagger`: numeric 480 ms with SwiftUI's own clocks (`easing` and `bounce` are not consulted) and a 150 ms cascade span as `stagger`, scramble 500 / `linear` / 60.
+How a value change plays; see [the transitions](/docs/rolling-number#transitions). `roll` is the odometer: every changed digit rolls through the digits between its old and new glyph. `numeric` is the effect of SwiftUI's `.contentTransition(.numericText())`: each changed glyph swaps in place, the old one softening, shrinking and sliding out while the new one slides in from the other side and comes into focus, the digits cascading from the left; unchanged digits stay put. `scramble` shows a different random digit every few frames until each changed digit locks on its target, from the left. Each swap style has its own defaults for `duration`, `easing` and `stagger`: numeric 480 ms with SwiftUI's own clocks (`easing` and `bounce` are not consulted) and a 150 ms cascade span as `stagger`, scramble 500 / `linear` / 60.
 </Prop>
 
 <Prop name="flashUpColor, flashDownColor" type="ColorValue">
@@ -74,7 +73,7 @@ Roll direction; `auto` follows the sign of the change.
 
 ## Jackpot reveal
 
-See [Jackpot reveal](/rolling-number/reveal).
+See [Jackpot reveal](/docs/loading-and-reveal#jackpot-reveal).
 
 <Prop name="reveal" type="boolean">
 `false` holds the opening frame (`$0.00` in the final layout); `true` plays the reveal to `value`. `undefined` = a normal rolling number.

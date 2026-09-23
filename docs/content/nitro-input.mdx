@@ -1,0 +1,143 @@
+---
+title: NitroInput
+description: 'A native text input: TextInput''s API, amounts and masks formatted in C++, outlined and filled frames, multiline.'
+---
+
+import {Example} from '@site/src/components/Demo/Demo';
+import {NitroInputAmountDemo, NitroInputEuroDemo, NitroInputFramesDemo} from '@site/src/components/NitroInput/NitroInputDemo';
+import {Playground} from '@site/src/components/NitroInput/Playground';
+
+# NitroInput
+
+`NitroInput` takes `TextInput`'s props and callbacks: keyboard types, the return key, auto-capitalisation, `maxLength`, `secureTextEntry`, `selection`, `onChangeText`, `onSubmitEditing` and the rest. It sits in React Native's text-input registry, so `Keyboard.dismiss()`, `keyboardShouldPersistTaps` and react-native-keyboard-controller treat it as the text input it is. Like a `TextInput`, it takes its width from its parent.
+
+```tsx
+import { NitroInput } from 'react-native-nitro-input'
+
+<NitroInput
+  placeholder="Your name"
+  autoCapitalize="words"
+  returnKeyType="done"
+  onSubmitEditing={({ text }) => save(text)}
+  style={{ width: '100%', height: 44, paddingHorizontal: 12, backgroundColor: '#F2F2F7', borderRadius: 10 }}
+/>
+```
+
+## Amounts
+
+<Example
+  code={`const [amount, setAmount] = useState(NaN)
+
+<NitroInput
+  mode="number"
+  prefix="$"
+  prefixFontSize={28}
+  affixAlign="top"
+  placeholder="0"
+  fractionDigits={2}
+  fontSize={48}
+  fontWeight="700"
+  textAlign="center"
+  style={{ width: '100%' }}
+  onChangeValue={setAmount}   // 1234.5, or NaN while empty
+/>`}>
+  <NitroInputAmountDemo />
+</Example>
+
+Type `1234` and the field shows `$1,234`. `mode="number"` runs every keystroke through the same C++ formatter on both platforms before the field draws: grouping separators, one decimal separator, at most `fractionDigits` decimals, at most `maxIntegerDigits` (default `15`) integer digits, the caret kept where you typed. The JS thread only learns about the result, so there is no flicker, no caret jump and no dropped keystroke, however busy React is. `onChangeValue` hands you the number, `onChangeText` the formatted string.
+
+Whatever the keyboard's decimal key produces (`.` or `,`) is the decimal separator. A decimal typed in the integer part moves the decimal point, one typed inside the fraction is ignored, a digit typed in front of a lone `0` replaces it, and deleting the decimal point merges the fraction into the integer part. `fractionDigits={0}` takes whole numbers and picks the number pad.
+
+Keep the field uncontrolled and read the callbacks, or pass `value` to drive it. A `value` that echoes `onChangeText` back never fights the user; one that differs (a "Max" button, a clamp) is applied; one carrying a stale `mostRecentEventCount` (the user typed since) is ignored, as React Native's own `TextInput` does.
+
+`prefix` and `suffix` are drawn at their own sizes (`prefixFontSize`, `suffixFontSize`) and pinned to the `top`, `bottom`, `baseline` or `center` of the digits with `affixAlign` (or `prefixAlign` / `suffixAlign`). `adjustsFontSizeToFit` scales a big amount down once it is wider than the field, no further than `minimumFontScale`. A negative amount reads `-$1,234.56`; with [`transition="reflow"`](/docs/reflow), `signPlacement="afterAffix"` gives `$-1,234.56`.
+
+<Example
+  code={`<NitroInput
+  mode="number"
+  groupingSeparator="."
+  decimalSeparator=","
+  suffix=" EUR"
+  suffixFontSize={20}
+  suffixAlign="bottom"
+  placeholder="0"
+  fontSize={48}
+  fontWeight="700"
+  textAlign="center"
+  style={{ width: '100%' }}
+/>`}>
+  <NitroInputEuroDemo />
+</Example>
+
+## Masks
+
+`mode="mask"` applies a fixed pattern as you type. The pattern is compiled once into a state machine in C++, so the formatted text, the caret, the extracted value and what is still missing all come from one place on every keystroke.
+
+```tsx
+<NitroInput
+  mode="mask"
+  mask="+1 ([000]) [000]-[0000]"
+  placeholder="+1 (000) 000-0000"
+  keyboardType="number-pad"
+  onChangeMask={(formatted, extracted, tail, complete) => {
+    setPhone(extracted)  // "5551234567": the characters the user gave
+    setDone(complete)    // every mandatory slot filled
+  }}
+/>
+```
+
+`[…]` is an editable block and anything outside brackets a literal the field inserts for you: type `212` and it shows `+1 (212) `.
+
+| | |
+| --- | --- |
+| `[0]` / `[9]` | A mandatory / optional digit. |
+| `[A]` / `[a]` | A mandatory / optional letter. |
+| `[_]` / `[-]` | A mandatory / optional alphanumeric. |
+| `[0…]` | An unbounded run of the preceding slot. |
+| `{…}` | Literal characters that count towards the extracted value, e.g. `{+1}`. |
+| `\` | Escapes the next character. |
+
+`maskNotations` adds your own slot characters, e.g. `{ character: 'H', characterSet: '0123456789ABCDEFabcdef', isOptional: false }` for `#[HHHHHH]`. `maskAutocomplete` (default on) inserts literals as soon as the slot before them fills, while the caret is at the end; `maskAutoSkip` lets a backspace walk back over them. An invalid pattern leaves the field unmasked rather than breaking it. For a rule a pattern cannot express, such as libphonenumber-js, use a [`transform` worklet](/docs/worklets). The algorithm follows RedMadRobot's input-mask, in code points rather than UTF-16 units.
+
+## Frames
+
+<Example
+  code={`<NitroInput
+  variant="outlined"
+  label="Email address"
+  placeholder="you@example.com"
+  strokeColor="#94a3b8"
+  focusedStrokeColor="#2563eb"
+  cornerRadius={10}
+  keyboardType="email-address"
+  style={{ width: '100%', height: 52 }}
+/>`}>
+  <NitroInputFramesDemo />
+</Example>
+
+`variant="outlined"` strokes the box and floats `label` onto its top edge on focus or while the field holds text; `"filled"` tints it with `fillColor` and underlines it. The notch the label sits in is a real hole in the stroked path, not background paint over the line, so whatever is behind the field shows through it. The label, the notch and the stroke animate inside the view, off the native focus callback (200 ms on Material's decelerate curve): nothing crosses into JS, and nothing waits for a render.
+
+`labelBehavior="always"` keeps the label floated; `labelColor`, `labelFocusedColor` and `labelFontSize` style it, and it becomes the field's accessible name when nothing else gives one. `strokeWidth` doubles while focused, and `cornerRadius` is clamped to half the shorter side. The props are `stroke*` rather than `outline*` because React Native 0.76 gave every view a CSS `outlineColor`.
+
+## Multiline
+
+```tsx
+<NitroInput multiline numberOfLines={4} placeholder="Tell us what happened" style={{ width: '100%' }} />
+```
+
+With `numberOfLines` (or `rows`) the field is that many lines tall and scrolls past it; without it the field grows with its content. `textAlignVertical` places the text in a taller box, and `lineHeight` is the CSS meaning, honoured in both directions, so a line height tighter than the font stays centred. The return key inserts a line break (`submitBehavior` defaults to `'newline'`).
+
+A multiline field is always drawn by the system view in `mode="text"`: the reflow, `mode="number"`, `mode="mask"` and the affixes are single-line ideas and are ignored alongside it, with a warning in development. A frame, `maxLength` and the callbacks still apply.
+
+## With React Native
+
+- **Focus.** React Native focuses an input by dispatching a `focus` view command, which a Nitro view does not have on Android. `NitroInput` routes the registry's `focusTextInput` / `blurTextInput` to its own native focus and blur, so `ref.focus()`, `ref.blur()`, `Keyboard.dismiss()` and `ScrollView`'s auto-blur work, and about a frame faster at each end. `TextInput.State.focusTextInput()` copied the function before the wrap, so on Android it does not reach a `NitroInput`.
+- **Accessibility and e2e.** `testID` and `accessibilityLabel` are forwarded to the hidden system field, the element VoiceOver, TalkBack and e2e tools interact with.
+- **Swipe back.** Resigning the keyboard as a swipe-back starts is a navigator setting: `keyboardHandlingEnabled` on react-navigation's native stack.
+- **Right-to-left.** `textAlign="auto"` is the start edge of the layout direction; `style={{ direction: 'rtl' }}` flips one field. The prefix sits at the start edge and the suffix at the end, and the digits keep reading left to right. The reflow draws one layer per character without contextual shaping, so use the plain field for Arabic or Hebrew text.
+
+## Playground
+
+Every prop worth turning, wired to a knob, and the JSX for what you are looking at. The formatting, the reflow and the notch are the C++ `AmountFormatter`, `ReflowEngine` and `OutlineGeometry` compiled to WebAssembly; the drawing around them is a web port, so treat it as a faithful preview rather than a pixel reference.
+
+<Playground />

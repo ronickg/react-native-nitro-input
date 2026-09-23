@@ -1,5 +1,5 @@
 /**
- * The docs' props reference (`docs/rolling-number/props.mdx`) and the README's
+ * The docs' props reference (`docs/content/rolling-number-props.mdx`) and the README's
  * `RollingNumber props` table are derived from `RollingNumberProps` and
  * `RollingNumberHandle`, not
  * maintained beside them: every prop and method the component declares has to
@@ -46,7 +46,7 @@ function readmeSection(): string {
 }
 
 describe.each([
-  ['docs page', () => readFileSync(join(__dirname, '..', '..', '..', '..', 'docs', 'rolling-number', 'props.mdx'), 'utf8')],
+  ['docs page', () => readFileSync(join(__dirname, '..', '..', '..', '..', 'docs', 'content', 'rolling-number-props.mdx'), 'utf8')],
   ['README', readmeSection],
 ])('%s RollingNumber props reference', (_name, read) => {
   const documented = documentedIn(read())
@@ -68,7 +68,7 @@ describe.each([
 })
 
 describe('docs page methods', () => {
-  const documented = documentedIn(readFileSync(join(__dirname, '..', '..', '..', '..', 'docs', 'rolling-number', 'props.mdx'), 'utf8'))
+  const documented = documentedIn(readFileSync(join(__dirname, '..', '..', '..', '..', 'docs', 'content', 'rolling-number-props.mdx'), 'utf8'))
   it('documents every method of the handle', () => {
     expect(methods.filter((method) => !documented.has(method))).toEqual([])
   })
