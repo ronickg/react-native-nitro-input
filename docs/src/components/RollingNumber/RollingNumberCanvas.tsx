@@ -35,12 +35,8 @@ export interface RollingNumberCanvasProps {
   suffix?: string;
   duration?: number;
   easing?: Easing;
-  /**
-   * The odometer roll, or one of the glyph-swap transitions. The morph is
-   * native-only (a canvas has no glyph outlines): this canvas shows the
-   * numeric transition for it.
-   */
-  transition?: 'roll' | 'numeric' | 'flip' | 'scramble' | 'morph';
+  /** The odometer roll, or one of the glyph-swap transitions. */
+  transition?: 'roll' | 'numeric' | 'scramble';
   /** The change flash: the colour a changed digit lights up in when the value grew / shrank. */
   flashUpColor?: string;
   flashDownColor?: string;
@@ -136,7 +132,7 @@ interface Wheel {
   flashUp: boolean;
 }
 
-const TRANSITIONS: Record<string, number> = {roll: 0, numeric: 1, flip: 2, scramble: 3, morph: 4};
+const TRANSITIONS: Record<string, number> = {roll: 0, numeric: 1, scramble: 2};
 
 // The numeric transition's geometry, in line heights; mirrors
 // `RollingEngine::kNumeric*`, where the effect is described.
@@ -518,48 +514,6 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
       }
     };
 
-    // The split-flap board, without a third dimension: the flap squashes about
-    // the centre line instead of turning, which reads the same at this size.
-    const drawFlip = (ctx: CanvasRenderingContext2D, f: FontSet, wheel: Wheel, x: number, w: number) => {
-      const lineHeight = f.lineHeight;
-      const baseline = f.baseline('digit', '0', 0);
-      const cx = x + w - f.digitWidth / 2;
-      const mid = lineHeight / 2;
-      const current = wheel.fromGlyph >= 0 ? DIGITS[wheel.fromGlyph % 10]! : null;
-      const next = wheel.toGlyph >= 0 ? DIGITS[wheel.toGlyph % 10]! : null;
-      const b = wheel.blend;
-      const half = (text: string | null, top: boolean, squash: number, shade: number) => {
-        if (!text) return;
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(x, top ? 0 : mid + 0.5, w, top ? mid - 0.5 : mid);
-        ctx.clip();
-        ctx.translate(cx, mid);
-        ctx.scale(1, Math.max(0.001, squash));
-        ctx.globalAlpha = wheel.width * (1 - shade);
-        ctx.font = f.digit;
-        ctx.fillText(text, -f.width(text, 'digit') / 2, baseline - mid);
-        ctx.restore();
-      };
-      // The eased angle of the flap: 0 hanging, 1 landed; it passes the horizontal at 0.5.
-      const angle = b < 0.5 ? 2 * b * b : 1 - 2 * (1 - b) * (1 - b);
-      half(next, true, 1, 0);          // the next card's top, already in place under the flap
-      half(current, false, 1, 0);      // the current card's bottom, until the flap lands
-      if (angle < 0.5) {
-        half(current, true, 1 - angle * 2, angle * 0.6);        // the flap's front, falling
-      } else {
-        half(next, false, (angle - 0.5) * 2, (1 - angle) * 0.6); // the flap's back, landing
-      }
-      // The board's hinge line.
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(x, 0, w, lineHeight);
-      ctx.clip();
-      ctx.globalAlpha = wheel.width * 0.9;
-      ctx.clearRect(x, mid - 0.5, w, 1);
-      ctx.restore();
-    };
-
     const drawWheel = (ctx: CanvasRenderingContext2D, f: FontSet, wheel: Wheel, x: number, w: number) => {
       if (w <= 0) return;
       const lineHeight = f.lineHeight;
@@ -574,8 +528,7 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
         ctx.fillStyle = mixColor(ctx.fillStyle as string, tint, wheel.flash);
       }
       if (wheel.blend < 1) {
-        if (transition === 'flip') drawFlip(ctx, f, wheel, x, w);
-        else drawSwap(ctx, f, wheel, x, w);
+        drawSwap(ctx, f, wheel, x, w);
         ctx.restore();
         return;
       }

@@ -29,14 +29,11 @@ export type RollingNumberDirection = 'auto' | 'up' | 'down'
  * numeric transition of SwiftUI's `.contentTransition(.numericText())`: each
  * changed glyph swaps in place, the old one softening, shrinking and sliding
  * out while the new one slides in from the other side and comes into focus,
- * digits cascading from the left; the unchanged digits stay put. `'flip'` is
- * a split-flap board: each changed digit flips card by card through the
- * digits between, the flap turning about the centre line. `'scramble'` shows
- * a different random digit every few frames until each changed digit locks
- * on its target, from the left. `'morph'` interpolates the outline of the old
- * glyph into the new one (iOS and Android; the web demo shows `'numeric'`).
+ * digits cascading from the left; the unchanged digits stay put. `'scramble'`
+ * shows a different random digit every few frames until each changed digit
+ * locks on its target, from the left.
  */
-export type RollingNumberTransition = 'roll' | 'numeric' | 'flip' | 'scramble' | 'morph'
+export type RollingNumberTransition = 'roll' | 'numeric' | 'scramble'
 
 /**
  * How a jackpot reveal plays: `'count'` is the casino win-meter rollup (the

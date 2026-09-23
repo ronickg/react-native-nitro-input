@@ -11,7 +11,6 @@ import android.graphics.LinearGradient
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.PathMeasure
 import android.graphics.RenderNode
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
@@ -49,8 +48,6 @@ import kotlin.math.min
 private const val NUMERIC_OFFSET = 0.4f
 private const val NUMERIC_SCALE = 0.6f
 private const val NUMERIC_BLUR = 0.16f
-/** How much the morph's ink dips half way (see RollingEngine.hpp). */
-private const val NUMERIC_MORPH_DIP = 0.25f
 
 class RollingNumberView(context: Context) : View(context) {
 
@@ -113,7 +110,7 @@ class RollingNumberView(context: Context) : View(context) {
 
   enum class RevealStyle(val raw: Int) { COUNT(0), SPIN(1) }
 
-  enum class Transition(val raw: Int) { ROLL(0), NUMERIC(1), FLIP(2), SCRAMBLE(3), MORPH(4) }
+  enum class Transition(val raw: Int) { ROLL(0), NUMERIC(1), SCRAMBLE(2) }
 
   /** The change flash: the colours a changed digit lights up in (null = off) and how long the light lasts. */
   data class Flash(
@@ -314,55 +311,6 @@ class RollingNumberView(context: Context) : View(context) {
     /** A digit paint in another colour, for the change flash; one per colour. */
     private val tintedPaints = HashMap<Int, TextPaint>()
     fun tinted(color: Int): TextPaint = tintedPaints.getOrPut(color) { TextPaint(digit).apply { this.color = color } }
-
-    /**
-     * A digit's outline for the morph transition: `getTextPath` walked with a
-     * `PathMeasure`, in the line box's coordinates (the glyph centred in
-     * `digitWidth`, its baseline at the digit baseline), normalized once by
-     * [GlyphMorph] so two digits interpolate point to point.
-     */
-    private val outlines = HashMap<Int, DoubleArray>()
-    fun outline(digitIndex: Int): DoubleArray = outlines.getOrPut(digitIndex) {
-      val text = DIGITS[digitIndex]
-      val raw = Path()
-      digit.getTextPath(text, 0, 1, (digitWidth - width(text, GlyphRole.DIGIT)) / 2f, baseline(GlyphRole.DIGIT, text, 0f), raw)
-      // One clean outline: a glyph the font builds from overlapping strokes
-      // (Roboto's digits) becomes its outer contour and its holes, so no
-      // stroke morphs as a piece of its own.
-      val path = Path()
-      if (!path.op(raw, raw, Path.Op.UNION)) path.set(raw)
-      val points = ArrayList<Double>()
-      val sizes = ArrayList<Int>()
-      val measure = PathMeasure(path, false)
-      val pos = FloatArray(2)
-      do {
-        val length = measure.length
-        if (length > 0f) {
-          // About one vertex every 1.5 px, at least 24 per contour: enough for the resampling.
-          val n = max(24, (length / 1.5f).toInt())
-          for (i in 0 until n) {
-            measure.getPosTan(length * i / n, pos, null)
-            points.add(pos[0].toDouble())
-            points.add(pos[1].toDouble())
-          }
-          sizes.add(n)
-        }
-      } while (measure.nextContour())
-      val out = DoubleArray(sizes.size * GlyphMorph.CONTOUR_DOUBLES)
-      val count = GlyphMorph.normalize(points.toDoubleArray(), sizes.toIntArray(), out)
-      if (count <= 0) DoubleArray(0) else out.copyOf(count * GlyphMorph.CONTOUR_DOUBLES)
-    }
-
-    /** The target digit's outline aligned to the source's, once per pair (see [GlyphMorph.align]). */
-    private val alignedOutlines = HashMap<Int, DoubleArray>()
-    fun alignedOutline(from: Int, to: Int): DoubleArray = alignedOutlines.getOrPut(from * 10 + to) {
-      val a = outline(from)
-      val b = outline(to)
-      if (a.isEmpty() || b.isEmpty()) return@getOrPut b
-      val out = DoubleArray(b.size)
-      val count = GlyphMorph.align(a, a.size / GlyphMorph.CONTOUR_DOUBLES, b, b.size / GlyphMorph.CONTOUR_DOUBLES, out)
-      if (count <= 0) b else out
-    }
 
     private fun renderStrip(blankZero: Boolean): Bitmap {
       val w = ceil(digitWidth).toInt()
@@ -1100,11 +1048,7 @@ class RollingNumberView(context: Context) : View(context) {
     if (width <= 0f) return
     val lineHeight = fonts.lineHeight
     if (wheel.blend < 1.0) {
-      when (timing.transition) {
-        Transition.FLIP -> drawFlip(canvas, fonts, wheel, x, width)
-        Transition.MORPH -> drawMorph(canvas, fonts, wheel, x, width)
-        else -> drawSwap(canvas, fonts, wheel, x, width)
-      }
+      drawSwap(canvas, fonts, wheel, x, width)
       drawFlash(canvas, fonts, wheel, x, width)
       return
     }
@@ -1166,8 +1110,6 @@ class RollingNumberView(context: Context) : View(context) {
   private fun drawFlash(canvas: Canvas, fonts: FontSet, wheel: Wheel, x: Float, width: Float) {
     if (wheel.flash <= 0.002) return
     val color = (if (wheel.flashUp) flash.upColor else flash.downColor) ?: return
-    // A flipping or morphing glyph tints its own paint instead (see drawFlip / drawMorph).
-    if (wheel.blend < 1.0 && (timing.transition == Transition.FLIP || timing.transition == Transition.MORPH)) return
     val swapping = wheel.blend < 1.0
     val glyphIndex = if (wheel.blend < 1.0) wheel.toGlyph.toInt() else ((Math.round(wheel.position) % 10 + 10) % 10).toInt()
     if (glyphIndex < 0 || (wheel.blankZero && glyphIndex == 0)) return
@@ -1187,129 +1129,6 @@ class RollingNumberView(context: Context) : View(context) {
     canvas.drawText(text, -fonts.width(text, GlyphRole.DIGIT) / 2f, fonts.baseline(GlyphRole.DIGIT, text, 0f) - lineHeight / 2f, paint)
     paint.alpha = 255
     canvas.restore()
-  }
-
-  private val flipCamera = android.graphics.Camera()
-  private val flipMatrix = Matrix()
-
-  /**
-   * The split-flap for this frame: the next card's top half and the current
-   * card's bottom half stay; the flap (the current card's top on its front,
-   * the next card's bottom on its back) turns about the centre line, with the
-   * perspective of a [android.graphics.Camera].
-   */
-  private fun drawFlip(canvas: Canvas, fonts: FontSet, wheel: Wheel, x: Float, width: Float) {
-    val lineHeight = fonts.lineHeight
-    val mid = lineHeight / 2f
-    val b = wheel.blend.toFloat()
-    val angle = if (b < 0.5f) 2f * b * b else 1f - 2f * (1f - b) * (1f - b)
-    val current = wheel.fromGlyph.toInt()
-    val next = wheel.toGlyph.toInt()
-    val cx = x + width - fonts.digitWidth / 2f
-    val column = wheel.width.toFloat().coerceIn(0f, 1f)
-    val paint = flashedPaint(fonts, wheel)
-    fun half(glyphIndex: Int, top: Boolean, degrees: Float, shade: Float) {
-      if (glyphIndex < 0) return
-      val text = DIGITS[glyphIndex]
-      canvas.save()
-      if (top) canvas.clipRect(x, 0f, x + width, mid - 0.5f) else canvas.clipRect(x, mid + 0.5f, x + width, lineHeight)
-      if (degrees != 0f) {
-        // Turn about the hinge: the centre line of the cell, at the digit's centre.
-        flipCamera.save()
-        flipCamera.setLocation(0f, 0f, -8f * lineHeight / 72f * 4f)
-        flipCamera.rotateX(degrees)
-        flipCamera.getMatrix(flipMatrix)
-        flipCamera.restore()
-        flipMatrix.preTranslate(-cx, -mid)
-        flipMatrix.postTranslate(cx, mid)
-        canvas.concat(flipMatrix)
-      }
-      paint.alpha = (column * (1f - shade) * 255f).toInt().coerceIn(0, 255)
-      canvas.drawText(text, cx - fonts.width(text, GlyphRole.DIGIT) / 2f, fonts.baseline(GlyphRole.DIGIT, text, 0f), paint)
-      paint.alpha = 255
-      canvas.restore()
-    }
-    half(next, true, 0f, 0f)            // the next card's top, under the flap
-    half(current, false, 0f, 0f)        // the current card's bottom, until the flap lands
-    if (angle < 0.5f) {
-      half(current, true, -angle * 180f, angle * 0.6f)          // the flap's front, falling
-    } else {
-      half(next, false, (1f - angle) * 180f, (1f - angle) * 0.6f) // the flap's back, landing
-    }
-    // The board's hinge line.
-    canvas.save()
-    canvas.clipRect(x, mid - 0.5f, x + width, mid + 0.5f)
-    canvas.drawColor(0, android.graphics.PorterDuff.Mode.CLEAR)
-    canvas.restore()
-  }
-
-  private val morphPath = Path()
-  private var morphBuffer = DoubleArray(3 * GlyphMorph.CONTOUR_DOUBLES)
-
-  /** The morph for this frame: the outline between the two digits, filled nonzero (see GlyphMorph.hpp). */
-  private fun drawMorph(canvas: Canvas, fonts: FontSet, wheel: Wheel, x: Float, width: Float) {
-    val from = wheel.fromGlyph.toInt()
-    val to = wheel.toGlyph.toInt()
-    val a = if (from >= 0) fonts.outline(from) else DoubleArray(0)
-    val b = if (to >= 0) (if (from >= 0) fonts.alignedOutline(from, to) else fonts.outline(to)) else DoubleArray(0)
-    val ca = a.size / GlyphMorph.CONTOUR_DOUBLES
-    val cb = b.size / GlyphMorph.CONTOUR_DOUBLES
-    val count = max(ca, cb)
-    if (count == 0) return
-    if (morphBuffer.size < count * GlyphMorph.CONTOUR_DOUBLES) morphBuffer = DoubleArray(count * GlyphMorph.CONTOUR_DOUBLES)
-    val t = wheel.blend
-    var contours = 0
-    if (ca > 0 && cb > 0) {
-      contours = GlyphMorph.interpolate(a, ca, b, cb, t, morphBuffer, true)
-    } else {
-      // One side blank: the other shape grows from, or shrinks to, its centre.
-      val src = if (ca > 0) a else b
-      val scale = if (ca > 0) 1.0 - t else t
-      contours = src.size / GlyphMorph.CONTOUR_DOUBLES
-      for (c in 0 until contours) {
-        val base = c * GlyphMorph.CONTOUR_DOUBLES
-        var cx = 0.0
-        var cy = 0.0
-        for (i in 0 until GlyphMorph.SAMPLES) { cx += src[base + 2 * i]; cy += src[base + 2 * i + 1] }
-        cx /= GlyphMorph.SAMPLES
-        cy /= GlyphMorph.SAMPLES
-        for (i in 0 until GlyphMorph.SAMPLES) {
-          morphBuffer[base + 2 * i] = cx + (src[base + 2 * i] - cx) * scale
-          morphBuffer[base + 2 * i + 1] = cy + (src[base + 2 * i + 1] - cy) * scale
-        }
-      }
-    }
-    if (contours <= 0) return
-    val paint = flashedPaint(fonts, wheel)
-    val columnLeft = x + width - fonts.digitWidth
-    morphPath.rewind()
-    morphPath.fillType = Path.FillType.WINDING
-    for (c in 0 until contours) {
-      val base = c * GlyphMorph.CONTOUR_DOUBLES
-      morphPath.moveTo(columnLeft + morphBuffer[base].toFloat(), morphBuffer[base + 1].toFloat())
-      for (i in 1 until GlyphMorph.SAMPLES) {
-        morphPath.lineTo(columnLeft + morphBuffer[base + 2 * i].toFloat(), morphBuffer[base + 2 * i + 1].toFloat())
-      }
-      morphPath.close()
-    }
-    canvas.save()
-    canvas.clipRect(x, 0f, x + width, fonts.lineHeight)
-    // A shape half way between two glyphs is neither; a slight dip in the ink lets the eye skip over it.
-    val dip = 1f - NUMERIC_MORPH_DIP * Math.sin(Math.PI * t).toFloat()
-    paint.alpha = (wheel.width.toFloat().coerceIn(0f, 1f) * dip * 255f).toInt().coerceIn(0, 255)
-    canvas.drawPath(morphPath, paint)
-    paint.alpha = 255
-    canvas.restore()
-  }
-
-  /** The digit paint, or a copy mixed towards the change flash's colour by the wheel's flash. */
-  private fun flashedPaint(fonts: FontSet, wheel: Wheel): TextPaint {
-    if (wheel.flash <= 0.002) return fonts.digit
-    val tint = (if (wheel.flashUp) flash.upColor else flash.downColor) ?: return fonts.digit
-    val t = wheel.flash.toFloat()
-    val base = fonts.digit.color
-    fun ch(shift: Int) = ((base ushr shift and 0xff) + (((tint ushr shift and 0xff) - (base ushr shift and 0xff)) * t)).toInt().coerceIn(0, 255)
-    return fonts.tinted(Color.argb(ch(24), ch(16), ch(8), ch(0)))
   }
 
   /**

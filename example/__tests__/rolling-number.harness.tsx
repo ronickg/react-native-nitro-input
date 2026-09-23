@@ -92,8 +92,8 @@ describe('RollingNumber', () => {
     await waitFor(() => expect(ref.current?.getValue()).toBe(43))
   })
 
-  it('plays the flip, the scramble and the morph and settles on the value', async () => {
-    for (const transition of ['flip', 'scramble', 'morph'] as const) {
+  it('plays the scramble and settles on the value', async () => {
+    for (const transition of ['scramble'] as const) {
       const ref = createRef<RollingNumberHandle>()
       const { state, onLayout } = layoutOf()
       const props = { transition, duration: 150, stagger: 20, style: content, onLayout }

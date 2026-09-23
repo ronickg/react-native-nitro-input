@@ -24,7 +24,6 @@ import UIKit
 final class RollingNumberView: UIView {
 
   private typealias Engine = margelo.nitro.nitrorollingnumber.RollingEngine
-  private typealias GlyphMorph = margelo.nitro.nitrorollingnumber.GlyphMorph
 
   // MARK: - Configuration
 
@@ -94,7 +93,7 @@ final class RollingNumberView: UIView {
   }
 
   enum Transition: Int32 {
-    case roll = 0, numeric = 1, flip = 2, scramble = 3, morph = 4
+    case roll = 0, numeric = 1, scramble = 2
   }
 
   /// The change flash: the colours a changed digit lights up in (nil = off) and how long the light lasts.
@@ -269,19 +268,6 @@ final class RollingNumberView: UIView {
       let tint: UInt32
     }
     private static var sharedTinted: [TintKey: UIImage] = [:]
-    /// The digits' outlines for the morph transition, normalized (see GlyphMorph.hpp), per font and density.
-    private struct OutlineKey: Hashable {
-      let font: String
-      let digit: Int
-    }
-    private static var sharedOutlines: [OutlineKey: [Double]] = [:]
-    /// The target digit's outline aligned to the source's, once per pair (see GlyphMorph::align).
-    private struct PairKey: Hashable {
-      let font: String
-      let from: Int
-      let to: Int
-    }
-    private static var sharedAligned: [PairKey: [Double]] = [:]
     private static var sharedStrips: [StripKey: UIImage] = [:]
     private static let sharedCapacity = 512
     private static let ciContext = CIContext(options: [.useSoftwareRenderer: false])
@@ -404,115 +390,6 @@ final class RollingNumberView: UIView {
       return image
     }
 
-    /// A digit's outline for the morph transition: CoreText's glyph path,
-    /// flattened, in the line box's coordinates (y down, the glyph centred in
-    /// `digitWidth`, its baseline at the font's ascender), normalized once by
-    /// `GlyphMorph` so two digits interpolate point to point.
-    func outline(of digit: Int) -> [Double] {
-      let key = OutlineKey(font: fontTag(.digit) + "|\(renderScale)", digit: digit)
-      if let cached = Self.sharedOutlines[key] { return cached }
-      var points: [Double] = []
-      var sizes: [Int32] = []
-      let text = String(digit)
-      let ctFont = self.digit as CTFont
-      var unichars = Array(text.utf16)
-      var glyphs = [CGGlyph](repeating: 0, count: unichars.count)
-      let offsetX = Double((digitWidth - width(of: text, role: .digit)) / 2)
-      let baseline = Double(self.digit.ascender)
-      if CTFontGetGlyphsForCharacters(ctFont, &unichars, &glyphs, unichars.count), let raw = CTFontCreatePathForGlyph(ctFont, glyphs[0], nil) {
-        // One clean outline: a glyph built from overlapping strokes becomes its
-        // outer contour and its holes, so no stroke morphs as a piece of its own.
-        let path: CGPath
-        if #available(iOS 16.0, *) {
-          path = raw.normalized(using: .winding)
-        } else {
-          path = raw
-        }
-        var current = CGPoint.zero
-        var start = CGPoint.zero
-        var contour = 0
-        func add(_ p: CGPoint) {
-          points.append(Double(p.x) + offsetX)
-          points.append(baseline - Double(p.y))
-          contour += 1
-        }
-        func flush() {
-          if contour > 0 { sizes.append(Int32(contour)) }
-          contour = 0
-        }
-        path.applyWithBlock { element in
-          let e = element.pointee
-          switch e.type {
-          case .moveToPoint:
-            flush()
-            current = e.points[0]
-            start = current
-            add(current)
-          case .addLineToPoint:
-            current = e.points[0]
-            add(current)
-          case .addQuadCurveToPoint:
-            let c = e.points[0], p = e.points[1]
-            for i in 1...8 {
-              let t = CGFloat(i) / 8
-              let x = (1 - t) * (1 - t) * current.x + 2 * (1 - t) * t * c.x + t * t * p.x
-              let y = (1 - t) * (1 - t) * current.y + 2 * (1 - t) * t * c.y + t * t * p.y
-              add(CGPoint(x: x, y: y))
-            }
-            current = p
-          case .addCurveToPoint:
-            let c1 = e.points[0], c2 = e.points[1], p = e.points[2]
-            for i in 1...8 {
-              let t = CGFloat(i) / 8
-              let u = 1 - t
-              let x = u * u * u * current.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t * t * t * p.x
-              let y = u * u * u * current.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t * t * t * p.y
-              add(CGPoint(x: x, y: y))
-            }
-            current = p
-          case .closeSubpath:
-            current = start
-            flush()
-          @unknown default:
-            break
-          }
-        }
-        flush()
-      }
-      var out = [Double](repeating: 0, count: sizes.count * RollingNumberView.morphContourDoubles)
-      let contours = points.withUnsafeBufferPointer { p in
-        sizes.withUnsafeBufferPointer { z in
-          out.withUnsafeMutableBufferPointer { o in
-            Int(GlyphMorph.normalize(p.baseAddress, z.baseAddress, Int32(sizes.count), o.baseAddress))
-          }
-        }
-      }
-      out.removeLast(out.count - contours * RollingNumberView.morphContourDoubles)
-      if Self.sharedOutlines.count >= 64 { Self.sharedOutlines.removeAll(keepingCapacity: true) }
-      Self.sharedOutlines[key] = out
-      return out
-    }
-
-    func alignedOutline(from: Int, to: Int) -> [Double] {
-      let key = PairKey(font: fontTag(.digit) + "|\(renderScale)", from: from, to: to)
-      if let cached = Self.sharedAligned[key] { return cached }
-      let a = outline(of: from)
-      let b = outline(of: to)
-      guard !a.isEmpty, !b.isEmpty else { return b }
-      var out = [Double](repeating: 0, count: b.count)
-      let d = RollingNumberView.morphContourDoubles
-      _ = a.withUnsafeBufferPointer { pa in
-        b.withUnsafeBufferPointer { pb in
-          out.withUnsafeMutableBufferPointer { o in
-            GlyphMorph.align(pa.baseAddress, Int32(a.count / d), pb.baseAddress, Int32(b.count / d), o.baseAddress)
-          }
-        }
-      }
-      if Self.sharedAligned.count >= 256 { Self.sharedAligned.removeAll(keepingCapacity: true) }
-      Self.sharedAligned[key] = out
-      return out
-    }
-
     /// A wheel's whole digit strip as one image: slots for index -1 (blank) to
     /// 10 (the 0 that follows 9 on a wrap), each `lineHeight` tall with the
     /// digit centred in `digitWidth`. A wheel layer shows one slot-high window
@@ -621,44 +498,6 @@ final class RollingNumberView: UIView {
     }
   }
 
-  /// The split-flap's layers of one wheel: the next card's top half and the
-  /// current card's bottom half, static, and the flap (the current card's top
-  /// on its front, the next card's bottom on its back) turning about the
-  /// centre line with perspective. Each half is a clipped container holding
-  /// the whole glyph image.
-  private final class FlipLayers {
-    let topNext = CALayer()
-    let bottomCurrent = CALayer()
-    let flapFront = CALayer()
-    let flapBack = CALayer()
-    let hinge = CALayer()
-    let images: [CALayer] = [CALayer(), CALayer(), CALayer(), CALayer()]
-    var glyphs = [-2, -2, -2, -2]
-    var hidden = true
-    var halves: [CALayer] { [topNext, bottomCurrent, flapFront, flapBack] }
-
-    init(scale: CGFloat) {
-      for (half, image) in zip(halves, images) {
-        half.masksToBounds = true
-        image.contentsScale = scale
-        half.addSublayer(image)
-        half.isHidden = true
-      }
-      hinge.isHidden = true
-    }
-  }
-
-  /// The morph transition's layer of one wheel: the interpolated outline, filled nonzero (see GlyphMorph.hpp).
-  private final class MorphLayer {
-    let shape = CAShapeLayer()
-    var buffer: [Double] = []
-    var hidden = true
-    init() {
-      shape.fillRule = .nonZero
-      shape.isHidden = true
-    }
-  }
-
   private struct ElementLayer {
     var kind: LayerKind
     var layer: CALayer
@@ -666,10 +505,6 @@ final class RollingNumberView: UIView {
     var blankZero: Bool
     /// Wheels only: the numeric transition's layers, once the wheel has swapped.
     var swap: SwapLayers?
-    /// Wheels only: the split-flap's layers, once the wheel has flipped.
-    var flip: FlipLayers?
-    /// Wheels only: the morph's layer, once the wheel has morphed.
-    var morph: MorphLayer?
     /// Wheels only: the change flash, a tinted glyph over the one showing.
     var flashLayer: CALayer?
     var flashGlyph = -2
@@ -1253,40 +1088,9 @@ final class RollingNumberView: UIView {
           slots[i].opacity = opacity
         }
         let strip = slot.layer.sublayers?.first
-        let style = timing.transition
         let swapping = wheel.blend < 1
-        // Whichever swap style is drawing, the strip stays put underneath, hidden.
-        if swapping && style == .flip {
-          let flip: FlipLayers
-          if let existing = slot.flip {
-            flip = existing
-          } else {
-            flip = FlipLayers(scale: fonts.renderScale)
-            for layer in flip.halves { slot.layer.addSublayer(layer) }
-            slot.layer.addSublayer(flip.hinge)
-            slots[i].flip = flip
-          }
-          layoutFlip(flip, wheel: wheel, fonts: fonts, cellWidth: element.width)
-        } else if let flip = slot.flip, !flip.hidden {
-          for layer in flip.halves { layer.isHidden = true }
-          flip.hinge.isHidden = true
-          flip.hidden = true
-        }
-        if swapping && style == .morph {
-          let morph: MorphLayer
-          if let existing = slot.morph {
-            morph = existing
-          } else {
-            morph = MorphLayer()
-            slot.layer.addSublayer(morph.shape)
-            slots[i].morph = morph
-          }
-          layoutMorph(morph, wheel: wheel, fonts: fonts, cellWidth: element.width)
-        } else if let morph = slot.morph, !morph.hidden {
-          morph.shape.isHidden = true
-          morph.hidden = true
-        }
-        if swapping && style != .flip && style != .morph {
+        // While the glyphs swap, the strip stays put underneath, hidden.
+        if swapping {
           let swap: SwapLayers
           if let existing = slot.swap {
             swap = existing
@@ -1348,7 +1152,6 @@ final class RollingNumberView: UIView {
   static let numericOffset: CGFloat = 0.4
   static let numericScale: CGFloat = 0.6
   static let numericBlur: CGFloat = 0.16
-  static let numericMorphDip: CGFloat = 0.25
 
   /// Places the leaving and the arriving glyph of a swapping wheel for this
   /// frame: each scaled about its centre, offset along the axis, faded, and
@@ -1397,144 +1200,11 @@ final class RollingNumberView: UIView {
     }
   }
 
-  /// The split-flap for this frame. `blend` is the flap's fall, 0 hanging to
-  /// 1 landed; the angle eases in (the flap drops) and out (it lands).
-  private func layoutFlip(_ flip: FlipLayers, wheel: Engine.Wheel, fonts: FontSet, cellWidth: CGFloat) {
-    let lh = fonts.lineHeight
-    let mid = lh / 2
-    let b = CGFloat(wheel.blend)
-    let angle = b < 0.5 ? 2 * b * b : 1 - 2 * (1 - b) * (1 - b)
-    let current = Int(wheel.fromGlyph)
-    let next = Int(wheel.toGlyph)
-    let topRect = CGRect(x: 0, y: 0, width: cellWidth, height: mid - 0.5)
-    let bottomRect = CGRect(x: 0, y: mid + 0.5, width: cellWidth, height: lh - mid - 0.5)
-    // Each half shows the whole glyph image, offset so the right half of it is in view.
-    func show(_ index: Int, glyph: Int, frame: CGRect, hidden: Bool) {
-      let half = flip.halves[index]
-      let image = flip.images[index]
-      let visible = glyph >= 0 && !hidden
-      if half.isHidden != !visible { half.isHidden = !visible }
-      guard visible else { return }
-      if flip.glyphs[index] != glyph, let img = fonts.image(Self.digitStrings[glyph % 10], role: .digit) {
-        image.contents = img.cgImage
-        image.bounds = CGRect(origin: .zero, size: img.size)
-        flip.glyphs[index] = glyph
-      }
-      if half.bounds.size != frame.size { half.bounds = CGRect(origin: .zero, size: frame.size) }
-      // The image sits at the column in cell space; the half's own origin is subtracted.
-      let column = cellWidth - fonts.digitWidth / 2
-      image.position = CGPoint(x: column - frame.origin.x, y: lh / 2 - frame.origin.y)
-    }
-    show(0, glyph: next, frame: topRect, hidden: false)
-    show(1, glyph: current, frame: bottomRect, hidden: false)
-    show(2, glyph: current, frame: topRect, hidden: angle >= 0.5)
-    show(3, glyph: next, frame: bottomRect, hidden: angle < 0.5)
-    // Statics sit at their frames; the flap turns about the centre line with a little perspective.
-    flip.topNext.anchorPoint = CGPoint(x: 0.5, y: 0)
-    flip.topNext.position = CGPoint(x: cellWidth / 2, y: 0)
-    flip.bottomCurrent.anchorPoint = CGPoint(x: 0.5, y: 0)
-    flip.bottomCurrent.position = CGPoint(x: cellWidth / 2, y: bottomRect.origin.y)
-    var perspective = CATransform3DIdentity
-    perspective.m34 = -1 / (lh * 2.5)
-    flip.flapFront.anchorPoint = CGPoint(x: 0.5, y: 1)
-    flip.flapFront.position = CGPoint(x: cellWidth / 2, y: mid)
-    flip.flapFront.transform = CATransform3DRotate(perspective, -angle * .pi, 1, 0, 0)
-    flip.flapBack.anchorPoint = CGPoint(x: 0.5, y: 0)
-    flip.flapBack.position = CGPoint(x: cellWidth / 2, y: mid)
-    flip.flapBack.transform = CATransform3DRotate(perspective, (1 - angle) * .pi, 1, 0, 0)
-    // The moving half darkens a little as it turns away from the light.
-    flip.flapFront.opacity = Float(1 - angle * 0.5)
-    flip.flapBack.opacity = Float(1 - (1 - angle) * 0.5)
-    for half in [flip.topNext, flip.bottomCurrent] { half.opacity = 1 }
-    if flip.hinge.isHidden { flip.hinge.isHidden = false }
-    flip.hinge.frame = CGRect(x: 0, y: mid - 0.5, width: cellWidth, height: 1)
-    flip.hinge.backgroundColor = backgroundColor?.cgColor ?? UIColor.clear.cgColor
-    flip.hidden = false
-  }
-
-  private static func mix(_ a: UIColor, _ b: UIColor, _ t: CGFloat) -> UIColor {
-    var ar: CGFloat = 0, ag: CGFloat = 0, ab: CGFloat = 0, aa: CGFloat = 0
-    var br: CGFloat = 0, bg: CGFloat = 0, bb: CGFloat = 0, ba: CGFloat = 0
-    a.getRed(&ar, green: &ag, blue: &ab, alpha: &aa)
-    b.getRed(&br, green: &bg, blue: &bb, alpha: &ba)
-    return UIColor(red: ar + (br - ar) * t, green: ag + (bg - ag) * t, blue: ab + (bb - ab) * t, alpha: aa + (ba - aa) * t)
-  }
-
-  // The morph's contour size, mirroring `GlyphMorph::kSamples` and `kContourDoubles`.
-  static let morphSamples = 192
-  static let morphContourDoubles = 384
-
-  /// The morph for this frame: the outline between the two digits, as a path.
-  private func layoutMorph(_ morph: MorphLayer, wheel: Engine.Wheel, fonts: FontSet, cellWidth: CGFloat) {
-    let from = Int(wheel.fromGlyph)
-    let to = Int(wheel.toGlyph)
-    // A blank turning into a digit (or back) is the numeric look; the morph needs two shapes.
-    let a = from >= 0 ? fonts.outline(of: from) : []
-    let b = to >= 0 ? (from >= 0 ? fonts.alignedOutline(from: from, to: to) : fonts.outline(of: to)) : []
-    let ca = a.count / Self.morphContourDoubles
-    let cb = b.count / Self.morphContourDoubles
-    let count = max(ca, cb)
-    if morph.buffer.count < count * Self.morphContourDoubles {
-      morph.buffer = [Double](repeating: 0, count: count * Self.morphContourDoubles)
-    }
-    let t = CGFloat(wheel.blend)
-    var contours = 0
-    if ca > 0 && cb > 0 {
-      contours = a.withUnsafeBufferPointer { pa in
-        b.withUnsafeBufferPointer { pb in
-          morph.buffer.withUnsafeMutableBufferPointer { o in
-            Int(GlyphMorph.interpolate(pa.baseAddress, Int32(ca), pb.baseAddress, Int32(cb), Double(t), o.baseAddress, true))
-          }
-        }
-      }
-    } else if ca > 0 || cb > 0 {
-      // One side blank: the other shape grows from, or shrinks to, its centre.
-      let src = ca > 0 ? a : b
-      let scale = ca > 0 ? 1 - t : t
-      contours = src.count / Self.morphContourDoubles
-      for c in 0..<contours {
-        var cx = 0.0, cy = 0.0
-        for i in 0..<Self.morphSamples {
-          cx += src[c * Self.morphContourDoubles + 2 * i]
-          cy += src[c * Self.morphContourDoubles + 2 * i + 1]
-        }
-        cx /= Double(Self.morphSamples)
-        cy /= Double(Self.morphSamples)
-        for i in 0..<Self.morphSamples {
-          morph.buffer[c * Self.morphContourDoubles + 2 * i] = cx + (src[c * Self.morphContourDoubles + 2 * i] - cx) * Double(scale)
-          morph.buffer[c * Self.morphContourDoubles + 2 * i + 1] = cy + (src[c * Self.morphContourDoubles + 2 * i + 1] - cy) * Double(scale)
-        }
-      }
-    }
-    let path = CGMutablePath()
-    let columnLeft = cellWidth - fonts.digitWidth
-    for c in 0..<contours {
-      let base = c * Self.morphContourDoubles
-      path.move(to: CGPoint(x: columnLeft + CGFloat(morph.buffer[base]), y: CGFloat(morph.buffer[base + 1])))
-      for i in 1..<Self.morphSamples {
-        path.addLine(to: CGPoint(x: columnLeft + CGFloat(morph.buffer[base + 2 * i]), y: CGFloat(morph.buffer[base + 2 * i + 1])))
-      }
-      path.closeSubpath()
-    }
-    morph.shape.path = path
-    var fill = fonts.color
-    if wheel.flash > 0.002, let tint = wheel.flashUp ? flash.upColor : flash.downColor {
-      fill = Self.mix(fonts.color, tint, CGFloat(wheel.flash))
-    }
-    morph.shape.fillColor = fill.cgColor
-    // A shape half way between two glyphs is neither; a slight dip in the ink lets the eye skip over it.
-    morph.shape.opacity = Float(CGFloat(wheel.width) * (1 - Self.numericMorphDip * sin(.pi * t)))
-    if morph.shape.isHidden { morph.shape.isHidden = false }
-    morph.hidden = false
-  }
-
   /// The change flash for this frame: the glyph showing (or arriving), in the
   /// up or down colour, composited over it at the flash's opacity.
   private func layoutFlash(slotIndex i: Int, wheel: Engine.Wheel, fonts: FontSet, cellWidth: CGFloat) {
     let tint = wheel.flash > 0.002 ? (wheel.flashUp ? flash.upColor : flash.downColor) : nil
-    // A flipping or morphing glyph is not a whole glyph to overlay: the morph tints its own fill, the flip lights up as it lands.
-    let midway = wheel.blend < 1 && (timing.transition == .flip || timing.transition == .morph)
-    guard let tint, !midway else {
+    guard let tint else {
       if let layer = slots[i].flashLayer, !layer.isHidden { layer.isHidden = true }
       return
     }
@@ -1565,7 +1235,7 @@ final class RollingNumberView: UIView {
     // Over the arriving glyph's place during a swap; the flash follows the swap's own fade.
     let d: CGFloat = wheel.fromAbove ? 1 : -1
     let blend = CGFloat(wheel.blend)
-    let swapping = wheel.blend < 1 && timing.transition != .flip
+    let swapping = wheel.blend < 1
     let offset = swapping ? -d * fonts.lineHeight * Self.numericOffset * (1 - blend) : 0
     let scale = swapping ? Self.numericScale + (1 - Self.numericScale) * blend : 1
     layer.position = CGPoint(x: cellWidth - fonts.digitWidth / 2, y: fonts.lineHeight / 2 + offset)
@@ -1594,7 +1264,7 @@ final class RollingNumberView: UIView {
         }
         container.addSublayer(inner)
         contentLayer.addSublayer(container)
-        slots.append(ElementLayer(kind: .wheel, layer: container, blankZero: blankZero, swap: nil, flip: nil, morph: nil, flashLayer: nil, glyphTop: 0))
+        slots.append(ElementLayer(kind: .wheel, layer: container, blankZero: blankZero, swap: nil, flashLayer: nil, glyphTop: 0))
       case .glyph(let text, let role):
         if let image = fonts.image(text, role: role) {
           inner.contents = image.cgImage
@@ -1602,7 +1272,7 @@ final class RollingNumberView: UIView {
         }
         container.addSublayer(inner)
         contentLayer.addSublayer(container)
-        slots.append(ElementLayer(kind: .glyph(text, role), layer: container, blankZero: false, swap: nil, flip: nil, morph: nil, flashLayer: nil, glyphTop: fonts.top(for: role, text: text, lineTop: 0)))
+        slots.append(ElementLayer(kind: .glyph(text, role), layer: container, blankZero: false, swap: nil, flashLayer: nil, glyphTop: fonts.top(for: role, text: text, lineTop: 0)))
       }
     }
   }

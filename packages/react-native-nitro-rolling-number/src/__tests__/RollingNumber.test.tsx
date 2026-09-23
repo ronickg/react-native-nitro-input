@@ -54,12 +54,8 @@ describe('RollingNumber', () => {
     const tuned = nativeProps(render(<RollingNumber value={1} transition="numeric" duration={200} easing="easeOut" stagger={0} />))
     expect([tuned.duration, tuned.easing, tuned.stagger]).toEqual([200, 'easeOut', 0])
 
-    const flip = nativeProps(render(<RollingNumber value={1} transition="flip" />))
-    expect([flip.transition, flip.duration, flip.easing, flip.stagger]).toEqual(['flip', 600, 'linear', 40])
     const scramble = nativeProps(render(<RollingNumber value={1} transition="scramble" />))
-    expect([scramble.duration, scramble.easing, scramble.stagger]).toEqual([500, 'linear', 60])
-    const morph = nativeProps(render(<RollingNumber value={1} transition="morph" />))
-    expect([morph.duration, morph.easing, morph.stagger]).toEqual([400, 'easeInOut', 40])
+    expect([scramble.transition, scramble.duration, scramble.easing, scramble.stagger]).toEqual(['scramble', 500, 'linear', 60])
   })
 
   it('passes the change flash and the pop through, off by default', () => {

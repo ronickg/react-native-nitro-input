@@ -393,9 +393,7 @@ class HybridRollingNumberView(private val context: ThemedReactContext) : HybridR
     rollingView.timing = RollingNumberView.Timing(
       transition = when (transition) {
         RollingNumberTransition.NUMERIC -> RollingNumberView.Transition.NUMERIC
-        RollingNumberTransition.FLIP -> RollingNumberView.Transition.FLIP
         RollingNumberTransition.SCRAMBLE -> RollingNumberView.Transition.SCRAMBLE
-        RollingNumberTransition.MORPH -> RollingNumberView.Transition.MORPH
         RollingNumberTransition.ROLL, null -> RollingNumberView.Transition.ROLL
       },
       popOnChange = (popOnChange ?: 0.0).coerceIn(0.0, 1.0),

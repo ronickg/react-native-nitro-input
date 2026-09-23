@@ -161,14 +161,12 @@ export function TimingDemo() {
   );
 }
 
-type Transition = 'roll' | 'numeric' | 'flip' | 'scramble' | 'morph';
+type Transition = 'roll' | 'numeric' | 'scramble';
 /** Each transition's own timing, as the React Native wrapper defaults it. */
 const TRANSITION_DEFAULTS: Record<Transition, {duration: number; easing: Easing; stagger: number}> = {
   roll: {duration: 500, easing: 'easeInOut', stagger: 0},
   numeric: {duration: 450, easing: 'spring', stagger: 50},
-  flip: {duration: 600, easing: 'linear', stagger: 40},
   scramble: {duration: 500, easing: 'linear', stagger: 60},
-  morph: {duration: 400, easing: 'easeInOut', stagger: 40},
 };
 
 export function TransitionsDemo() {
@@ -189,9 +187,9 @@ export function TransitionsDemo() {
         </Btn>
         <Btn onClick={() => setValue((v) => v + 1000 + Math.round(Math.random() * 9000))}>Big change</Btn>
         <Btn onClick={() => setValue((v) => Math.max(0, v - 1 - Math.round(Math.random() * 9)))}>Down</Btn>
-        {(['numeric', 'flip', 'scramble', 'morph', 'roll'] as const).map((t) => (
+        {(['numeric', 'scramble', 'roll'] as const).map((t) => (
           <Btn key={t} selected={transition === t} onClick={() => setTransition(t)}>
-            {t === 'morph' ? 'morph (native)' : t}
+            {t}
           </Btn>
         ))}
         <label>
@@ -246,7 +244,7 @@ export function ChangeEffectsDemo() {
           popOnChange {pop.toFixed(2)}
           <input type="range" min={0} max={0.4} step={0.02} value={pop} onChange={(e) => setPop(Number(e.target.value))} />
         </label>
-        {(['roll', 'numeric', 'flip'] as const).map((t) => (
+        {(['roll', 'numeric', 'scramble'] as const).map((t) => (
           <Btn key={t} selected={transition === t} onClick={() => setTransition(t)}>
             {t}
           </Btn>

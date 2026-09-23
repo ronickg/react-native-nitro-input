@@ -72,17 +72,12 @@ export interface RollingNumberProps extends Omit<ViewProps, 'children'> {
    * effect of SwiftUI's `.contentTransition(.numericText())`: each changed
    * glyph swaps in place, the old one softening, shrinking and sliding out
    * while the new one slides in from the other side and comes into focus, the
-   * digits cascading from the left; unchanged digits stay put. `'flip'` is a
-   * split-flap board: each changed digit flips card by card through the
-   * digits between, the flap turning about the centre line. `'scramble'`
+   * digits cascading from the left; unchanged digits stay put. `'scramble'`
    * shows a different random digit every few frames until each changed digit
-   * locks on its target, from the left. `'morph'` interpolates the outline of
-   * the old glyph into the new one, on iOS and Android (the docs' web demo
-   * shows `'numeric'` for it).
+   * locks on its target, from the left.
    *
    * Each swap style has its own defaults for `duration`, `easing` and
-   * `stagger`: numeric 450 / `'spring'` / 50, flip 600 / `'linear'` / 40,
-   * scramble 500 / `'linear'` / 60, morph 400 / `'easeInOut'` / 40.
+   * `stagger`: numeric 450 / `'spring'` / 50, scramble 500 / `'linear'` / 60.
    */
   transition?: RollingNumberTransition
   /**
@@ -281,9 +276,7 @@ interface Size {
 const TRANSITION_DEFAULTS: Record<RollingNumberTransition, { duration: number; easing: RollingNumberEasing; stagger: number }> = {
   roll: { duration: 500, easing: 'easeInOut', stagger: 0 },
   numeric: { duration: 450, easing: 'spring', stagger: 50 },
-  flip: { duration: 600, easing: 'linear', stagger: 40 },
   scramble: { duration: 500, easing: 'linear', stagger: 60 },
-  morph: { duration: 400, easing: 'easeInOut', stagger: 40 },
 }
 
 /**

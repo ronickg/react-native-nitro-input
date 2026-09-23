@@ -30,17 +30,15 @@ A value that arrives while the wheels are still rolling doesn't restart them fro
 
 ## The transitions
 
-The roll is not the only way a change can play. `transition` picks one of four others; all of them swap each changed glyph in place, digits that don't change stay put, and the change cascades from the leftmost changed digit to the right (`stagger`). `duration` and `easing` apply to each, with their own defaults. Under Reduce Motion every one of them snaps, like a roll.
+The roll is not the only way a change can play. `transition` picks one of two others; both swap each changed glyph in place, digits that don't change stay put, and the change cascades from the leftmost changed digit to the right (`stagger`). `duration` and `easing` apply to each, with their own defaults. Under Reduce Motion every one of them snaps, like a roll.
 
 - **`numeric`** is the effect of SwiftUI's `.contentTransition(.numericText())`: the old glyph softens, shrinks and slides out; the new one slides in from the other side, a little small and out of focus, and resolves. The glyphs move up when the value grows and down when it shrinks. The blur is real on iOS, Android and here: a blurred copy of each glyph rendered once per font and cross-faded with the sharp one, so a frame costs what a frame of a roll does.
-- **`flip`** is a split-flap departure board: each changed digit flips card by card through the digits between, at the board's constant rate, the flap turning about the centre line, falling for a bigger value and rising for a smaller one.
 - **`scramble`**: each changed digit shows a different random digit every few frames, never the one it is leaving or arriving at, and locks on its target from the left.
-- **`morph`** turns the outline of the old glyph into the new one point by point, the second hole of an 8 closing as it becomes a 0. The outlines come from the platform's font engine, so the morph is iOS and Android only: this demo shows the numeric transition when you pick it.
 
 <Example
   code={`<RollingNumber
   value={value}
-  transition="numeric"   // 'roll' | 'numeric' | 'flip' | 'scramble' | 'morph'
+  transition="numeric"   // 'roll' | 'numeric' | 'scramble'
   groupingSeparator=","
   fontSize={56}
   fontWeight="800"

@@ -675,75 +675,11 @@ static void numericTransitionRetargetsFromTheArrivingGlyph() {
   CHECK(!e.needsFrames());
 }
 
-static void flipStepsThroughEveryCard() {
-  RollingEngine e;
-  e.setFormat(0, 1);
-  e.setTiming(0.6, /* linear */ 0, 0.15, 0, 0);
-  e.setTransition(2);
-  e.animateTo(2, 0);
-  e.animateTo(5, 0);   // three cards: 2→3, 3→4, 4→5, 0.2 s each
-  RollingEngine::Wheel w = e.wheelAt(0);
-  CHECK(near(w.fromGlyph, 2));
-  CHECK(near(w.toGlyph, 3));
-  CHECK(near(w.blend, 0));
-  CHECK(w.fromAbove);
-  e.tick(0.1);
-  w = e.wheelAt(0);
-  CHECK(near(w.fromGlyph, 2));
-  CHECK(near(w.toGlyph, 3));
-  CHECK(near(w.blend, 0.5));
-  e.tick(0.3);
-  w = e.wheelAt(0);
-  CHECK(near(w.fromGlyph, 3));
-  CHECK(near(w.toGlyph, 4));
-  CHECK(near(w.blend, 0.5));
-  e.tick(0.5);
-  w = e.wheelAt(0);
-  CHECK(near(w.fromGlyph, 4));
-  CHECK(near(w.toGlyph, 5));
-  CHECK(near(w.blend, 0.5));
-  e.tick(0.6);
-  CHECK(!e.needsFrames());
-  CHECK(near(e.wheelAt(0).position, 5));
-  CHECK(near(e.wheelAt(0).blend, 1));
-
-  // The direction follows the value: 21 → 19 shrinks, so the units fall 1 → 0 → 9
-  // through the wrap (two cards) while the tens fall 2 → 1 (one card).
-  e.animateTo(21, 1);
-  e.tick(2);
-  e.animateTo(19, 3);
-  e.tick(3.15);
-  w = e.wheelAt(0);
-  CHECK(near(w.fromGlyph, 1));
-  CHECK(near(w.toGlyph, 0));
-  CHECK(!w.fromAbove);
-  CHECK(near(e.wheelAt(1).fromGlyph, 2));
-  CHECK(near(e.wheelAt(1).toGlyph, 1));
-  CHECK(near(e.wheelAt(1).blend, 0.25));
-  e.tick(3.45);
-  w = e.wheelAt(0);
-  CHECK(near(w.fromGlyph, 0));
-  CHECK(near(w.toGlyph, 9));
-  e.tick(3.65);
-  CHECK(near(e.wheelAt(0).position, 9));
-  CHECK(near(e.wheelAt(1).position, 1));
-
-  // A column appearing flips once from blank while it opens.
-  e.animateTo(119, 4);
-  w = e.wheelAt(2);
-  CHECK(near(w.fromGlyph, -1));
-  CHECK(near(w.toGlyph, 1));
-  CHECK(near(e.wheelAt(1).blend, 1));   // the tens keep their 1
-  e.tick(4.3);
-  CHECK(near(e.wheelAt(2).blend, 0.5));
-  CHECK(near(e.wheelAt(2).width, 0.5));
-}
-
 static void scrambleShowsRandomDigitsUntilItLocks() {
   RollingEngine e;
   e.setFormat(0, 1);
   e.setTiming(0.5, /* linear */ 0, 0.15, 0, 0);
-  e.setTransition(3);
+  e.setTransition(2);
   e.animateTo(4, 0);
   e.animateTo(7, 0);
   CHECK(e.needsFrames());
@@ -766,7 +702,7 @@ static void scrambleShowsRandomDigitsUntilItLocks() {
     RollingEngine s;
     s.setFormat(0, 1);
     s.setTiming(1, 0, 0.15, 0, 0);
-    s.setTransition(3);
+    s.setTransition(2);
     s.animateTo(1, 0);
     s.animateTo(2, 0);
     int increments = 0;
@@ -845,10 +781,7 @@ static void changeFlashAndPop() {
   CHECK(!quiet.needsFrames());
 }
 
-int glyphMorphTests();
-
 int main() {
-  failures += glyphMorphTests();
   odometerPositions();
   tickerRollsShortestPathInDirection();
   wheelsAppearAndDisappear();
@@ -866,7 +799,6 @@ int main() {
   numericTransitionCascadesLeftToRight();
   numericTransitionGrowsAndShrinksColumns();
   numericTransitionRetargetsFromTheArrivingGlyph();
-  flipStepsThroughEveryCard();
   scrambleShowsRandomDigitsUntilItLocks();
   changeFlashAndPop();
   if (failures == 0) {

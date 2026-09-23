@@ -68,31 +68,17 @@ public:
   static constexpr double kNumericOffset = 0.4;
   static constexpr double kNumericScale = 0.6;
   static constexpr double kNumericBlur = 0.16;
-  /// The morph: the outline between two glyphs is drawn with its ink dipped
-  /// by this much at the half-way point (times sin(π·blend)), where the
-  /// shape is neither glyph.
-  static constexpr double kNumericMorphDip = 0.25;
 
-  // The other glyph-swap transitions reuse the same fields:
-  //   flip (2), a split-flap board: the wheel steps through every card
-  //     between its old and its new glyph in the direction of the change,
-  //     `fromGlyph` the card showing, `toGlyph` the next one, `blend` how far
-  //     the flap has fallen (0 hanging, 1 landed). A renderer draws the top
-  //     half of the next card and the bottom half of the current one, with
-  //     the flap (the current card's top on its front, the next card's bottom
-  //     on its back) turning about the centre line.
-  //   scramble (3): the wheel shows a different random digit every
-  //     kScrambleStepSeconds until it locks on its target; `position` is that
-  //     digit and `blend` stays 1, so a renderer needs nothing new.
-  //   morph (4): planned exactly like the numeric transition; a renderer
-  //     interpolates the outline of `fromGlyph` into that of `toGlyph` by
-  //     `blend` (see GlyphMorph.hpp) instead of cross-fading.
+  // The scramble (2) is planned like the numeric transition but the wheel
+  // shows a different random digit every kScrambleStepSeconds until it locks
+  // on its target; `position` is that digit and `blend` stays 1, so a
+  // renderer needs nothing new.
   static constexpr double kScrambleStepSeconds = 0.045;
 
   // Easing: 0 linear, 1 easeIn, 2 easeOut, 3 easeInOut, 4 spring.
   // Direction: 0 auto (sign of the change), 1 up, 2 down.
   // Transition: 0 roll (the odometer), 1 numeric (glyphs swap in place),
-  // 2 flip (split-flap), 3 scramble, 4 morph (outlines).
+  // 2 scramble.
 
   RollingEngine();
 
@@ -104,10 +90,10 @@ public:
   void setTiming(double durationSeconds, int easing, double bounce, double staggerSeconds, int direction);
   /// How a value change plays: 0 rolls every digit through the ones between
   /// (the odometer), 1 swaps each changed glyph in place (the numeric
-  /// transition). In the numeric transition the stagger runs from the
-  /// leftmost digit to the right, the way the effect cascades on iOS, and
-  /// the direction decides which way the glyphs move. Takes effect from the
-  /// next `animateTo`.
+  /// transition), 2 scrambles each changed digit until it locks. In the
+  /// numeric transition the stagger runs from the leftmost digit to the
+  /// right, the way the effect cascades on iOS, and the direction decides
+  /// which way the glyphs move. Takes effect from the next `animateTo`.
   void setTransition(int transition);
   int transition() const { return transitionStyle_; }
   /// The change flash: every digit whose glyph changes lights up and fades

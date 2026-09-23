@@ -156,7 +156,7 @@ void RollingEngine::setTiming(double durationSeconds, int easing, double bounce,
 }
 
 void RollingEngine::setTransition(int transition) {
-  transitionStyle_ = transition >= 0 && transition <= 4 ? transition : 0;
+  transitionStyle_ = transition >= 0 && transition <= 2 ? transition : 0;
 }
 
 void RollingEngine::setFlash(double seconds) {
@@ -787,7 +787,7 @@ void RollingEngine::apply(double elapsed) {
       w.fromGlyph = -1;
       w.toGlyph = -1;
       w.blend = 1;
-    } else if (tr.style == 3) {
+    } else if (tr.style == 2) {
       // Scramble: a different digit every step until the wheel locks.
       const int from = static_cast<int>(wt.from.fromGlyph);
       const int to = static_cast<int>(wt.from.toGlyph);
@@ -810,33 +810,9 @@ void RollingEngine::apply(double elapsed) {
       w.fromGlyph = -1;
       w.toGlyph = -1;
       w.blend = 1;
-    } else if (tr.style == 2) {
-      // Flip: card by card, at the board's constant rate, each flap falling on its own.
-      const int from = static_cast<int>(wt.from.fromGlyph);
-      const int to = static_cast<int>(wt.from.toGlyph);
-      const bool up = wt.from.fromAbove;
-      int steps = 1;
-      if (from >= 0 && to >= 0) {
-        steps = static_cast<int>(up ? wrap(static_cast<double>(to - from)) : wrap(static_cast<double>(from - to)));
-        steps = std::max(1, steps);
-      }
-      const double along = raw * steps;
-      const int stepIndex = std::min(steps - 1, static_cast<int>(std::floor(along)));
-      const double stepT = raw >= 1 ? 1.0 : along - stepIndex;
-      int current = from;
-      int next = to;
-      if (from >= 0 && to >= 0) {
-        current = (((up ? from + stepIndex : from - stepIndex) % 10) + 10) % 10;
-        next = stepIndex == steps - 1 ? to : (((up ? current + 1 : current - 1) % 10) + 10) % 10;
-      }
-      w.fromGlyph = static_cast<double>(current);
-      w.toGlyph = static_cast<double>(next);
-      w.fromAbove = up;
-      w.blend = stepT;
-      w.position = static_cast<double>(std::max(0, next));
     } else if (tr.numeric) {
-      // Numeric and morph: the glyphs swap in place; the position is the
-      // digit arriving and `blend` is how far the swap is.
+      // Numeric: the glyphs swap in place; the position is the digit
+      // arriving and `blend` is how far the swap is.
       w.position = wt.from.position;
       w.fromGlyph = wt.from.fromGlyph;
       w.toGlyph = wt.from.toGlyph;

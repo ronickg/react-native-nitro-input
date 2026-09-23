@@ -382,9 +382,7 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
     switch transition {
     case .roll: return .roll
     case .numeric: return .numeric
-    case .flip: return .flip
     case .scramble: return .scramble
-    case .morph: return .morph
     default: return .roll
     }
   }

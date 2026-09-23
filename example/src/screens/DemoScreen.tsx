@@ -410,7 +410,7 @@ function MorphInputDemo() {
   )
 }
 
-const TRANSITIONS = ['roll', 'numeric', 'flip', 'scramble', 'morph'] as const
+const TRANSITIONS = ['roll', 'numeric', 'scramble'] as const
 
 function ReactDrivenDemo() {
   const [value, setValue] = useState(1234.5)
@@ -419,7 +419,7 @@ function ReactDrivenDemo() {
   const [effects, setEffects] = useState(false)
   const transition = TRANSITIONS[transitionIndex]!
   return (
-    <Section title="React prop" hint="Change `value`, the digits roll natively. Fits the card: full size until it would overflow, then it shrinks. The transition button cycles roll → numeric (SwiftUI's numericText) → flip (split-flap) → scramble → morph; effects adds the change flash and a pop.">
+    <Section title="React prop" hint="Change `value`, the digits roll natively. Fits the card: full size until it would overflow, then it shrinks. The transition button cycles roll → numeric (SwiftUI's numericText) → scramble; effects adds the change flash and a pop.">
       <View style={styles.display}>
         {mounted ? (
         <RollingNumber

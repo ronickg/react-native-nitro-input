@@ -9,9 +9,7 @@ set (CMAKE_CXX_STANDARD 20)
 add_library(${PACKAGE_NAME} SHARED
         src/main/cpp/cpp-adapter.cpp
         src/main/cpp/JRollingEngine.cpp
-        src/main/cpp/JGlyphMorph.cpp
         ../cpp/RollingEngine.cpp
-        ../cpp/GlyphMorph.cpp
 )
 
 # Add Nitrogen specs :)

@@ -20,26 +20,12 @@
   is a native re-implementation of it for React Native `Text` if a whole
   text should transition rather than a rolling number.
 
-- Three more transitions on the same machinery. `transition="flip"` is a
-  split-flap board: each changed digit flips card by card through the digits
-  between at the board's constant rate, the flap turning about the centre
-  line with perspective (Core Animation on iOS, a `Camera` on Android, a
-  squash in the docs' canvas). `"scramble"` shows a different random digit
-  every few frames, never the one a wheel is leaving or arriving at, until
-  each changed digit locks on its target from the left; the engine does all
-  of it, a renderer draws its strip as usual. `"morph"` turns the outline of
-  the old glyph into the new one point by point: `GlyphMorph` (C++) resamples
-  every contour of a glyph's outline to 192 points by arc length (the glyph
-  to the pixel, so a morph starts and ends without a jump), keeps the
-  winding the font gave it, aligns each pair of glyphs once, pairs contours
-  by size and lets an unpaired one close onto or open from its centre, and
-  the platforms fill the interpolated outline nonzero from CoreText's glyph
-  path (iOS) or `getTextPath` (Android), each glyph flattened to one clean
-  outline first (a path union) so a glyph the font builds from overlapping
-  strokes does not morph as pieces, and the ink dipped a quarter at the
-  half-way point, where the shape is neither glyph. The
-  morph is native only; the docs' canvas shows the numeric transition for it.
-  Each swap style has its own `duration` / `easing` / `stagger` defaults.
+- `transition="scramble"`, on the same machinery: each changed digit shows
+  a different random digit every few frames, never the one it is leaving or
+  arriving at, until it locks on its target, the lock running from the left.
+  The engine does all of it, a renderer draws its strip as usual. Each swap
+  style has its own `duration` / `easing` / `stagger` defaults (scramble
+  500 ms, `linear`, 60 ms).
 
 - The change flash and the pop, with any transition. `flashUpColor` /
   `flashDownColor` light every digit whose glyph changes in the up or the
