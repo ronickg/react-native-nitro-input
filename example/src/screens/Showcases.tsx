@@ -843,7 +843,8 @@ function Key({ label, press }: { label: string; press: number }) {
     glow.value = withSequence(withTiming(1, { duration: 50 }), withDelay(40, withTiming(0, { duration: 240 })))
   }, [press, glow])
   const style = useAnimatedStyle(() => ({
-    backgroundColor: `rgba(255,255,255,${glow.value * 0.14})`,
+    // Fixed digits: a decaying glow reaches values like 5.7e-8, which is no colour.
+    backgroundColor: `rgba(255,255,255,${(glow.value * 0.14).toFixed(3)})`,
     transform: [{ scale: 1 - glow.value * 0.06 }],
   }))
   return (
