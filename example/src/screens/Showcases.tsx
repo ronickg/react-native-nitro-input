@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Pressable, StatusBar, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, {
@@ -11,8 +11,10 @@ import Animated, {
   withRepeat,
   withSequence,
   withTiming,
+  type FrameInfo,
 } from 'react-native-reanimated'
-import { NitroInput, NitroNumber, type NitroInputHandle } from 'react-native-nitro-input'
+import { scheduleOnRN } from 'react-native-worklets'
+import { NitroInput, NitroNumber, type NitroInputHandle, type NitroNumberRef } from 'react-native-nitro-input'
 
 // ---------------------------------------------------------------------------
 // Showcases: button-free, auto-playing screens for the docs and README
@@ -112,7 +114,7 @@ function UiFps() {
 // and the setState lane and the JS meter keep their own state. A showcase
 // for speed should not spend the phone's time re-rendering itself.
 
-const POINTS = 44
+const POINTS = 32
 const CHART_HEIGHT = 140
 
 /** A line chart from plain views: one rotated segment per step, a gradient column under each point. */
@@ -198,33 +200,6 @@ function JsFps({ blocked }: { blocked: boolean }) {
   return <Text style={[s.meterValue, blocked && s.meterValueBlocked]}>{blocked ? 'blocked' : `${fps} fps`}</Text>
 }
 
-/**
- * The same figure as a Text driven by setState: over `duration` it tweens on
- * a JS interval, the way anything drawn by React has to animate, so it can
- * only move when the JS thread gets a turn.
- */
-function JsLane({ value, duration, blocked }: { value: number; duration: number; blocked: boolean }) {
-  const [shown, setShown] = useState(value)
-  const shownRef = useRef(value)
-  shownRef.current = shown
-  useEffect(() => {
-    if (duration < 1000) {
-      setShown(value)
-      return
-    }
-    const from = shownRef.current
-    const started = Date.now()
-    const tween = setInterval(() => {
-      const t = Math.min(1, (Date.now() - started) / duration)
-      const eased = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2
-      setShown(round(from + (value - from) * eased, 2))
-      if (t === 1) clearInterval(tween)
-    }, 16)
-    return () => clearInterval(tween)
-  }, [value, duration])
-  return <Text style={[s.laneJs, blocked && s.laneJsFrozen]}>${money(shown)}</Text>
-}
-
 const WATCH = [
   { sym: 'AAPL', name: 'Apple', from: '#E5E7EB', to: '#9CA3AF', price: 227.48 },
   { sym: 'NVDA', name: 'NVIDIA', from: '#84CC16', to: '#3F6212', price: 131.26 },
@@ -235,7 +210,29 @@ const WATCH = [
 ]
 const ROW_HEIGHT = 56
 
-const WatchRow = React.memo(function WatchRow({ item, price, up }: { item: (typeof WATCH)[number]; price: number; up: boolean }) {
+/** How long a stress test hands the feeds to the UI thread; it covers the 2 s the JS thread is blocked. */
+const UI_FEED = 2300
+
+/**
+ * The state of a feed that runs on the UI thread: `left` ms still to run,
+ * `wait` ms to the next tick, and its prices (the rows', or the asset's ticks).
+ */
+type UiFeed = { left: number; wait: number; prices: number[] }
+const IDLE: UiFeed = { left: 0, wait: 0, prices: [] }
+
+const WatchRow = React.memo(function WatchRow({
+  item,
+  index,
+  price,
+  up,
+  attach,
+}: {
+  item: (typeof WATCH)[number]
+  index: number
+  price: number
+  up: boolean
+  attach: (index: number, ref: NitroNumberRef) => void
+}) {
   return (
     <View style={s.watchRow}>
       <View style={[s.logo, { backgroundImage: `linear-gradient(135deg, ${item.from}, ${item.to})` }]}>
@@ -257,33 +254,93 @@ const WatchRow = React.memo(function WatchRow({ item, price, up }: { item: (type
           color="#FFFFFF"
           textAlign="right"
           style={s.pillNumber}
+          onNativeRef={(ref) => attach(index, ref)}
         />
       </View>
     </View>
   )
 })
 
-/** The watchlist owns its feed: a price moves every 150 ms, and only that row re-renders. */
-function Watchlist({ paused }: { paused: React.RefObject<boolean> }) {
+/**
+ * The watchlist owns its feed: a price moves every 150 ms, and only that row
+ * re-renders. While JS is blocked the feed runs on the UI thread instead,
+ * calling `animateTo` on the rows' Nitro objects directly, and hands React
+ * the prices when it ends.
+ */
+function Watchlist({ blocked }: { blocked: boolean }) {
   const [rows, setRows] = useState(() => WATCH.map((w) => ({ price: w.price, up: true })))
+  const rowsRef = useRef(rows)
+  rowsRef.current = rows
   const [fit, setFit] = useState(0)
+  const refs = useRef<NitroNumberRef[]>([])
+  const [attached, setAttached] = useState(0)
+  const attach = useCallback((index: number, ref: NitroNumberRef) => {
+    refs.current[index] = ref
+    setAttached((n) => n + 1)
+  }, [])
+
+  const move = useCallback((i: number, price: number) => {
+    setRows((previous) => {
+      const next = [...previous]
+      next[i] = { price, up: price >= previous[i].price }
+      return next
+    })
+  }, [])
+  // React catches up with the UI thread's feed in one render. Posting every
+  // tick instead would replay them once JS is free, rolling each row back
+  // through prices it has already shown.
+  const settle = useCallback((prices: number[]) => {
+    setRows((previous) => previous.map((r, i) => ({ price: prices[i] ?? r.price, up: (prices[i] ?? r.price) >= r.price })))
+  }, [])
+
   useEffect(() => {
+    if (blocked) return
     const feed = setInterval(() => {
-      if (paused.current) return
-      setRows((previous) => {
-        const next = [...previous]
-        const i = Math.floor(Math.random() * next.length)
-        const moved = round(next[i].price * (1 + (Math.random() - 0.47) * 0.004), 2)
-        next[i] = { price: moved, up: moved >= next[i].price }
-        return next
-      })
+      const i = Math.floor(Math.random() * Math.min(WATCH.length, Math.max(fit, 1)))
+      move(i, round(rowsRef.current[i].price * (1 + (Math.random() - 0.47) * 0.004), 2))
     }, 150)
     return () => clearInterval(feed)
-  }, [paused])
+  }, [blocked, fit, move])
+
+  const uiFeed = useSharedValue<UiFeed>(IDLE)
+  const views = refs.current.slice(0, fit)
+  useEffect(() => {
+    if (blocked) uiFeed.value = { left: UI_FEED, wait: 0, prices: rowsRef.current.map((r) => r.price) }
+  }, [blocked, uiFeed])
+
+  const tick = useCallback(
+    (frame: FrameInfo) => {
+      'worklet'
+      const feed = uiFeed.value
+      if (feed.left <= 0) return
+      const dt = frame.timeSincePreviousFrame ?? 0
+      const left = feed.left - dt
+      if (left <= 0) {
+        uiFeed.value = IDLE
+        scheduleOnRN(settle, feed.prices)
+        return
+      }
+      if (feed.wait - dt > 0) {
+        uiFeed.value = { left, wait: feed.wait - dt, prices: feed.prices }
+        return
+      }
+      const count = Math.min(views.length, feed.prices.length)
+      const i = Math.floor(Math.random() * count)
+      const prices = feed.prices.slice()
+      prices[i] = Math.round(prices[i] * (1 + (Math.random() - 0.47) * 0.004) * 100) / 100
+      views[i]?.animateTo(prices[i])
+      uiFeed.value = { left, wait: 150, prices }
+    },
+    // The worklet captures the Nitro objects attached so far.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [attached, fit, settle, uiFeed]
+  )
+  useFrameCallback(tick)
+
   return (
     <View style={s.watchlist} onLayout={(e) => setFit(Math.floor(e.nativeEvent.layout.height / ROW_HEIGHT))}>
       {WATCH.slice(0, fit).map((w, i) => (
-        <WatchRow key={w.sym} item={w} price={rows[i].price} up={rows[i].up} />
+        <WatchRow key={w.sym} item={w} index={i} price={rows[i].price} up={rows[i].up} attach={attach} />
       ))}
     </View>
   )
@@ -291,56 +348,102 @@ function Watchlist({ paused }: { paused: React.RefObject<boolean> }) {
 
 type Phase = 'live' | 'blocking' | 'after'
 
+const OPENING = 64_210.9
+
 /**
  * An asset page: the price rolls as a live feed arrives, the chart extends,
  * the watchlist's prices swap their digits in place, and every ten seconds
- * the JS thread is blocked for two: the price rolls on natively, the UI
- * thread meter holds the display's rate, and a Text driven by setState next
- * to it freezes.
+ * the JS thread is blocked for two. Then the feed moves to the UI thread and
+ * calls the NitroNumbers' `animateTo` directly: every price keeps updating,
+ * the UI thread meter holds the display's rate, and the chart and the Text
+ * driven by setState freeze until JS catches up.
  */
 export function MarketShowcase({ onExit }: { onExit: () => void }) {
   const insets = useSafeAreaInsets()
   const later = useTimers()
-  const opening = 64_210.9
-  const [price, setPrice] = useState(opening)
-  const [duration, setDuration] = useState(650)
+  const [price, setPrice] = useState(OPENING)
   const [series, setSeries] = useState<number[]>(() =>
-    Array.from({ length: POINTS }, (_, i) => opening * (0.985 + 0.012 * Math.sin(i / 4) + 0.006 * Math.cos(i * 1.3) + i * 0.0003))
+    Array.from({ length: POINTS }, (_, i) => OPENING * (0.985 + 0.012 * Math.sin(i / 4) + 0.006 * Math.cos(i * 1.3) + i * 0.0003))
   )
   const [phase, setPhase] = useState<Phase>('live')
-  const paused = useRef(false)
-  paused.current = phase !== 'live'
+  const blocked = phase === 'blocking'
   const priceRef = useRef(price)
   priceRef.current = price
 
-  // The asset moves every 650 ms, and the chart with it.
-  useEffect(() => {
-    const asset = setInterval(() => {
-      if (paused.current) return
-      const next = round(priceRef.current * (1 + (Math.random() - 0.44) * 0.0025), 2)
-      setPrice(next)
-      setSeries((sr) => [...sr.slice(1), next])
-    }, 650)
-    return () => clearInterval(asset)
+  const tickTo = useCallback((next: number) => {
+    setPrice(next)
+    setSeries((sr) => [...sr.slice(1), next])
+  }, [])
+  // React catches up with the UI thread's feed in one render: the price it
+  // ended on, and every tick on the chart. Posting each tick instead would
+  // replay them once JS is free, rolling the numbers back through old prices.
+  const settle = useCallback((ticks: number[]) => {
+    setPrice(ticks[ticks.length - 1])
+    setSeries((sr) => [...sr, ...ticks.slice(1)].slice(-POINTS))
   }, [])
 
-  // The stress test, every ten seconds; up one time, down the next.
+  // The asset moves every 650 ms, and the chart with it.
   useEffect(() => {
-    let up = true
+    if (blocked) return
+    const asset = setInterval(() => {
+      tickTo(round(priceRef.current * (1 + (Math.random() - 0.44) * 0.0025), 2))
+    }, 650)
+    return () => clearInterval(asset)
+  }, [blocked, tickTo])
+
+  // The same feed on the UI thread, for the stress test: it drives the
+  // headline, the lane and the change figures through their Nitro objects.
+  const nums = useRef<{ hero?: NitroNumberRef; lane?: NitroNumberRef; change?: NitroNumberRef; pct?: NitroNumberRef }>({})
+  const [attached, setAttached] = useState(0)
+  const attach = (key: keyof typeof nums.current) => (ref: NitroNumberRef) => {
+    nums.current[key] = ref
+    setAttached((n) => n + 1)
+  }
+  const uiFeed = useSharedValue<UiFeed>(IDLE)
+  const { hero, lane, change: changeView, pct: pctView } = nums.current
+  const tick = useCallback(
+    (frame: FrameInfo) => {
+      'worklet'
+      const feed = uiFeed.value
+      if (feed.left <= 0) return
+      const dt = frame.timeSincePreviousFrame ?? 0
+      const left = feed.left - dt
+      if (left <= 0) {
+        uiFeed.value = IDLE
+        scheduleOnRN(settle, feed.prices)
+        return
+      }
+      if (feed.wait - dt > 0) {
+        uiFeed.value = { left, wait: feed.wait - dt, prices: feed.prices }
+        return
+      }
+      const last = feed.prices[feed.prices.length - 1]
+      const next = Math.round(last * (1 + (Math.random() - 0.44) * 0.0025) * 100) / 100
+      // Rounded exactly as the render below rounds them, so that when React
+      // catches up the props match what is already on screen.
+      const change = Math.round((next - OPENING) * 100) / 100
+      const pct = Math.round(((change / OPENING) * 100) * 100) / 100
+      hero?.animateTo(next)
+      lane?.animateTo(next)
+      changeView?.animateTo(Math.abs(change))
+      pctView?.animateTo(Math.abs(pct))
+      uiFeed.value = { left, wait: 500, prices: [...feed.prices, next] }
+    },
+    // The worklet captures the Nitro objects attached so far.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [attached, settle, uiFeed]
+  )
+  useFrameCallback(tick)
+
+  // The stress test, every ten seconds.
+  useEffect(() => {
     const cycle = () => {
       later(6000, () => {
-        const to = round(priceRef.current * (up ? 1.034 : 0.9671), 2)
-        up = !up
         setPhase('blocking')
-        setDuration(2600)
-        setPrice(to)
-        // Let the new value reach native, then take the JS thread away.
+        uiFeed.value = { left: UI_FEED, wait: 0, prices: [priceRef.current] }
+        // Let the phase reach the screen, then take the JS thread away.
         later(250, () => blockJsThread(2000))
-        later(2900, () => {
-          setPhase('after')
-          setDuration(650)
-          setSeries((sr) => [...sr.slice(1), to])
-        })
+        later(2400, () => setPhase('after'))
         later(5200, () => {
           setPhase('live')
           cycle()
@@ -351,11 +454,10 @@ export function MarketShowcase({ onExit }: { onExit: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const change = round(price - opening, 2)
-  const pct = round((change / opening) * 100, 2)
+  const change = round(price - OPENING, 2)
+  const pct = round((change / OPENING) * 100, 2)
   const up = change >= 0
   const tone = up ? UP : DOWN
-  const blocked = phase === 'blocking'
 
   return (
     <View style={s.root}>
@@ -399,11 +501,12 @@ export function MarketShowcase({ onExit }: { onExit: () => void }) {
           fontFamily={FONT.bold}
           fontSize={50}
           color="#FFFFFF"
-          easing={blocked ? 'easeInOut' : 'spring'}
+          easing="spring"
           bounce={0.1}
-          stagger={blocked ? 0 : 22}
-          duration={duration}
+          stagger={22}
+          duration={650}
           style={s.hero}
+          onNativeRef={attach('hero')}
         />
         <View style={s.changeRow}>
           <Text style={[s.changeArrow, { color: tone }]}>{up ? '▲' : '▼'}</Text>
@@ -416,6 +519,7 @@ export function MarketShowcase({ onExit }: { onExit: () => void }) {
             fontFamily={FONT.semibold}
             fontSize={15}
             color={tone}
+            onNativeRef={attach('change')}
           />
           <NitroNumber
             value={Math.abs(pct)}
@@ -426,6 +530,7 @@ export function MarketShowcase({ onExit }: { onExit: () => void }) {
             fontFamily={FONT.semibold}
             fontSize={15}
             color={tone}
+            onNativeRef={attach('pct')}
           />
           <Text style={s.changeToday}>Today</Text>
         </View>
@@ -450,26 +555,27 @@ export function MarketShowcase({ onExit }: { onExit: () => void }) {
               fontFamily={FONT.semibold}
               fontSize={17}
               color={UP}
-              duration={duration}
-              easing={blocked ? 'easeInOut' : 'easeOut'}
+              duration={650}
+              easing="easeOut"
+              onNativeRef={attach('lane')}
             />
           </View>
           <View style={s.laneDivider} />
           <View style={s.lane}>
             <Text style={s.laneLabel}>Text · setState</Text>
-            <JsLane value={price} duration={duration} blocked={blocked} />
+            <Text style={[s.laneJs, blocked && s.laneJsFrozen]}>${money(price)}</Text>
           </View>
         </View>
         <Text style={[s.caption, blocked && s.captionBlocked]}>
           {phase === 'blocking'
-            ? 'JS thread blocked for 2 s. The price keeps rolling natively.'
+            ? 'JS blocked for 2 s. The feed moved to the UI thread: every NitroNumber keeps updating.'
             : phase === 'after'
-              ? 'The Text froze. The NitroNumber never waited for JS.'
+              ? 'The chart and the Text waited for JS. The NitroNumbers never did.'
               : 'Every price on this screen updates natively.'}
         </Text>
 
         <Text style={s.sectionTitle}>Watchlist</Text>
-        <Watchlist paused={paused} />
+        <Watchlist blocked={blocked} />
       </View>
     </View>
   )
