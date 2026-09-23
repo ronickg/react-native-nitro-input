@@ -48,6 +48,8 @@ bun add react-native-nitro-input react-native-nitro-modules
 cd ios && pod install
 ```
 
+> **Android and Nitro 0.37:** Nitro never hands a Hybrid View its `backgroundColor`, `border*`, `opacity`, `transform`, `testID` or accessibility props on Android with React Native 0.86+ — the `style` on every example below would be dropped. Fixed upstream in [margelo/nitro#1655](https://github.com/margelo/nitro/pull/1655); until it ships, apply the [patch from this repository](https://github.com/ronickg/react-native-nitro-rolling-number/blob/main/patches/react-native-nitro-modules@0.37.1.patch) with `patchedDependencies` (Bun) or patch-package.
+
 ## Usage
 
 ### A text field
