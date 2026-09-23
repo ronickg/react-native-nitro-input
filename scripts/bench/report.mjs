@@ -14,6 +14,7 @@ export const IMPLS = [
   ['atext', 'AnimateableText (shared value)'],
   ['nitro-prop', '**Nitro `value` prop**'],
   ['nitro-jump', '**Nitro `jumpTo`**'],
+  ['nitro-numeric', '**Nitro numeric transition**'],
   ['rnna', 'number-animation (native)'],
   ['arn', 'animated-rolling-numbers'],
   ['nf-view', 'NumberFlow View'],
@@ -297,7 +298,7 @@ const METRIC_PATHS = [
   'rssFirstMb', 'rssLastMb', 'rssMaxMb', 'growthKbPerCycle', 'growthKbPerSecond', 'nativeHeapFirstMb', 'nativeHeapLastMb', 'meminfo.viewsStart', 'meminfo.viewsEnd',
   'perViewFootprintKb', 'perViewNativeKb', 'perViewJavaKb', 'leftFootprintKb',
 ]
-const OURS = new Set(['nitro-prop', 'nitro-jump', 'nitro-text', 'morph-text', 'nitro-number', 'morph-number', 'nitro-mask'])
+const OURS = new Set(['nitro-prop', 'nitro-jump', 'nitro-numeric', 'nitro-text', 'morph-text', 'nitro-number', 'morph-number', 'nitro-mask'])
 const dig = (o, p) => p.split('.').reduce((x, k) => (x == null ? undefined : x[k]), o)
 
 /**
