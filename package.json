@@ -1,5 +1,5 @@
 {
-  "name": "react-native-nitro-rolling-number-monorepo",
+  "name": "react-native-nitro-input-monorepo",
   "private": true,
   "workspaces": [
     "packages/*",

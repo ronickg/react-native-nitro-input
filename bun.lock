@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "react-native-nitro-rolling-number-monorepo",
+      "name": "react-native-nitro-input-monorepo",
     },
     "example": {
       "name": "RollingNumberExample",

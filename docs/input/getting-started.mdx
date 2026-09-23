@@ -39,7 +39,7 @@ With Expo, add both packages, then run `npx expo prebuild` (or a dev client buil
 
 :::warning Android and Nitro 0.37
 
-Nitro never hands a Hybrid View its `backgroundColor`, `border*`, `opacity`, `transform`, `testID` or accessibility props on Android with React Native 0.86+, so the `style` on the examples below is silently dropped there while working on iOS. Fixed upstream in [margelo/nitro#1655](https://github.com/margelo/nitro/pull/1655); until it ships, apply the [patch from this repository](https://github.com/ronickg/react-native-nitro-rolling-number/blob/main/patches/react-native-nitro-modules@0.37.1.patch) with `patchedDependencies` (Bun) or patch-package.
+Nitro never hands a Hybrid View its `backgroundColor`, `border*`, `opacity`, `transform`, `testID` or accessibility props on Android with React Native 0.86+, so the `style` on the examples below is silently dropped there while working on iOS. Fixed upstream in [margelo/nitro#1655](https://github.com/margelo/nitro/pull/1655); until it ships, apply the [patch from this repository](https://github.com/ronickg/react-native-nitro-input/blob/main/patches/react-native-nitro-modules@0.37.1.patch) with `patchedDependencies` (Bun) or patch-package.
 
 :::
 

@@ -60,14 +60,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ronickg/react-native-nitro-rolling-number.git"
+    "url": "git+https://github.com/ronickg/react-native-nitro-input.git"
   },
   "author": "Ronald Goedeke",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/ronickg/react-native-nitro-rolling-number/issues"
+    "url": "https://github.com/ronickg/react-native-nitro-input/issues"
   },
-  "homepage": "https://github.com/ronickg/react-native-nitro-rolling-number/tree/main/packages/react-native-nitro-input#readme",
+  "homepage": "https://github.com/ronickg/react-native-nitro-input/tree/main/packages/react-native-nitro-input#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
