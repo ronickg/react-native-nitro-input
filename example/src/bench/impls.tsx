@@ -17,6 +17,7 @@ export type ImplKey =
   | 'atext'
   | 'nitro-prop'
   | 'nitro-jump'
+  | 'nitro-numeric'
   | 'rnna'
   | 'arn'
   | 'nf-view'
@@ -57,6 +58,13 @@ export const IMPLS: Impl[] = [
     short: 'Nitro jumpTo',
     package: 'react-native-nitro-rolling-number',
     how: 'ref.jumpTo(value): one JSI call per update, no React render.',
+  },
+  {
+    key: 'nitro-numeric',
+    label: 'Nitro numeric transition',
+    short: 'Nitro numeric',
+    package: 'react-native-nitro-rolling-number',
+    how: 'RollingNumber driven by its value prop with transition="numeric": each changed digit swaps in place, scaled, faded and blurred, after SwiftUI.',
   },
   {
     key: 'rnna',
@@ -176,6 +184,19 @@ export function BenchItem({
           color="#111"
           duration={DURATION}
           direction="up"
+          testID="bench-nitro"
+        />
+      )
+    case 'nitro-numeric':
+      return (
+        <RollingNumber
+          value={value}
+          fractionDigits={2}
+          groupingSeparator=","
+          fontSize={fontSize}
+          fontWeight="700"
+          color="#111"
+          transition="numeric"
           testID="bench-nitro"
         />
       )

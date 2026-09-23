@@ -124,6 +124,7 @@ export const RUN_ORDER: ImplKey[] = [
   'nf-skia',
   'nitro-jump',
   'bloom',
+  'nitro-numeric',
   'atext',
   'ticker',
   'rnna',

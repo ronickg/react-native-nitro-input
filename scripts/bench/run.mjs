@@ -51,7 +51,7 @@ function parseArgs(argv) {
 
 // A light library, a heavy one, a light one… so the chip cools during the
 // light scenarios instead of the plan idling. Mirrors example/src/bench/plan.ts.
-const RUN_ORDER = ['text', 'nf-view', 'nitro-prop', 'nf-skia', 'nitro-jump', 'bloom', 'atext', 'ticker', 'rnna', 'nf-skia-sv', 'anim-numbers', 'arn']
+const RUN_ORDER = ['text', 'nf-view', 'nitro-prop', 'nf-skia', 'nitro-jump', 'bloom', 'nitro-numeric', 'atext', 'ticker', 'rnna', 'nf-skia-sv', 'anim-numbers', 'arn']
 
 // What the typing driver types: digits into a number or text field, a phone number into a masked one.
 const INPUT_KEYS = { 'advanced-mask': '1234567890', 'nitro-mask': '1234567890' }
