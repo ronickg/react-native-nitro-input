@@ -832,6 +832,8 @@ const PAYOUTS = [
   { code: 'CHF', flag: '🇨🇭', rate: 0.8634, prefix: 'CHF ', suffix: '', grouping: '’', decimal: '.', digits: 2 },
 ]
 const FEE = 0.0041
+/** The recipient card and the space around it. */
+const RECIPIENT_HEIGHT = 96
 
 /** A keypad key; every new `press` count lights it for a moment. */
 function Key({ label, press }: { label: string; press: number }) {
@@ -872,6 +874,7 @@ export function TransferShowcase({ onExit }: { onExit: () => void }) {
   const [payout, setPayout] = useState(0)
   const [drift, setDrift] = useState(1)
   const [presses, setPresses] = useState<Record<string, number>>({})
+  const [room, setRoom] = useState(0)
   const pending = useRef<ReturnType<typeof setTimeout>[]>([])
 
   // The rate is live: it moves a little every 1.4 s.
@@ -1042,15 +1045,20 @@ export function TransferShowcase({ onExit }: { onExit: () => void }) {
           </View>
         </View>
 
-        <View style={s.tRecipient}>
-          <View style={s.tAvatar}>
-            <Text style={s.tAvatarText}>AL</Text>
-          </View>
-          <View style={s.tRecipientText}>
-            <Text style={s.tRecipientLabel}>Sending to</Text>
-            <Text style={s.tRecipientName}>Amélie Laurent</Text>
-          </View>
-          <Text style={s.tRecipientAccount}>•••• 4821</Text>
+        {/* The recipient fills the space above the keypad, on a screen tall enough for it. */}
+        <View style={s.tRecipientSlot} onLayout={(e) => setRoom(e.nativeEvent.layout.height)}>
+          {room >= RECIPIENT_HEIGHT && (
+            <View style={s.tRecipient}>
+              <View style={s.tAvatar}>
+                <Text style={s.tAvatarText}>AL</Text>
+              </View>
+              <View style={s.tRecipientText}>
+                <Text style={s.tRecipientLabel}>Sending to</Text>
+                <Text style={s.tRecipientName}>Amélie Laurent</Text>
+              </View>
+              <Text style={s.tRecipientAccount}>•••• 4821</Text>
+            </View>
+          )}
         </View>
       </View>
 
@@ -1172,7 +1180,8 @@ const s = StyleSheet.create({
   tLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   tLineLabel: { color: 'rgba(255,255,255,0.5)', fontFamily: FONT.medium, fontSize: 14 },
   tLineValue: { color: '#5EEAD4', fontFamily: FONT.semibold, fontSize: 14 },
-  tRecipient: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 20, padding: 14, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.08)' },
+  tRecipientSlot: { flex: 1, justifyContent: 'center' },
+  tRecipient: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.08)' },
   tAvatar: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundImage: 'linear-gradient(135deg, #5EEAD4, #3B82F6)' },
   tAvatarText: { color: '#04201C', fontFamily: FONT.bold, fontSize: 15 },
   tRecipientText: { flex: 1 },
