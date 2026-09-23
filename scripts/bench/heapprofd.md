@@ -27,7 +27,7 @@ git.
 
 ## What makes it work
 
-- The example's `AndroidManifest.xml` has `<profileable android:shell="true"/>`,
+- The bench app's `AndroidManifest.xml` has `<profileable android:shell="true"/>`,
   so the shell may attach heapprofd to the release build. Debug builds work
   without it.
 - The trace covers the whole process life, launch included, so absolute

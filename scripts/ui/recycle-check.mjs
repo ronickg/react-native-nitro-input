@@ -24,7 +24,7 @@ const flag = (name) => {
 const udid = flag('--udid')
 if (!udid) throw new Error('give --udid <device id from `argent run list-devices`>')
 const isIos = /^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$/i.test(udid) || /^[0-9A-F]{8}-[0-9A-F]{16}$/i.test(udid)
-const bundleId = isIos ? 'org.reactjs.native.example.RollingNumberExample' : 'com.rollingnumberexample'
+const bundleId = 'com.nitroinput.example'
 
 function run(tool, args) {
   const out = execFileSync('argent', ['run', tool, '--json', '--args', JSON.stringify({ udid, ...args })], { encoding: 'utf8', maxBuffer: 64 << 20, stdio: ['ignore', 'pipe', 'pipe'] })

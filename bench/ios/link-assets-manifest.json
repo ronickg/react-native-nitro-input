@@ -1,0 +1,25 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "assets/fonts/OpenRunde-Bold.otf",
+      "sha1": "3f42a8f27f55d8c2e0bf676ac984efb9d3ca57ab"
+    },
+    {
+      "path": "assets/fonts/OpenRunde-LICENSE.txt",
+      "sha1": "174b037934980ddcad39144da3ce7b0f9d73546c"
+    },
+    {
+      "path": "assets/fonts/OpenRunde-Medium.otf",
+      "sha1": "835f15c7b2f109e9f860df157fce27d77805b957"
+    },
+    {
+      "path": "assets/fonts/OpenRunde-Regular.otf",
+      "sha1": "363a9be59f62687d5f889c3679ac79aabee56ee4"
+    },
+    {
+      "path": "assets/fonts/OpenRunde-Semibold.otf",
+      "sha1": "4ba737d10216b8de08711f124caf4fa628419ecc"
+    }
+  ]
+}

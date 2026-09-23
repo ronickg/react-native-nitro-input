@@ -19,9 +19,9 @@
       <p>An odometer for React Native. Every digit is a wheel driven by one C++ engine, with currency layouts, shrink-to-fit, a loading shimmer and the jackpot reveal.</p>
       <p>
         <a href="#rolling-number">Below</a> ·
-        <a href="https://ronickg.github.io/react-native-nitro-input/rolling-number/getting-started">Guide</a> ·
-        <a href="https://ronickg.github.io/react-native-nitro-input/rolling-number/reveal">Jackpot reveal</a> ·
-        <a href="https://ronickg.github.io/react-native-nitro-input/rolling-number/benchmarks">Benchmarks</a> ·
+        <a href="https://ronickg.github.io/react-native-nitro-input/docs/rolling-number">Guide</a> ·
+        <a href="https://ronickg.github.io/react-native-nitro-input/docs/loading-and-reveal#jackpot-reveal">Jackpot reveal</a> ·
+        <a href="https://ronickg.github.io/react-native-nitro-input/docs/benchmarks">Benchmarks</a> ·
         <a href="packages/react-native-nitro-input/README.md#rollingnumber">API reference</a>
       </p>
     </td>
@@ -31,10 +31,10 @@
       <p>A native text input. The system keyboard and accessibility stay; amounts are formatted and masks applied in C++ before a frame is drawn, the floating label is native, and the reflow is there when you turn it on.</p>
       <p>
         <a href="#text-input">Below</a> ·
-        <a href="https://ronickg.github.io/react-native-nitro-input/input">Guide</a> ·
-        <a href="https://ronickg.github.io/react-native-nitro-input/input/amount-field">Amount field</a> ·
-        <a href="https://ronickg.github.io/react-native-nitro-input/input/masked-field">Masks</a> ·
-        <a href="https://ronickg.github.io/react-native-nitro-input/input/benchmarks">Benchmarks</a> ·
+        <a href="https://ronickg.github.io/react-native-nitro-input/docs/nitro-input">Guide</a> ·
+        <a href="https://ronickg.github.io/react-native-nitro-input/docs/nitro-input#amounts">Amount field</a> ·
+        <a href="https://ronickg.github.io/react-native-nitro-input/docs/nitro-input#masks">Masks</a> ·
+        <a href="https://ronickg.github.io/react-native-nitro-input/docs/benchmarks">Benchmarks</a> ·
         <a href="packages/react-native-nitro-input/README.md#nitroinput">API reference</a>
       </p>
     </td>
@@ -83,7 +83,7 @@ import { RollingNumber } from 'react-native-nitro-input'
 />
 ```
 
-Change `value` and the digits roll. `ref.current.jumpTo(v)` positions the wheels continuously for scrubbing, `animateTo(v)` rolls, `revealTo(v)` plays a jackpot reveal. [Guide →](https://ronickg.github.io/react-native-nitro-input/rolling-number/getting-started) · [Every prop →](https://ronickg.github.io/react-native-nitro-input/rolling-number/props)
+Change `value` and the digits roll. `ref.current.jumpTo(v)` positions the wheels continuously for scrubbing, `animateTo(v)` rolls, `revealTo(v)` plays a jackpot reveal. [Guide →](https://ronickg.github.io/react-native-nitro-input/docs/rolling-number) · [Every prop →](https://ronickg.github.io/react-native-nitro-input/docs/rolling-number-props)
 
 ### Jackpot reveal
 
@@ -105,7 +105,7 @@ Change `value` and the digits roll. `ref.current.jumpTo(v)` positions the wheels
 />
 ```
 
-The count follows how slot machines present a win: a constant-rate tally per tier that winds up out of each milestone and crawls into the next, a figure that opens smaller and grows as it climbs, and punches that settle without dipping under the resting size. `jumpTo(value)` skips (tap to slam). Banners, confetti and sounds stay in the app: the callbacks give you the beats. [Guide →](https://ronickg.github.io/react-native-nitro-input/rolling-number/reveal)
+The count follows how slot machines present a win: a constant-rate tally per tier that winds up out of each milestone and crawls into the next, a figure that opens smaller and grows as it climbs, and punches that settle without dipping under the resting size. `jumpTo(value)` skips (tap to slam). Banners, confetti and sounds stay in the app: the callbacks give you the beats. [Guide →](https://ronickg.github.io/react-native-nitro-input/docs/loading-and-reveal#jackpot-reveal)
 
 ### Performance
 
@@ -128,7 +128,7 @@ Release builds on real phones, 24 copies fed a new value on every frame, frames 
 | react-native-animated-numbers | 116 fps (21 dropped) | 56.7 fps (16 dropped) | 51.2 fps (199 dropped) |
 | react-native-ticker | 11.8 fps (544 dropped) | 7.6 fps (258 dropped) | 12.6 fps (379 dropped) |
 
-Method, the JS-thread and CPU columns, the ten-a-second and one-copy cases, a scrolling list, mount cost and the Instruments cross-check: [BENCHMARKS.md](BENCHMARKS.md); the same tables as charts you can hover and switch between metrics: [the benchmark pages of the docs](https://ronickg.github.io/react-native-nitro-input/rolling-number/benchmarks).
+Method, the JS-thread and CPU columns, the ten-a-second and one-copy cases, a scrolling list, mount cost and the Instruments cross-check: [BENCHMARKS.md](BENCHMARKS.md); the same tables as charts you can hover and switch between metrics: [the benchmark pages of the docs](https://ronickg.github.io/react-native-nitro-input/docs/benchmarks).
 
 ## Text input
 
@@ -159,7 +159,7 @@ import { NitroInput } from 'react-native-nitro-input'
 <NitroInput transition="reflow" mode="number" prefix="$" prefixFontSize={28} affixAlign="top" placeholder="0" fontSize={48} fontWeight="700" textAlign="center" style={{ width: '100%' }} onChangeValue={setAmount} />
 ```
 
-[Guide and live demo →](https://ronickg.github.io/react-native-nitro-input/input) · [Every prop →](https://ronickg.github.io/react-native-nitro-input/input/props)
+[Guide and live demo →](https://ronickg.github.io/react-native-nitro-input/docs/nitro-input) · [Every prop →](https://ronickg.github.io/react-native-nitro-input/docs/nitro-input-props)
 
 ### Performance
 
@@ -174,14 +174,15 @@ Typed into at eight keys a second by the benchmark probe, the way a keyboard typ
 | react-native-mask-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 66 ms, JS 11 ms/key | 10 of 12 keys, 66 ms, JS 41 ms/key |
 | TextInput (plain, no formatting) | 0 of 12 keys, 0 ms, JS 6 ms/key | 0 of 12 keys, 0 ms, JS 8 ms/key | 0 of 12 keys, 0 ms, JS 22 ms/key |
 
-Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inputs); as charts: [the input benchmarks page](https://ronickg.github.io/react-native-nitro-input/input/benchmarks).
+Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inputs); as charts: [the input benchmarks page](https://ronickg.github.io/react-native-nitro-input/docs/benchmarks).
 
 ## Repository
 
 - [`packages/react-native-nitro-input`](packages/react-native-nitro-input) – the package: the shared C++ engines (`cpp/RollingEngine` for the rolling number; `cpp/ReflowEngine`, `cpp/AmountFormatter`, `cpp/MaskEngine` and `cpp/OutlineGeometry` for the input), the Swift and Kotlin views (the input's around a hidden system text field), the Nitro specs and the JS wrappers. Its [README](packages/react-native-nitro-input/README.md) is the API reference.
-- [`example/`](example) – React Native 0.87 app with every demo, the benchmark harness and the showcase screens the recordings come from. Its [`__tests__/*.harness.tsx`](example/__tests__) are on-device suites run by [React Native Harness](https://www.react-native-harness.dev) inside the app (see [`example/__tests__/README.md`](example/__tests__/README.md)); CI runs them on an Android emulator and an iOS simulator.
+- [`example/`](example) – the React Native 0.87 app you test in: the demos, the manual checks and the showcase screens the recordings come from, with only this library and what an app pairs it with, so it builds quickly. Its [`__tests__/*.harness.tsx`](example/__tests__) are on-device suites run by [React Native Harness](https://www.react-native-harness.dev) inside the app (see [`example/__tests__/README.md`](example/__tests__/README.md)); CI runs them on an Android emulator and an iOS simulator.
+- [`bench/`](bench) – the benchmark app: this library against the other animated-number and input libraries on npm (Skia, NumberFlow, Expo UI and the rest), kept out of the example so it never builds them. [`modules/bench-probe`](modules/bench-probe) is the native probe both apps use.
 - [`docs/`](docs) – the Docusaurus site. Its live demos run the very same `RollingEngine.cpp` and `ReflowEngine.cpp`, compiled to WebAssembly.
-- [`scripts/bench`](scripts/bench) – the device benchmarks behind [BENCHMARKS.md](BENCHMARKS.md): `run.mjs` builds, installs and drives the example app on real phones, `report.mjs` renders the tables from `results/`. [`scripts/ui`](scripts/ui) – `recycle-check.mjs` drives the example's "Recycle check" screen through [argent](https://github.com/software-mansion/argent) on a simulator, an emulator or a phone and checks that every row shows and paints the value it should, mid-roll frames included; the release-time check for view recycling.
+- [`scripts/bench`](scripts/bench) – the device benchmarks behind [BENCHMARKS.md](BENCHMARKS.md): `run.mjs` builds, installs and drives the bench app on real phones, `report.mjs` renders the tables from `results/`. [`scripts/ui`](scripts/ui) – `recycle-check.mjs` drives the example's "Recycle check" screen through [argent](https://github.com/software-mansion/argent) on a simulator, an emulator or a phone and checks that every row shows and paints the value it should, mid-roll frames included; the release-time check for view recycling.
 
 ```sh
 bun install                 # hoisted linker, see bunfig.toml
@@ -190,6 +191,7 @@ bun run test                # jest tests for the JS wrappers (plain `bun test` w
 bun run test:cpp            # C++ engine tests (host clang++)
 bun run build               # lib/: ES modules, CommonJS and declarations
 bun example ios             # or: bun example android
+bun bench ios               # the benchmark app (competitor libraries, Skia, Expo); scripts/bench/run.mjs drives it on phones
 bun run test:harness:ios    # on-device suites (example/__tests__/*.harness.tsx) in the example app on a simulator; `:android` for the emulator
 node scripts/ui/recycle-check.mjs --udid <device>   # the recycling check, on a device with the example app installed (needs argent)
 cd docs && npm install && npm start                                  # docs site
