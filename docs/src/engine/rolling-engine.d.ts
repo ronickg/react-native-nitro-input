@@ -21,7 +21,8 @@ export type Wheel = {
   blend: number,
   fromAbove: boolean,
   flash: number,
-  flashUp: boolean
+  flashUp: boolean,
+  focus: number
 };
 
 export interface RollingEngine extends ClassHandle {
