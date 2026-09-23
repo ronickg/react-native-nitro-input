@@ -97,7 +97,7 @@ const config: Config = {
           label: 'Docs',
         },
         {to: '/docs/nitro-input', label: 'NitroInput', position: 'left'},
-        {to: '/docs/rolling-number', label: 'RollingNumber', position: 'left'},
+        {to: '/docs/nitro-number', label: 'NitroNumber', position: 'left'},
         {to: '/docs/benchmarks', label: 'Benchmarks', position: 'left'},
         {
           href: 'https://www.npmjs.com/package/react-native-nitro-input',
@@ -121,7 +121,7 @@ const config: Config = {
           items: [
             {label: 'Getting started', to: '/docs'},
             {label: 'NitroInput', to: '/docs/nitro-input'},
-            {label: 'RollingNumber', to: '/docs/rolling-number'},
+            {label: 'NitroNumber', to: '/docs/nitro-number'},
             {label: 'Benchmarks', to: '/docs/benchmarks'},
           ],
         },

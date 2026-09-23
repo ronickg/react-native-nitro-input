@@ -12,7 +12,7 @@
 
 #include "HybridNitroInputViewSpecSwift.hpp"
 #include "HybridNitroInputWorklets.hpp"
-#include "HybridRollingNumberViewSpecSwift.hpp"
+#include "HybridNitroNumberViewSpecSwift.hpp"
 
 @interface NitroInputAutolinking : NSObject
 @end
@@ -40,9 +40,9 @@
     }
   );
   HybridObjectRegistry::registerHybridObjectConstructor(
-    "RollingNumberView",
+    "NitroNumberView",
     []() -> std::shared_ptr<HybridObject> {
-      std::shared_ptr<HybridRollingNumberViewSpec> hybridObject = NitroInput::NitroInputAutolinking::createRollingNumberView();
+      std::shared_ptr<HybridNitroNumberViewSpec> hybridObject = NitroInput::NitroInputAutolinking::createNitroNumberView();
       return hybridObject;
     }
   );

@@ -1,0 +1,84 @@
+---
+title: Transitions and timing
+description: How a change to value plays (the roll, the numeric transition, the scramble), its timing, the change flash and pop, and the imperative API.
+---
+
+import {Example, TimingDemo, TransitionsDemo, ChangeEffectsDemo, ImperativeDemo} from '@site/src/components/Demo/Demo';
+
+# NitroNumber
+
+The only thing the view needs is a number. Every change to `value` is one native animation: each digit takes the shortest path to its new glyph in the direction of the change, columns that appear slide in from blank and columns that disappear slide out. A value that arrives mid-roll re-targets the running roll instead of restarting it, so a ticker that updates several times a second keeps flowing.
+
+## Timing
+
+`duration` is the length of a roll in milliseconds (`0` snaps). `easing` picks the curve: `linear`, `easeIn`, `easeOut`, `easeInOut` (default) or `spring`, whose overshoot is `bounce` (0–1). `stagger` delays each digit's start, least significant first, so a change cascades like a mechanical carry. By default a digit rolls up when the number grows and down when it shrinks; `direction="up"` or `"down"` forces one, for a countdown that should always fall.
+
+<Example
+  code={`<NitroNumber
+  value={value}
+  groupingSeparator=","
+  fontSize={56}
+  fontWeight="800"
+  easing="spring"   // 'linear' | 'easeIn' | 'easeOut' | 'easeInOut' | 'spring'
+  bounce={0.15}     // spring overshoot, 0–1
+  duration={500}    // ms
+  stagger={30}      // ms between digits, least significant first
+/>`}>
+  <TimingDemo />
+</Example>
+
+## Transitions
+
+`transition` picks how a change plays. Besides the roll, two transitions swap each changed glyph in place: digits that don't change stay put, and the change cascades from the leftmost changed digit (`stagger`). Under Reduce Motion every transition snaps.
+
+- **`numeric`** is SwiftUI's `.contentTransition(.numericText())`: the old glyph softens, shrinks and slides out while the new one slides in from the other side, small and out of focus, and resolves. The pacing is SwiftUI's, measured frame by frame and scaled to `duration`; `easing` and `bounce` are not consulted. The blur is a blurred copy of each glyph rendered once per font and cross-faded with the sharp one, so a frame costs what a frame of a roll does.
+- **`scramble`**: each changed digit shows a random digit every few frames and locks on its target, from the left.
+
+<Example
+  code={`<NitroNumber
+  value={value}
+  transition="numeric"   // 'roll' | 'numeric' | 'scramble'
+  groupingSeparator=","
+  fontSize={56}
+  fontWeight="800"
+/>`}>
+  <TransitionsDemo />
+</Example>
+
+## The change flash and the pop
+
+With any transition, `flashUpColor` and `flashDownColor` light every changed digit in the up colour when the value grew and the down colour when it shrank, fading back over `flashDuration` (600 ms) once it has landed: a trading screen's change flash. `popOnChange` punches the whole figure on every change, its peak overshoot as a fraction of the size; `0.08` is a nudge, `0.2` a slam.
+
+<Example
+  code={`<NitroNumber
+  value={price}
+  fractionDigits={2}
+  groupingSeparator=","
+  prefix="$"
+  flashUpColor="#16a34a"
+  flashDownColor="#dc2626"
+  popOnChange={0.08}
+/>`}>
+  <ChangeEffectsDemo />
+</Example>
+
+## Imperative
+
+<Example
+  code={`const ref = useRef<NitroNumberHandle>(null)
+
+<NitroNumber ref={ref} value={42} fractionDigits={1} minimumIntegerDigits={4} />
+
+ref.current?.animateTo(9999)   // animates, like changing the prop
+ref.current?.jumpTo(999.75)    // positions the wheels continuously, no animation
+ref.current?.revealTo(1234.5)  // plays a jackpot reveal
+ref.current?.getValue()        // the value shown or being animated towards
+
+// scrubbing from a scroll handler
+<ScrollView onScroll={(e) => ref.current?.jumpTo(e.nativeEvent.contentOffset.x / 4)} scrollEventThrottle={16} />`}>
+  <ImperativeDemo />
+</Example>
+
+`jumpTo` positions every wheel from a continuous number, the way a mechanical odometer does: `41.75` shows the units wheel three quarters of the way from `1` to `2`, and a wheel only turns while every lower wheel is on its way from `9` to `0`. That is what a scroll, drag or gesture wants. It also skips a running [reveal](/docs/loading-and-reveal#jackpot-reveal).
+
+`jumpTo` and `animateTo` are safe to call from any thread and coalesce: only the newest value per main-thread turn is applied, so pushing a value every frame into many views never builds a backlog. From a Reanimated worklet, call them on the Nitro object (`onNativeRef`) directly.

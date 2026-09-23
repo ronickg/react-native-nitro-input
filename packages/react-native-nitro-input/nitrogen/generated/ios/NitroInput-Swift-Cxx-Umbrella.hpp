@@ -10,8 +10,8 @@
 // Forward declarations of C++ defined types
 // Forward declaration of `HybridNitroInputViewSpec` to properly resolve imports.
 namespace margelo::nitro::nitroinput { class HybridNitroInputViewSpec; }
-// Forward declaration of `HybridRollingNumberViewSpec` to properly resolve imports.
-namespace margelo::nitro::nitroinput { class HybridRollingNumberViewSpec; }
+// Forward declaration of `HybridNitroNumberViewSpec` to properly resolve imports.
+namespace margelo::nitro::nitroinput { class HybridNitroNumberViewSpec; }
 // Forward declaration of `NitroInputAffixAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputAffixAlign; }
 // Forward declaration of `NitroInputAutoCapitalize` to properly resolve imports.
@@ -42,22 +42,22 @@ namespace margelo::nitro::nitroinput { enum class NitroInputTextAlignVertical; }
 namespace margelo::nitro::nitroinput { enum class NitroInputTextAlign; }
 // Forward declaration of `NitroInputVariant` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputVariant; }
-// Forward declaration of `RollingNumberAffixAlign` to properly resolve imports.
-namespace margelo::nitro::nitroinput { enum class RollingNumberAffixAlign; }
-// Forward declaration of `RollingNumberDirection` to properly resolve imports.
-namespace margelo::nitro::nitroinput { enum class RollingNumberDirection; }
-// Forward declaration of `RollingNumberEasing` to properly resolve imports.
-namespace margelo::nitro::nitroinput { enum class RollingNumberEasing; }
-// Forward declaration of `RollingNumberRevealStyle` to properly resolve imports.
-namespace margelo::nitro::nitroinput { enum class RollingNumberRevealStyle; }
-// Forward declaration of `RollingNumberTextAlign` to properly resolve imports.
-namespace margelo::nitro::nitroinput { enum class RollingNumberTextAlign; }
-// Forward declaration of `RollingNumberTransition` to properly resolve imports.
-namespace margelo::nitro::nitroinput { enum class RollingNumberTransition; }
+// Forward declaration of `NitroNumberAffixAlign` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberAffixAlign; }
+// Forward declaration of `NitroNumberDirection` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberDirection; }
+// Forward declaration of `NitroNumberEasing` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberEasing; }
+// Forward declaration of `NitroNumberRevealStyle` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberRevealStyle; }
+// Forward declaration of `NitroNumberTextAlign` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberTextAlign; }
+// Forward declaration of `NitroNumberTransition` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberTransition; }
 
 // Include C++ defined types
 #include "HybridNitroInputViewSpec.hpp"
-#include "HybridRollingNumberViewSpec.hpp"
+#include "HybridNitroNumberViewSpec.hpp"
 #include "NitroInputAffixAlign.hpp"
 #include "NitroInputAutoCapitalize.hpp"
 #include "NitroInputEasing.hpp"
@@ -73,12 +73,12 @@ namespace margelo::nitro::nitroinput { enum class RollingNumberTransition; }
 #include "NitroInputTextAlign.hpp"
 #include "NitroInputTextAlignVertical.hpp"
 #include "NitroInputVariant.hpp"
-#include "RollingNumberAffixAlign.hpp"
-#include "RollingNumberDirection.hpp"
-#include "RollingNumberEasing.hpp"
-#include "RollingNumberRevealStyle.hpp"
-#include "RollingNumberTextAlign.hpp"
-#include "RollingNumberTransition.hpp"
+#include "NitroNumberAffixAlign.hpp"
+#include "NitroNumberDirection.hpp"
+#include "NitroNumberEasing.hpp"
+#include "NitroNumberRevealStyle.hpp"
+#include "NitroNumberTextAlign.hpp"
+#include "NitroNumberTransition.hpp"
 #include <NitroModules/Result.hpp>
 #include <exception>
 #include <functional>
@@ -99,8 +99,8 @@ namespace margelo::nitro::nitroinput { enum class RollingNumberTransition; }
 // Forward declarations of Swift defined types
 // Forward declaration of `HybridNitroInputViewSpec_cxx` to properly resolve imports.
 namespace NitroInput { class HybridNitroInputViewSpec_cxx; }
-// Forward declaration of `HybridRollingNumberViewSpec_cxx` to properly resolve imports.
-namespace NitroInput { class HybridRollingNumberViewSpec_cxx; }
+// Forward declaration of `HybridNitroNumberViewSpec_cxx` to properly resolve imports.
+namespace NitroInput { class HybridNitroNumberViewSpec_cxx; }
 
 // Include Swift defined types
 #if __has_include("NitroInput-Swift.h")

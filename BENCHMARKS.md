@@ -80,7 +80,7 @@ debugger, no Metro.
   second there (the JS fps column shows it). And a display link with default
   settings stays at 60 Hz on ProMotion, while `react-native-worklets` pins its
   own to 120: so the Reanimated-driven libraries animate at 120 Hz on the 13
-  Pro Max and this library's wheels at 60, because `RollingNumberView` never
+  Pro Max and this library's wheels at 60, because `NitroNumberView` never
   asks for more. Asking (a `preferredFrameRateRange` at the panel's maximum
   when `maximumFramesPerSecond` is above 60) is a one-line follow-up in the
   library, not something the benchmark should paper over.

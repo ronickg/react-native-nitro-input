@@ -1,7 +1,7 @@
 import React from 'react'
 import { I18nManager, ScrollView, TextInput } from 'react-native'
 import { NitroInput } from 'react-native-nitro-input'
-import { RollingNumber } from 'react-native-nitro-input'
+import { NitroNumber } from 'react-native-nitro-input'
 import { Card, FieldLabel, styles } from '../harness'
 
 /**
@@ -37,9 +37,9 @@ export function RtlScreen() {
         <FieldLabel>MORPH, NEGATIVE</FieldLabel>
         <NitroInput transition="reflow" testID="rtl-morph-negative" mode="number" prefix="$" defaultValue="-1234.56" fontSize={22} style={{ width: '100%' }} />
         <FieldLabel>ROLLING NUMBER, PREFIX + SUFFIX</FieldLabel>
-        <RollingNumber testID="rtl-rolling" value={1234.56} fractionDigits={2} prefix="$" suffix=" USD" fontSize={22} style={{ width: '100%' }} />
+        <NitroNumber testID="rtl-rolling" value={1234.56} fractionDigits={2} prefix="$" suffix=" USD" fontSize={22} style={{ width: '100%' }} />
         <FieldLabel>ROLLING NUMBER, NEGATIVE</FieldLabel>
-        <RollingNumber testID="rtl-rolling-negative" value={-1234.56} fractionDigits={2} prefix="$" fontSize={22} style={{ width: '100%' }} />
+        <NitroNumber testID="rtl-rolling-negative" value={-1234.56} fractionDigits={2} prefix="$" fontSize={22} style={{ width: '100%' }} />
       </Card>
       <Card key="frame" title="Frame" hint="The label and the notch sit at the start edge.">
         <NitroInput

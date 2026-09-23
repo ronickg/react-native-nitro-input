@@ -9,7 +9,7 @@
 
 // Include C++ implementation defined types
 #include "HybridNitroInputViewSpecSwift.hpp"
-#include "HybridRollingNumberViewSpecSwift.hpp"
+#include "HybridNitroNumberViewSpecSwift.hpp"
 #include "NitroInput-Swift-Cxx-Umbrella.hpp"
 #include <NitroModules/NitroDefines.hpp>
 
@@ -87,19 +87,19 @@ namespace margelo::nitro::nitroinput::bridge::swift {
     };
   }
   
-  // pragma MARK: std::shared_ptr<HybridRollingNumberViewSpec>
-  std::shared_ptr<HybridRollingNumberViewSpec> create_std__shared_ptr_HybridRollingNumberViewSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
-    NitroInput::HybridRollingNumberViewSpec_cxx swiftPart = NitroInput::HybridRollingNumberViewSpec_cxx::fromUnsafe(swiftUnsafePointer);
-    return std::make_shared<margelo::nitro::nitroinput::HybridRollingNumberViewSpecSwift>(swiftPart);
+  // pragma MARK: std::shared_ptr<HybridNitroNumberViewSpec>
+  std::shared_ptr<HybridNitroNumberViewSpec> create_std__shared_ptr_HybridNitroNumberViewSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
+    NitroInput::HybridNitroNumberViewSpec_cxx swiftPart = NitroInput::HybridNitroNumberViewSpec_cxx::fromUnsafe(swiftUnsafePointer);
+    return std::make_shared<margelo::nitro::nitroinput::HybridNitroNumberViewSpecSwift>(swiftPart);
   }
-  void* NON_NULL get_std__shared_ptr_HybridRollingNumberViewSpec_(std__shared_ptr_HybridRollingNumberViewSpec_ cppType) {
-    std::shared_ptr<margelo::nitro::nitroinput::HybridRollingNumberViewSpecSwift> swiftWrapper = std::dynamic_pointer_cast<margelo::nitro::nitroinput::HybridRollingNumberViewSpecSwift>(cppType);
+  void* NON_NULL get_std__shared_ptr_HybridNitroNumberViewSpec_(std__shared_ptr_HybridNitroNumberViewSpec_ cppType) {
+    std::shared_ptr<margelo::nitro::nitroinput::HybridNitroNumberViewSpecSwift> swiftWrapper = std::dynamic_pointer_cast<margelo::nitro::nitroinput::HybridNitroNumberViewSpecSwift>(cppType);
     #ifdef NITRO_DEBUG
     if (swiftWrapper == nullptr) [[unlikely]] {
-      throw std::runtime_error("Class \"HybridRollingNumberViewSpec\" is not implemented in Swift!");
+      throw std::runtime_error("Class \"HybridNitroNumberViewSpec\" is not implemented in Swift!");
     }
     #endif
-    NitroInput::HybridRollingNumberViewSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
+    NitroInput::HybridNitroNumberViewSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
     return swiftPart.toUnsafe();
   }
 

@@ -19,8 +19,8 @@ const COMPONENTS: {name: string; to: string; body: string}[] = [
     body: 'A native text input. The system keyboard, selection and accessibility stay; amounts are formatted and masks applied in C++ before a frame is drawn, the outlined frame and its floating label are native, and the characters can reflow as they change.',
   },
   {
-    name: 'RollingNumber',
-    to: '/docs/rolling-number',
+    name: 'NitroNumber',
+    to: '/docs/nitro-number',
     body: 'A number that animates its changes: every digit a wheel, or SwiftUI’s numeric transition, with currency layouts, shrink-to-fit, a loading shimmer and the jackpot reveal.',
   },
 ];

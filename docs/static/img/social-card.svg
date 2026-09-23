@@ -40,5 +40,5 @@
   <line x1="88" y1="528" x2="1112" y2="528" stroke="#ffffff" stroke-opacity="0.1" stroke-width="1"/>
   <text x="88" y="570" font-family="Menlo" font-size="21" fill="#60a5fa">NitroInput</text>
   <text x="232" y="570" font-family="Helvetica Neue" font-size="21" fill="#475569">·</text>
-  <text x="258" y="570" font-family="Menlo" font-size="21" fill="#60a5fa">RollingNumber</text>
+  <text x="258" y="570" font-family="Menlo" font-size="21" fill="#60a5fa">NitroNumber</text>
 </svg>

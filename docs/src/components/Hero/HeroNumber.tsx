@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import BrowserOnly from '@docusaurus/BrowserOnly';
-import {RollingNumberCanvas, type RollingNumberCanvasHandle} from '../RollingNumber/RollingNumberCanvas';
+import {NitroNumberCanvas, type NitroNumberCanvasHandle} from '../NitroNumber/NitroNumberCanvas';
 import styles from './HeroNumber.module.css';
 
 /**
@@ -16,7 +16,7 @@ export default function HeroNumber() {
 }
 
 function LiveHero() {
-  const ref = useRef<RollingNumberCanvasHandle>(null);
+  const ref = useRef<NitroNumberCanvasHandle>(null);
   const [value, setValue] = useState(12480.5);
   const [auto, setAuto] = useState(true);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -41,7 +41,7 @@ function LiveHero() {
   const fontSize = Math.max(40, Math.min(76, Math.floor(stageWidth / 6.8)));
   return (
     <div className={styles.stage} ref={stageRef}>
-      <RollingNumberCanvas
+      <NitroNumberCanvas
         ref={ref}
         value={value}
         fractionDigits={2}

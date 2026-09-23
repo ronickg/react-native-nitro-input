@@ -105,7 +105,7 @@ describe('prop names', () => {
   });
 
   it('no longer declares the Yoga name it used to', () => {
-    const spec = readFileSync(join(__dirname, '..', 'specs', 'RollingNumber.nitro.ts'), 'utf8');
+    const spec = readFileSync(join(__dirname, '..', 'specs', 'NitroNumber.nitro.ts'), 'utf8');
     expect(declaredProps(spec)).not.toContain('direction');
     expect(declaredProps(spec)).toContain('rollDirection');
   });

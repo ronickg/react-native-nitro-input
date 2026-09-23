@@ -3,7 +3,7 @@
 //  NitroInput
 //
 //  The platform-independent state machine behind the rolling number view.
-//  Both native views (RollingNumberView.swift, RollingNumberView.kt) feed it
+//  Both native views (NitroNumberView.swift, NitroNumberView.kt) feed it
 //  values and time, and draw whatever it reports: one "wheel" per digit with a
 //  continuous position on a 0–9 strip (or, in the numeric transition, a glyph
 //  swapping in place), the sign factor, the loading fade and the shimmer

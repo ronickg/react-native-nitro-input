@@ -2,13 +2,16 @@
 
 ## Unreleased
 
-- `react-native-nitro-rolling-number` is part of this package now.
-  `RollingNumber` and its types are exported from `react-native-nitro-input`,
-  with the same props and handle; its engine, views and JNI handle build into
-  the `NitroInput` pod and `libNitroInput.so` next to the input's, and its
-  JS helpers (font weights, colours) are shared with `NitroInput` instead of
-  copied. Replace the import and drop the old package:
-  `import { RollingNumber } from 'react-native-nitro-input'`.
+- `react-native-nitro-rolling-number` is part of this package now, and its
+  `RollingNumber` is called **`NitroNumber`**, next to `NitroInput`: it plays
+  more than a roll (the numeric transition, the scramble, the reveal), and
+  the name says which package it comes from. The props and the handle are
+  the same; the types follow the name (`NitroNumberProps`,
+  `NitroNumberHandle`, `NitroNumberTransition`, …). Its engine, views and
+  JNI handle build into the `NitroInput` pod and `libNitroInput.so` next to
+  the input's, and its JS helpers (font weights, colours) are shared with
+  `NitroInput` instead of copied. Replace the import and drop the old
+  package: `import { NitroNumber } from 'react-native-nitro-input'`.
 - **Breaking:** the morph is called the reflow, which is what it does: the
   characters keep their shapes and move to where the new text puts them.
   `MorphInput` and the `morph` prop are gone; pass `transition="reflow"` to
@@ -18,7 +21,7 @@
   is `ReflowEngine` (was `MorphEngine`), and the docs page moved to
   `/input/reflow`, with a redirect from `/input/morph`.
 
-### RollingNumber
+### NitroNumber
 
 - `transition="numeric"`: a second way a value change can play, after
   SwiftUI's `.contentTransition(.numericText())`. Instead of rolling through

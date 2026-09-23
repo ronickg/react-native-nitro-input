@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { FlatList, StyleSheet, Text, View } from 'react-native'
-import type { RollingNumberHandle } from 'react-native-nitro-input'
+import type { NitroNumberHandle } from 'react-native-nitro-input'
 import { BENCH_START, BenchItem, IMPLS, ImplBoundary, type ImplKey } from './impls'
 import { INPUT_IMPLS, InputItem, type InputHandle, type InputImplKey } from './inputs'
 import { cpuBetween, forceGc, sample, thermalState, typeText, type Sample, type TypeStats } from 'bench-probe'
@@ -61,7 +61,7 @@ export function ListRun({
 }) {
   const { impl, rate, rows } = scenario
   const { value, setValue, fmt, sv, font } = useBenchValue(LIST_FONT)
-  const nitroRefs = useRef(new Map<number, RollingNumberHandle | null>())
+  const nitroRefs = useRef(new Map<number, NitroNumberHandle | null>())
   const listRef = useRef<FlatList<number>>(null)
   const errorRef = useRef<string | null>(null)
   const range = Math.max(0, rows * ROW_HEIGHT - LIST_HEIGHT)
@@ -630,7 +630,7 @@ export type LeakListResult = {
 export function LeakListRun({ scenario, running, onDone }: { scenario: LeakListScenario; running: boolean; onDone: (r: LeakListResult) => void }) {
   const { impl, rows, rate, seconds } = scenario
   const { value, setValue, fmt, sv, font } = useBenchValue(LIST_FONT)
-  const nitroRefs = useRef(new Map<number, RollingNumberHandle | null>())
+  const nitroRefs = useRef(new Map<number, NitroNumberHandle | null>())
   const listRef = useRef<FlatList<number>>(null)
   const errorRef = useRef<string | null>(null)
   const onDoneRef = useRef(onDone)

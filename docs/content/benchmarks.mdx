@@ -9,7 +9,7 @@ import BenchChart from '@site/src/components/BenchChart';
 
 Measured on three phones: an **iPhone 13 Pro Max** (120 Hz), an **iPhone 11 Pro** (60 Hz) and a **Samsung Galaxy A22** (90 Hz, a low-end MediaTek phone). Release builds, React Native 0.87.1. The bench app in the repository (`bench/`) is launched with a plan by `scripts/bench/run.mjs` and measures every frame on both threads with a native probe. Hover a bar for every figure of its row. The full tables, the method and the memory measurements are in [BENCHMARKS.md](https://github.com/ronickg/react-native-nitro-input/blob/main/BENCHMARKS.md), and every number comes from a result file in `scripts/bench/results/`.
 
-## RollingNumber
+## NitroNumber
 
 **24 numbers, a new value every frame.** UI is the main thread's frame rate and the frames it missed; JS is the frame rate the JS thread still managed. Only paths whose per-update work is one call (Nitro `jumpTo`, AnimateableText) or a plain render (Text, the Nitro `value` prop) hold the display's rate on every phone. The others drop frames, starve the JS thread, or both: a UI thread at 117 fps next to a JS thread at 13 fps animates but does not respond.
 

@@ -10,7 +10,7 @@ import {
   useColorScheme,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { RollingNumber, type RollingNumberHandle } from 'react-native-nitro-input'
+import { NitroNumber, type NitroNumberHandle } from 'react-native-nitro-input'
 import {
   NitroInput,
   type NitroInputHandle,
@@ -421,7 +421,7 @@ function ReactDrivenDemo() {
     <Section title="React prop" hint="Change `value`, the digits roll natively. Fits the card: full size until it would overflow, then it shrinks. The transition button cycles roll → numeric (SwiftUI's numericText) → scramble; effects adds the change flash and a pop.">
       <View style={styles.display}>
         {mounted ? (
-        <RollingNumber
+        <NitroNumber
           value={value}
           fractionDigits={2}
           groupingSeparator=","
@@ -466,7 +466,7 @@ function CurrencyDemo() {
   return (
     <Section title="Currency layouts" hint="Smaller prefix/suffix, shrink-to-fit inside a fixed width, loading shimmer.">
       <View style={styles.display}>
-        <RollingNumber
+        <NitroNumber
           value={value}
           fractionDigits={2}
           groupingSeparator=","
@@ -480,7 +480,7 @@ function CurrencyDemo() {
         />
       </View>
       <View style={styles.display}>
-        <RollingNumber
+        <NitroNumber
           value={value}
           fractionDigits={2}
           groupingSeparator=","
@@ -495,7 +495,7 @@ function CurrencyDemo() {
       </View>
       <Text style={styles.sectionHint}>Fixed 180×64pt box with adjustsFontSizeToFit (box never resizes):</Text>
       <View style={styles.fitBox}>
-        <RollingNumber
+        <NitroNumber
           value={value}
           fractionDigits={2}
           groupingSeparator=","
@@ -525,7 +525,7 @@ function CenteredDemo() {
   return (
     <Section title="Centered in a fixed box" hint={'OpenRunde-Bold (bundled font), textAlign="center", top-pinned prefix and bottom-pinned suffix; watch them slide as digits appear.'}>
       <View style={styles.centerBox}>
-        <RollingNumber
+        <NitroNumber
           value={value}
           fractionDigits={2}
           groupingSeparator=","
@@ -555,11 +555,11 @@ function CenteredDemo() {
 }
 
 function ImperativeDemo() {
-  const ref = useRef<RollingNumberHandle>(null)
+  const ref = useRef<NitroNumberHandle>(null)
   return (
     <Section title="Imperative handle" hint="`animateTo` rolls, `jumpTo` positions the wheels continuously.">
       <View style={styles.display}>
-        <RollingNumber
+        <NitroNumber
           ref={ref}
           value={42}
           fractionDigits={1}
@@ -608,7 +608,7 @@ function RevealDemo() {
   const [landed, setLanded] = useState(false)
   const [style, setStyle] = useState<'count' | 'spin'>('count')
   const [tiers, setTiers] = useState(true)
-  const ref = useRef<RollingNumberHandle>(null)
+  const ref = useRef<NitroNumberHandle>(null)
   const status = landed ? 'Credit unlocked' : spin ? (style === 'spin' ? 'Spinning…' : 'Counting…') : 'Ready when you are'
   const rearm = () => setLanded(false)
   return (
@@ -623,7 +623,7 @@ function RevealDemo() {
       </View>
       <Pressable style={styles.revealCard} onPress={() => spin && !landed && ref.current?.jumpTo(amount)}>
         <Text style={styles.revealTitle}>Congrats!</Text>
-        <RollingNumber
+        <NitroNumber
           ref={ref}
           value={amount}
           reveal={spin}
@@ -714,7 +714,7 @@ const CoinRow = React.memo(function CoinRow({ coin, quote }: { coin: Coin; quote
         <Text style={showcase.cardSub}>{coin.ticker}</Text>
       </View>
       <View style={showcase.cardRight}>
-        <RollingNumber
+        <NitroNumber
           value={quote.price}
           prefix="$"
           fractionDigits={quote.price < 1 ? 4 : 2}
@@ -727,7 +727,7 @@ const CoinRow = React.memo(function CoinRow({ coin, quote }: { coin: Coin; quote
           easing="easeOut"
           style={showcase.cardAmount}
         />
-        <RollingNumber
+        <NitroNumber
           value={Math.abs(quote.change)}
           prefix={up ? '+' : '−'}
           suffix="%"
@@ -780,7 +780,7 @@ function BalanceShowcase({ onExit }: { onExit: () => void }) {
       <View style={showcase.glowB} />
       <Pressable style={showcase.exit} onPress={onExit} testID="showcase-exit" />
       <Text style={showcase.eyebrow}>Total balance</Text>
-      <RollingNumber
+      <NitroNumber
         value={balance}
         prefix="$"
         prefixFontSize={30}
@@ -798,7 +798,7 @@ function BalanceShowcase({ onExit }: { onExit: () => void }) {
         style={showcase.hero}
       />
       <View style={showcase.pill}>
-        <RollingNumber
+        <NitroNumber
           value={Math.abs(today)}
           prefix={up ? '+$' : '−$'}
           fractionDigits={2}
@@ -859,7 +859,7 @@ function RevealShowcase({ onExit }: { onExit: () => void }) {
       </View>
       <Text style={showcase.revealTitle}>Congratulations!</Text>
       <Text style={showcase.revealSub}>You've unlocked</Text>
-      <RollingNumber
+      <NitroNumber
         value={amount}
         reveal={reveal}
         revealStyle={style}
