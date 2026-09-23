@@ -24,6 +24,16 @@ export type RollingNumberEasing =
 export type RollingNumberDirection = 'auto' | 'up' | 'down'
 
 /**
+ * How a value change plays. `'roll'` is the odometer: every changed digit
+ * rolls through the digits between its old and new glyph. `'numeric'` is the
+ * numeric transition of SwiftUI's `.contentTransition(.numericText())`: each
+ * changed glyph swaps in place, the old one softening, shrinking and sliding
+ * out while the new one slides in from the other side and comes into focus,
+ * digits cascading from the left; the unchanged digits stay put.
+ */
+export type RollingNumberTransition = 'roll' | 'numeric'
+
+/**
  * How a jackpot reveal plays: `'count'` is the casino win-meter rollup (the
  * figure counts up from 0, digits swapping in place); `'spin'` is the jackpot
  * reels (every digit spins like a slot reel, then the reels lock one at a
@@ -80,6 +90,11 @@ export interface RollingNumberProps extends HybridViewProps {
    * significant digit upwards (a cascading carry). Default: `0`.
    */
   stagger?: number
+  /**
+   * How a value change plays: the odometer roll, or the numeric transition
+   * (glyphs swap in place). Default: `'roll'`.
+   */
+  transition?: RollingNumberTransition
   /**
    * Which way the digits roll. Default: `'auto'`.
    *

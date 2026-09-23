@@ -5,8 +5,9 @@
 //  The platform-independent state machine behind the rolling number view.
 //  Both native views (RollingNumberView.swift, RollingNumberView.kt) feed it
 //  values and time, and draw whatever it reports: one "wheel" per digit with a
-//  continuous position on a 0–9 strip, the sign factor, the loading fade and
-//  the shimmer phase. No rendering, no fonts, no threading in here.
+//  continuous position on a 0–9 strip (or, in the numeric transition, a glyph
+//  swapping in place), the sign factor, the loading fade and the shimmer
+//  phase. No rendering, no fonts, no threading in here.
 //
 //  Time is in seconds on any monotonic clock (CACurrentMediaTime,
 //  Choreographer frame time). The API deliberately uses plain ints/doubles so
@@ -32,10 +33,40 @@ public:
     bool linear;
     /// Glyph 0 is drawn blank (the emerging odometer wheel).
     bool blankZero;
+
+    // The numeric transition (`setTransition(1)`, after SwiftUI's
+    // `.contentTransition(.numericText())`): a wheel swaps its glyph in place
+    // instead of rolling through the ones between. `blend` runs 0 → 1 from
+    // `fromGlyph` to `toGlyph` (a digit, or -1 for blank) and is 1 for a wheel
+    // that is settled or not part of the change; while it is below 1 a
+    // renderer draws the two glyphs as `kNumeric*` below describes and ignores
+    // `position`. `fromAbove`: the new glyph arrives from above and the old one
+    // leaves downwards (a value that grew); otherwise mirrored.
+    double fromGlyph = -1;
+    double toGlyph = -1;
+    double blend = 1;
+    bool fromAbove = true;
   };
+
+  // The numeric transition as the renderers draw it, in line heights, so all
+  // three (Core Animation, Canvas, the docs' canvas) agree. With b = `blend`
+  // and d = +1 when `fromAbove`, else -1:
+  //   leaving glyph:  offset d · kNumericOffset · b,        scale 1 → kNumericScale,  alpha 1 → 0
+  //   arriving glyph: offset -d · kNumericOffset · (1 - b), scale kNumericScale → 1, alpha 0 → 1
+  // both scaled about their centre, the leaving one blurring in as it goes
+  // (blur = min(1, 2b)) and the arriving one coming into focus (blur = 1 - b),
+  // with kNumericBlur line heights of blur radius at full blur. The figures
+  // are ours, chosen against the effect on an iPhone: a glyph appears a bit
+  // under half a line height away along the axis, a little small and out of
+  // focus, and resolves into place; the one it replaces softens first, then
+  // fades and shrinks as it goes.
+  static constexpr double kNumericOffset = 0.4;
+  static constexpr double kNumericScale = 0.6;
+  static constexpr double kNumericBlur = 0.16;
 
   // Easing: 0 linear, 1 easeIn, 2 easeOut, 3 easeInOut, 4 spring.
   // Direction: 0 auto (sign of the change), 1 up, 2 down.
+  // Transition: 0 roll (the odometer), 1 numeric (glyphs swap in place).
 
   RollingEngine();
 
@@ -45,6 +76,14 @@ public:
   /// part (1…15). Snaps to the current target when they change.
   void setFormat(int fractionDigits, int minimumIntegerDigits);
   void setTiming(double durationSeconds, int easing, double bounce, double staggerSeconds, int direction);
+  /// How a value change plays: 0 rolls every digit through the ones between
+  /// (the odometer), 1 swaps each changed glyph in place (the numeric
+  /// transition). In the numeric transition the stagger runs from the
+  /// leftmost digit to the right, the way the effect cascades on iOS, and
+  /// the direction decides which way the glyphs move. Takes effect from the
+  /// next `animateTo`.
+  void setTransition(int transition);
+  int transition() const { return transitionStyle_; }
   /// Reduce Motion / "remove animations": rolls snap and the shimmer freezes.
   void setReduceMotion(bool reduceMotion);
 
@@ -58,7 +97,8 @@ public:
   /// integers up to 2^53, so figures beyond that lose their low digits either way.
   void setValue(double value);
   /// Rolls every wheel to `value` (shortest path in the roll direction,
-  /// blank↔digit for appearing/disappearing wheels). Snaps when nothing has
+  /// blank↔digit for appearing/disappearing wheels), or, in the numeric
+  /// transition, swaps every changed glyph in place. Snaps when nothing has
   /// been shown yet, the duration is 0, or Reduce Motion is on.
   void animateTo(double value, double now);
   /// Toggles the loading glint with a 250 ms cross-fade.
@@ -178,6 +218,8 @@ private:
     /// roll skips the ease-in half of the curve so rapid updates keep flowing
     /// instead of restarting from rest on every call.
     bool fromMotion = false;
+    /// The numeric transition: wheels blend between glyphs instead of rolling.
+    bool numeric = false;
   };
 
   /// One slot reel of a spin-style reveal (index 0 is the leftmost digit).
@@ -211,6 +253,10 @@ private:
   Target makeTarget(double value) const;
   void snap(const Target& target);
   void settle(const Target& target);
+  /// The digit a wheel shows, or is arriving at: -1 for blank.
+  static int shownGlyph(const Wheel& wheel);
+  void planRoll(Transition& next, const Target& target, bool increasing, int count, int mandatory) const;
+  void planNumeric(Transition& next, const Target& target, bool increasing, int count, int mandatory) const;
   void apply(double elapsed);
   void finish();
   void cancelReveal();
@@ -239,6 +285,7 @@ private:
   double bounce_ = 0.15;
   double stagger_ = 0;
   int direction_ = 0;
+  int transitionStyle_ = 0;
   bool reduceMotion_ = false;
   double revealDuration_ = 2.2;
   double revealBounce_ = 0.12;

@@ -15,12 +15,17 @@ export type Wheel = {
   position: number,
   width: number,
   linear: boolean,
-  blankZero: boolean
+  blankZero: boolean,
+  fromGlyph: number,
+  toGlyph: number,
+  blend: number,
+  fromAbove: boolean
 };
 
 export interface RollingEngine extends ClassHandle {
   setFormat(_0: number, _1: number): void;
   setTiming(_0: number, _1: number, _2: number, _3: number, _4: number): void;
+  setTransition(_0: number): void;
   setReduceMotion(_0: boolean): void;
   setValue(_0: number): void;
   animateTo(_0: number, _1: number): void;

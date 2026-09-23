@@ -19,12 +19,17 @@ EMSCRIPTEN_BINDINGS(rolling_engine) {
       .field("position", &RollingEngine::Wheel::position)
       .field("width", &RollingEngine::Wheel::width)
       .field("linear", &RollingEngine::Wheel::linear)
-      .field("blankZero", &RollingEngine::Wheel::blankZero);
+      .field("blankZero", &RollingEngine::Wheel::blankZero)
+      .field("fromGlyph", &RollingEngine::Wheel::fromGlyph)
+      .field("toGlyph", &RollingEngine::Wheel::toGlyph)
+      .field("blend", &RollingEngine::Wheel::blend)
+      .field("fromAbove", &RollingEngine::Wheel::fromAbove);
 
   class_<RollingEngine>("RollingEngine")
       .constructor<>()
       .function("setFormat", &RollingEngine::setFormat)
       .function("setTiming", &RollingEngine::setTiming)
+      .function("setTransition", &RollingEngine::setTransition)
       .function("setReduceMotion", &RollingEngine::setReduceMotion)
       .function("setValue", &RollingEngine::setValue)
       .function("animateTo", &RollingEngine::animateTo)

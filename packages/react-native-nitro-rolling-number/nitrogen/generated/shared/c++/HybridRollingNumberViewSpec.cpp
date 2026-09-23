@@ -36,6 +36,8 @@ namespace margelo::nitro::nitrorollingnumber {
       prototype.registerHybridSetter("bounce", &HybridRollingNumberViewSpec::setBounce);
       prototype.registerHybridGetter("stagger", &HybridRollingNumberViewSpec::getStagger);
       prototype.registerHybridSetter("stagger", &HybridRollingNumberViewSpec::setStagger);
+      prototype.registerHybridGetter("transition", &HybridRollingNumberViewSpec::getTransition);
+      prototype.registerHybridSetter("transition", &HybridRollingNumberViewSpec::setTransition);
       prototype.registerHybridGetter("rollDirection", &HybridRollingNumberViewSpec::getRollDirection);
       prototype.registerHybridSetter("rollDirection", &HybridRollingNumberViewSpec::setRollDirection);
       prototype.registerHybridGetter("revealState", &HybridRollingNumberViewSpec::getRevealState);

@@ -42,6 +42,19 @@ describe('RollingNumber', () => {
     expect(props.textAlign).toBe('right')
   })
 
+  it('passes the transition through with its own timing defaults', () => {
+    const roll = nativeProps(render(<RollingNumber value={1} />))
+    expect(roll.transition).toBe('roll')
+    expect([roll.duration, roll.easing, roll.stagger]).toEqual([500, 'easeInOut', 0])
+
+    const numeric = nativeProps(render(<RollingNumber value={1} transition="numeric" />))
+    expect(numeric.transition).toBe('numeric')
+    expect([numeric.duration, numeric.easing, numeric.stagger]).toEqual([450, 'spring', 50])
+
+    const tuned = nativeProps(render(<RollingNumber value={1} transition="numeric" duration={200} easing="easeOut" stagger={0} />))
+    expect([tuned.duration, tuned.easing, tuned.stagger]).toEqual([200, 'easeOut', 0])
+  })
+
   it('maps numeric and string font weights', () => {
     expect(nativeProps(render(<RollingNumber value={1} fontWeight="600" />)).fontWeight).toBe(600)
     expect(nativeProps(render(<RollingNumber value={1} fontWeight={300} />)).fontWeight).toBe(300)

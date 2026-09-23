@@ -109,6 +109,11 @@ void JHybridRollingNumberViewStateUpdater::updateViewProps(jni::alias_ref<jni::J
     hybridView->setStagger(newProps->stagger.get());
   }
   if (oldProps == nullptr
+        ? newProps->transition.isProvided()
+        : !newProps->transition.hasSameValue(oldProps->transition)) {
+    hybridView->setTransition(newProps->transition.get());
+  }
+  if (oldProps == nullptr
         ? newProps->rollDirection.isProvided()
         : !newProps->rollDirection.hasSameValue(oldProps->rollDirection)) {
     hybridView->setRollDirection(newProps->rollDirection.get());

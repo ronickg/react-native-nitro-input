@@ -74,6 +74,8 @@ class HybridRollingNumberView(private val context: ThemedReactContext) : HybridR
     set(v) { field = v; markConfigDirty() }
   override var suffix: String? = null
     set(v) { field = v; markConfigDirty() }
+  override var transition: RollingNumberTransition? = null
+    set(v) { field = v; markConfigDirty() }
   override var duration: Double? = null
     set(v) { field = v; markConfigDirty() }
   override var easing: RollingNumberEasing? = null
@@ -269,6 +271,7 @@ class HybridRollingNumberView(private val context: ThemedReactContext) : HybridR
     decimalSeparator = null
     prefix = null
     suffix = null
+    transition = null
     duration = null
     easing = null
     bounce = null
@@ -376,6 +379,7 @@ class HybridRollingNumberView(private val context: ThemedReactContext) : HybridR
       suffix = suffix ?: "",
     )
     rollingView.timing = RollingNumberView.Timing(
+      transition = if (transition == RollingNumberTransition.NUMERIC) RollingNumberView.Transition.NUMERIC else RollingNumberView.Transition.ROLL,
       durationMs = Math.max(0.0, duration ?: 500.0).toLong(),
       easing = when (easing) {
         RollingNumberEasing.LINEAR -> RollingNumberView.Easing.LINEAR

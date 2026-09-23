@@ -15,6 +15,8 @@
 
 // Forward declaration of `RollingNumberEasing` to properly resolve imports.
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberEasing; }
+// Forward declaration of `RollingNumberTransition` to properly resolve imports.
+namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberTransition; }
 // Forward declaration of `RollingNumberDirection` to properly resolve imports.
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberDirection; }
 // Forward declaration of `RollingNumberRevealStyle` to properly resolve imports.
@@ -27,6 +29,7 @@ namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberTextAlign
 #include <optional>
 #include <string>
 #include "RollingNumberEasing.hpp"
+#include "RollingNumberTransition.hpp"
 #include "RollingNumberDirection.hpp"
 #include "RollingNumberRevealStyle.hpp"
 #include <vector>
@@ -83,6 +86,8 @@ namespace margelo::nitro::nitrorollingnumber {
       virtual void setBounce(std::optional<double> bounce) = 0;
       virtual std::optional<double> getStagger() = 0;
       virtual void setStagger(std::optional<double> stagger) = 0;
+      virtual std::optional<RollingNumberTransition> getTransition() = 0;
+      virtual void setTransition(std::optional<RollingNumberTransition> transition) = 0;
       virtual std::optional<RollingNumberDirection> getRollDirection() = 0;
       virtual void setRollDirection(std::optional<RollingNumberDirection> rollDirection) = 0;
       virtual std::optional<double> getRevealState() = 0;

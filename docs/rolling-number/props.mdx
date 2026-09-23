@@ -49,7 +49,11 @@ Overshoot of the `spring` easing (0–1).
 </Prop>
 
 <Prop name="stagger" type="number" default="0">
-ms between the start of each digit's roll, least significant first (a cascading carry).
+ms between the start of each digit's roll, least significant first (a cascading carry). In the numeric transition the cascade runs from the leftmost digit to the right instead; its default there is `50`.
+</Prop>
+
+<Prop name="transition" type="'roll' | 'numeric'" default="'roll'">
+How a value change plays. `roll` is the odometer: every changed digit rolls through the digits between its old and new glyph. `numeric` is the [numeric transition](/rolling-number/rolling-and-timing#the-numeric-transition), the effect of SwiftUI's `.contentTransition(.numericText())`: each changed glyph swaps in place, the old one softening, shrinking and sliding out while the new one slides in from the other side and comes into focus, the digits cascading from the left; unchanged digits stay put. Its own defaults: `duration` 450, `easing` `spring`, `stagger` 50.
 </Prop>
 
 <Prop name="direction" type="'auto' | 'up' | 'down'" default="'auto'">

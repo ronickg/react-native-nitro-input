@@ -413,8 +413,9 @@ function MorphInputDemo() {
 function ReactDrivenDemo() {
   const [value, setValue] = useState(1234.5)
   const [mounted, setMounted] = useState(true)
+  const [numeric, setNumeric] = useState(false)
   return (
-    <Section title="React prop" hint="Change `value`, the digits roll natively. Fits the card: full size until it would overflow, then it shrinks.">
+    <Section title="React prop" hint="Change `value`, the digits roll natively. Fits the card: full size until it would overflow, then it shrinks. Numeric: each changed glyph swaps in place instead (SwiftUI's numericText).">
       <View style={styles.display}>
         {mounted ? (
         <RollingNumber
@@ -425,9 +426,10 @@ function ReactDrivenDemo() {
           fontSize={52}
           fontWeight="700"
           color="#0A84FF"
+          transition={numeric ? 'numeric' : 'roll'}
           easing="spring"
           bounce={0.2}
-          duration={700}
+          duration={numeric ? 450 : 700}
           stagger={40}
           adjustsFontSizeToFit
           minimumFontScale={0.35}
@@ -448,6 +450,7 @@ function ReactDrivenDemo() {
         <Button title="Negate" onPress={() => setValue((v) => -v)} />
         <Button title="Reset" onPress={() => setValue(1234.5)} />
         <Button title={mounted ? 'Unmount' : 'Remount'} onPress={() => setMounted((m) => !m)} />
+        <Button title={numeric ? 'Transition: numeric' : 'Transition: roll'} onPress={() => setNumeric((n) => !n)} testID="react-driven-transition" />
       </View>
     </Section>
   )

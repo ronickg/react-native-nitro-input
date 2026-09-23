@@ -164,6 +164,12 @@ using namespace margelo::nitro::nitrorollingnumber::views;
           : !newViewProps.stagger.hasSameValue(oldViewProps->stagger)) {
       swiftPart.setStagger(newViewProps.stagger.get());
     }
+    // transition: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.transition.isProvided()
+          : !newViewProps.transition.hasSameValue(oldViewProps->transition)) {
+      swiftPart.setTransition(newViewProps.transition.get());
+    }
     // rollDirection: optional
     if (oldViewProps == nullptr
           ? newViewProps.rollDirection.isProvided()

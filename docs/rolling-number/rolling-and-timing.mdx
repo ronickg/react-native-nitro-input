@@ -4,7 +4,7 @@ title: Rolling and timing
 description: How a change to value becomes a roll, and the curve, stagger and direction it rolls with.
 ---
 
-import {Example, TimingDemo} from '@site/src/components/Demo/Demo';
+import {Example, TimingDemo, NumericDemo} from '@site/src/components/Demo/Demo';
 
 The only thing the view needs is a number. Every change to `value` becomes one native roll: each digit takes the shortest path to its new glyph in the direction of the change, columns that appear slide in from blank, columns that disappear slide out.
 
@@ -28,9 +28,26 @@ A value that arrives while the wheels are still rolling doesn't restart them fro
   <TimingDemo />
 </Example>
 
+## The numeric transition
+
+The roll is not the only way a change can play. `transition="numeric"` is the effect of SwiftUI's `.contentTransition(.numericText())`: instead of rolling through the digits between, each changed glyph swaps in place. The old one softens, shrinks and slides out; the new one slides in from the other side, a little small and out of focus, and resolves. The glyphs move up when the value grows and down when it shrinks, the change cascades from the leftmost digit to the right, and digits that don't change stay put, which is what makes a live figure read as one number changing rather than a machine turning.
+
+The same `duration`, `easing` and `stagger` apply, with their own defaults: 450 ms, `spring`, and a 50 ms cascade. Under Reduce Motion the swap snaps, like a roll. The blur is real on iOS, Android and here: a blurred copy of each glyph rendered once per font and cross-faded with the sharp one, so a frame of the transition costs what a frame of a roll does.
+
+<Example
+  code={`<RollingNumber
+  value={value}
+  transition="numeric"   // 'roll' (default) | 'numeric'
+  groupingSeparator=","
+  fontSize={56}
+  fontWeight="800"
+/>`}>
+  <NumericDemo />
+</Example>
+
 ## Direction
 
-By default a digit rolls **up** when the number grows and **down** when it shrinks. Force one with `direction="up"` or `"down"`, e.g. for a countdown that should always fall.
+By default a digit rolls **up** when the number grows and **down** when it shrinks (in the numeric transition, the glyphs move up and down the same way). Force one with `direction="up"` or `"down"`, e.g. for a countdown that should always fall.
 
 ```tsx
 <RollingNumber value={secondsLeft} direction="down" minimumIntegerDigits={2} />

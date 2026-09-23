@@ -22,6 +22,7 @@ import RollingNumberViewConfig from '../nitrogen/generated/shared/json/RollingNu
 import type {
   RollingNumberAffixAlign,
   RollingNumberDirection,
+  RollingNumberTransition,
   RollingNumberEasing,
   RollingNumberMethods,
   RollingNumberProps as NativeRollingNumberProps,
@@ -64,15 +65,28 @@ export interface RollingNumberProps extends Omit<ViewProps, 'children'> {
   prefix?: string
   /** Static text drawn after the number, e.g. `'%'`. */
   suffix?: string
-  /** Duration in ms of the roll played when `value` changes. `0` snaps. Default: `500`. */
+  /**
+   * How a value change plays. `'roll'` (default) is the odometer: every
+   * changed digit rolls through the digits between its old and new glyph, in
+   * the direction of the change. `'numeric'` is the numeric transition, the
+   * effect of SwiftUI's `.contentTransition(.numericText())`: each changed
+   * glyph swaps in place, the old one softening, shrinking and sliding out
+   * while the new one slides in from the other side and comes into focus, the
+   * digits cascading from the left; unchanged digits stay put. Its own
+   * defaults: `duration` 450, `easing` `'spring'`, `stagger` 50.
+   */
+  transition?: RollingNumberTransition
+  /** Duration in ms of the roll played when `value` changes. `0` snaps. Default: `500` (`450` for the numeric transition). */
   duration?: number
-  /** Timing curve of the roll. Default: `'easeInOut'`. */
+  /** Timing curve of the roll. Default: `'easeInOut'` (`'spring'` for the numeric transition). */
   easing?: RollingNumberEasing
   /** Overshoot of the `'spring'` easing, `0`–`1`. Default: `0.15`. */
   bounce?: number
   /**
    * Delay in ms between the start of each digit's roll, least significant
-   * digit first, so a change cascades like a mechanical carry. Default: `0`.
+   * digit first, so a change cascades like a mechanical carry. In the numeric
+   * transition it runs from the leftmost digit to the right instead, the way
+   * the effect cascades on iOS. Default: `0` (`50` for the numeric transition).
    */
   stagger?: number
   /** Which way the digits roll. `'auto'` follows the sign of the change. Default: `'auto'`. */
@@ -257,6 +271,7 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
       decimalSeparator,
       prefix,
       suffix,
+      transition,
       duration,
       easing,
       bounce,
@@ -418,10 +433,11 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
         decimalSeparator={decimalSeparator ?? '.'}
         prefix={prefix ?? ''}
         suffix={suffix ?? ''}
-        duration={duration ?? 500}
-        easing={easing ?? 'easeInOut'}
+        transition={transition ?? 'roll'}
+        duration={duration ?? (transition === 'numeric' ? 450 : 500)}
+        easing={easing ?? (transition === 'numeric' ? 'spring' : 'easeInOut')}
         bounce={bounce ?? 0.15}
-        stagger={stagger ?? 0}
+        stagger={stagger ?? (transition === 'numeric' ? 50 : 0)}
         rollDirection={direction ?? 'auto'}
         revealState={reveal === undefined ? 0 : reveal ? 2 : 1}
         revealStyle={revealStyle ?? 'count'}

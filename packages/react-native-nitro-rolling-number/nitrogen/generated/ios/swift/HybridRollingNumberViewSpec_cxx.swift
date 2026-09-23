@@ -365,6 +365,23 @@ open class HybridRollingNumberViewSpec_cxx {
     }
   }
   
+  public final var transition: bridge.std__optional_RollingNumberTransition_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_RollingNumberTransition_ in
+        if let __unwrappedValue = self.__implementation.transition {
+          return bridge.create_std__optional_RollingNumberTransition_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.transition = newValue.value
+    }
+  }
+  
   public final var rollDirection: bridge.std__optional_RollingNumberDirection_ {
     @inline(__always)
     get {

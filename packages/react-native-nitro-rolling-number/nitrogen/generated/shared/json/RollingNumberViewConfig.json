@@ -15,6 +15,7 @@
     "easing": true,
     "bounce": true,
     "stagger": true,
+    "transition": true,
     "rollDirection": true,
     "revealState": true,
     "revealStyle": true,

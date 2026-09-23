@@ -522,6 +522,159 @@ static void staggeredRollFinishesAfterLastWheel() {
   CHECK(near(e.wheelAt(2).position, 9));
 }
 
+static void numericTransitionSwapsGlyphsInPlace() {
+  RollingEngine e;
+  e.setFormat(0, 1);
+  e.setTiming(0.5, /* linear */ 0, 0.15, 0, 0);
+  e.setTransition(1);
+  e.animateTo(1234, 0);   // first show: snap
+  CHECK(!e.needsFrames());
+  CHECK(near(e.wheelAt(0).blend, 1));
+
+  e.animateTo(1239, 0);   // increasing: units 4 → 9, the rest untouched
+  CHECK(e.needsFrames());
+  CHECK(e.isRolling());
+  RollingEngine::Wheel units = e.wheelAt(0);
+  CHECK(near(units.fromGlyph, 4));
+  CHECK(near(units.toGlyph, 9));
+  CHECK(near(units.blend, 0));
+  CHECK(units.fromAbove);
+  CHECK(near(units.position, 9));   // the position is the digit arriving, never a glyph in between
+  CHECK(near(e.wheelAt(1).blend, 1));
+  CHECK(near(e.wheelAt(3).blend, 1));
+  CHECK(near(e.wheelAt(1).position, 3));
+
+  e.tick(0.25);
+  CHECK(near(e.wheelAt(0).blend, 0.5));
+  CHECK(near(e.wheelAt(0).position, 9));
+  e.tick(0.5);
+  CHECK(!e.needsFrames());
+  CHECK(near(e.wheelAt(0).blend, 1));
+  CHECK(near(e.wheelAt(0).position, 9));
+  CHECK(near(e.wheelAt(0).fromGlyph, -1));   // settled: no pair to draw
+
+  e.animateTo(1230, 0);   // decreasing: 9 → 0 arrives from below
+  units = e.wheelAt(0);
+  CHECK(near(units.fromGlyph, 9));
+  CHECK(near(units.toGlyph, 0));
+  CHECK(!units.fromAbove);
+  e.tick(1);
+  CHECK(near(e.wheelAt(0).position, 0));
+}
+
+static void numericTransitionCascadesLeftToRight() {
+  RollingEngine e;
+  e.setFormat(0, 1);
+  e.setTiming(0.5, /* linear */ 0, 0.15, /* stagger */ 0.1, 0);
+  e.setTransition(1);
+  e.animateTo(1111, 0);
+  e.animateTo(2222, 0);
+  e.tick(0.05);
+  // Leftmost first: the thousands wheel is 10 % in, the units wheel has not started.
+  CHECK(near(e.wheelAt(3).blend, 0.1));
+  CHECK(near(e.wheelAt(2).blend, 0));
+  CHECK(near(e.wheelAt(0).blend, 0));
+  e.tick(0.35);
+  CHECK(near(e.wheelAt(3).blend, 0.7));
+  CHECK(near(e.wheelAt(0).blend, 0.1));
+  CHECK(e.needsFrames());
+  e.tick(0.8);   // duration + the last wheel's delay
+  CHECK(!e.needsFrames());
+  CHECK(near(e.wheelAt(0).blend, 1));
+  CHECK(near(e.wheelAt(0).position, 2));
+
+  // Only the wheels that change take part in the cascade: a units digit
+  // ticking over starts at once, and 2222 → 2255 runs over two steps.
+  e.animateTo(2223, 1);
+  e.tick(1.05);
+  CHECK(near(e.wheelAt(0).blend, 0.1));
+  e.tick(2);
+  e.animateTo(2255, 2);
+  e.tick(2.05);
+  CHECK(near(e.wheelAt(1).blend, 0.1));
+  CHECK(near(e.wheelAt(0).blend, 0));
+  CHECK(near(e.wheelAt(3).blend, 1));
+}
+
+static void numericTransitionGrowsAndShrinksColumns() {
+  RollingEngine e;
+  e.setFormat(0, 1);
+  e.setTiming(0.5, /* linear */ 0, 0.15, 0, 0);
+  e.setTransition(1);
+  e.animateTo(99, 0);
+  e.animateTo(100, 0);
+  CHECK(e.wheelCount() == 3);
+  // The new hundreds column opens while its "1" arrives from blank.
+  CHECK(near(e.wheelAt(2).fromGlyph, -1));
+  CHECK(near(e.wheelAt(2).toGlyph, 1));
+  CHECK(near(e.wheelAt(2).width, 0));
+  CHECK(near(e.wheelAt(0).fromGlyph, 9));
+  CHECK(near(e.wheelAt(0).toGlyph, 0));
+  e.tick(0.25);
+  CHECK(near(e.wheelAt(2).width, 0.5));
+  CHECK(near(e.wheelAt(2).blend, 0.5));
+  e.tick(0.5);
+  CHECK(e.wheelCount() == 3);
+  CHECK(near(e.wheelAt(2).width, 1));
+  CHECK(near(e.wheelAt(2).position, 1));
+  CHECK(e.settledPowerCount() == 3);
+
+  e.animateTo(99, 1);
+  CHECK(e.wheelCount() == 3);
+  // The hundreds column closes as its "1" leaves for blank.
+  CHECK(near(e.wheelAt(2).fromGlyph, 1));
+  CHECK(near(e.wheelAt(2).toGlyph, -1));
+  CHECK(near(e.wheelAt(2).width, 1));
+  CHECK(!e.wheelAt(2).fromAbove);
+  e.tick(1.25);
+  CHECK(near(e.wheelAt(2).width, 0.5));
+  e.tick(1.5);
+  CHECK(e.wheelCount() == 2);
+  CHECK(near(e.wheelAt(1).position, 9));
+  CHECK(near(e.wheelAt(0).position, 9));
+}
+
+static void numericTransitionRetargetsFromTheArrivingGlyph() {
+  RollingEngine e;
+  e.setFormat(0, 1);
+  e.setTiming(0.5, /* linear */ 0, 0.15, 0, 0);
+  e.setTransition(1);
+  e.animateTo(5, 0);
+  e.animateTo(6, 0);
+  e.tick(0.25);
+  CHECK(near(e.wheelAt(0).blend, 0.5));
+  e.animateTo(7, 0.25);   // mid-swap: the 6 that was arriving is what leaves now
+  CHECK(near(e.wheelAt(0).fromGlyph, 6));
+  CHECK(near(e.wheelAt(0).toGlyph, 7));
+  CHECK(near(e.wheelAt(0).blend, 0));
+  e.tick(0.75);
+  CHECK(near(e.wheelAt(0).position, 7));
+  CHECK(!e.needsFrames());
+
+  // Reduce Motion snaps: no pair to draw.
+  e.setReduceMotion(true);
+  e.animateTo(8, 1);
+  CHECK(!e.needsFrames());
+  CHECK(near(e.wheelAt(0).position, 8));
+  CHECK(near(e.wheelAt(0).blend, 1));
+  e.setReduceMotion(false);
+
+  // Back to the roll: a wheel left mid-swap rolls on from the glyph it was arriving at.
+  e.animateTo(9, 2);
+  e.tick(2.25);
+  e.setTransition(0);
+  e.animateTo(10, 2.25);
+  CHECK(e.wheelCount() == 2);
+  CHECK(near(e.wheelAt(0).blend, 1));
+  CHECK(near(e.wheelAt(0).fromGlyph, -1));
+  e.tick(2.5);
+  CHECK(near(e.wheelAt(0).position, 9.5));   // 9 → 0 rolling up through the wrap
+  e.tick(3);
+  CHECK(near(e.wheelAt(0).position, 0));
+  CHECK(near(e.wheelAt(1).position, 1));
+  CHECK(!e.needsFrames());
+}
+
 int main() {
   odometerPositions();
   tickerRollsShortestPathInDirection();
@@ -536,6 +689,10 @@ int main() {
   jackpotRevealEdgeCases();
   jumpAndRollAgreeOnLargeValues();
   staggeredRollFinishesAfterLastWheel();
+  numericTransitionSwapsGlyphsInPlace();
+  numericTransitionCascadesLeftToRight();
+  numericTransitionGrowsAndShrinksColumns();
+  numericTransitionRetargetsFromTheArrivingGlyph();
   if (failures == 0) {
     std::printf("RollingEngine: all checks passed\n");
     return 0;

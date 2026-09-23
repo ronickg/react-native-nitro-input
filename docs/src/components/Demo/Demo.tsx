@@ -160,6 +160,42 @@ export function TimingDemo() {
   );
 }
 
+export function NumericDemo() {
+  const [value, setValue] = useState(4280);
+  const [transition, setTransition] = useState<'roll' | 'numeric'>('numeric');
+  const [duration, setDuration] = useState(450);
+  const [stagger, setStagger] = useState(50);
+  const bump = () => setValue((v) => v + 1 + Math.round(Math.random() * 9));
+  return (
+    <>
+      <Stage>
+        <RollingNumberCanvas value={value} groupingSeparator="," fontSize={56} fontWeight={800} transition={transition} easing={transition === 'numeric' ? 'spring' : 'easeInOut'} duration={duration} stagger={stagger} />
+      </Stage>
+      <Controls>
+        <Btn primary onClick={bump}>
+          +1…10
+        </Btn>
+        <Btn onClick={() => setValue((v) => v + 1000 + Math.round(Math.random() * 9000))}>Big change</Btn>
+        <Btn onClick={() => setValue((v) => Math.max(0, v - 1 - Math.round(Math.random() * 9)))}>Down</Btn>
+        <Btn selected={transition === 'numeric'} onClick={() => setTransition('numeric')}>
+          numeric
+        </Btn>
+        <Btn selected={transition === 'roll'} onClick={() => setTransition('roll')}>
+          roll
+        </Btn>
+        <label>
+          duration {duration} ms
+          <input type="range" min={100} max={1500} step={50} value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
+        </label>
+        <label>
+          stagger {stagger} ms
+          <input type="range" min={0} max={150} step={5} value={stagger} onChange={(e) => setStagger(Number(e.target.value))} />
+        </label>
+      </Controls>
+    </>
+  );
+}
+
 export function CurrencyDemo() {
   const [value, setValue] = useState(4280.5);
   return (

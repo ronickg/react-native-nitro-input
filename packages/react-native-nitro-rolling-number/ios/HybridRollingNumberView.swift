@@ -49,6 +49,7 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
   var decimalSeparator: String? { didSet { markConfigDirty() } }
   var prefix: String? { didSet { markConfigDirty() } }
   var suffix: String? { didSet { markConfigDirty() } }
+  var transition: RollingNumberTransition? { didSet { markConfigDirty() } }
   var duration: Double? { didSet { markConfigDirty() } }
   var easing: RollingNumberEasing? { didSet { markConfigDirty() } }
   var bounce: Double? { didSet { markConfigDirty() } }
@@ -190,6 +191,7 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
     decimalSeparator = nil
     prefix = nil
     suffix = nil
+    transition = nil
     duration = nil
     easing = nil
     bounce = nil
@@ -301,6 +303,7 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
     typography.maxFontSizeMultiplier = CGFloat(max(0, maxFontSizeMultiplier ?? 0))
 
     var timing = RollingNumberView.Timing()
+    timing.transition = transition == .numeric ? .numeric : .roll
     timing.duration = max(0, (duration ?? 500) / 1000)
     timing.easing = Self.mapEasing(easing)
     timing.bounce = bounce ?? 0.15

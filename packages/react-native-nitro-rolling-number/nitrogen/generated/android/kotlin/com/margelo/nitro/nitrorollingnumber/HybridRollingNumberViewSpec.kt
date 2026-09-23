@@ -97,6 +97,12 @@ abstract class HybridRollingNumberViewSpec: HybridView() {
   @get:Keep
   @set:DoNotStrip
   @set:Keep
+  abstract var transition: RollingNumberTransition?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
   abstract var rollDirection: RollingNumberDirection?
   
   @get:DoNotStrip

@@ -42,6 +42,12 @@ import kotlin.math.min
  *
  * Mirrors `RollingNumberView.swift` on iOS.
  */
+// The numeric transition's geometry, in line heights; mirrors
+// `RollingEngine::kNumeric*`, where the effect is described.
+private const val NUMERIC_OFFSET = 0.4f
+private const val NUMERIC_SCALE = 0.6f
+private const val NUMERIC_BLUR = 0.16f
+
 class RollingNumberView(context: Context) : View(context) {
 
   // region Configuration
@@ -77,6 +83,8 @@ class RollingNumberView(context: Context) : View(context) {
   enum class Direction(val raw: Int) { AUTO(0), UP(1), DOWN(2) }
 
   data class Timing(
+    /** The odometer roll, or the numeric transition (glyphs swap in place). */
+    val transition: Transition = Transition.ROLL,
     val durationMs: Long = 500,
     val easing: Easing = Easing.EASE_IN_OUT,
     val bounce: Double = 0.15,
@@ -98,6 +106,8 @@ class RollingNumberView(context: Context) : View(context) {
   )
 
   enum class RevealStyle(val raw: Int) { COUNT(0), SPIN(1) }
+
+  enum class Transition(val raw: Int) { ROLL(0), NUMERIC(1) }
 
   data class Shimmer(
     /** Color of the glint's core; null uses a light neutral (dark neutral in dark mode). */
@@ -130,6 +140,7 @@ class RollingNumberView(context: Context) : View(context) {
     set(value) {
       field = value
       engine.setTiming(value.durationMs / 1000.0, value.easing.raw, value.bounce, value.staggerMs / 1000.0, value.direction.raw)
+      engine.setTransition(value.transition.raw)
       engine.setRevealTiming(value.revealDurationMs / 1000.0, value.revealBounce, value.revealStyle.raw, value.revealStaggerMs / 1000.0)
       engine.setRevealGrow(value.revealGrow)
       engine.setRevealMilestoneHold(value.revealMilestoneHoldMs / 1000.0)
@@ -251,6 +262,33 @@ class RollingNumberView(context: Context) : View(context) {
       return strip
     }
 
+    /**
+     * The digit out of focus, for the numeric transition: the glyph drawn
+     * into a padded bitmap and blurred in software (three box passes, which
+     * is a Gaussian to the eye; HWUI has no hardware mask filter), once per
+     * font, colour and density and shared like the strips. A transitioning
+     * glyph is its sharp text and this bitmap cross-faded, a fixed cost per
+     * frame instead of a blur pass. The bitmap is `digitWidth + 2 pad` wide
+     * and `lineHeight + 2 pad` tall with the glyph centred in the column.
+     */
+    fun blurred(digitIndex: Int): Bitmap? {
+      if (digitWidth <= 0f || lineHeight <= 0f) return null
+      return BlurredGlyphCache.get("$stripKey|$digitIndex") {
+        val text = DIGITS[digitIndex]
+        val pad = blurPad
+        val w = ceil(digitWidth).toInt() + 2 * pad
+        val h = ceil(lineHeight).toInt() + 2 * pad
+        val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawText(text, pad + (digitWidth - width(text, GlyphRole.DIGIT)) / 2f, pad + baseline(GlyphRole.DIGIT, text, 0f), digit)
+        boxBlurAlpha(bitmap, digit.color, Math.round(lineHeight * NUMERIC_BLUR * 0.6f).coerceAtLeast(1))
+        bitmap
+      }
+    }
+
+    /** Padding around a blurred glyph's bitmap, enough for the blur's tail. */
+    val blurPad: Int = ceil(lineHeight * NUMERIC_BLUR * 3f).toInt()
+
     private fun renderStrip(blankZero: Boolean): Bitmap {
       val w = ceil(digitWidth).toInt()
       val h = ceil(lineHeight * STRIP_SLOTS).toInt()
@@ -314,6 +352,49 @@ class RollingNumberView(context: Context) : View(context) {
     }
   }
 
+  /**
+   * Blurs a single-colour glyph in place: the alpha channel gets three box
+   * passes of [radius] in each axis, and every pixel is put back as [color]
+   * at its blurred coverage.
+   */
+  private fun boxBlurAlpha(bitmap: Bitmap, color: Int, radius: Int) {
+    val w = bitmap.width
+    val h = bitmap.height
+    val pixels = IntArray(w * h)
+    bitmap.getPixels(pixels, 0, w, 0, 0, w, h)
+    val alpha = FloatArray(w * h) { (pixels[it] ushr 24).toFloat() }
+    val scratch = FloatArray(w * h)
+    val window = (2 * radius + 1).toFloat()
+    repeat(3) {
+      // horizontal
+      for (y in 0 until h) {
+        val row = y * w
+        var sum = 0f
+        for (x in -radius..radius) sum += alpha[row + x.coerceIn(0, w - 1)]
+        for (x in 0 until w) {
+          scratch[row + x] = sum / window
+          sum += alpha[row + (x + radius + 1).coerceIn(0, w - 1)] - alpha[row + (x - radius).coerceIn(0, w - 1)]
+        }
+      }
+      // vertical
+      for (x in 0 until w) {
+        var sum = 0f
+        for (y in -radius..radius) sum += scratch[y.coerceIn(0, h - 1) * w + x]
+        for (y in 0 until h) {
+          alpha[y * w + x] = sum / window
+          sum += scratch[(y + radius + 1).coerceIn(0, h - 1) * w + x] - scratch[(y - radius).coerceIn(0, h - 1) * w + x]
+        }
+      }
+    }
+    val rgb = color and 0x00FFFFFF
+    val tint = (color ushr 24).toFloat() / 255f
+    for (i in pixels.indices) {
+      val a = Math.round(alpha[i] * tint).coerceIn(0, 255)
+      pixels[i] = (a shl 24) or rgb
+    }
+    bitmap.setPixels(pixels, 0, w, 0, 0, w, h)
+  }
+
   /** System font scale for `allowFontScaling`, capped by `maxFontSizeMultiplier`. */
   private fun systemFontMultiplier(t: Typography): Float {
     if (!t.allowFontScaling) return 1f
@@ -364,7 +445,17 @@ class RollingNumberView(context: Context) : View(context) {
 
   // region State
 
-  private class Wheel(var position: Double = 0.0, var width: Double = 1.0, var linear: Boolean = false, var blankZero: Boolean = false)
+  private class Wheel(
+    var position: Double = 0.0,
+    var width: Double = 1.0,
+    var linear: Boolean = false,
+    var blankZero: Boolean = false,
+    /** The numeric transition's swap, as the engine reports it (see `RollingEngine.hpp`). */
+    var fromGlyph: Double = -1.0,
+    var toGlyph: Double = -1.0,
+    var blend: Double = 1.0,
+    var fromAbove: Boolean = true,
+  )
 
   private val engine = RollingEngine()
   /** Reused every frame so the draw path stops allocating once warm. */
@@ -581,7 +672,7 @@ class RollingNumberView(context: Context) : View(context) {
   }
 
   /** Reused per frame so the JNI hop never allocates (room for far more wheels than the engine's 18). */
-  private val frameBuffer = DoubleArray(4 + 4 * 32)
+  private val frameBuffer = DoubleArray(4 + 8 * 32)
 
   /** Pulls the engine's render state into reusable [Wheel] objects (no per-frame allocation once warm). */
   private fun syncFromEngine() {
@@ -594,12 +685,16 @@ class RollingNumberView(context: Context) : View(context) {
     while (wheels.size < count) wheels.add(Wheel())
     while (wheels.size > count) wheels.removeAt(wheels.size - 1)
     for (i in 0 until count) {
-      val base = 4 + i * 4
+      val base = 4 + i * 8
       val w = wheels[i]
       w.position = f[base]
       w.width = f[base + 1]
       w.linear = f[base + 2] != 0.0
       w.blankZero = f[base + 3] != 0.0
+      w.fromGlyph = f[base + 4]
+      w.toGlyph = f[base + 5]
+      w.blend = f[base + 6]
+      w.fromAbove = f[base + 7] != 0.0
     }
   }
 
@@ -925,6 +1020,10 @@ class RollingNumberView(context: Context) : View(context) {
   private fun drawWheel(canvas: Canvas, fonts: FontSet, wheel: Wheel, x: Float, width: Float, originX: Float, originY: Float, scale: Float) {
     if (width <= 0f) return
     val lineHeight = fonts.lineHeight
+    if (wheel.blend < 1.0) {
+      drawSwap(canvas, fonts, wheel, x, width)
+      return
+    }
     // A settled-width wheel is a window onto the shared strip (the strip has
     // no per-wheel alpha, so a wheel still growing or shrinking, and any
     // canvas without a GPU, which cannot draw a hardware bitmap, draws its
@@ -969,6 +1068,59 @@ class RollingNumberView(context: Context) : View(context) {
     if (fraction > 0.0001f) {
       glyphAt(index + 1, wheel)?.let { glyph ->
         canvas.drawText(glyph, columnLeft + (fonts.digitWidth - fonts.width(glyph, GlyphRole.DIGIT)) / 2f, baseline + (1f - fraction) * lineHeight, paint)
+      }
+    }
+    canvas.restore()
+  }
+
+  /**
+   * The numeric transition: the leaving glyph and the arriving one, each
+   * scaled about its centre, offset along the axis, faded, and cross-faded
+   * with its blurred bitmap as it goes out of, or comes into, focus; the
+   * geometry is `RollingEngine.hpp`'s.
+   */
+  private fun drawSwap(canvas: Canvas, fonts: FontSet, wheel: Wheel, x: Float, width: Float) {
+    val lineHeight = fonts.lineHeight
+    val b = wheel.blend.toFloat()
+    val d = if (wheel.fromAbove) 1f else -1f
+    val offset = lineHeight * NUMERIC_OFFSET
+    val cx = x + width - fonts.digitWidth / 2f
+    val cy = lineHeight / 2f
+    val column = wheel.width.toFloat().coerceIn(0f, 1f)
+    canvas.save()
+    canvas.clipRect(x, 0f, x + width, lineHeight)
+    val from = wheel.fromGlyph.toInt()
+    val to = wheel.toGlyph.toInt()
+    if (from >= 0) {
+      drawSwapGlyph(canvas, fonts, from % 10, cx, cy + d * offset * b, 1f - (1f - NUMERIC_SCALE) * b, (1f - b) * column, min(1f, 2f * b))
+    }
+    if (to >= 0) {
+      drawSwapGlyph(canvas, fonts, to % 10, cx, cy - d * offset * (1f - b), NUMERIC_SCALE + (1f - NUMERIC_SCALE) * b, b * column, 1f - b)
+    }
+    canvas.restore()
+  }
+
+  private fun drawSwapGlyph(canvas: Canvas, fonts: FontSet, digitIndex: Int, cx: Float, cy: Float, scale: Float, alpha: Float, blur: Float) {
+    if (alpha <= 0.002f) return
+    val text = DIGITS[digitIndex]
+    val paint = fonts.digit
+    val lineHeight = fonts.lineHeight
+    canvas.save()
+    canvas.translate(cx, cy)
+    canvas.scale(scale, scale)
+    val sharpAlpha = alpha * (1f - blur)
+    if (sharpAlpha > 0.002f) {
+      paint.alpha = (sharpAlpha * 255f).toInt().coerceIn(0, 255)
+      canvas.drawText(text, -fonts.width(text, GlyphRole.DIGIT) / 2f, fonts.baseline(GlyphRole.DIGIT, text, 0f) - lineHeight / 2f, paint)
+      paint.alpha = 255
+    }
+    val blurAlpha = alpha * blur
+    if (blurAlpha > 0.002f) {
+      val bitmap = fonts.blurred(digitIndex)
+      if (bitmap != null) {
+        stripPaint.alpha = (blurAlpha * 255f).toInt().coerceIn(0, 255)
+        canvas.drawBitmap(bitmap, -fonts.digitWidth / 2f - fonts.blurPad, -lineHeight / 2f - fonts.blurPad, stripPaint)
+        stripPaint.alpha = 255
       }
     }
     canvas.restore()
@@ -1019,6 +1171,18 @@ class RollingNumberView(context: Context) : View(context) {
 
   /** A digit strip: the software-rendered bitmap and, from Android 10, the layer that holds it. */
   class Strip(val bitmap: Bitmap, val node: RenderNode?)
+
+  /** The blurred digit bitmaps of the numeric transition, shared like the strips and bounded the same way. */
+  private object BlurredGlyphCache {
+    private const val CAPACITY = 64
+    private val entries =
+      object : LinkedHashMap<String, Bitmap>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Bitmap>): Boolean = size > CAPACITY
+      }
+
+    @Synchronized
+    fun get(key: String, make: () -> Bitmap): Bitmap = entries.getOrPut(key, make)
+  }
 
   /** The digit strips every rolling number shares, most recently used last; the ones that fall off the end drop their layer. */
   private object StripCache {

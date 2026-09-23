@@ -35,6 +35,8 @@ export interface RollingNumberCanvasProps {
   suffix?: string;
   duration?: number;
   easing?: Easing;
+  /** The odometer roll, or the numeric transition (glyphs swap in place). */
+  transition?: 'roll' | 'numeric';
   bounce?: number;
   stagger?: number;
   direction?: Direction;
@@ -92,7 +94,17 @@ interface Wheel {
   width: number;
   linear: boolean;
   blankZero: boolean;
+  fromGlyph: number;
+  toGlyph: number;
+  blend: number;
+  fromAbove: boolean;
 }
+
+// The numeric transition's geometry, in line heights; mirrors
+// `RollingEngine::kNumeric*`, where the effect is described.
+const NUMERIC_OFFSET = 0.4;
+const NUMERIC_SCALE = 0.6;
+const NUMERIC_BLUR = 0.16;
 
 interface Element {
   wheel: number; // -1 for glyphs
@@ -215,6 +227,7 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
       suffix = '',
       duration = 500,
       easing = 'easeInOut',
+      transition = 'roll',
       bounce = 0.15,
       stagger = 0,
       direction = 'auto',
@@ -331,7 +344,7 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
 
     const measureSettled = (engine: RollingEngine, f: FontSet): number => {
       const count = engine.settledPowerCount();
-      const wheels: Wheel[] = Array.from({length: count}, () => ({position: 0, width: 1, linear: false, blankZero: false}));
+      const wheels: Wheel[] = Array.from({length: count}, () => ({position: 0, width: 1, linear: false, blankZero: false, fromGlyph: -1, toGlyph: -1, blend: 1, fromAbove: true}));
       return buildElements(f, wheels, engine.settledNegative() ? 1 : 0).reduce((sum, e) => sum + e.width, 0);
     };
 
@@ -434,6 +447,35 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
       return DIGITS[((index % 10) + 10) % 10];
     };
 
+    // The numeric transition: the leaving glyph and the arriving one, each
+    // scaled about its centre, offset along the axis, faded and blurred as it
+    // goes out of, or comes into, focus.
+    const drawSwap = (ctx: CanvasRenderingContext2D, f: FontSet, wheel: Wheel, x: number, w: number) => {
+      const lineHeight = f.lineHeight;
+      const b = wheel.blend;
+      const d = wheel.fromAbove ? 1 : -1;
+      const offset = lineHeight * NUMERIC_OFFSET;
+      const cx = x + w - f.digitWidth / 2;
+      const cy = lineHeight / 2;
+      const canBlur = 'filter' in ctx;
+      const pair = [
+        {glyph: wheel.fromGlyph, dy: d * offset * b, scale: 1 - (1 - NUMERIC_SCALE) * b, alpha: 1 - b, blur: Math.min(1, 2 * b)},
+        {glyph: wheel.toGlyph, dy: -d * offset * (1 - b), scale: NUMERIC_SCALE + (1 - NUMERIC_SCALE) * b, alpha: b, blur: 1 - b},
+      ];
+      ctx.font = f.digit;
+      for (const item of pair) {
+        if (item.glyph < 0 || item.alpha <= 0.002) continue;
+        const text = DIGITS[((item.glyph % 10) + 10) % 10]!;
+        ctx.save();
+        ctx.globalAlpha = wheel.width * item.alpha;
+        if (canBlur && item.blur > 0.02) ctx.filter = `blur(${(lineHeight * NUMERIC_BLUR * item.blur).toFixed(2)}px)`;
+        ctx.translate(cx, cy + item.dy);
+        ctx.scale(item.scale, item.scale);
+        ctx.fillText(text, -f.width(text, 'digit') / 2, f.baseline('digit', text, 0) - lineHeight / 2);
+        ctx.restore();
+      }
+    };
+
     const drawWheel = (ctx: CanvasRenderingContext2D, f: FontSet, wheel: Wheel, x: number, w: number) => {
       if (w <= 0) return;
       const lineHeight = f.lineHeight;
@@ -442,6 +484,11 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
       ctx.beginPath();
       ctx.rect(x, 0, w, lineHeight);
       ctx.clip();
+      if (wheel.blend < 1) {
+        drawSwap(ctx, f, wheel, x, w);
+        ctx.restore();
+        return;
+      }
       ctx.globalAlpha = wheel.width;
       ctx.font = f.digit;
       const base = Math.floor(wheel.position);
@@ -551,6 +598,7 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
       if (!e || !module) return;
       e.setFormat(fractionDigits, minimumIntegerDigits);
       e.setTiming(duration / 1000, EASINGS[easing], bounce, stagger / 1000, DIRECTIONS[direction]);
+      e.setTransition(transition === 'numeric' ? 1 : 0);
       e.setRevealTiming(revealDuration / 1000, revealBounce, revealStyle === 'spin' ? 1 : 0, revealStagger / 1000);
       e.setRevealGrow(revealGrow);
       e.setRevealMilestoneHold(revealMilestoneHold / 1000);
@@ -559,7 +607,7 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
       if (e.hasShownValue()) reportSize();
       draw();
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [module, fractionDigits, minimumIntegerDigits, duration, easing, bounce, stagger, direction, revealDuration, revealBounce, revealGrow, revealStyle, revealStagger, revealMilestoneHold, milestonesKey]);
+    }, [module, fractionDigits, minimumIntegerDigits, duration, easing, transition, bounce, stagger, direction, revealDuration, revealBounce, revealGrow, revealStyle, revealStagger, revealMilestoneHold, milestonesKey]);
 
     // Loading glint.
     useEffect(() => {

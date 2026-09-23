@@ -20,6 +20,8 @@ namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberEasing; }
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberRevealStyle; }
 // Forward declaration of `RollingNumberTextAlign` to properly resolve imports.
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberTextAlign; }
+// Forward declaration of `RollingNumberTransition` to properly resolve imports.
+namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberTransition; }
 
 // Forward declarations of Swift defined types
 // Forward declaration of `HybridRollingNumberViewSpec_cxx` to properly resolve imports.
@@ -32,6 +34,7 @@ namespace NitroRollingNumber { class HybridRollingNumberViewSpec_cxx; }
 #include "RollingNumberEasing.hpp"
 #include "RollingNumberRevealStyle.hpp"
 #include "RollingNumberTextAlign.hpp"
+#include "RollingNumberTransition.hpp"
 #include <NitroModules/Result.hpp>
 #include <exception>
 #include <functional>
@@ -88,6 +91,21 @@ namespace margelo::nitro::nitrorollingnumber::bridge::swift {
     return optional.has_value();
   }
   inline RollingNumberEasing get_std__optional_RollingNumberEasing_(const std::optional<RollingNumberEasing>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::optional<RollingNumberTransition>
+  /**
+   * Specialized version of `std::optional<RollingNumberTransition>`.
+   */
+  using std__optional_RollingNumberTransition_ = std::optional<RollingNumberTransition>;
+  inline std::optional<RollingNumberTransition> create_std__optional_RollingNumberTransition_(const RollingNumberTransition& value) noexcept {
+    return std::optional<RollingNumberTransition>(value);
+  }
+  inline bool has_value_std__optional_RollingNumberTransition_(const std::optional<RollingNumberTransition>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline RollingNumberTransition get_std__optional_RollingNumberTransition_(const std::optional<RollingNumberTransition>& optional) noexcept {
     return optional.value();
   }
   

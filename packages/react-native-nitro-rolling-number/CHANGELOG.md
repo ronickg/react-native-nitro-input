@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+- `transition="numeric"`: a second way a value change can play, after
+  SwiftUI's `.contentTransition(.numericText())`. Instead of rolling through
+  the digits between, each changed glyph swaps in place: the old one softens,
+  shrinks and slides out while the new one slides in from the other side, a
+  little small and out of focus, and resolves; the glyphs move up when the
+  value grows and down when it shrinks, the change cascades from the leftmost
+  digit to the right, and digits that don't change stay put. The engine
+  plans it as a blend per wheel (`fromGlyph` → `toGlyph`, `blend`), the same
+  `duration`, `easing` and `stagger` apply (with their own defaults of 450 ms,
+  `spring` and 50 ms), and every renderer draws the pair the same way: the
+  glyph's sharp and a blurred image cross-faded (Core Image on iOS, a
+  software blur once per font on Android, a canvas filter on the web), so a
+  frame of the transition costs what a frame of a roll does. The effect is
+  our own reading of the SwiftUI one; Giulio Amato's
+  [react-native-numeric-text](https://github.com/AmatoGiulio/react-native-numeric-text)
+  is a native re-implementation of it for React Native `Text` if a whole
+  text should transition rather than a rolling number.
+
 ## 0.1.0
 
 - Android: the digit strip is a software-rendered bitmap inside a layer, and

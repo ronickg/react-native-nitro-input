@@ -14,6 +14,8 @@ namespace NitroRollingNumber { class HybridRollingNumberViewSpec_cxx; }
 
 // Forward declaration of `RollingNumberEasing` to properly resolve imports.
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberEasing; }
+// Forward declaration of `RollingNumberTransition` to properly resolve imports.
+namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberTransition; }
 // Forward declaration of `RollingNumberDirection` to properly resolve imports.
 namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberDirection; }
 // Forward declaration of `RollingNumberRevealStyle` to properly resolve imports.
@@ -26,6 +28,7 @@ namespace margelo::nitro::nitrorollingnumber { enum class RollingNumberTextAlign
 #include <optional>
 #include <string>
 #include "RollingNumberEasing.hpp"
+#include "RollingNumberTransition.hpp"
 #include "RollingNumberDirection.hpp"
 #include "RollingNumberRevealStyle.hpp"
 #include <vector>
@@ -154,6 +157,13 @@ namespace margelo::nitro::nitrorollingnumber {
     }
     inline void setStagger(std::optional<double> stagger) noexcept override {
       _swiftPart.setStagger(stagger);
+    }
+    inline std::optional<RollingNumberTransition> getTransition() noexcept override {
+      auto __result = _swiftPart.getTransition();
+      return __result;
+    }
+    inline void setTransition(std::optional<RollingNumberTransition> transition) noexcept override {
+      _swiftPart.setTransition(transition);
     }
     inline std::optional<RollingNumberDirection> getRollDirection() noexcept override {
       auto __result = _swiftPart.getRollDirection();

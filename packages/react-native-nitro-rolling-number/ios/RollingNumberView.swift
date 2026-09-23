@@ -64,6 +64,8 @@ final class RollingNumberView: UIView {
   }
 
   struct Timing: Equatable {
+    /// The odometer roll, or the numeric transition (glyphs swap in place).
+    var transition: Transition = .roll
     var duration: TimeInterval = 0.5
     var easing: Easing = .easeInOut
     var bounce: Double = 0.15
@@ -86,6 +88,10 @@ final class RollingNumberView: UIView {
 
   enum RevealStyle: Int32 {
     case count = 0, spin = 1
+  }
+
+  enum Transition: Int32 {
+    case roll = 0, numeric = 1
   }
 
   struct Shimmer: Equatable {
@@ -124,6 +130,7 @@ final class RollingNumberView: UIView {
   var timing = Timing() {
     didSet {
       engine.setTiming(timing.duration, timing.easing.rawValue, timing.bounce, timing.stagger, timing.direction.rawValue)
+      engine.setTransition(timing.transition.rawValue)
       engine.setRevealTiming(timing.revealDuration, timing.revealBounce, timing.revealStyle.rawValue, timing.revealStagger)
       engine.setRevealGrow(timing.revealGrow)
       engine.setRevealMilestoneHold(timing.revealMilestoneHold)
@@ -235,8 +242,10 @@ final class RollingNumberView: UIView {
       let blankZero: Bool
     }
     private static var sharedImages: [ImageKey: UIImage] = [:]
+    private static var sharedBlurred: [ImageKey: UIImage] = [:]
     private static var sharedStrips: [StripKey: UIImage] = [:]
     private static let sharedCapacity = 512
+    private static let ciContext = CIContext(options: [.useSoftwareRenderer: false])
     private let colorKey: UInt32
     private func fontTag(_ role: GlyphRole) -> String {
       let font = self.font(for: role)
@@ -310,6 +319,26 @@ final class RollingNumberView: UIView {
       }
       if Self.sharedImages.count >= Self.sharedCapacity { Self.sharedImages.removeAll(keepingCapacity: true) }
       Self.sharedImages[key] = image
+      return image
+    }
+
+    /// The digit out of focus, for the numeric transition: the sharp glyph
+    /// blurred by `numericBlur` line heights, padded so nothing is cut off,
+    /// rendered once per font, colour and density and shared like the sharp
+    /// one. A transitioning glyph is its sharp and its blurred image
+    /// cross-faded, which is a fixed cost per frame instead of a blur pass.
+    func blurredImage(_ text: String) -> UIImage? {
+      let key = ImageKey(font: fontTag(.digit), color: colorKey, scale: renderScale, text: text, role: .digit)
+      if let cached = Self.sharedBlurred[key] { return cached }
+      guard let sharp = image(text, role: .digit), let cg = sharp.cgImage else { return nil }
+      let sigma = lineHeight * RollingNumberView.numericBlur * renderScale
+      let pad = ceil(sigma * 3)
+      let input = CIImage(cgImage: cg)
+      let output = input.clampedToExtent().applyingGaussianBlur(sigma: sigma).cropped(to: input.extent.insetBy(dx: -pad, dy: -pad))
+      guard let blurred = Self.ciContext.createCGImage(output, from: output.extent) else { return nil }
+      let image = UIImage(cgImage: blurred, scale: renderScale, orientation: .up)
+      if Self.sharedBlurred.count >= 64 { Self.sharedBlurred.removeAll(keepingCapacity: true) }
+      Self.sharedBlurred[key] = image
       return image
     }
 
@@ -399,11 +428,35 @@ final class RollingNumberView: UIView {
     case glyph(String, GlyphRole)
   }
 
+  /// The numeric transition's layers of one wheel: the leaving glyph and the
+  /// arriving one, each as its sharp and its blurred image (the blurred copy
+  /// fades in as a glyph goes out of focus). Made the first time the wheel
+  /// swaps, hidden whenever it is settled.
+  private final class SwapLayers {
+    let outSharp = CALayer()
+    let outBlur = CALayer()
+    let inSharp = CALayer()
+    let inBlur = CALayer()
+    var outGlyph = -2
+    var inGlyph = -2
+    var hidden = true
+    var all: [CALayer] { [outBlur, outSharp, inBlur, inSharp] }
+
+    init(scale: CGFloat) {
+      for layer in all {
+        layer.contentsScale = scale
+        layer.isHidden = true
+      }
+    }
+  }
+
   private struct ElementLayer {
     var kind: LayerKind
     var layer: CALayer
     /// Wheels only: which strip variant the layer currently shows.
     var blankZero: Bool
+    /// Wheels only: the numeric transition's layers, once the wheel has swapped.
+    var swap: SwapLayers?
     /// Glyphs only: the image's top within the line box, fixed for the font set.
     var glyphTop: CGFloat
     /// What the layers were last given, so a frame only touches what moved:
@@ -852,7 +905,7 @@ final class RollingNumberView: UIView {
     let count = Int(engine.settledPowerCount())
     settledWheels.removeAll(keepingCapacity: true)
     for _ in 0..<count {
-      settledWheels.append(Engine.Wheel(position: 0, width: 1, linear: false, blankZero: false))
+      settledWheels.append(Engine.Wheel(position: 0, width: 1, linear: false, blankZero: false, fromGlyph: -1, toGlyph: -1, blend: 1, fromAbove: true))
     }
     buildElements(into: &settledBuffer, wheels: settledWheels, signFactor: engine.settledNegative() ? 1 : 0)
     return settledBuffer.reduce(CGFloat(0)) { $0 + $1.width }
@@ -982,7 +1035,26 @@ final class RollingNumberView: UIView {
           slot.layer.opacity = opacity
           slots[i].opacity = opacity
         }
-        if let strip = slot.layer.sublayers?.first {
+        let strip = slot.layer.sublayers?.first
+        if wheel.blend < 1 {
+          // The numeric transition: the strip stays put underneath, hidden,
+          // while the two glyphs cross over it.
+          let swap: SwapLayers
+          if let existing = slot.swap {
+            swap = existing
+          } else {
+            swap = SwapLayers(scale: fonts.renderScale)
+            for layer in swap.all { slot.layer.addSublayer(layer) }
+            slots[i].swap = swap
+          }
+          if let strip, !strip.isHidden { strip.isHidden = true }
+          layoutSwap(swap, wheel: wheel, fonts: fonts, cellWidth: element.width)
+        } else if let swap = slot.swap, !swap.hidden {
+          for layer in swap.all { layer.isHidden = true }
+          swap.hidden = true
+          strip?.isHidden = false
+        }
+        if let strip {
           if slot.blankZero != wheel.blankZero {
             strip.contents = fonts.strip(blankZero: wheel.blankZero)?.cgImage
             slots[i].blankZero = wheel.blankZero
@@ -1023,6 +1095,59 @@ final class RollingNumberView: UIView {
     }
   }
 
+  // The numeric transition's geometry, in line heights; mirrors
+  // `RollingEngine::kNumeric*`, where the effect is described.
+  static let numericOffset: CGFloat = 0.4
+  static let numericScale: CGFloat = 0.6
+  static let numericBlur: CGFloat = 0.16
+
+  /// Places the leaving and the arriving glyph of a swapping wheel for this
+  /// frame: each scaled about its centre, offset along the axis, faded, and
+  /// cross-faded with its blurred image as it goes out of, or comes into, focus.
+  private func layoutSwap(_ swap: SwapLayers, wheel: Engine.Wheel, fonts: FontSet, cellWidth: CGFloat) {
+    let b = CGFloat(wheel.blend)
+    let d: CGFloat = wheel.fromAbove ? 1 : -1
+    let offset = fonts.lineHeight * Self.numericOffset
+    // The digit column is right-aligned in its cell (the cell shrinks and grows from the left).
+    let center = CGPoint(x: cellWidth - fonts.digitWidth / 2, y: fonts.lineHeight / 2)
+    placeSwapGlyph(sharp: swap.outSharp, blur: swap.outBlur, glyph: Int(wheel.fromGlyph), shown: &swap.outGlyph, fonts: fonts,
+                   center: CGPoint(x: center.x, y: center.y + d * offset * b),
+                   scale: 1 - (1 - Self.numericScale) * b, alpha: 1 - b, blur: min(1, 2 * b))
+    placeSwapGlyph(sharp: swap.inSharp, blur: swap.inBlur, glyph: Int(wheel.toGlyph), shown: &swap.inGlyph, fonts: fonts,
+                   center: CGPoint(x: center.x, y: center.y - d * offset * (1 - b)),
+                   scale: Self.numericScale + (1 - Self.numericScale) * b, alpha: b, blur: 1 - b)
+    swap.hidden = false
+  }
+
+  private func placeSwapGlyph(sharp: CALayer, blur: CALayer, glyph: Int, shown: inout Int, fonts: FontSet, center: CGPoint, scale: CGFloat, alpha: CGFloat, blur amount: CGFloat) {
+    guard glyph >= 0, alpha > 0.002 else {
+      sharp.isHidden = true
+      blur.isHidden = true
+      return
+    }
+    if shown != glyph {
+      let text = Self.digitStrings[glyph % 10]
+      if let image = fonts.image(text, role: .digit) {
+        sharp.contents = image.cgImage
+        sharp.bounds = CGRect(origin: .zero, size: image.size)
+      }
+      if let image = fonts.blurredImage(text) {
+        blur.contents = image.cgImage
+        blur.bounds = CGRect(origin: .zero, size: image.size)
+      }
+      shown = glyph
+    }
+    let transform = CATransform3DMakeScale(scale, scale, 1)
+    for (layer, layerAlpha) in [(sharp, alpha * (1 - amount)), (blur, alpha * amount)] {
+      let hidden = layerAlpha <= 0.002
+      if layer.isHidden != hidden { layer.isHidden = hidden }
+      if hidden { continue }
+      layer.position = center
+      layer.transform = transform
+      layer.opacity = Float(layerAlpha)
+    }
+  }
+
   /// Makes `slots` match `elements` one to one; layers are only rebuilt when
   /// the element kinds change (a wheel appearing or disappearing).
   private func syncSlots(with elements: [Element], wheels: [Engine.Wheel], fonts: FontSet) {
@@ -1043,7 +1168,7 @@ final class RollingNumberView: UIView {
         }
         container.addSublayer(inner)
         contentLayer.addSublayer(container)
-        slots.append(ElementLayer(kind: .wheel, layer: container, blankZero: blankZero, glyphTop: 0))
+        slots.append(ElementLayer(kind: .wheel, layer: container, blankZero: blankZero, swap: nil, glyphTop: 0))
       case .glyph(let text, let role):
         if let image = fonts.image(text, role: role) {
           inner.contents = image.cgImage
@@ -1051,7 +1176,7 @@ final class RollingNumberView: UIView {
         }
         container.addSublayer(inner)
         contentLayer.addSublayer(container)
-        slots.append(ElementLayer(kind: .glyph(text, role), layer: container, blankZero: false, glyphTop: fonts.top(for: role, text: text, lineTop: 0)))
+        slots.append(ElementLayer(kind: .glyph(text, role), layer: container, blankZero: false, swap: nil, glyphTop: fonts.top(for: role, text: text, lineTop: 0)))
       }
     }
   }
@@ -1181,6 +1306,28 @@ final class RollingNumberView: UIView {
     ctx.saveGState()
     ctx.clip(to: CGRect(x: x, y: 0, width: width, height: lineHeight))
     ctx.setAlpha(CGFloat(wheel.width))
+    if wheel.blend < 1 {
+      // The numeric transition under the glint: the pair, without the blur.
+      let b = CGFloat(wheel.blend)
+      let d: CGFloat = wheel.fromAbove ? 1 : -1
+      let offset = lineHeight * Self.numericOffset
+      let cx = x + width - fonts.digitWidth / 2
+      let pair: [(glyph: Int, dy: CGFloat, scale: CGFloat, alpha: CGFloat)] = [
+        (Int(wheel.fromGlyph), d * offset * b, 1 - (1 - Self.numericScale) * b, 1 - b),
+        (Int(wheel.toGlyph), -d * offset * (1 - b), Self.numericScale + (1 - Self.numericScale) * b, b),
+      ]
+      for item in pair where item.glyph >= 0 && item.alpha > 0.002 {
+        guard let image = fonts.image(Self.digitStrings[item.glyph % 10], role: .digit) else { continue }
+        ctx.saveGState()
+        ctx.setAlpha(CGFloat(wheel.width) * item.alpha)
+        ctx.translateBy(x: cx, y: lineHeight / 2 + item.dy)
+        ctx.scaleBy(x: item.scale, y: item.scale)
+        image.draw(at: CGPoint(x: -image.size.width / 2, y: -image.size.height / 2))
+        ctx.restoreGState()
+      }
+      ctx.restoreGState()
+      return
+    }
     let base = wheel.position.rounded(.down)
     let fraction = CGFloat(wheel.position - base)
     let index = Int(base)
