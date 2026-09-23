@@ -86,14 +86,9 @@ int GlyphMorph::normalize(const double* points, const int* sizes, int contourCou
     if (!resample(p, n, contour.pts)) {
       continue;
     }
-    // One winding for every contour: the fill rule is even-odd, so a hole
-    // only needs to be a contour, not a reversed one.
-    if (area < 0) {
-      for (int i = 0; i < kS / 2; i++) {
-        std::swap(contour.pts[2 * i], contour.pts[2 * (kS - 1 - i)]);
-        std::swap(contour.pts[2 * i + 1], contour.pts[2 * (kS - 1 - i) + 1]);
-      }
-    }
+    // The winding stays as the font drew it: holes against outers, and the
+    // overlapping strokes some glyphs are built from, both for the nonzero
+    // fill. A pair of contours from one font winds the same way anyway.
     // Start at the topmost point (then the leftmost) so two glyphs' contours begin alike.
     int start = 0;
     for (int i = 1; i < kS; i++) {

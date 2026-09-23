@@ -613,13 +613,13 @@ final class RollingNumberView: UIView {
     }
   }
 
-  /// The morph transition's layer of one wheel: the interpolated outline, filled even-odd.
+  /// The morph transition's layer of one wheel: the interpolated outline, filled nonzero (see GlyphMorph.hpp).
   private final class MorphLayer {
     let shape = CAShapeLayer()
     var buffer: [Double] = []
     var hidden = true
     init() {
-      shape.fillRule = .evenOdd
+      shape.fillRule = .nonZero
       shape.isHidden = true
     }
   }

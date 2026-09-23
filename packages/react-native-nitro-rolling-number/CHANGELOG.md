@@ -32,7 +32,7 @@
   every contour of a glyph's outline to 64 points by arc length, one winding,
   a stable start, pairs contours by size and lets an unpaired one close onto
   or open from its centre, and the platforms fill the interpolated outline
-  even-odd from CoreText's glyph path (iOS) or `getTextPath` (Android). The
+  nonzero from CoreText's glyph path (iOS) or `getTextPath` (Android). The
   morph is native only; the docs' canvas shows the numeric transition for it.
   Each swap style has its own `duration` / `easing` / `stagger` defaults.
 

@@ -32,7 +32,7 @@ int glyphMorphTests() {
   zero.insert(zero.end(), hole.begin(), hole.end());
   const std::vector<double> a = GlyphMorph::normalize(zero, {4, 4});
   MCHECK(a.size() == static_cast<size_t>(2 * D));
-  // Largest first, both wound the same way, starting at the top-left.
+  // Largest first, starting at the top-left, each keeping its own winding (the hole runs against the outer).
   MCHECK(std::fabs(a[0] - 0) < 1e-9 && std::fabs(a[1] - 0) < 1e-9);
   MCHECK(std::fabs(a[D] - 3) < 1e-9 && std::fabs(a[D + 1] - 3) < 1e-9);
   auto area = [&](const double* p) {
@@ -43,7 +43,7 @@ int glyphMorphTests() {
     }
     return s / 2;
   };
-  MCHECK((area(a.data()) > 0) == (area(a.data() + D) > 0));
+  MCHECK((area(a.data()) > 0) != (area(a.data() + D) > 0));
 
   const std::vector<double> b = GlyphMorph::normalize(square(0, 0, 10, false), {4});
   MCHECK(b.size() == static_cast<size_t>(D));
@@ -61,8 +61,8 @@ int glyphMorphTests() {
   const std::vector<double> end = GlyphMorph::interpolate(a, b, 1);
   MCHECK(std::fabs(end[D] - 5) < 1e-9 && std::fabs(end[D + 1] - 5) < 1e-9);
 
-  // Point to point: a square becoming a translated square moves every point by the offset, whichever way it was wound.
-  const std::vector<double> c = GlyphMorph::normalize(square(20, 0, 10, true), {4});
+  // Point to point: a square becoming a translated square moves every point by the offset.
+  const std::vector<double> c = GlyphMorph::normalize(square(20, 0, 10, false), {4});
   const std::vector<double> mid = GlyphMorph::interpolate(b, c, 0.5);
   for (int i = 0; i < GlyphMorph::kSamples; i++) {
     MCHECK(std::fabs((mid[2 * i] - b[2 * i]) - 10) < 1e-6);

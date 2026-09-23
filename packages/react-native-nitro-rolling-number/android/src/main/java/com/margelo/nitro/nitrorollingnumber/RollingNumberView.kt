@@ -1228,7 +1228,7 @@ class RollingNumberView(context: Context) : View(context) {
   private val morphPath = Path()
   private var morphBuffer = DoubleArray(3 * GlyphMorph.CONTOUR_DOUBLES)
 
-  /** The morph for this frame: the outline between the two digits, filled even-odd. */
+  /** The morph for this frame: the outline between the two digits, filled nonzero (see GlyphMorph.hpp). */
   private fun drawMorph(canvas: Canvas, fonts: FontSet, wheel: Wheel, x: Float, width: Float) {
     val from = wheel.fromGlyph.toInt()
     val to = wheel.toGlyph.toInt()
@@ -1265,7 +1265,7 @@ class RollingNumberView(context: Context) : View(context) {
     val paint = flashedPaint(fonts, wheel)
     val columnLeft = x + width - fonts.digitWidth
     morphPath.rewind()
-    morphPath.fillType = Path.FillType.EVEN_ODD
+    morphPath.fillType = Path.FillType.WINDING
     for (c in 0 until contours) {
       val base = c * GlyphMorph.CONTOUR_DOUBLES
       morphPath.moveTo(columnLeft + morphBuffer[base].toFloat(), morphBuffer[base + 1].toFloat())

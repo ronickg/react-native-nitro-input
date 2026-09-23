@@ -6,11 +6,14 @@
 //  another's. The platform hands over each digit's outline once (CoreText's
 //  glyph path on iOS, `Paint.getTextPath` on Android) as flattened closed
 //  contours; `normalize` makes every contour comparable (a fixed number of
-//  points by arc length, one winding, a stable start), and `interpolate`
-//  produces the outline part way between two normalized ones, which the
-//  platform fills with the even-odd rule. Contours pair by size; a contour
-//  with no partner (the second hole of an 8 turning into a 0) shrinks to, or
-//  grows from, its own centre.
+//  points by arc length and a stable start, each contour keeping the winding
+//  the font gave it), and `interpolate` produces the outline part way between
+//  two normalized ones, which the platform fills with the nonzero rule: a
+//  font's holes wind against its outers, and its overlapping strokes (Roboto
+//  draws several digits that way) rely on nonzero, where even-odd would cut
+//  white slits through them. Contours pair by size; a contour with no partner
+//  (the second hole of an 8 turning into a 0) shrinks to, or grows from, its
+//  own centre.
 //
 //  Plain arrays and counts so it imports into Swift, bridges over JNI and
 //  compiles to WebAssembly. Coordinates are the caller's; y may point either way.
