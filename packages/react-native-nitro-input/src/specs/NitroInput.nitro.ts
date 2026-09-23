@@ -25,7 +25,7 @@ export interface NitroInputNotation {
 }
 
 /**
- * Timing curve of the morph. `'expo'` is Torph's default
+ * Timing curve of the reflow. `'expo'` is Torph's default
  * (`cubic-bezier(0.19, 1, 0.22, 1)`): a fast take-off that settles gently.
  */
 export type NitroInputEasing =
@@ -74,7 +74,7 @@ export type NitroInputTextAlignVertical = 'auto' | 'top' | 'center' | 'bottom'
  * `'beforeAffix'` (the default) reads `-$1,234.56`, which is how a locale that
  * leads with its symbol writes it. `'afterAffix'` reads `$-1,234.56`, which
  * suits a symbol styled as an ornament rather than read as part of the number -
- * small, raised, in another colour. Only the morph honours it: a plain field's
+ * small, raised, in another colour. Only the reflow honours it: a plain field's
  * affixes are accessory views that sit outside the text, so it is always
  * `'afterAffix'`.
  */
@@ -136,7 +136,7 @@ export interface NitroInputProps extends HybridViewProps {
   /** `'text'`, `'number'` or `'mask'`. Default: `'text'`. */
   mode: NitroInputMode
   /**
-   * Draw the text with the system field itself and skip the morph overlay
+   * Draw the text with the system field itself and skip the reflow overlay
    * entirely: no glyph engine, no per-glyph layers, no custom caret. This is
    * what `NitroInput` renders — an ordinary native input that keeps the rest of
    * the component (native formatting, the focus path, the text-input registry
@@ -220,13 +220,13 @@ export interface NitroInputProps extends HybridViewProps {
   prefixAlign: NitroInputAffixAlign
   /** Vertical alignment of `suffix` relative to the text (the wrapper folds its `affixAlign` into this). */
   suffixAlign: NitroInputAffixAlign
-  /** Shown (and morphed away) while the field is empty. Default: `''`. */
+  /** Shown (and reflowed away) while the field is empty. Default: `''`. */
   placeholder: string
   /** Color of the placeholder as a processed ARGB integer; `NaN` = platform default. */
   placeholderColor: number
-  /** Duration in ms of the morph played on every change. `0` snaps. Default: `400`. */
+  /** Duration in ms of the reflow played on every change. `0` snaps. Default: `400`. */
   duration: number
-  /** Timing curve of the morph. Default: `'expo'`. */
+  /** Timing curve of the reflow. Default: `'expo'`. */
   easing: NitroInputEasing
   /** Overshoot of the `'spring'` easing, `0`–`1`. Default: `0.15`. */
   bounce: number
@@ -292,9 +292,9 @@ export interface NitroInputProps extends HybridViewProps {
    * Let the text wrap onto more than one line.
    *
    * A multiline field is always drawn by the system view — the glyph engine
-   * lays one run out on one baseline, so it cannot morph wrapped text — and it
+   * lays one run out on one baseline, so it cannot reflow wrapped text — and it
    * is always `'text'` mode, since an amount and a mask are single-line ideas.
-   * Setting `morph`, `'number'` or `'mask'` alongside it is ignored, with a
+   * Setting `transition="reflow"`, `'number'` or `'mask'` alongside it is ignored, with a
    * warning. Default: `false`.
    */
   multiline: boolean
@@ -411,7 +411,7 @@ export interface NitroInputProps extends HybridViewProps {
 export interface NitroInputMethods extends HybridViewMethods {
   focus(): void
   blur(): void
-  /** Empties the field (morphing the characters away). */
+  /** Empties the field (reflowing the characters away). */
   clear(): void
   /**
    * Replaces the text (formatted in `'number'` mode), caret at the end.

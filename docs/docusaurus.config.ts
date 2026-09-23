@@ -105,9 +105,11 @@ const config: Config = {
           // started a page of its own. They are the same page now.
           {from: '/input/getting-started', to: '/input'},
           // The plain field is the default story now, told on getting started,
-          // and the text-morph page became the page about the morph itself.
+          // and the text-morph page became the page about the reflow itself,
+          // which was called the morph until the two packages became one.
           {from: '/input/plain-field', to: '/input'},
-          {from: '/input/text', to: '/input/morph'},
+          {from: '/input/text', to: '/input/reflow'},
+          {from: '/input/morph', to: '/input/reflow'},
           // Usage was one page of loosely related sections; it is three
           // topic pages now, the way the other Nitro libraries do it.
           {from: '/docs/usage', to: '/rolling-number/rolling-and-timing'},
@@ -198,7 +200,7 @@ const config: Config = {
             {label: 'Overview', to: '/input'},
             {label: 'An amount field', to: '/input/amount-field'},
             {label: 'Props', to: '/input/props'},
-            {label: 'How the morph works', to: '/input/how-it-works'},
+            {label: 'How the reflow works', to: '/input/how-it-works'},
           ],
         },
         {

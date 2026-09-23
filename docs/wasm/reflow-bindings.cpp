@@ -1,26 +1,26 @@
 //
-//  morph-bindings.cpp
-//  Emscripten bindings for the docs site: the very MorphEngine and
+//  reflow-bindings.cpp
+//  Emscripten bindings for the docs site: the very ReflowEngine and
 //  AmountFormatter that run inside the iOS and Android input views, compiled
-//  to WebAssembly so the live demo morphs and formats exactly like the app.
+//  to WebAssembly so the live demo reflows and formats exactly like the app.
 //
-//  Build with `bun run build:wasm:morph` from the docs folder (see docs/package.json).
+//  Build with `bun run build:wasm:reflow` from the docs folder (see docs/package.json).
 //
 
 #include <emscripten/bind.h>
 
 #include "AmountFormatter.hpp"
-#include "MorphEngine.hpp"
+#include "ReflowEngine.hpp"
 #include "OutlineGeometry.hpp"
 
 using namespace emscripten;
 using margelo::nitro::nitroinput::AmountFormatter;
-using margelo::nitro::nitroinput::MorphEngine;
+using margelo::nitro::nitroinput::ReflowEngine;
 using margelo::nitro::nitroinput::OutlineGeometry;
 
 namespace {
 
-/// `MorphEngine::Glyph` with the 64-bit id as a double (embind value objects
+/// `ReflowEngine::Glyph` with the 64-bit id as a double (embind value objects
 /// don't carry int64 without BigInt).
 struct GlyphJS {
   double id;
@@ -36,7 +36,7 @@ struct GlyphJS {
   bool exiting;
 };
 
-GlyphJS glyphAt(const MorphEngine& engine, int index) {
+GlyphJS glyphAt(const ReflowEngine& engine, int index) {
   const auto g = engine.glyphAt(index);
   return GlyphJS{static_cast<double>(g.id), g.character, g.role, g.kind, g.width, g.placeholder,
                  g.x, g.y, g.opacity, g.scale, g.exiting};
@@ -84,7 +84,7 @@ OutlineGeometry::Rect lerpRect(double fx, double fy, double fw, double fh, doubl
 
 } // namespace
 
-EMSCRIPTEN_BINDINGS(morph_engine) {
+EMSCRIPTEN_BINDINGS(reflow_engine) {
   value_object<GlyphJS>("Glyph")
       .field("id", &GlyphJS::id)
       .field("character", &GlyphJS::character)
@@ -98,25 +98,25 @@ EMSCRIPTEN_BINDINGS(morph_engine) {
       .field("scale", &GlyphJS::scale)
       .field("exiting", &GlyphJS::exiting);
 
-  class_<MorphEngine>("MorphEngine")
+  class_<ReflowEngine>("ReflowEngine")
       .constructor<>()
-      .function("setTiming", &MorphEngine::setTiming)
-      .function("setEffect", &MorphEngine::setEffect)
-      .function("setReduceMotion", &MorphEngine::setReduceMotion)
-      .function("beginText", &MorphEngine::beginText)
-      .function("addGlyph", &MorphEngine::addGlyph)
-      .function("commitText", &MorphEngine::commitText)
-      .function("tick", &MorphEngine::tick)
-      .function("needsFrames", &MorphEngine::needsFrames)
-      .function("isAnimating", &MorphEngine::isAnimating)
-      .function("glyphCount", &MorphEngine::glyphCount)
+      .function("setTiming", &ReflowEngine::setTiming)
+      .function("setEffect", &ReflowEngine::setEffect)
+      .function("setReduceMotion", &ReflowEngine::setReduceMotion)
+      .function("beginText", &ReflowEngine::beginText)
+      .function("addGlyph", &ReflowEngine::addGlyph)
+      .function("commitText", &ReflowEngine::commitText)
+      .function("tick", &ReflowEngine::tick)
+      .function("needsFrames", &ReflowEngine::needsFrames)
+      .function("isAnimating", &ReflowEngine::isAnimating)
+      .function("glyphCount", &ReflowEngine::glyphCount)
       .function("glyphAt", &glyphAt)
-      .function("contentWidth", &MorphEngine::contentWidth)
-      .function("targetWidth", &MorphEngine::targetWidth)
-      .function("bodyCount", &MorphEngine::bodyCount)
-      .function("caretX", &MorphEngine::caretX)
-      .function("hasText", &MorphEngine::hasText)
-      .function("reset", &MorphEngine::reset);
+      .function("contentWidth", &ReflowEngine::contentWidth)
+      .function("targetWidth", &ReflowEngine::targetWidth)
+      .function("bodyCount", &ReflowEngine::bodyCount)
+      .function("caretX", &ReflowEngine::caretX)
+      .function("hasText", &ReflowEngine::hasText)
+      .function("reset", &ReflowEngine::reset);
 
   value_object<AmountFormatter::Edit>("Edit")
       .field("text", &AmountFormatter::Edit::text)

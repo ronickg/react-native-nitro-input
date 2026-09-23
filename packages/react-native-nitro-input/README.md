@@ -6,7 +6,7 @@ one native module.
 
 - **[`NitroInput`](#nitroinput)**: a text input. The system field owns the
   keyboard, editing, selection and accessibility; amounts are formatted and
-  masks applied in C++ before a frame is drawn, and the characters can morph
+  masks applied in C++ before a frame is drawn, and the characters can reflow
   as they change.
 - **[`RollingNumber`](#rollingnumber)**: a number that animates its changes.
   Every digit is a wheel that rolls to its new glyph, or swaps in place the way
@@ -38,9 +38,9 @@ import { NitroInput } from 'react-native-nitro-input'
 <NitroInput variant="outlined" label="Email address" keyboardType="email-address" />
 ```
 
-`MorphInput` is the same component with `morph` on, for the one case
-where animating the characters is the point — an amount. It is not the default,
-and for an ordinary form field you do not want it.
+`transition="reflow"` animates the characters as they change, for the one case
+where that is the point — an amount. It is not the default, and for an
+ordinary form field you do not want it.
 
 - **It is a real input.** Focus, blur, return key, keyboard types,
   auto-capitalisation, max length, selection, the text-input registry, all the
@@ -61,7 +61,7 @@ and for an ordinary form field you do not want it.
   prefix/suffix at their own font sizes, pinned to the top, bottom, baseline or
   centre of the digits; grouping and decimal separators of your choice.
 - **One C++ engine per concern** drives both platforms — formatting, masking,
-  the frame geometry, and (with `morph`) the glyph matching and curves. Swift
+  the frame geometry, and (with `transition="reflow"`) the glyph matching and curves. Swift
   and Kotlin only measure, draw and talk to the keyboard.
 
 Guide: **https://ronickg.github.io/react-native-nitro-rolling-number/input**
@@ -80,9 +80,9 @@ Guide: **https://ronickg.github.io/react-native-nitro-rolling-number/input**
 ```
 
 `NitroInput` does not animate its characters: they appear the instant you type
-them, the way a `TextInput` does. Pass `morph` (or use `MorphInput`, which is
-that plus content sizing) to turn the glyph engine on — see
-[An amount field](#an-amount-field-the-morph), which is where it earns itself.
+them, the way a `TextInput` does. Pass `transition="reflow"` to turn the glyph
+engine on — see [An amount field](#an-amount-field-the-reflow), which is where
+it earns itself.
 
 ### A masked field
 
@@ -174,27 +174,27 @@ content, and `scrollEnabled={false}` hands the height to the content entirely.
 `textAlignVertical` says where the text sits in a taller box. A multiline field
 is always drawn by the system view and is always `mode="text"`: the glyph
 engine lays one run out on one baseline, and an amount, a mask and their
-affixes are single-line ideas, so `morph`, `mode="number"`, `mode="mask"`,
+affixes are single-line ideas, so `transition="reflow"`, `mode="number"`, `mode="mask"`,
 `prefix` and `suffix` are ignored alongside it, with one warning each in
 development. Its return key inserts a line break, as a `TextInput`'s does;
 `submitBehavior="blurAndSubmit"` (or `blurOnSubmit`) makes it submit instead.
 
-### An amount field (the morph)
+### An amount field (the reflow)
 
-This is the one case the morph is for, so it uses `MorphInput` — `NitroInput`
-with `morph` on, and with the box sized to its content so it grows as digits
-arrive.
+This is the one case the reflow is for, so it passes `transition="reflow"`.
+A reflowing field also sizes its box to its content by default
+(`autoWidth="auto"`), so it grows as digits arrive.
 
 With the engine running, `mode="text"` fades and scales characters in and out
 (Torph's text morph) while digits and separators slide in `mode="number"`,
 unless you force one style with `effect="slide"` / `effect="fade"`.
 
 ```tsx
-import { MorphInput } from 'react-native-nitro-input'
+import { NitroInput } from 'react-native-nitro-input'
 
 const [amount, setAmount] = useState(NaN)
 
-<MorphInput
+<NitroInput transition="reflow"
   mode="number"
   prefix="$"
   prefixFontSize={28}
@@ -223,34 +223,34 @@ formatted string) and keep the field uncontrolled, or pass `value` to drive it:
 ```tsx
 const [text, setText] = useState('')
 
-<MorphInput mode="number" value={text} onChangeText={setText} prefix="$" />
+<NitroInput transition="reflow" mode="number" value={text} onChangeText={setText} prefix="$" />
 ```
 
 A `value` that merely echoes `onChangeText` back never fights the user: native
 already shows it. A `value` that differs (a "Max" button, a clamp) is applied
-and morphs in.
+and reflows in.
 
 ### Currency layouts
 
 ```tsx
 // "$" smaller than the amount, aligned to the top of the digits
-<MorphInput mode="number" prefix="$" prefixFontSize={22} affixAlign="top" fontSize={44} />
+<NitroInput transition="reflow" mode="number" prefix="$" prefixFontSize={22} affixAlign="top" fontSize={44} />
 
 // currency code after the amount, smaller and sitting on the baseline of the digits' ink
-<MorphInput mode="number" suffix=" USD" suffixFontSize={18} suffixAlign="bottom" />
+<NitroInput transition="reflow" mode="number" suffix=" USD" suffixFontSize={18} suffixAlign="bottom" />
 
 // European separators: 1.234,56
-<MorphInput mode="number" groupingSeparator="." decimalSeparator="," />
+<NitroInput transition="reflow" mode="number" groupingSeparator="." decimalSeparator="," />
 
 // whole numbers only (no decimal key accepted), at most six digits
-<MorphInput mode="number" fractionDigits={0} maxIntegerDigits={6} />
+<NitroInput transition="reflow" mode="number" fractionDigits={0} maxIntegerDigits={6} />
 
 // a big centred amount that shrinks when it gets long
-<MorphInput mode="number" fontSize={64} adjustsFontSizeToFit minimumFontScale={0.4} textAlign="center" style={{ width: '100%' }} />
+<NitroInput transition="reflow" mode="number" fontSize={64} adjustsFontSizeToFit minimumFontScale={0.4} textAlign="center" style={{ width: '100%' }} />
 ```
 
 In a right-to-left layout the prefix sits at the right edge and the suffix at
-the left, plain or morphed; the digits keep reading left to right.
+the left, plain or reflowed; the digits keep reading left to right.
 
 Whatever the keyboard's decimal key produces (`.` or `,`) counts as the
 decimal separator; nobody types a grouping separator on purpose. The rules
@@ -367,13 +367,13 @@ the worklets UI runtime is handed to native once, the worklet is called with
 ### Imperative
 
 ```tsx
-const ref = useRef<MorphInputHandle>(null)
+const ref = useRef<NitroInputHandle>(null)
 
-<MorphInput ref={ref} mode="number" />
+<NitroInput transition="reflow" ref={ref} mode="number" />
 
 ref.current?.focus()
 ref.current?.blur()
-ref.current?.setValue(1234.56)   // shows "1,234.56", morphing from whatever was there
+ref.current?.setValue(1234.56)   // shows "1,234.56", reflowing from whatever was there
 ref.current?.setText('98,765')   // same, from a string in the field's format
 ref.current?.clear()
 ref.current?.getText()           // "1,234.56"
@@ -416,11 +416,11 @@ rather than renumbering the columns.
 | `prefixFontSize` / `suffixFontSize` | `number` | `fontSize` | Their own sizes. |
 | `affixAlign` | `'baseline' \| 'center' \| 'top' \| 'bottom'` | `'baseline'` | How they line up with the text: `top` pins glyph tops, `bottom` the bottom of the ink (a currency code sits on the digits' baseline). |
 | `prefixAlign` / `suffixAlign` | same | `affixAlign` | Per-affix override. |
-| `placeholder` | `string` | `''` | Shown while empty; the first character morphs it away. `'0'` reads well for amounts. |
+| `placeholder` | `string` | `''` | Shown while empty; the first character reflows it away. `'0'` reads well for amounts. |
 | `placeholderTextColor` | `ColorValue` | platform | Placeholder color. |
-| `morph` | `boolean` | `false` | Run the glyph engine, so text morphs as it changes. `MorphInput` is this plus content sizing. |
-| `autoWidth` | `boolean \| 'auto'` | `false` | `false` takes no width, so flexbox stretches it like a `TextInput`; `'auto'` infers it from `style` (what `MorphInput` uses). |
-| `duration` | `number` | `400` | ms of the morph; `0` snaps. |
+| `transition` | `'none' \| 'reflow'` | `'none'` | `'reflow'` runs the glyph engine, so characters glide, slide and fade as the text changes. |
+| `autoWidth` | `boolean \| 'auto'` | `false`; `'auto'` when reflowing | `false` takes no width, so flexbox stretches it like a `TextInput`; `'auto'` infers it from `style`. |
+| `duration` | `number` | `400` | ms of the reflow; `0` snaps. |
 | `easing` | `'expo' \| 'easeOut' \| 'easeInOut' \| 'linear' \| 'spring'` | `'expo'` | Timing curve. `expo` is Torph's `cubic-bezier(0.19, 1, 0.22, 1)`. |
 | `bounce` | `number` | `0.15` | Overshoot of the `spring` easing (0–1). |
 | `effect` | `'auto' \| 'slide' \| 'fade'` | `'auto'` | `auto`: digits and separators slide through the line box (digits from above, separators from below), other characters fade and scale. |
@@ -430,7 +430,7 @@ rather than renumbering the columns.
 | `color` | `ColorValue` | label color | Text color. |
 | `textAlign` | `'auto' \| 'left' \| 'center' \| 'right'` | `'auto'` | Alignment inside a wider frame. `'auto'` is the start edge of the layout direction, as `TextInput`; `'left'` and `'right'` are absolute. |
 | `lineHeight` | `number` | the font's own | The CSS meaning: the total height a line occupies. Honoured in both directions, including tighter than the font. |
-| `multiline` | `boolean` | `false` | Wraps. Always drawn by the system view and always `'text'` mode; `morph`, `'number'`, `'mask'` and the affixes are ignored with it, and the return key inserts a line break unless `submitBehavior` says otherwise. |
+| `multiline` | `boolean` | `false` | Wraps. Always drawn by the system view and always `'text'` mode; `transition="reflow"`, `'number'`, `'mask'` and the affixes are ignored with it, and the return key inserts a line break unless `submitBehavior` says otherwise. |
 | `numberOfLines` / `rows` | `number` | `0` | `multiline`: lines tall before it scrolls; `0` grows with the content. |
 | `textAlignVertical` | `'auto' \| 'top' \| 'center' \| 'bottom'` | `'auto'` | `multiline`: where the text sits in a taller box. |
 | `scrollEnabled` | `boolean` | `true` | `multiline`: scroll once the text outgrows the field; `false` lets a growing field drive its own height. |
@@ -468,7 +468,7 @@ rather than renumbering the columns.
 | `onChange` | `(event) => void` | – | Fired alongside `onChangeText` with the same text; `nativeEvent.eventCount` is the native edit counter, as on `TextInput`. |
 | `onChangeValue` | `(value) => void` | – | `number` mode: the numeric value, `NaN` while empty. A `'worklet'` runs on the UI thread. |
 | `onChangeMask` | `(formatted, extracted, tail, complete) => void` | – | `mask` mode: the formatted text, the characters the user contributed, what is still missing, and whether every mandatory slot is filled. |
-| `signPlacement` | `'beforeAffix' \| 'afterAffix'` | `'beforeAffix'` | Where a negative amount's sign sits relative to `prefix`: `-$1,234.56` or `$-1,234.56`. Morph only — a plain field's affixes are accessory views outside the text. |
+| `signPlacement` | `'beforeAffix' \| 'afterAffix'` | `'beforeAffix'` | Where a negative amount's sign sits relative to `prefix`: `-$1,234.56` or `$-1,234.56`. Reflow only — a plain field's affixes are accessory views outside the text. |
 | `onFocus` / `onBlur` | `(event) => void` | – | Carries `text`, `eventCount` and `target`. |
 | `onSubmitEditing` | `(event) => void` | – | Return key pressed; what happens next is `submitBehavior`. |
 | `onEndEditing` | `(event) => void` | – | Editing finished. |
@@ -490,10 +490,10 @@ onSubmitEditing={e => search(e.nativeEvent.text)}   // as on a TextInput
 onSubmitEditing={({ text }) => search(text)}        // or just this
 ```
 
-## How the morph decides what moves
+## How the reflow decides what moves
 
 Each update pairs the old characters with the new ones (Torph's rules,
-implemented in `cpp/MorphEngine.cpp`):
+implemented in `cpp/ReflowEngine.cpp`):
 
 - **Typing** (a caret is known): everything before the caret pairs by
   position from the left, everything after it from the right, so the edit is
@@ -510,7 +510,7 @@ implemented in `cpp/MorphEngine.cpp`):
 
 A character that persists eases to its new x. A new digit drops in from above
 (a separator rises from below) through the clipped line box, fading in over the
-first quarter of the morph; a leaving digit drops out the same way, fading over
+first quarter of the reflow; a leaving digit drops out the same way, fading over
 the first 45 %. Text characters fade and scale (0.95×) instead. Characters that
 enter or leave ride along with their nearest persisting neighbour, so a word
 that grows or shrinks stays one shape. All of it is Reduce Motion aware.
@@ -736,7 +736,7 @@ to reflow while digits appear (e.g. a counter that grows past `999`).
 - Reduce Motion (iOS) and "Remove animations" (Android) snap.
 - The view implements Nitro's `RecyclableView`.
 - Every keystroke is handled on the main thread: the formatter runs, the field
-  is updated, the morph starts. `onChangeText` reaches JS afterwards; nothing
+  is updated, the reflow starts. `onChangeText` reaches JS afterwards; nothing
   the user sees waits for it. A `value` prop carrying a stale
   `mostRecentEventCount` (the user typed since) is ignored, like React
   Native's own `TextInput`.
@@ -796,7 +796,7 @@ to reflow while digits appear (e.g. a counter that grows past `999`).
 
 ## Credits
 
-The morph is based on [Torph](https://torph.lochie.me) by
+The reflow is based on [Torph](https://torph.lochie.me) by
 [Lochie Axon](https://github.com/lochie). Thanks for building it.
 
 ## License

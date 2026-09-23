@@ -26,7 +26,7 @@ export type Glyph = {
   exiting: boolean
 };
 
-export interface MorphEngine extends ClassHandle {
+export interface ReflowEngine extends ClassHandle {
   setTiming(_0: number, _1: number, _2: number): void;
   setEffect(_0: number): void;
   setReduceMotion(_0: boolean): void;
@@ -86,8 +86,8 @@ export type Rect = {
 };
 
 interface EmbindModule {
-  MorphEngine: {
-    new(): MorphEngine;
+  ReflowEngine: {
+    new(): ReflowEngine;
   };
   AmountFormatter: {
     new(): AmountFormatter;

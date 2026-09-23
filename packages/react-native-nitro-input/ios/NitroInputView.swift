@@ -2,9 +2,9 @@
 //  NitroInputView.swift
 //  NitroInput
 //
-//  A single-line input whose text morphs as it changes. The behaviour (which
+//  A single-line input whose text reflows as it changes. The behaviour (which
 //  glyph is which across an edit, where every glyph is on its way, opacity,
-//  slide, scale) lives in the shared C++ `MorphEngine`; the number formatting
+//  slide, scale) lives in the shared C++ `ReflowEngine`; the number formatting
 //  in `AmountFormatter`. This view owns:
 //
 //  - a hidden system `UITextField` filling the bounds that provides keyboard,
@@ -22,7 +22,7 @@ import UIKit
 
 final class NitroInputView: UIView {
 
-  private typealias Engine = margelo.nitro.nitroinput.MorphEngine
+  private typealias Engine = margelo.nitro.nitroinput.ReflowEngine
   private typealias AmountFormatter = margelo.nitro.nitroinput.AmountFormatter
   private typealias MaskEngine = margelo.nitro.nitroinput.MaskEngine
   private typealias Outline = margelo.nitro.nitroinput.OutlineGeometry
@@ -142,7 +142,7 @@ final class NitroInputView: UIView {
     var editable: Bool = true
     var autoFocus: Bool = false
     /// Wrapping field. Always plain and always text - the JS side drops
-    /// `morph` and any non-text mode first - so the glyph engine, which lays
+    /// `transition="reflow"` and any non-text mode first - so the glyph engine, which lays
     /// one run out on one baseline, never has to deal with a wrapped one.
     var multiline: Bool = false
     /// Lines before it scrolls; 0 grows with the content.
@@ -533,7 +533,7 @@ final class NitroInputView: UIView {
   private var scrollX: CGFloat = 0
   private var displayLink: CADisplayLink?
   private var lastReportedSize: CGSize = .zero
-  /// A narrower settled size waiting for the current morph to finish before it is reported.
+  /// A narrower settled size waiting for the current reflow to finish before it is reported.
   private var pendingSizeReport = false
   private var didAutoFocus = false
   /// Set while this view writes the field's text itself, so the change handler
@@ -675,7 +675,7 @@ final class NitroInputView: UIView {
   /// drawn in clear: the overlay already draws the placeholder glyphs itself.
   fileprivate func syncAccessibilityPlaceholder() {
     let placeholder = effectivePlaceholder
-    // Drawn for real in plain mode; in morph mode the overlay draws it and the
+    // Drawn for real in plain mode; in reflow mode the overlay draws it and the
     // field's own copy exists only so an empty field still has an
     // accessibility value, hence clear.
     let color = traits.plain ? typography.placeholderColor : UIColor.clear
@@ -1001,7 +1001,7 @@ final class NitroInputView: UIView {
     applyTextViewTypography()
   }
 
-  /// In morph mode the overlay draws the prefix and suffix, so the field only
+  /// In reflow mode the overlay draws the prefix and suffix, so the field only
   /// has to reserve the space. In `plain` mode nothing is drawing them, so the
   /// field carries them itself as its left/right accessory views — UIKit insets
   /// the text for those on its own.
@@ -1495,7 +1495,7 @@ final class NitroInputView: UIView {
     } else {
       base = UIFont.systemFont(ofSize: size, weight: uiWeight)
     }
-    // Tabular digits: a column keeps its width while its digit morphs.
+    // Tabular digits: a column keeps its width while its digit reflows.
     let feature: [UIFontDescriptor.FeatureKey: Int] = [.type: kNumberSpacingType, .selector: kMonospacedNumbersSelector]
     let descriptor = base.fontDescriptor.addingAttributes([.featureSettings: [feature]])
     return UIFont(descriptor: descriptor, size: size)
@@ -1556,7 +1556,7 @@ final class NitroInputView: UIView {
     return framePadding + line * CGFloat(capped)
   }
 
-  /// The width the content asks for: the engine's layout in morph mode; in
+  /// The width the content asks for: the engine's layout in reflow mode; in
   /// plain mode, which never feeds the engine, the text (or the placeholder)
   /// and the affixes measured with the same fonts the field draws them in.
   private func contentWidth() -> CGFloat {
@@ -1576,8 +1576,8 @@ final class NitroInputView: UIView {
       return
     }
     // Growing: report right away so React widens the box before the new glyph
-    // has fully arrived (the view is not clipped meanwhile). Shrinking mid-morph:
-    // keep the wider box until the morph has finished, otherwise
+    // has fully arrived (the view is not clipped meanwhile). Shrinking mid-reflow:
+    // keep the wider box until the reflow has finished, otherwise
     // adjustsFontSizeToFit would squeeze the moving glyphs into the smaller box.
     if lastReportedSize != .zero, size.width < lastReportedSize.width, engine.isAnimating() {
       pendingSizeReport = true
@@ -1801,7 +1801,7 @@ final class NitroInputView: UIView {
 
   /// The text position nearest to `point` (in this view's coordinates), going
   /// through the engine's glyph boundaries so taps stay right while the content
-  /// is scaled or mid-morph. `nil` when there is no overlay: a plain field
+  /// is scaled or mid-reflow. `nil` when there is no overlay: a plain field
   /// draws its own text, and the engine holds no glyphs for it, so UIKit's own
   /// mapping is the right one. (Going through the engine there found a single
   /// boundary and put every tap at index 0.)
@@ -1913,7 +1913,7 @@ final class NitroInputView: UIView {
     }
     /// `contextMenuHidden`: suppresses the Cut/Copy/Paste menu.
     var contextMenuHidden: Bool = false
-    /// The morph overlay draws its own caret, so the field's is collapsed away.
+    /// The reflow overlay draws its own caret, so the field's is collapsed away.
     /// In `plain` mode there is no overlay and the system caret is the caret.
     var hidesNativeCaret: Bool = true
 

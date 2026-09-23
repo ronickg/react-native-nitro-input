@@ -1,27 +1,27 @@
 import {useEffect, useState} from 'react';
-import type {AmountFormatter, Glyph, MainModule, MorphEngine} from './morph-engine';
+import type {AmountFormatter, Glyph, MainModule, ReflowEngine} from './reflow-engine';
 
 /**
- * The shared C++ `MorphEngine` and `AmountFormatter`
+ * The shared C++ `ReflowEngine` and `AmountFormatter`
  * (packages/react-native-nitro-input/cpp), compiled to WebAssembly with
- * Emscripten (see docs/wasm/morph-bindings.cpp). The live input demo runs the
+ * Emscripten (see docs/wasm/reflow-bindings.cpp). The live input demo runs the
  * same matching, curves and formatting that the native views do.
  */
 let modulePromise: Promise<MainModule> | null = null;
 
-export function loadMorphModule(): Promise<MainModule> {
+export function loadReflowModule(): Promise<MainModule> {
   if (modulePromise === null) {
-    modulePromise = import('./morph-engine.js').then((factory) => factory.default());
+    modulePromise = import('./reflow-engine.js').then((factory) => factory.default());
   }
   return modulePromise;
 }
 
 /** Resolves to the WebAssembly module on the client; `null` during SSR and while loading. */
-export function useMorphModule(): MainModule | null {
+export function useReflowModule(): MainModule | null {
   const [module, setModule] = useState<MainModule | null>(null);
   useEffect(() => {
     let cancelled = false;
-    loadMorphModule().then((m) => {
+    loadReflowModule().then((m) => {
       if (!cancelled) setModule(m);
     });
     return () => {
@@ -31,4 +31,4 @@ export function useMorphModule(): MainModule | null {
   return module;
 }
 
-export type {AmountFormatter, Glyph, MainModule, MorphEngine};
+export type {AmountFormatter, Glyph, MainModule, ReflowEngine};

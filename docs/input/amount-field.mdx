@@ -32,7 +32,7 @@ Type `1234` and the field shows `$1,234`. Every keystroke goes through the same 
 
 Keep the field uncontrolled and read `onChangeValue` (the number) or `onChangeText` (the formatted string), or pass `value` to drive it. A `value` that merely echoes `onChangeText` back never fights the user, native already shows it; a `value` that differs (a "Max" button, a clamp) is applied. A `value` carrying a stale `mostRecentEventCount` (the user typed since) is ignored, like React Native's own `TextInput`.
 
-The comma appears where it belongs, as it would in any formatted field. Turn on the [morph](/input/morph) and it slides there instead, with the digit it displaced making room. That is what the **Morph** switch in the demo adds, and an amount is the screen the morph was built for.
+The comma appears where it belongs, as it would in any formatted field. Turn on the [reflow](/input/reflow) and it slides there instead, with the digit it displaced making room. That is what the **Reflow** switch in the demo adds, and an amount is the screen the reflow was built for.
 
 ## What the keyboard types
 
@@ -88,10 +88,10 @@ Whatever the keyboard's decimal key produces (`.` or `,`) counts as the decimal 
 
 ## Negative amounts
 
-The sign belongs to the amount, not to the digits after the currency symbol, so the morph draws `-$1,234.56`: the way every locale that leads with its symbol writes it. A symbol styled as an ornament, small, raised and in another colour like the one above, can read better with the sign against the digits. `signPlacement="afterAffix"` gives `$-1,234.56`.
+The sign belongs to the amount, not to the digits after the currency symbol, so the reflow draws `-$1,234.56`: the way every locale that leads with its symbol writes it. A symbol styled as an ornament, small, raised and in another colour like the one above, can read better with the sign against the digits. `signPlacement="afterAffix"` gives `$-1,234.56`.
 
 ```tsx
-<MorphInput
+<NitroInput transition="reflow"
   mode="number"
   prefix="$"
   prefixFontSize={28}
@@ -100,4 +100,4 @@ The sign belongs to the amount, not to the digits after the currency symbol, so 
 />
 ```
 
-Only the morph can choose. A plain [`NitroInput`](/input/morph)'s affixes are real accessory views that sit outside the text, so it always draws `$-1,234.56`.
+Only the reflow can choose. A plain [`NitroInput`](/input/reflow)'s affixes are real accessory views that sit outside the text, so it always draws `$-1,234.56`.

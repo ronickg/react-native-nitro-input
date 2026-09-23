@@ -9,7 +9,7 @@
 //  y, radius, startAngle, sweepAngle - rather than as objects: the view reuses
 //  one array, and the geometry is traced into a vector this object keeps (the
 //  `std::vector<double>` overload of `OutlineGeometry::outline`), so redrawing
-//  the frame allocates nothing on either side, the same trick JMorphEngine
+//  the frame allocates nothing on either side, the same trick JReflowEngine
 //  uses for its glyphs.
 //
 //  `gapFor` needs no bridge. It only clamps, and `outline` already treats a

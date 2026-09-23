@@ -1,32 +1,32 @@
 ---
 sidebar_position: 7
-title: How the morph works
+title: How the reflow works
 description: 'How each update pairs the old characters with the new ones, and what moves as a result.'
 ---
 
-With [`morph`](/input/morph) on, the field morphs its text the way [Torph](https://torph.lochie.me) morphs text on the web. Characters that stay glide to their new place, new ones slide or fade in, removed ones leave alongside their neighbours. A comma that reflows travels to where it now belongs instead of blinking into existence.
+With [`transition="reflow"`](/input/reflow), the field reflows its text the way [Torph](https://torph.lochie.me) morphs text on the web. Characters that stay glide to their new place, new ones slide or fade in, removed ones leave alongside their neighbours. A comma that reflows travels to where it now belongs instead of blinking into existence.
 
 ## Why not a formatted `TextInput`
 
-It is a real input. A system text field (`UITextField` on iOS, `EditText` on Android) owns the keyboard, editing, selection, paste and accessibility; the morph layer on top only draws its glyphs. What makes it different from a `TextInput` that formats in `onChangeText`:
+It is a real input. A system text field (`UITextField` on iOS, `EditText` on Android) owns the keyboard, editing, selection, paste and accessibility; the reflow layer on top only draws its glyphs. What makes it different from a `TextInput` that formats in `onChangeText`:
 
 - **Formatting happens natively, before a frame is drawn.** In `mode="number"` every keystroke goes through the same C++ formatter on both platforms: grouping separators, one decimal separator, at most `fractionDigits` decimals, the caret kept where you typed, a digit too many rejected outright. The JS thread only learns about the result, so there is no flicker, no caret jump and no dropped keystroke, however busy React is. `mode="mask"` does the same for a pattern, see [A masked field](/input/masked-field).
 - **The same formatting model as the rolling number**: `prefix` / `suffix` at their own sizes, pinned to the top, bottom, baseline or centre of the digits; grouping and decimal separators of your choice.
-- **One engine.** The matching (which characters persist, enter and leave), the slide, fade and scale curves and the timing live in `cpp/MorphEngine.cpp`, shared by Swift and Kotlin.
+- **One engine.** The matching (which characters persist, enter and leave), the slide, fade and scale curves and the timing live in `cpp/ReflowEngine.cpp`, shared by Swift and Kotlin.
 
 ## What moves on an edit
 
 Each update pairs the old characters with the new ones, and that pairing is
-what decides what moves. The rules live in `cpp/MorphEngine.cpp`, shared by
+what decides what moves. The rules live in `cpp/ReflowEngine.cpp`, shared by
 Swift and Kotlin.
 
 - **Typing** (a caret is known): everything before the caret pairs by position from the left, everything after it from the right, so the edit is exactly the characters that entered or left. Grouping separators are kept out of that walk, because a comma reflows with the magnitude rather than with the keystroke; they pair from the units end instead, so the thousands comma stays the thousands comma and glides. Unless the integer gained or lost a column — then every comma belongs a group further along, past the digits that just carried the other way, so it drops out and a new one rises rather than sliding through them. Typing in the fraction leaves the integer columns alone, and the commas simply glide.
 - **A value set from code** (`setValue`, `setText`, `clear`, the `value` prop): digits pair by their column from the decimal point, so `1,204 → 1,318` swaps the three low columns in place. When the integer part gained or lost columns the digits pair by subsequence from the units end and the separators leave. Plain text pairs by longest common subsequence (`Continue → Confirm` keeps `Con`).
 
-A character that persists eases to its new x. A new digit drops in from above (a separator rises from below) through the clipped line box, fading in over the first quarter of the morph; a leaving digit drops out the same way. Text characters fade and scale (0.95×). Characters that enter or leave ride along with their nearest persisting neighbour, so a word that grows or shrinks stays one shape. Reduce Motion snaps.
+A character that persists eases to its new x. A new digit drops in from above (a separator rises from below) through the clipped line box, fading in over the first quarter of the reflow; a leaving digit drops out the same way. Text characters fade and scale (0.95×). Characters that enter or leave ride along with their nearest persisting neighbour, so a word that grows or shrinks stays one shape. Reduce Motion snaps.
 
 A placeholder is not a value — it is what the field shows *instead* of one — so
-trading it for a value is a change of state rather than a morph, and it snaps.
+trading it for a value is a change of state rather than a reflow, and it snaps.
 The zero standing in for an empty field does not roll into the digit that lands
 on it, and it is drawn in `placeholderTextColor`, which keeps its own
 transparency. Going the other way the value still leaves as it would normally,
@@ -36,5 +36,5 @@ Six or more adjacent characters replaced with nothing surviving between them sto
 
 ## Credits
 
-The morph is based on [Torph](https://torph.lochie.me) by
+The reflow is based on [Torph](https://torph.lochie.me) by
 [Lochie Axon](https://github.com/lochie). Thanks for building it.

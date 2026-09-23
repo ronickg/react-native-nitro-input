@@ -12,7 +12,7 @@ import {NitroInputPlainDemo} from '@site/src/components/NitroInput/NitroInputDem
 
 `react-native-nitro-input` is a **native text input** for React Native, built with [Nitro Modules](https://nitro.margelo.com). `NitroInput` is the component: a system text field (`UITextField` / `EditText`) that owns the keyboard, editing, selection, paste and accessibility, with native amount formatting, native masking, and an outlined or filled frame with a floating label, all done on the native side.
 
-Nothing animates unless you ask. The field draws its text the instant you type it, the way a `TextInput` does. The [morph](/input/morph), which makes characters glide and digits roll, is an effect you turn on for the one screen where it is the point.
+Nothing animates unless you ask. The field draws its text the instant you type it, the way a `TextInput` does. The [reflow](/input/reflow), which makes characters glide and digits roll, is an effect you turn on for the one screen where it is the point.
 
 <Frame caption="Live, in your browser: the plain field. Type into it. It costs no more to mount than a bare system input.">
   <NitroInputPlainDemo />
@@ -76,7 +76,7 @@ const [amount, setAmount] = useState(NaN)
 />
 ```
 
-Type `1234` and the field shows `$1,234`: the formatter runs in C++ on the keystroke, before the field draws, so the comma arrives in the same frame as the digit that displaced it. `onChangeValue` hands you the number, `onChangeText` the formatted string. Nothing here animates. Add `morph` when you want the comma to slide into place rather than appear there.
+Type `1234` and the field shows `$1,234`: the formatter runs in C++ on the keystroke, before the field draws, so the comma arrives in the same frame as the digit that displaced it. `onChangeValue` hands you the number, `onChangeText` the formatted string. Nothing here animates. Add `transition="reflow"` when you want the comma to slide into place rather than appear there.
 
 ## A frame
 
@@ -97,6 +97,6 @@ The label floats onto the top edge on focus and the outline opens a real notch f
 - [A masked field](/input/masked-field): a phone number or a card number, with the pattern applied in C++.
 - [Frames](/input/frames): outlined and filled, the floating label and the notch.
 - [Multiline](/input/multiline): a field that wraps and grows.
-- [The morph](/input/morph): the opt-in animation, and when to want it.
+- [The reflow](/input/reflow): the opt-in animation, and when to want it.
 - [Worklets](/input/worklets): masks, event handlers and the field's state on the UI thread.
 - [Props](/input/props): the full reference.

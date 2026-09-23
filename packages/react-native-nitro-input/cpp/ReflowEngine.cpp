@@ -1,9 +1,9 @@
 //
-//  MorphEngine.cpp
+//  ReflowEngine.cpp
 //  NitroInput
 //
 
-#include "MorphEngine.hpp"
+#include "ReflowEngine.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -108,25 +108,25 @@ double ramp(double p, double from, double to) {
 
 } // namespace
 
-MorphEngine::MorphEngine() = default;
+ReflowEngine::ReflowEngine() = default;
 
 // MARK: - Configuration
 
-void MorphEngine::setTiming(double durationSeconds, int easing, double bounce) {
+void ReflowEngine::setTiming(double durationSeconds, int easing, double bounce) {
   duration_ = std::max(0.0, durationSeconds);
   easing_ = easing;
   bounce_ = bounce;
 }
 
-void MorphEngine::setEffect(int effect) {
+void ReflowEngine::setEffect(int effect) {
   effect_ = effect;
 }
 
-void MorphEngine::setReduceMotion(bool reduceMotion) {
+void ReflowEngine::setReduceMotion(bool reduceMotion) {
   reduceMotion_ = reduceMotion;
 }
 
-double MorphEngine::ease(double t) const {
+double ReflowEngine::ease(double t) const {
   t = clamp01(t);
   switch (easing_) {
     case 1: return 1 - std::pow(1 - t, 3);
@@ -137,18 +137,18 @@ double MorphEngine::ease(double t) const {
   }
 }
 
-bool MorphEngine::slides(int kind) const {
+bool ReflowEngine::slides(int kind) const {
   if (effect_ == 1) return true;
   if (effect_ == 2) return false;
   return kind != Text;
 }
 
-bool MorphEngine::same(const Input& in, const Slot& slot) const {
+bool ReflowEngine::same(const Input& in, const Slot& slot) const {
   return in.character == slot.g.character && in.kind == slot.g.kind && in.role == slot.g.role &&
          in.placeholder == slot.g.placeholder;
 }
 
-int MorphEngine::slotIndexOf(int64_t id) const {
+int ReflowEngine::slotIndexOf(int64_t id) const {
   for (size_t i = 0; i < slots_.size(); ++i) {
     if (slots_[i].g.id == id) return static_cast<int>(i);
   }
@@ -157,15 +157,15 @@ int MorphEngine::slotIndexOf(int64_t id) const {
 
 // MARK: - Text
 
-void MorphEngine::beginText() {
+void ReflowEngine::beginText() {
   pending_.clear();
 }
 
-void MorphEngine::addGlyph(uint32_t character, int role, int kind, double width, bool placeholder) {
+void ReflowEngine::addGlyph(uint32_t character, int role, int kind, double width, bool placeholder) {
   pending_.push_back(Input{character, role, kind, std::max(0.0, width), placeholder});
 }
 
-void MorphEngine::snapTo(const std::vector<Input>& inputs) {
+void ReflowEngine::snapTo(const std::vector<Input>& inputs) {
   slots_.clear();
   slots_.reserve(inputs.size());
   double x = 0;
@@ -186,11 +186,11 @@ void MorphEngine::snapTo(const std::vector<Input>& inputs) {
 /// disguise (a phone number, a date, an amount typed into a plain field: digits
 /// and punctuation, no letters) gets the number treatment instead, so its
 /// digits slide and its separators reflow like a formatted amount's.
-static void classifyNumericBody(std::vector<MorphEngine::Input>& inputs) {
+static void classifyNumericBody(std::vector<ReflowEngine::Input>& inputs) {
   bool digits = false;
   for (const auto& in : inputs) {
-    if (in.role != MorphEngine::Body) continue;
-    if (in.kind != MorphEngine::Text) return;   // already classified (number mode)
+    if (in.role != ReflowEngine::Body) continue;
+    if (in.kind != ReflowEngine::Text) return;   // already classified (number mode)
     const uint32_t c = in.character;
     if (c >= '0' && c <= '9') {
       digits = true;
@@ -200,9 +200,9 @@ static void classifyNumericBody(std::vector<MorphEngine::Input>& inputs) {
   }
   if (!digits) return;
   for (auto& in : inputs) {
-    if (in.role != MorphEngine::Body) continue;
+    if (in.role != ReflowEngine::Body) continue;
     const uint32_t c = in.character;
-    in.kind = (c >= '0' && c <= '9') ? MorphEngine::Digit : MorphEngine::Separator;
+    in.kind = (c >= '0' && c <= '9') ? ReflowEngine::Digit : ReflowEngine::Separator;
   }
   // A lone '.' or ',' is the decimal point: the pivot the digits pair around,
   // part of the typed sequence like them, not a grouping separator that
@@ -214,25 +214,25 @@ static void classifyNumericBody(std::vector<MorphEngine::Input>& inputs) {
   // it occurs once: "192.168.0.1" and "21.09.2026" are structure.
   int decimal = -1;
   for (size_t i = 0; i < inputs.size(); ++i) {
-    if (inputs[i].role != MorphEngine::Body) continue;
+    if (inputs[i].role != ReflowEngine::Body) continue;
     if (inputs[i].character == '.' || inputs[i].character == ',') decimal = static_cast<int>(i);
   }
   if (decimal < 0) return;
   int occurrences = 0;
   for (const auto& in : inputs) {
-    if (in.role == MorphEngine::Body && in.character == inputs[static_cast<size_t>(decimal)].character) ++occurrences;
+    if (in.role == ReflowEngine::Body && in.character == inputs[static_cast<size_t>(decimal)].character) ++occurrences;
   }
-  if (occurrences == 1) inputs[static_cast<size_t>(decimal)].kind = MorphEngine::Decimal;
+  if (occurrences == 1) inputs[static_cast<size_t>(decimal)].kind = ReflowEngine::Decimal;
 }
 
-void MorphEngine::commitText(int caretIndex, double now) {
+void ReflowEngine::commitText(int caretIndex, double now) {
   now_ = now;
   std::vector<Input> inputs;
   inputs.swap(pending_);
   classifyNumericBody(inputs);
 
   // A placeholder is not a value: it is what the field shows instead of one.
-  // Replacing it is a change of state rather than a morph, so the zero standing
+  // Replacing it is a change of state rather than a reflow, so the zero standing
   // in for an empty field does not roll into the digit that lands on it.
   const bool fromPlaceholder =
       std::any_of(slots_.begin(), slots_.end(), [](const Slot& s) { return !s.g.exiting && s.g.placeholder; });
@@ -468,7 +468,7 @@ void MorphEngine::commitText(int caretIndex, double now) {
 
 // MARK: - Matching
 
-void MorphEngine::matchBySequence(const std::vector<Input>& inputs, const std::vector<int>& oldIdx,
+void ReflowEngine::matchBySequence(const std::vector<Input>& inputs, const std::vector<int>& oldIdx,
                                   const std::vector<int>& newIdx, std::vector<int>& matchOfNew) const {
   std::vector<std::pair<int, int>> pairs;
   lcsPairs(static_cast<int>(oldIdx.size()), static_cast<int>(newIdx.size()),
@@ -479,7 +479,7 @@ void MorphEngine::matchBySequence(const std::vector<Input>& inputs, const std::v
   }
 }
 
-void MorphEngine::matchBody(const std::vector<Input>& inputs, const std::vector<int>& oldBody,
+void ReflowEngine::matchBody(const std::vector<Input>& inputs, const std::vector<int>& oldBody,
                             const std::vector<int>& newBody, int caretIndex, std::vector<int>& matchOfNew) const {
   if (caretIndex >= 0) {
     matchByCaret(inputs, oldBody, newBody, caretIndex, matchOfNew);
@@ -499,7 +499,7 @@ void MorphEngine::matchBody(const std::vector<Input>& inputs, const std::vector<
 /// across by position. Grouping separators are left out of that walk (they
 /// reflow with the magnitude, not with the keystroke) and pair from the units
 /// end instead, so the thousands comma stays the thousands comma.
-void MorphEngine::matchByCaret(const std::vector<Input>& inputs, const std::vector<int>& oldBody,
+void ReflowEngine::matchByCaret(const std::vector<Input>& inputs, const std::vector<int>& oldBody,
                                const std::vector<int>& newBody, int caretIndex, std::vector<int>& matchOfNew) const {
   std::vector<int> keptOld, keptNew, sepOld, sepNew; // positions within the body lists
   for (size_t p = 0; p < oldBody.size(); ++p) {
@@ -588,7 +588,7 @@ void MorphEngine::matchByCaret(const std::vector<Input>& inputs, const std::vect
 /// identity is its column. When the integer part gained or lost columns the
 /// digits pair by subsequence from the units end instead, and the separators,
 /// which would have to cross them, leave.
-void MorphEngine::matchByPlace(const std::vector<Input>& inputs, const std::vector<int>& oldBody,
+void ReflowEngine::matchByPlace(const std::vector<Input>& inputs, const std::vector<int>& oldBody,
                                const std::vector<int>& newBody, std::vector<int>& matchOfNew) const {
   const int n = static_cast<int>(oldBody.size());
   const int m = static_cast<int>(newBody.size());
@@ -666,7 +666,7 @@ void MorphEngine::matchByPlace(const std::vector<Input>& inputs, const std::vect
 
 // MARK: - Frames
 
-bool MorphEngine::tick(double now) {
+bool ReflowEngine::tick(double now) {
   now_ = now;
   if (!animating_) return false;
   bool moving = false;
@@ -720,13 +720,13 @@ bool MorphEngine::tick(double now) {
   return moving;
 }
 
-bool MorphEngine::needsFrames() const {
+bool ReflowEngine::needsFrames() const {
   return animating_;
 }
 
 // MARK: - Render state
 
-int MorphEngine::bodyCount() const {
+int ReflowEngine::bodyCount() const {
   int count = 0;
   for (const auto& s : slots_) {
     if (!s.g.exiting && s.g.role == Body) ++count;
@@ -771,34 +771,34 @@ struct Blocks {
   /// Right edge of the prefix's last ink, left edge of the suffix's first.
   double prefixInkEnd = 0;
   double suffixInkStart = 0;
-  bool aheadOfPrefix(const MorphEngine::Glyph& g) const {
+  bool aheadOfPrefix(const ReflowEngine::Glyph& g) const {
     return wholePrefix.any && g.x + g.width <= wholePrefix.start + 1e-6;
   }
-  bool prefixGapGlyph(const MorphEngine::Glyph& g) const {
-    return g.role == MorphEngine::Prefix && isSpace(g.character) && g.x >= prefixInkEnd - 1e-6;
+  bool prefixGapGlyph(const ReflowEngine::Glyph& g) const {
+    return g.role == ReflowEngine::Prefix && isSpace(g.character) && g.x >= prefixInkEnd - 1e-6;
   }
-  bool suffixGapGlyph(const MorphEngine::Glyph& g) const {
-    return g.role == MorphEngine::Suffix && isSpace(g.character) && g.x + g.width <= suffixInkStart + 1e-6;
+  bool suffixGapGlyph(const ReflowEngine::Glyph& g) const {
+    return g.role == ReflowEngine::Suffix && isSpace(g.character) && g.x + g.width <= suffixInkStart + 1e-6;
   }
-  const Block& of(const MorphEngine::Glyph& g) const {
-    if (g.role == MorphEngine::Prefix) return prefixGapGlyph(g) ? prefixGap : prefix;
-    if (g.role == MorphEngine::Suffix) return suffixGapGlyph(g) ? suffixGap : suffix;
+  const Block& of(const ReflowEngine::Glyph& g) const {
+    if (g.role == ReflowEngine::Prefix) return prefixGapGlyph(g) ? prefixGap : prefix;
+    if (g.role == ReflowEngine::Suffix) return suffixGapGlyph(g) ? suffixGap : suffix;
     return aheadOfPrefix(g) ? sign : rest;
   }
 };
 
-Blocks blocksOf(const std::vector<MorphEngine::Glyph>& glyphs) {
+Blocks blocksOf(const std::vector<ReflowEngine::Glyph>& glyphs) {
   Blocks b;
   bool prefixInk = false;
   bool suffixInk = false;
   for (const auto& g : glyphs) {
-    if (g.role == MorphEngine::Prefix) {
+    if (g.role == ReflowEngine::Prefix) {
       b.wholePrefix.add(g.x, g.width);
       if (!isSpace(g.character)) {
         b.prefixInkEnd = prefixInk ? std::max(b.prefixInkEnd, g.x + g.width) : g.x + g.width;
         prefixInk = true;
       }
-    } else if (g.role == MorphEngine::Suffix && !isSpace(g.character)) {
+    } else if (g.role == ReflowEngine::Suffix && !isSpace(g.character)) {
       b.suffixInkStart = suffixInk ? std::min(b.suffixInkStart, g.x) : g.x;
       suffixInk = true;
     }
@@ -807,9 +807,9 @@ Blocks blocksOf(const std::vector<MorphEngine::Glyph>& glyphs) {
   if (!prefixInk) b.prefixInkEnd = b.wholePrefix.any ? b.wholePrefix.end : 0;
   if (!suffixInk) b.suffixInkStart = -1;
   for (const auto& g : glyphs) {
-    if (g.role == MorphEngine::Prefix) {
+    if (g.role == ReflowEngine::Prefix) {
       (b.prefixGapGlyph(g) ? b.prefixGap : b.prefix).add(g.x, g.width);
-    } else if (g.role == MorphEngine::Suffix) {
+    } else if (g.role == ReflowEngine::Suffix) {
       (b.suffixGapGlyph(g) ? b.suffixGap : b.suffix).add(g.x, g.width);
     } else if (b.aheadOfPrefix(g)) {
       b.sign.add(g.x, g.width);
@@ -834,7 +834,7 @@ double mirrored(double x, const Block& block, double total) {
 // mirror image would be and keeps its own order inside. `slots_` stay
 // left-to-right - the matching, the caret and the animation all reason there -
 // and only the published frames move.
-void MorphEngine::publish() {
+void ReflowEngine::publish() {
   glyphs_.clear();
   glyphs_.reserve(slots_.size());
   for (const auto& s : slots_) glyphs_.push_back(s.g);
@@ -855,13 +855,13 @@ void MorphEngine::publish() {
   caretBlocks_.rest = Extent{live.rest.start, live.rest.end, live.rest.any};
 }
 
-void MorphEngine::setRightToLeft(bool rightToLeft) {
+void ReflowEngine::setRightToLeft(bool rightToLeft) {
   if (rightToLeft_ == rightToLeft) return;
   rightToLeft_ = rightToLeft;
   publish();
 }
 
-double MorphEngine::caretX(int index) const {
+double ReflowEngine::caretX(int index) const {
   int seen = 0;
   double afterPrefix = 0;
   double afterLast = -1;
@@ -887,7 +887,7 @@ double MorphEngine::caretX(int index) const {
   return contentWidth_ - block.end + (x - block.start);
 }
 
-void MorphEngine::reset() {
+void ReflowEngine::reset() {
   duration_ = 0.4;
   easing_ = 0;
   bounce_ = 0.15;

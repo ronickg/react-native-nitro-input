@@ -354,7 +354,7 @@ export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' 
    * Where a negative amount's sign sits relative to `prefix`. `'beforeAffix'`
    * (the default) reads `-$1,234.56`; `'afterAffix'` reads `$-1,234.56`, which
    * suits a symbol styled as an ornament rather than read as part of the
-   * number. Only the morph honours it - a plain field's affixes are accessory
+   * number. Only the reflow honours it - a plain field's affixes are accessory
    * views outside the text, so it is always `'afterAffix'`.
    */
   signPlacement?: NitroInputSignPlacement
@@ -362,13 +362,13 @@ export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' 
   prefixAlign?: NitroInputAffixAlign
   /** Alignment of `suffix` only. Defaults to `affixAlign`. */
   suffixAlign?: NitroInputAffixAlign
-  /** Shown while the field is empty and morphed away by the first character. In `'number'` mode `'0'` reads well. */
+  /** Shown while the field is empty and reflowed away by the first character. In `'number'` mode `'0'` reads well. */
   placeholder?: string
   /** Color of the placeholder. Defaults to the platform placeholder color. */
   placeholderTextColor?: ColorValue
-  /** Duration in ms of the morph played on every change. `0` snaps. Default: `400`. */
+  /** Duration in ms of the reflow played on every change. `0` snaps. Default: `400`. */
   duration?: number
-  /** Timing curve of the morph. Default: `'expo'` (Torph's `cubic-bezier(0.19, 1, 0.22, 1)`). */
+  /** Timing curve of the reflow. Default: `'expo'` (Torph's `cubic-bezier(0.19, 1, 0.22, 1)`). */
   easing?: NitroInputEasing
   /** Overshoot of the `'spring'` easing, `0`–`1`. Default: `0.15`. */
   bounce?: number
@@ -385,7 +385,7 @@ export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' 
    * line occupies rather than extra leading. Omit to use the font's own.
    *
    * Unlike `TextInput`, a line height *tighter* than the font is centred
-   * correctly too, and it applies to single-line and morphing fields, not only
+   * correctly too, and it applies to single-line and reflowing fields, not only
    * wrapped ones.
    */
   lineHeight?: number
@@ -433,8 +433,8 @@ export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' 
    *
    * A multiline field is always drawn by the system view and is always
    * `'text'` mode: the glyph engine lays one run out on one baseline, so it
-   * cannot morph wrapped text, and an amount or a mask is a single-line idea.
-   * `morph`, `mode="number"`, `mode="mask"` and the `prefix` / `suffix`
+   * cannot reflow wrapped text, and an amount or a mask is a single-line idea.
+   * `transition="reflow"`, `mode="number"`, `mode="mask"` and the `prefix` / `suffix`
    * affixes are ignored alongside it, with one warning each in development.
    * The return key inserts a line break unless `submitBehavior` says otherwise.
    */
@@ -489,20 +489,22 @@ export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' 
   /** The caret/selection to apply, in code points. */
   selection?: { start: number; end?: number }
   /**
-   * Run the glyph engine, so text morphs as it changes rather than simply
-   * appearing. Off by default: this is a text field first, and a `TextInput`
-   * does not animate its characters. {@link MorphInput} is this component with
-   * it on, which is what an amount field wants.
+   * How the text changes. `'none'` (the default) draws it the instant it
+   * changes: this is a text field first, and a `TextInput` does not animate
+   * its characters. `'reflow'` runs the glyph engine, so characters that stay
+   * glide to their new place, new ones slide or fade in and removed ones leave
+   * alongside their neighbours, which is what an amount field wants. A
+   * multiline field is always `'none'`.
    */
-  morph?: boolean
+  transition?: NitroInputTransition
   /**
    * Whether the field sizes itself to its content.
    *
-   * `false` (the default) takes no width of its own, so flexbox stretches it to
-   * its parent the way a `TextInput` is stretched — that is what makes this a
-   * drop-in. `true` always sizes to content. `'auto'` infers it: on unless
-   * `style` gives a `width` or `flex`, which is what lets an amount grow as
-   * digits arrive, and is what {@link MorphInput} uses.
+   * `false` takes no width of its own, so flexbox stretches it to its parent
+   * the way a `TextInput` is stretched — that is what makes this a drop-in.
+   * `true` always sizes to content. `'auto'` infers it: on unless `style`
+   * gives a `width` or `flex`, which is what lets an amount grow as digits
+   * arrive. Default: `'auto'` with `transition="reflow"`, else `false`.
    */
   autoWidth?: boolean | 'auto'
   /** `'text'` mode: most characters accepted. Default: unlimited. */
@@ -558,7 +560,7 @@ export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' 
 export interface NitroInputHandle {
   focus(): void
   blur(): void
-  /** Empties the field, morphing the characters away. */
+  /** Empties the field, reflowing the characters away. */
   clear(): void
   /** Replaces the text (formatted in `'number'` mode), caret at the end. */
   setText(text: string): void
@@ -593,18 +595,24 @@ function warnIncompatible(what: string): void {
 }
 
 /**
+ * How a `NitroInput`'s text changes: drawn at once (`'none'`), or reflowed by
+ * the glyph engine (`'reflow'`).
+ */
+export type NitroInputTransition = 'none' | 'reflow'
+
+/**
  * A native text input: a system field (`UITextField` / `EditText`) that owns
  * the keyboard, editing, selection, paste and accessibility, with native
  * formatting (`mode="number"`), native masking (`mode="mask"`), an outlined
  * or filled frame with a floating label, and optionally the glyph engine
- * (`morph`), under which characters that stay glide to their new place, new
+ * (`transition="reflow"`), under which characters that stay glide to their new place, new
  * ones slide or fade in and removed ones leave alongside their neighbours.
  * In `'number'` mode every edit is formatted on the native side before a
  * frame is drawn, with the caret kept in place, so there is never an
  * unformatted frame and never a round trip through JS.
  *
- * Like a `TextInput`, it takes its width from its parent; `autoWidth`
- * (`'auto'` in {@link MorphInput}) sizes it to its content instead.
+ * Like a `TextInput`, it takes its width from its parent; `autoWidth` sizes
+ * it to its content instead, and is on by default when the text reflows.
  */
 export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
   function NitroInput(
@@ -671,7 +679,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       textAlignVertical,
       scrollEnabled,
       autoFocus,
-      morph,
+      transition,
       autoWidth: autoWidthProp,
       submitBehavior,
       blurOnSubmit,
@@ -848,8 +856,10 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     // `NitroInput` turns it off so flexbox gives it the parent's width, the
     // way a `TextInput` gets one.
     const inferredAutoWidth = flat?.width == null && flat?.flex == null
+    const autoWidthSetting =
+      autoWidthProp ?? (transition === 'reflow' && !multiline ? 'auto' : false)
     const autoWidth =
-      autoWidthProp === 'auto' ? inferredAutoWidth : (autoWidthProp ?? false)
+      autoWidthSetting === 'auto' ? inferredAutoWidth : autoWidthSetting
     const autoWidthRef = useRef(autoWidth)
     autoWidthRef.current = autoWidth
     // When the style pins both axes, the measured size is never used: `style`
@@ -1060,12 +1070,12 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       if (mode != null && mode !== 'text') {
         warnIncompatible(`mode="${mode}"`)
       }
-      if (morph) warnIncompatible('morph')
+      if (transition === 'reflow') warnIncompatible('transition="reflow"')
       if (prefix) warnIncompatible('prefix')
       if (suffix) warnIncompatible('suffix')
     }
     const resolvedMode = isMultiline ? 'text' : (mode ?? 'text')
-    const resolvedMorph = isMultiline ? false : (morph ?? false)
+    const reflows = !isMultiline && transition === 'reflow'
     // The affixes are accessory views beside one line of text; a wrapping text
     // view has no slot for them, so they go with the mode rather than being
     // half-drawn on one platform and not the other.
@@ -1183,7 +1193,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         text={value ?? initialText}
         mostRecentEventCount={eventCountRef.current}
         mode={resolvedMode}
-        plain={!resolvedMorph}
+        plain={!reflows}
         fractionDigits={resolvedFractionDigits}
         maxIntegerDigits={maxIntegerDigits ?? 15}
         groupingSeparator={groupingSeparator ?? ','}

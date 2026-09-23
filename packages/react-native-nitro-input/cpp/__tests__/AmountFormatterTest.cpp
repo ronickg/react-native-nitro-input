@@ -1,6 +1,6 @@
 // Host-side checks for the amount model. Build & run with `bun run test:cpp`.
 //
-// `MorphEngineTest.cpp` exercises the formatter incidentally, through the
+// `ReflowEngineTest.cpp` exercises the formatter incidentally, through the
 // engine. These are the formatter's own checks: the programmatic entry points
 // (`format`, `value`, `normalize`) and the invariants that are easy to break
 // from inside `formatRaw`.

@@ -1,6 +1,6 @@
 import React from 'react'
 import { I18nManager, ScrollView, TextInput } from 'react-native'
-import { MorphInput, NitroInput } from 'react-native-nitro-input'
+import { NitroInput } from 'react-native-nitro-input'
 import { RollingNumber } from 'react-native-nitro-input'
 import { Card, FieldLabel, styles } from '../harness'
 
@@ -33,9 +33,9 @@ export function RtlScreen() {
           style={[styles.field, { direction: I18nManager.isRTL ? 'ltr' : 'rtl' }]}
         />
         <FieldLabel>MORPH, PREFIX + SUFFIX</FieldLabel>
-        <MorphInput testID="rtl-morph-amount" mode="number" prefix="$" suffix=" USD" defaultValue="1234.56" fontSize={22} style={{ width: '100%' }} />
+        <NitroInput transition="reflow" testID="rtl-morph-amount" mode="number" prefix="$" suffix=" USD" defaultValue="1234.56" fontSize={22} style={{ width: '100%' }} />
         <FieldLabel>MORPH, NEGATIVE</FieldLabel>
-        <MorphInput testID="rtl-morph-negative" mode="number" prefix="$" defaultValue="-1234.56" fontSize={22} style={{ width: '100%' }} />
+        <NitroInput transition="reflow" testID="rtl-morph-negative" mode="number" prefix="$" defaultValue="-1234.56" fontSize={22} style={{ width: '100%' }} />
         <FieldLabel>ROLLING NUMBER, PREFIX + SUFFIX</FieldLabel>
         <RollingNumber testID="rtl-rolling" value={1234.56} fractionDigits={2} prefix="$" suffix=" USD" fontSize={22} style={{ width: '100%' }} />
         <FieldLabel>ROLLING NUMBER, NEGATIVE</FieldLabel>

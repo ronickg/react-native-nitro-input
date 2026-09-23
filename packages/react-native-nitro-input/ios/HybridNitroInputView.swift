@@ -263,7 +263,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   /// difference, on the first mount (Fabric hands later mounts the pooled
   /// views of earlier ones). iPhone 11 Pro and 13 Pro Max, 2026-09-22: a
   /// NitroInput is about 120 KB of malloc and 140–155 KB of footprint per
-  /// field (a `TextInput` 120 and 100–110), a MorphInput 20–30 and 30–65.
+  /// field (a `TextInput` 120 and 100–110), a reflowing one 20–30 and 30–65.
   /// One constant for both, because Nitro reads it once when the handle is
   /// created, before the props say which one this is.
   var memorySize: Int { 96 * 1024 }

@@ -1,5 +1,5 @@
 /**
- * On-device checks of `NitroInput` and `MorphInput`: the imperative handle,
+ * On-device checks of `NitroInput`, plain and with `transition="reflow"`: the imperative handle,
  * the events, the formatter and the mask engine, driven the way an app drives
  * them. Typing needs a keyboard, which these tests do not have; what a
  * program can do to the field is covered here, what a finger does stays in
@@ -9,11 +9,9 @@ import React, { createRef, useEffect, useRef } from 'react'
 import { View, type LayoutRectangle } from 'react-native'
 import { describe, expect, it, render, waitFor } from 'react-native-harness'
 import {
-  MorphInput,
   NitroInput,
-  type MorphInputHandle,
-  type NitroInputFocusEvent,
   type NitroInputHandle,
+  type NitroInputFocusEvent,
   type NitroInputSelectionEvent,
 } from 'react-native-nitro-input'
 import { deferred, sleep, withTimeout } from './test-utils'
@@ -28,9 +26,9 @@ function layoutOf() {
 }
 
 describe('NitroInput', () => {
-  it('sizes a plain field with autoWidth to its text, not to the morph engine', async () => {
+  it('sizes a plain field with autoWidth to its text, not to the reflow engine', async () => {
     // A plain field never feeds the glyph engine, so its width has to come
-    // from the system field. This is the shape `MorphInput` has by default,
+    // from the system field. This is the shape a reflowing `NitroInput` has by default,
     // asked of the plain component.
     const { state, onLayout } = layoutOf()
     await render(
@@ -355,16 +353,16 @@ describe('NitroInput', () => {
   })
 })
 
-describe('MorphInput', () => {
-  it('morphs an amount and sizes to it', async () => {
-    const ref = createRef<MorphInputHandle>()
+describe('NitroInput, transition="reflow"', () => {
+  it('reflows an amount and sizes to it', async () => {
+    const ref = createRef<NitroInputHandle>()
     const { state, onLayout } = layoutOf()
     // `flex-start` keeps the box content-sized from the first layout. Left to
     // stretch, the first `onLayout` can carry the parent's full width before
     // the native measurement lands, and "wider than empty" never holds.
     await render(
       <View style={{ alignSelf: 'flex-start' }}>
-        <MorphInput ref={ref} mode="number" prefix="$" fontSize={40} onLayout={onLayout} />
+        <NitroInput transition="reflow" ref={ref} mode="number" prefix="$" fontSize={40} onLayout={onLayout} />
       </View>
     )
     await waitFor(() => expect(ref.current?.native).not.toBeNull())
@@ -379,7 +377,7 @@ describe('MorphInput', () => {
     ref.current!.setValue(1234567.89)
     await waitFor(() => expect(ref.current!.getText()).toBe('1,234,567.89'))
     expect(ref.current!.getValue()).toBe(1234567.89)
-    // The morph is a native animation; the box follows the settled text.
+    // The reflow is a native animation; the box follows the settled text.
     await waitFor(() => expect(state.current!.width).toBeGreaterThan(oneDigit), { timeout: 3000 })
   })
 })

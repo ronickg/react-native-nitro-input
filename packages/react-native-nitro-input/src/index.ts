@@ -8,15 +8,10 @@ export {
   type NitroInputFocusEvent,
   type NitroInputSelectionEvent,
   type NitroInputKeyPressEvent,
+  type NitroInputTransition,
   type InputMode,
   type EnterKeyHint,
 } from './NitroInput'
-export {
-  MorphInput,
-  type MorphInputProps,
-  type MorphInputHandle,
-  type MorphInputRef,
-} from './MorphInput'
 export {
   isWorklet,
   type NitroInputSelection,

@@ -342,7 +342,7 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
    * collection before and with them, and divides the difference; medians of
    * three interleaved rounds, which differ by up to 50 KB a field. Galaxy
    * A22, Android 13, 2026-09-22: a NitroInput is about 37 KB of malloc and
-   * 27 KB of Java heap per field (a `TextInput` 63 + 17); a MorphInput is
+   * 27 KB of Java heap per field (a `TextInput` 63 + 17); a reflowing one is
    * within that noise, about 27 KB of malloc more by a native heap profile.
    * One constant for both, because Nitro reads it once when the handle is
    * created, before the props say which one this is.

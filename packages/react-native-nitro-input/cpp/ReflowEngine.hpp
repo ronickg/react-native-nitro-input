@@ -1,8 +1,8 @@
 //
-//  MorphEngine.hpp
+//  ReflowEngine.hpp
 //  NitroInput
 //
-//  The platform-independent text-morph state machine behind the input view.
+//  The platform-independent text-reflow state machine behind the input view.
 //  Both native views (NitroInputView.swift, NitroInputView.kt) hand it the new
 //  text as a list of glyphs (character, role, kind, advance width) plus where
 //  the edit happened, and draw whatever it reports: one glyph per character
@@ -28,7 +28,7 @@
 
 namespace margelo::nitro::nitroinput {
 
-class MorphEngine final {
+class ReflowEngine final {
 public:
   /// What a character is; decides how it enters, leaves and is matched.
   enum Kind : int {
@@ -76,7 +76,7 @@ public:
     bool placeholder;
   };
 
-  MorphEngine();
+  ReflowEngine();
 
   // MARK: Configuration
 

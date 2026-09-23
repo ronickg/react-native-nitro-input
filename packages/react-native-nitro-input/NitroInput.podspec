@@ -40,7 +40,7 @@ Pod::Spec.new do |s|
     Pod::UI.puts "[NitroInput] react-native-worklets found, worklet support enabled"
     s.dependency 'RNWorklets'
     s.pod_target_xcconfig = {
-      "GCC_PREPROCESSOR_DEFINITIONS" => "$(inherited) MORPH_INPUT_WORKLETS=1",
+      "GCC_PREPROCESSOR_DEFINITIONS" => "$(inherited) NITRO_INPUT_WORKLETS=1",
       "HEADER_SEARCH_PATHS" => "$(inherited) \"$(PODS_ROOT)/Headers/Public/RNWorklets\"",
     }
   end

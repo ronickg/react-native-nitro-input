@@ -1,6 +1,6 @@
 // Host-side checks for the shared engine and formatter. Build & run with `bun run test:cpp`.
 #include "AmountFormatter.hpp"
-#include "MorphEngine.hpp"
+#include "ReflowEngine.hpp"
 
 #include <cmath>
 #include <cstdio>
@@ -9,7 +9,7 @@
 #include <vector>
 
 using margelo::nitro::nitroinput::AmountFormatter;
-using margelo::nitro::nitroinput::MorphEngine;
+using margelo::nitro::nitroinput::ReflowEngine;
 
 static int failures = 0;
 
@@ -181,10 +181,10 @@ static void formatterLimitsAndValues() {
   CHECK_EQ_STR(e.text, "1.234,");  // a '.' from a US decimal pad still means the decimal
   CHECK_EQ_STR(eu.format(1234.5), "1.234,5");
   CHECK(near(eu.value("1.234,5"), 1234.5));
-  CHECK(eu.kindOf('.') == MorphEngine::Separator);
-  CHECK(eu.kindOf(',') == MorphEngine::Decimal);
-  CHECK(us.kindOf('7') == MorphEngine::Digit);
-  CHECK(us.kindOf('$') == MorphEngine::Text);
+  CHECK(eu.kindOf('.') == ReflowEngine::Separator);
+  CHECK(eu.kindOf(',') == ReflowEngine::Decimal);
+  CHECK(us.kindOf('7') == ReflowEngine::Digit);
+  CHECK(us.kindOf('$') == ReflowEngine::Text);
 
   // Thin-space grouping (UTF-8, multi-byte).
   AmountFormatter fr;
@@ -198,37 +198,37 @@ static void formatterLimitsAndValues() {
 // MARK: - Engine
 
 /// Feeds `text` as body glyphs (US number kinds) after an optional prefix.
-static void feed(MorphEngine& e, const std::string& prefix, const std::string& body, int caret, double now,
+static void feed(ReflowEngine& e, const std::string& prefix, const std::string& body, int caret, double now,
                  double digitWidth = 10, double symbolWidth = 4, bool placeholder = false) {
   const auto us = usFormatter();
   e.beginText();
-  for (char c : prefix) e.addGlyph(static_cast<uint32_t>(c), MorphEngine::Prefix, MorphEngine::Text, 12, false);
+  for (char c : prefix) e.addGlyph(static_cast<uint32_t>(c), ReflowEngine::Prefix, ReflowEngine::Text, 12, false);
   for (char c : body) {
     const int kind = us.kindOf(static_cast<uint32_t>(c));
-    e.addGlyph(static_cast<uint32_t>(c), MorphEngine::Body, kind, kind == MorphEngine::Digit ? digitWidth : symbolWidth, placeholder);
+    e.addGlyph(static_cast<uint32_t>(c), ReflowEngine::Body, kind, kind == ReflowEngine::Digit ? digitWidth : symbolWidth, placeholder);
   }
   e.commitText(caret, now);
 }
 
-static std::vector<int64_t> liveIds(const MorphEngine& e) {
+static std::vector<int64_t> liveIds(const ReflowEngine& e) {
   std::vector<int64_t> ids;
   for (const auto& g : e.glyphs()) if (!g.exiting) ids.push_back(g.id);
   return ids;
 }
 
-static int countExiting(const MorphEngine& e) {
+static int countExiting(const ReflowEngine& e) {
   int n = 0;
   for (const auto& g : e.glyphs()) if (g.exiting) ++n;
   return n;
 }
 
-static const MorphEngine::Glyph* liveGlyph(const MorphEngine& e, char c) {
+static const ReflowEngine::Glyph* liveGlyph(const ReflowEngine& e, char c) {
   for (const auto& g : e.glyphs()) if (!g.exiting && g.character == static_cast<uint32_t>(c)) return &g;
   return nullptr;
 }
 
 static void firstCommitSnaps() {
-  MorphEngine e;
+  ReflowEngine e;
   e.setTiming(0.4, 0, 0.15);
   feed(e, "$", "12", 2, 0);
   CHECK(!e.needsFrames());
@@ -243,7 +243,7 @@ static void firstCommitSnaps() {
 }
 
 static void typingAppendsAnEnteringDigit() {
-  MorphEngine e;
+  ReflowEngine e;
   e.setTiming(0.4, 3 /* linear */, 0.15);
   feed(e, "", "12", 2, 0);
   const auto before = liveIds(e);
@@ -273,7 +273,7 @@ static void typingAppendsAnEnteringDigit() {
 }
 
 static void groupingSeparatorReflows() {
-  MorphEngine e;
+  ReflowEngine e;
   e.setTiming(0.4, 3, 0.15);
   feed(e, "", "123", 3, 0);
   const auto ids = liveIds(e);
@@ -314,7 +314,7 @@ static void groupingSeparatorReflows() {
 }
 
 static void insertInTheMiddleKeepsBothSides() {
-  MorphEngine e;
+  ReflowEngine e;
   e.setTiming(0.4, 3, 0.15);
   feed(e, "", "1,234", 5, 0);
   const auto ids = liveIds(e); // 1 , 2 3 4
@@ -335,7 +335,7 @@ static void insertInTheMiddleKeepsBothSides() {
 }
 
 static void placeMatchingSwapsChangedColumns() {
-  MorphEngine e;
+  ReflowEngine e;
   e.setTiming(0.4, 3, 0.15);
   feed(e, "$", "1,204", -1, 0);
   const auto ids = liveIds(e); // $ 1 , 2 0 4
@@ -355,15 +355,15 @@ static void placeMatchingSwapsChangedColumns() {
 }
 
 static void textMatchesBySubsequence() {
-  MorphEngine e;
+  ReflowEngine e;
   e.setTiming(0.4, 3, 0.15);
   e.setEffect(2);
   e.beginText();
-  for (char c : std::string("Continue")) e.addGlyph(static_cast<uint32_t>(c), MorphEngine::Body, MorphEngine::Text, 8, false);
+  for (char c : std::string("Continue")) e.addGlyph(static_cast<uint32_t>(c), ReflowEngine::Body, ReflowEngine::Text, 8, false);
   e.commitText(-1, 0);
   const auto ids = liveIds(e);
   e.beginText();
-  for (char c : std::string("Confirm")) e.addGlyph(static_cast<uint32_t>(c), MorphEngine::Body, MorphEngine::Text, 8, false);
+  for (char c : std::string("Confirm")) e.addGlyph(static_cast<uint32_t>(c), ReflowEngine::Body, ReflowEngine::Text, 8, false);
   e.commitText(-1, 1);
   const auto after = liveIds(e);
   CHECK(after.size() == 7);
@@ -382,31 +382,31 @@ static void textMatchesBySubsequence() {
 }
 
 static void numericTextSlidesLikeAnAmount() {
-  MorphEngine e;
+  ReflowEngine e;
   e.setTiming(0.4, 3, 0.15);
   // A phone mask in text mode: every character arrives as Text.
   e.beginText();
-  for (char c : std::string("(555) 123")) e.addGlyph(static_cast<uint32_t>(c), MorphEngine::Body, MorphEngine::Text, 10, false);
+  for (char c : std::string("(555) 123")) e.addGlyph(static_cast<uint32_t>(c), ReflowEngine::Body, ReflowEngine::Text, 10, false);
   e.commitText(9, 0);
   e.beginText();
-  for (char c : std::string("(555) 123-4")) e.addGlyph(static_cast<uint32_t>(c), MorphEngine::Body, MorphEngine::Text, 10, false);
+  for (char c : std::string("(555) 123-4")) e.addGlyph(static_cast<uint32_t>(c), ReflowEngine::Body, ReflowEngine::Text, 10, false);
   e.commitText(11, 1);
   const auto* four = liveGlyph(e, '4');
   const auto* dash = liveGlyph(e, '-');
-  CHECK(four && four->kind == MorphEngine::Digit && near(four->y, -1));   // digits drop in from above
-  CHECK(dash && dash->kind == MorphEngine::Separator && near(dash->y, 1)); // punctuation rises from below
+  CHECK(four && four->kind == ReflowEngine::Digit && near(four->y, -1));   // digits drop in from above
+  CHECK(dash && dash->kind == ReflowEngine::Separator && near(dash->y, 1)); // punctuation rises from below
   CHECK(countExiting(e) == 0);                                              // "(", ")" and the space all persisted
   // Real text keeps fading.
-  MorphEngine t;
+  ReflowEngine t;
   t.setTiming(0.4, 3, 0.15);
   t.beginText();
-  for (char c : std::string("Room 12")) t.addGlyph(static_cast<uint32_t>(c), MorphEngine::Body, MorphEngine::Text, 10, false);
+  for (char c : std::string("Room 12")) t.addGlyph(static_cast<uint32_t>(c), ReflowEngine::Body, ReflowEngine::Text, 10, false);
   t.commitText(7, 0);
   t.beginText();
-  for (char c : std::string("Room 123")) t.addGlyph(static_cast<uint32_t>(c), MorphEngine::Body, MorphEngine::Text, 10, false);
+  for (char c : std::string("Room 123")) t.addGlyph(static_cast<uint32_t>(c), ReflowEngine::Body, ReflowEngine::Text, 10, false);
   t.commitText(8, 1);
   const auto* three = liveGlyph(t, '3');
-  CHECK(three && three->kind == MorphEngine::Text && near(three->y, 0) && near(three->scale, 0.95));
+  CHECK(three && three->kind == ReflowEngine::Text && near(three->y, 0) && near(three->scale, 0.95));
 }
 
 /// In a plain field, the one '.' (or ',') of a number is its decimal point. It
@@ -414,16 +414,16 @@ static void numericTextSlidesLikeAnAmount() {
 /// re-paired the separators from the units end, so the point left downwards
 /// and rose again in the same place on each keystroke.
 static void textModeDecimalPointStaysPut() {
-  const auto plain = [](MorphEngine& e, const std::string& body, int caret, double now) {
+  const auto plain = [](ReflowEngine& e, const std::string& body, int caret, double now) {
     e.beginText();
-    for (char c : body) e.addGlyph(static_cast<uint32_t>(c), MorphEngine::Body, MorphEngine::Text, 10, false);
+    for (char c : body) e.addGlyph(static_cast<uint32_t>(c), ReflowEngine::Body, ReflowEngine::Text, 10, false);
     e.commitText(caret, now);
   };
-  MorphEngine e;
+  ReflowEngine e;
   e.setTiming(0.4, 3, 0.15);
   plain(e, "23423432.233", 12, 0);
   const auto* dot = liveGlyph(e, '.');
-  CHECK(dot && dot->kind == MorphEngine::Decimal);
+  CHECK(dot && dot->kind == ReflowEngine::Decimal);
   const int64_t dotId = dot->id;
   plain(e, "23423432.23", 11, 1);            // backspace over a fraction digit
   dot = liveGlyph(e, '.');
@@ -437,24 +437,24 @@ static void textModeDecimalPointStaysPut() {
   CHECK(dot && dot->id == dotId && near(dot->y, 0));
 
   // Grouping stays grouping next to a lone point, and repeated points are structure.
-  MorphEngine g;
+  ReflowEngine g;
   g.setTiming(0.4, 3, 0.15);
   plain(g, "1,234,567.89", 12, 0);
   int commas = 0;
-  for (const auto& gl : g.glyphs()) if (gl.character == ',') { CHECK(gl.kind == MorphEngine::Separator); ++commas; }
+  for (const auto& gl : g.glyphs()) if (gl.character == ',') { CHECK(gl.kind == ReflowEngine::Separator); ++commas; }
   CHECK(commas == 2);
   const auto* point = liveGlyph(g, '.');
-  CHECK(point && point->kind == MorphEngine::Decimal);
-  MorphEngine ip;
+  CHECK(point && point->kind == ReflowEngine::Decimal);
+  ReflowEngine ip;
   ip.setTiming(0.4, 3, 0.15);
   plain(ip, "192.168.0.1", 11, 0);
-  for (const auto& gl : ip.glyphs()) if (gl.character == '.') CHECK(gl.kind == MorphEngine::Separator);
+  for (const auto& gl : ip.glyphs()) if (gl.character == '.') CHECK(gl.kind == ReflowEngine::Separator);
 }
 
 /// A placeholder is what the field shows *instead of* a value, so trading it
-/// for one is a change of state and not a morph: nothing rolls, nothing leaves.
+/// for one is a change of state and not a reflow: nothing rolls, nothing leaves.
 static void replacingThePlaceholderDoesNotAnimate() {
-  MorphEngine e;
+  ReflowEngine e;
   e.setTiming(0.4, 3, 0.15);
   feed(e, "$", "0", 1, 0, 10, 4, true);
   feed(e, "$", "0", 1, 1, 10, 4, false);   // the user typed a real 0
@@ -464,7 +464,7 @@ static void replacingThePlaceholderDoesNotAnimate() {
   CHECK(zero && !zero->placeholder && near(zero->y, 0) && near(zero->opacity, 1));
 
   // The same for a placeholder traded for a different digit.
-  MorphEngine d;
+  ReflowEngine d;
   d.setTiming(0.4, 3, 0.15);
   feed(d, "$", "0", 1, 0, 10, 4, true);
   feed(d, "$", "7", 1, 1, 10, 4, false);
@@ -472,7 +472,7 @@ static void replacingThePlaceholderDoesNotAnimate() {
 
   // Going the other way is a real change — the value leaves — but the
   // placeholder taking its place fades in rather than dropping from above.
-  MorphEngine c;
+  ReflowEngine c;
   c.setTiming(0.4, 3, 0.15);
   feed(c, "$", "1234", 4, 0);
   feed(c, "$", "0", 1, 1, 10, 4, true);
@@ -482,7 +482,7 @@ static void replacingThePlaceholderDoesNotAnimate() {
 }
 
 static void snapsWithoutMotion() {
-  MorphEngine e;
+  ReflowEngine e;
   e.setTiming(0, 0, 0.15);
   feed(e, "", "12", 2, 0);
   feed(e, "", "123", 3, 1);
@@ -490,7 +490,7 @@ static void snapsWithoutMotion() {
   CHECK(countExiting(e) == 0);
   CHECK(near(liveGlyph(e, '3')->opacity, 1));
 
-  MorphEngine r;
+  ReflowEngine r;
   r.setTiming(0.4, 0, 0.15);
   r.setReduceMotion(true);
   feed(r, "", "12", 2, 0);
@@ -500,7 +500,7 @@ static void snapsWithoutMotion() {
 }
 
 static void interruptedEntryLeavesFromWhereItIs() {
-  MorphEngine e;
+  ReflowEngine e;
   e.setTiming(0.4, 3, 0.15);
   feed(e, "", "1", 1, 0);
   feed(e, "", "12", 2, 1);
@@ -518,7 +518,7 @@ static void interruptedEntryLeavesFromWhereItIs() {
 }
 
 static void exitingGlyphRidesWithItsNeighbour() {
-  MorphEngine e;
+  ReflowEngine e;
   e.setTiming(0.4, 3, 0.15);
   feed(e, "", "12", 2, 0);
   feed(e, "", "2", 0, 1);       // deleted the 1 at the front
@@ -527,7 +527,7 @@ static void exitingGlyphRidesWithItsNeighbour() {
   e.tick(1.2);
   two = liveGlyph(e, '2');
   CHECK(near(two->x, 5));       // sliding left
-  const MorphEngine::Glyph* one = nullptr;
+  const ReflowEngine::Glyph* one = nullptr;
   for (const auto& g : e.glyphs()) if (g.exiting) one = &g;
   CHECK(one && near(one->x, -5)); // the leaving 1 moves with it
 }
@@ -535,7 +535,7 @@ static void exitingGlyphRidesWithItsNeighbour() {
 /// A run of six or more adjacent glyphs with no survivor inside it stops being
 /// characters that moved: it recedes as one shape, about the run's centre.
 static void whollyReplacedRunRecedesTogether() {
-  MorphEngine e;
+  ReflowEngine e;
   e.setTiming(0.4, 3, 0);                 // linear, so the half-way scale is exact
   feed(e, "", "1,234.56", -1, 0);
   feed(e, "", "0.00", -1, 1);             // a three-digit jump carries nothing across
@@ -571,7 +571,7 @@ static void whollyReplacedRunRecedesTogether() {
   CHECK(near((lo + hi) / 2, centre));      // about the run's own centre
 
   // Both sides replaced wholesale: the new run comes forward out of its centre.
-  MorphEngine g2;
+  ReflowEngine g2;
   g2.setTiming(0.4, 3, 0);
   feed(g2, "", "100,000", -1, 0);
   feed(g2, "", "100,000,000", -1, 1);
@@ -585,7 +585,7 @@ static void whollyReplacedRunRecedesTogether() {
 /// A survivor inside the run is an anchor to move against, so the glyphs around
 /// it keep sliding as characters.
 static void aSurvivorKeepsTheRunSliding() {
-  MorphEngine e;
+  ReflowEngine e;
   e.setTiming(0.4, 3, 0);
   feed(e, "", "100", -1, 0);
   feed(e, "", "101", -1, 1);
@@ -597,16 +597,16 @@ static void aSurvivorKeepsTheRunSliding() {
 // Under a right-to-left layout the prefix moves to the right edge and the
 // suffix to the left, while the digits stay a left-to-right run.
 static void rightToLeftMirrorsTheAffixesNotTheDigits() {
-  MorphEngine e;
+  ReflowEngine e;
   e.setTiming(0.4, 0, 0.15);
   const auto us = usFormatter();
   e.beginText();
-  e.addGlyph('$', MorphEngine::Prefix, MorphEngine::Text, 12, false);
+  e.addGlyph('$', ReflowEngine::Prefix, ReflowEngine::Text, 12, false);
   for (char c : std::string("1,234")) {
     const int kind = us.kindOf(static_cast<uint32_t>(c));
-    e.addGlyph(static_cast<uint32_t>(c), MorphEngine::Body, kind, kind == MorphEngine::Digit ? 10 : 4, false);
+    e.addGlyph(static_cast<uint32_t>(c), ReflowEngine::Body, kind, kind == ReflowEngine::Digit ? 10 : 4, false);
   }
-  for (char c : std::string(" USD")) e.addGlyph(static_cast<uint32_t>(c), MorphEngine::Suffix, MorphEngine::Text, 8, false);
+  for (char c : std::string(" USD")) e.addGlyph(static_cast<uint32_t>(c), ReflowEngine::Suffix, ReflowEngine::Text, 8, false);
   e.commitText(5, 0);
   // Left-to-right: $ [0,12], 1,234 [12,56], " USD" [56,88].
   CHECK(near(e.contentWidth(), 88));
@@ -643,13 +643,13 @@ static void rightToLeftMirrorsTheAffixesNotTheDigits() {
 // right - before the prefix, reading right to left - with the digits still
 // left-to-right on the other side of it.
 static void rightToLeftKeepsTheSignAheadOfThePrefix() {
-  MorphEngine e;
+  ReflowEngine e;
   e.setTiming(0.4, 0, 0.15);
   e.beginText();
-  e.addGlyph('-', MorphEngine::Body, MorphEngine::Text, 6, false);
-  e.addGlyph('$', MorphEngine::Prefix, MorphEngine::Text, 12, false);
-  e.addGlyph('1', MorphEngine::Body, MorphEngine::Digit, 10, false);
-  e.addGlyph('2', MorphEngine::Body, MorphEngine::Digit, 10, false);
+  e.addGlyph('-', ReflowEngine::Body, ReflowEngine::Text, 6, false);
+  e.addGlyph('$', ReflowEngine::Prefix, ReflowEngine::Text, 12, false);
+  e.addGlyph('1', ReflowEngine::Body, ReflowEngine::Digit, 10, false);
+  e.addGlyph('2', ReflowEngine::Body, ReflowEngine::Digit, 10, false);
   e.commitText(3, 0);
   // Left-to-right: - [0,6], $ [6,18], 12 [18,38].
   CHECK(near(e.contentWidth(), 38));
@@ -669,11 +669,11 @@ static void rightToLeftKeepsTheSignAheadOfThePrefix() {
 
 // A prefix that ends in a space keeps that space against the digits too.
 static void rightToLeftKeepsThePrefixGapAgainstTheDigits() {
-  MorphEngine e;
+  ReflowEngine e;
   e.setTiming(0.4, 0, 0.15);
   e.beginText();
-  for (char c : std::string("CHF ")) e.addGlyph(static_cast<uint32_t>(c), MorphEngine::Prefix, MorphEngine::Text, 8, false);
-  e.addGlyph('5', MorphEngine::Body, MorphEngine::Digit, 10, false);
+  for (char c : std::string("CHF ")) e.addGlyph(static_cast<uint32_t>(c), ReflowEngine::Prefix, ReflowEngine::Text, 8, false);
+  e.addGlyph('5', ReflowEngine::Body, ReflowEngine::Digit, 10, false);
   e.commitText(1, 0);
   // Left-to-right: CHF [0,24], " " [24,32], 5 [32,42].
   e.setRightToLeft(true);
@@ -687,10 +687,10 @@ static void rightToLeftKeepsThePrefixGapAgainstTheDigits() {
 
 // An empty body has no block; its caret is a point, and the point mirrors.
 static void rightToLeftCaretOfAnEmptyBody() {
-  MorphEngine e;
+  ReflowEngine e;
   e.setTiming(0.4, 0, 0.15);
   e.beginText();
-  e.addGlyph('$', MorphEngine::Prefix, MorphEngine::Text, 12, false);
+  e.addGlyph('$', ReflowEngine::Prefix, ReflowEngine::Text, 12, false);
   e.commitText(0, 0);
   CHECK(near(e.caretX(0), 12));
   e.setRightToLeft(true);
@@ -721,9 +721,9 @@ int main() {
   whollyReplacedRunRecedesTogether();
   aSurvivorKeepsTheRunSliding();
   if (failures == 0) {
-    std::printf("MorphEngine: all checks passed\n");
+    std::printf("ReflowEngine: all checks passed\n");
     return 0;
   }
-  std::printf("MorphEngine: %d check(s) failed\n", failures);
+  std::printf("ReflowEngine: %d check(s) failed\n", failures);
   return 1;
 }

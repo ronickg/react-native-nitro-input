@@ -1,6 +1,6 @@
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
-import { MorphInput } from 'react-native-nitro-input'
+import { NitroInput } from 'react-native-nitro-input'
 
 /**
  * The smallest thing that shows it.
@@ -46,7 +46,7 @@ export function ViewPropsReproScreen() {
 
         <View style={styles.cell}>
           <Text style={styles.label}>Nitro view</Text>
-          <MorphInput style={box} testID="repro-nitro" />
+          <NitroInput transition="reflow" style={box} testID="repro-nitro" />
         </View>
       </View>
 

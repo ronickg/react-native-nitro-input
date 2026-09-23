@@ -9,6 +9,14 @@
   JS helpers (font weights, colours) are shared with `NitroInput` instead of
   copied. Replace the import and drop the old package:
   `import { RollingNumber } from 'react-native-nitro-input'`.
+- **Breaking:** the morph is called the reflow, which is what it does: the
+  characters keep their shapes and move to where the new text puts them.
+  `MorphInput` and the `morph` prop are gone; pass `transition="reflow"` to
+  `NitroInput` instead (`'none'`, the default, is the plain field). A
+  reflowing field sizes itself to its content unless told otherwise, as
+  `MorphInput` did: `autoWidth` defaults to `'auto'` with it. The C++ engine
+  is `ReflowEngine` (was `MorphEngine`), and the docs page moved to
+  `/input/reflow`, with a redirect from `/input/morph`.
 
 ### RollingNumber
 
@@ -132,7 +140,7 @@
   colour as the platform default.
 
 - Initial release: native single-line text / amount input (iOS + Android) with Torph-style text morphing, built with Nitro Modules.
-- One shared C++ engine (`cpp/MorphEngine`): caret matching for edits (grouping separators paired from the units end), place matching for programmatic sets, longest-common-subsequence for text; digits slide through the line box, separators from below, text fades and scales; entering and leaving characters ride with their nearest persisting neighbour; `expo` / `easeOut` / `easeInOut` / `linear` / `spring` timing; Reduce Motion snaps.
+- One shared C++ engine (`cpp/ReflowEngine`): caret matching for edits (grouping separators paired from the units end), place matching for programmatic sets, longest-common-subsequence for text; digits slide through the line box, separators from below, text fades and scales; entering and leaving characters ride with their nearest persisting neighbour; `expo` / `easeOut` / `easeInOut` / `linear` / `spring` timing; Reduce Motion snaps.
 - `mode="number"`: every edit is formatted natively before a frame is drawn (`cpp/AmountFormatter`): grouping, one decimal, `fractionDigits` / `maxIntegerDigits` limits that reject the keystroke, backspace over a separator removes the digit before it, a decimal typed in the integer part moves the decimal point, `prefix` / `suffix` with their own sizes and alignment.
 - Controlled `value` with the `text` + `mostRecentEventCount` handshake (a stale value never fights the user); `onChangeText`, `onChangeValue`, `onFocus` / `onBlur`, `onSubmitEditing`; `focus` / `blur` / `clear` / `setText` / `setValue` / `getText` / `getValue` / `isFocused`.
 - Worklets (optional, with `react-native-worklets`): a `transform` worklet and `'worklet'`-marked `onChangeText` / `onChangeValue` run synchronously on the UI thread inside the native edit, via a `NitroInputWorklets` bridge that holds the worklets UI runtime; no-ops when the package is not installed.
@@ -165,7 +173,7 @@
 - iOS: `focus()` / `blur()`, `Keyboard.dismiss()` and a ScrollView's auto-blur now reach a multiline field (the Fabric command only looked for a `UITextField`). `maxIntegerDigits` accepts up to 30, as on Android. Turning `morph` back on after plain mode no longer leaves the field blank until the next edit.
 - Android: toggling `secureTextEntry` at runtime re-feeds the glyphs (the real characters used to stay on screen until the next edit); `maxLength` no longer clips a mask's own punctuation (it applies to `mode="text"` only, as on iOS); `focus()` and `autoFocus` respect `showSoftInputOnFocus={false}`; a `lineHeight` removed at runtime resets the spacing; tabular figures in text mode too, matching iOS.
 - Less work per frame and per keystroke: iOS keeps one layer entry per glyph and re-uses it (no per-glyph allocation per frame), positions the caret once per step and caches the right-to-left caret blocks when a frame is published; Android resolves its theme colours once instead of per draw, reads the animator duration scale once (refreshed by a settings observer) instead of querying the settings provider per keystroke below API 33, and the outlined frame's geometry is written into a reused buffer instead of two vectors per draw.
-- Removed dead code: `MaskEngine::format` / `totalTextLength` / `totalValueLength` / `placeholder`, the worklets bridge's `uninstallRuntime` and `isReady`, `MorphEngine::rightToLeft`, the unused JNI bindings behind them, and an unreachable pre-iOS-15 branch.
+- Removed dead code: `MaskEngine::format` / `totalTextLength` / `totalValueLength` / `placeholder`, the worklets bridge's `uninstallRuntime` and `isReady`, `ReflowEngine::rightToLeft`, the unused JNI bindings behind them, and an unreachable pre-iOS-15 branch.
 - Android build: the Android Gradle plugin is only pinned when the library builds on its own, Java 17 source/target, an unused `kotlinVersion` property removed, `cmake_minimum_required` before `project()`.
 - Fixed: in a plain (text-mode) field with `morph` on, the decimal point of a number typed by hand dipped and rose again on every keystroke after it, although it never moved. The engine took a lone `.` or `,` for a grouping separator and re-paired it from the units end on each edit; it is the decimal point now, part of the typed sequence like the digits. Repeated punctuation (`192.168.0.1`, `21.09.2026`) is still structure.
 - `onChangeMask` reports the same way on both platforms: whenever the text changes, from a keystroke, `setText` / `clear` or the `value` prop. iOS used to report the untouched empty text once at mount, and Android never reported a prop change. Found by the new on-device suite.

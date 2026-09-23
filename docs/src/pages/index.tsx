@@ -61,7 +61,7 @@ function Hero() {
         <Heading as="h1" className={styles.title}>
           Numbers that roll,
           <br />
-          fields that morph
+          fields that reflow
         </Heading>
         <p className={styles.tagline}>{siteConfig.tagline}</p>
         <HeroNumber />
@@ -83,7 +83,7 @@ function Hero() {
 
 export default function Home(): ReactNode {
   return (
-    <Layout title="Native React Native components" description="Two native components for React Native, built with Nitro Modules: a rolling number (odometer / ticker) and a native text input with amount formatting, masking and a floating label done natively, and a morph you can turn on. One C++ engine each, iOS and Android.">
+    <Layout title="Native React Native components" description="Two native components for React Native, built with Nitro Modules: a rolling number (odometer / ticker) and a native text input with amount formatting, masking and a floating label done natively, and a reflow you can turn on. One C++ engine each, iOS and Android.">
       <Hero />
       <main>
         <section className={styles.section}>
@@ -128,7 +128,7 @@ export default function Home(): ReactNode {
                 <p>
                   A native text input. The system keyboard and accessibility stay; amounts
                   are formatted and masks applied in C++ before a frame is drawn, the
-                  floating label is native, and the morph is there when you turn it on.
+                  floating label is native, and the reflow is there when you turn it on.
                 </p>
                 <span className={styles.productLink}>Get started →</span>
               </Link>

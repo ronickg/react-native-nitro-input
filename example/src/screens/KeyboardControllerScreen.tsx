@@ -7,13 +7,13 @@ import {
   useReanimatedFocusedInput,
 } from 'react-native-keyboard-controller'
 import { runOnJS, useAnimatedReaction, useSharedValue } from 'react-native-reanimated'
-import { MorphInput, type MorphInputHandle } from 'react-native-nitro-input'
+import { NitroInput, type NitroInputHandle } from 'react-native-nitro-input'
 import { Btn, Card, EventLog, FieldLabel, Row, styles, useEventLog } from '../harness'
 
 /**
  * Alternating Morph / RN fields inside a `KeyboardAwareScrollView`, with the
  * toolbar's next/prev traversal and a live readout of what
- * `useReanimatedFocusedInput` reports. If MorphInput is invisible to
+ * `useReanimatedFocusedInput` reports. If a reflowing NitroInput is invisible to
  * keyboard-controller the readout stays at target -1 and auto-scroll never
  * fires for it.
  */
@@ -21,7 +21,7 @@ export function KeyboardControllerScreen() {
   const { lines, push, clear } = useEventLog()
   const [focusedInfo, setFocusedInfo] = useState('target -1')
   const [kbInfo, setKbInfo] = useState('height 0')
-  const morph = useRef<MorphInputHandle>(null)
+  const morph = useRef<NitroInputHandle>(null)
 
   const { input } = useReanimatedFocusedInput()
   useAnimatedReaction(
@@ -59,7 +59,7 @@ export function KeyboardControllerScreen() {
         bottomOffset={20}
         keyboardShouldPersistTaps="handled"
       >
-        <Card title="keyboard-controller readouts" hint="These come from the native focused-input observer. A MorphInput that it cannot see reports target -1.">
+        <Card title="keyboard-controller readouts" hint="These come from the native focused-input observer. A reflowing NitroInput that it cannot see reports target -1.">
           <Text testID="kc-focused" style={styles.cardHint}>{`focused: ${focusedInfo}`}</Text>
           <Text testID="kc-keyboard" style={styles.cardHint}>{`keyboard: ${kbInfo}`}</Text>
           <Row><Btn testID="kc-clear-log" title="clear log" onPress={clear} /></Row>
@@ -69,7 +69,7 @@ export function KeyboardControllerScreen() {
           {rows.map(i => (
             <View key={i} style={{ gap: 6 }}>
               <FieldLabel>{`morph ${i}`}</FieldLabel>
-              <MorphInput
+              <NitroInput transition="reflow"
                 testID={`kc-morph-${i}`}
                 ref={i === 0 ? morph : undefined}
                 style={styles.field}

@@ -6,7 +6,7 @@
 #include "NitroInputWorkletsBridge.hpp"
 #include "NitroInputWorkletsBridgeJSI.hpp"
 
-#if MORPH_INPUT_WORKLETS
+#if NITRO_INPUT_WORKLETS
 
 #include <jsi/jsi.h>
 #include <worklets/Compat/Holders.h>
@@ -168,7 +168,7 @@ void runKeyPress(int id, const std::string& key) {
 
 } // namespace margelo::nitro::nitroinput::nitroinputworklets
 
-#else // MORPH_INPUT_WORKLETS
+#else // NITRO_INPUT_WORKLETS
 
 namespace margelo::nitro::nitroinput::nitroinputworklets {
 
@@ -200,4 +200,4 @@ void runKeyPress(int, const std::string&) {}
 
 } // namespace margelo::nitro::nitroinput::nitroinputworklets
 
-#endif // MORPH_INPUT_WORKLETS
+#endif // NITRO_INPUT_WORKLETS

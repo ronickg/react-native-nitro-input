@@ -47,7 +47,7 @@ public:
   /// The numeric value of formatted text; NaN when there are no digits.
   double value(const std::string& formatted) const;
 
-  /// MorphEngine::Kind of a character in formatted text.
+  /// ReflowEngine::Kind of a character in formatted text.
   int kindOf(uint32_t character) const;
   bool isGrouping(uint32_t character) const { return grouping_ != 0 && character == grouping_; }
   bool isDecimal(uint32_t character) const { return character == decimal_; }

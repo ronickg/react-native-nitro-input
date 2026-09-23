@@ -19,7 +19,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Opt-in effects',
       collapsed: false,
-      items: ['morph', 'how-it-works'],
+      items: ['reflow', 'how-it-works'],
     },
     {
       type: 'category',

@@ -5,13 +5,13 @@ import com.facebook.jni.HybridData
 import com.facebook.proguard.annotations.DoNotStrip
 
 /**
- * Kotlin handle to the shared C++ [MorphEngine] (see `cpp/MorphEngine.hpp`).
+ * Kotlin handle to the shared C++ [ReflowEngine] (see `cpp/ReflowEngine.hpp`).
  * Times are in seconds, widths in whatever unit the caller lays out in (px here).
  * Roles: 0 prefix, 1 body, 2 suffix. Kinds: 0 text, 1 digit, 2 grouping, 3 decimal.
  */
 @Keep
 @DoNotStrip
-class MorphEngine {
+class ReflowEngine {
   @DoNotStrip
   @Keep
   private val mHybridData: HybridData = initHybrid()

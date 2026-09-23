@@ -1,13 +1,13 @@
 //
-//  JMorphEngine.hpp
+//  JReflowEngine.hpp
 //  NitroInput
 //
-//  fbjni bridge that lets the Kotlin view drive the shared C++ MorphEngine.
+//  fbjni bridge that lets the Kotlin view drive the shared C++ ReflowEngine.
 //
 
 #pragma once
 
-#include "MorphEngine.hpp"
+#include "ReflowEngine.hpp"
 #include <fbjni/fbjni.h>
 #include <vector>
 
@@ -15,9 +15,9 @@ namespace margelo::nitro::nitroinput {
 
 using namespace facebook;
 
-class JMorphEngine final : public jni::HybridClass<JMorphEngine> {
+class JReflowEngine final : public jni::HybridClass<JReflowEngine> {
 public:
-  static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/nitroinput/MorphEngine;";
+  static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/nitroinput/ReflowEngine;";
 
   static jni::local_ref<jhybriddata> initHybrid(jni::alias_ref<jhybridobject>);
   static void registerNatives();
@@ -46,8 +46,8 @@ public:
 
 private:
   friend HybridBase;
-  JMorphEngine() = default;
-  MorphEngine engine_;
+  JReflowEngine() = default;
+  ReflowEngine engine_;
   std::vector<double> scratch_;
 };
 
