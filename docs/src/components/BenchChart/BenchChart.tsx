@@ -36,6 +36,8 @@ type Spec = {
   /** `hz`: the column's full width is the phone's refresh rate. */
   domain?: 'hz';
   digits?: number;
+  /** A metric whose negative values are noise (a memory floor that fell): the bar starts at zero, the label keeps the sign. */
+  floorAtZero?: boolean;
 };
 
 export const METRICS = {
@@ -48,8 +50,8 @@ export const METRICS = {
   'unmountMs.p50': {short: 'Unmount', label: 'Unmount, milliseconds to the second frame after, median of ten', unit: 'ms', better: 'lower'},
   'mountMainMs': {short: 'Main CPU / mount', label: 'Main-thread CPU per mount, milliseconds', unit: 'ms', better: 'lower', digits: 0},
   'mountJsMs': {short: 'JS CPU / mount', label: 'JS-thread CPU per mount, milliseconds', unit: 'ms', better: 'lower', digits: 0},
-  'growthKbPerCycle': {short: 'Growth / cycle', label: 'Footprint growth per mount/unmount cycle, kilobytes (a floor after a forced collection)', unit: 'KB', better: 'lower', digits: 0},
-  'growthKbPerSecond': {short: 'Growth / s', label: 'Footprint growth per second of scrolling, megabytes', unit: 'MB', better: 'lower', digits: 1},
+  'growthKbPerCycle': {short: 'Growth / cycle', label: 'Footprint growth per mount/unmount cycle, kilobytes (a floor after a forced collection)', unit: 'KB', better: 'lower', digits: 0, floorAtZero: true},
+  'growthKbPerSecond': {short: 'Growth / s', label: 'Footprint growth per second of scrolling, megabytes', unit: 'MB', better: 'lower', digits: 1, floorAtZero: true},
   'rewrites.keysWithRewrites': {short: 'Rewritten keys', label: 'Keys of twelve whose text was rewritten a frame later', unit: 'of 12', better: 'lower', digits: 0},
   'settledMs.p95': {short: 'Settle p95', label: 'Milliseconds for a key to settle, 95th percentile', unit: 'ms', better: 'lower', digits: 0},
   'jsMsPerKey': {short: 'JS / key', label: 'JS-thread CPU per key, milliseconds', unit: 'ms', better: 'lower'},
@@ -229,7 +231,7 @@ export default function BenchChart({
 
   // One scale for every column, except frame rates, where the column is its phone's panel.
   const all = panels.flatMap((p) => impls.map((r) => value(p, r.impl))).filter((v): v is number => v != null);
-  const sharedMin = Math.min(0, ...all);
+  const sharedMin = spec.floorAtZero ? 0 : Math.min(0, ...all);
   const sharedMax = Math.max(0, ...all);
   const domainFor = (p: Column): [number, number] => {
     if (spec.domain === 'hz') {
@@ -307,8 +309,9 @@ export default function BenchChart({
                     </div>
                   );
                 }
-                const left = v >= 0 ? zero : ((v - lo) / span) * 100;
-                const width = (Math.abs(v) / span) * 100;
+                const drawn = spec.floorAtZero ? Math.max(0, v) : v;
+                const left = drawn >= 0 ? zero : ((drawn - lo) / span) * 100;
+                const width = (Math.abs(drawn) / span) * 100;
                 const text = `${p.title}, ${row.label.replace(/[*`]/g, '')}: ${format(v, spec)} ${spec.unit}`;
                 return (
                   <div
@@ -325,7 +328,7 @@ export default function BenchChart({
                       {lo < 0 ? <span className={styles.zero} style={{left: `${zero}%`}} /> : null}
                       {spec.domain === 'hz' ? <span className={styles.rate} /> : null}
                       <span
-                        className={clsx(styles.bar, row.ours ? styles.barOurs : styles.barOther, v < 0 && styles.barNeg)}
+                        className={clsx(styles.bar, row.ours ? styles.barOurs : styles.barOther, drawn < 0 && styles.barNeg)}
                         style={{
                           left: `${armed ? left : zero}%`,
                           width: `${armed ? width : 0}%`,
@@ -333,7 +336,7 @@ export default function BenchChart({
                         }}
                       />
                     </div>
-                    <span className={styles.value} style={{transitionDelay: settled ? '0ms' : `${delay}ms`}}>
+                    <span className={clsx(styles.value, spec.floorAtZero && v < 0 && styles.valueFell)} style={{transitionDelay: settled ? '0ms' : `${delay}ms`}}>
                       <Figure to={v} spec={spec} run={armed} delay={delay} instant={instant} />
                     </span>
                   </div>
