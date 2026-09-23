@@ -27,7 +27,7 @@ rewrite a key. Then **JS per key**, what a fast typist costs the app's JS
 thread, and how long a key takes to **settle**. Focus latency and mount cost
 have their own sections below.
 
-<BenchChart group="type|8" metrics={['rewrites.keysWithRewrites', 'jsMsPerKey', 'settledMs.p95', 'dropped', 'mainMsPerKey']} caption="Hover a bar for every column of its row; the tables below have the same figures." />
+<BenchChart group="type|8" metrics={['rewrites.keysWithRewrites', 'jsMsPerKey', 'settledMs.p95']} caption="Hover a bar for every column of its row; the tables below have the same figures." />
 
 ## Method
 
@@ -81,8 +81,6 @@ how much on each phone. Unmounting costs about the same for every field.
 
 ### Typing at 8 keys a second
 
-<BenchChart group="type|8" metrics={['rewrites.keysWithRewrites', 'jsMsPerKey', 'settledMs.p95', 'dropped', 'mainMsPerKey']} caption="Hover a bar for every column of its row; the tables have the same figures." />
-
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
 | Implementation | keys/s | rewrites per key | keys rewritten | settled p95 ms | main ms/key | JS ms/key | change events/key | dropped | runs |
@@ -130,8 +128,6 @@ how much on each phone. Unmounting costs about the same for every field.
 | Expo UI TextField | 7.5 | 0 | 0 of 12 | 0 | 70.8 | 3.3 | 0.0 | 24 | 1 |
 
 ### Typing at 15 keys a second
-
-<BenchChart group="type|15" metrics={['rewrites.keysWithRewrites', 'jsMsPerKey', 'settledMs.p95', 'dropped', 'mainMsPerKey']} />
 
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
@@ -181,7 +177,7 @@ how much on each phone. Unmounting costs about the same for every field.
 
 ### Focus latency
 
-<BenchChart group="focus" metrics={['ms.p50', 'first']} />
+<BenchChart group="focus" metrics={['ms.p50']} />
 
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
@@ -235,7 +231,7 @@ how much on each phone. Unmounting costs about the same for every field.
 
 ### Mounting 20 fields
 
-<BenchChart group="mount|20" metrics={['mountMs.p50', 'unmountMs.p50', 'mountMainMs', 'mountJsMs']} />
+<BenchChart group="mount|20" metrics={['mountMs.p50']} />
 
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
@@ -285,8 +281,6 @@ how much on each phone. Unmounting costs about the same for every field.
 
 ### Memory over 40 mount/unmount cycles of 20 fields
 
-<BenchChart group="leak|20|40" metrics={['growthKbPerCycle']} caption="Growth per cycle of the footprint floor, the end minus the start over 40 cycles. A negative figure is a floor that ended lower than it began, nothing leaked and nothing to draw; a bar is what stayed allocated." />
-
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
 | Implementation | footprint, start | footprint, end | peak | growth per cycle | malloc heap, start → end | runs |
@@ -334,8 +328,6 @@ how much on each phone. Unmounting costs about the same for every field.
 | Expo UI TextField | 780.5 MB | 840.5 MB | 840.5 MB | +661.2 KB | 380.1 → 397.6 MB | 161 → 374 | 1 |
 
 ### What one field costs
-
-<BenchChart group="footprint|50" metrics={['perViewFootprintKb', 'perViewNativeKb', 'perViewJavaKb', 'leftFootprintKb']} caption="Medians of three interleaved rounds on the Galaxy A22, the first mount on the iPhones; the Java heap is Android only." />
 
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
