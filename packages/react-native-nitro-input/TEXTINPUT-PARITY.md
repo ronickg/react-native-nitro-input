@@ -16,7 +16,7 @@ so a prop added upstream fails the suite rather than going unnoticed.
 ## Summary
 
 NitroInput now behaves like `TextInput` for focus, routing, form sheets and
-keyboard-controller, and adds native morphing and synchronous amount
+keyboard-controller, and adds native reflowing and synchronous amount
 formatting on top. The differences that remain are listed at the end.
 
 ## Scenarios, both components, both platforms
@@ -74,7 +74,7 @@ is also invisible to `react-native-keyboard-controller`, which matches
 
 ### Other targets (medians, before the font fix)
 
-| target | mount: morph | mount: RN | focus: morph | focus: RN |
+| target | mount: reflow | mount: RN | focus: reflow | focus: RN |
 | --- | --- | --- | --- | --- |
 | iPhone 17 Pro **simulator** | 17.2 ms | **8.8 ms** | **4.1 ms** | 29.3 ms |
 | Pixel 9 Pro **emulator** | **24.8 ms** | 62.6 ms | **2.0 ms** | 18.4 ms |
@@ -354,28 +354,28 @@ Compose field.
 
 ## Differences that remain
 
-1. **Layout, for `MorphInput` only.** `NitroInput` takes its width from its
-   parent the way a `TextInput` does: `autoWidth` defaults to `false`, so it
-   has no width of its own and flexbox stretches it. `MorphInput` sets
-   `autoWidth="auto"` and sizes itself to its content unless `style` sets
+1. **Layout, for a reflowing field only.** `NitroInput` takes its width from
+   its parent the way a `TextInput` does: `autoWidth` defaults to `false`, so it
+   has no width of its own and flexbox stretches it. With `transition="reflow"`
+   it defaults to `'auto'` and the field sizes itself to its content unless `style` sets
    `width` or `flex`; in a plain column it measured 39 pt wide where a
    `TextInput` filled 340 pt. Give it a width to make it fill its parent.
    (`alignSelf: 'stretch'` is not enough — the inference only looks at
    `width`/`flex`.)
-2. **The morph is single line.** `multiline`, `numberOfLines`, `rows`,
+2. **The reflow is single line.** `multiline`, `numberOfLines`, `rows`,
    `scrollEnabled` and `textAlignVertical` are all supported, but a wrapping
    field is drawn by the platform rather than by the glyph engine, which lays
    one run out on one baseline. Setting `multiline` therefore forces plain
-   drawing, and `morph`, a non-text `mode` (and with it `mask`) and the
+   drawing, and `transition="reflow"`, a non-text `mode` (and with it `mask`) and the
    `prefix` / `suffix` affixes - all single-line ideas - warn once in
    development and are ignored. `inlineImage*`, `dataDetectorTypes` and
    `clearButtonMode` do not apply at all.
 3. **A plain field always puts a negative sign after a `prefix`.**
-   The morph takes `signPlacement`: `'beforeAffix'` (the default) draws
+   The reflow takes `signPlacement`: `'beforeAffix'` (the default) draws
    `-$1,234.56`, `'afterAffix'` draws `$-1,234.56`. A plain field cannot
    choose - its affixes are real accessory views (`leftView` / a `TextView`),
    which by construction sit outside the text - so it is always `'afterAffix'`.
-   `NitroInput` is plain unless asked for `morph`, so that is the default.
+   `NitroInput` is plain unless asked for `transition="reflow"`, so that is the default.
 4. **Two narrower keyboard enums.** `inputMode="search"` gives the default
    keyboard rather than iOS's `web-search`, and `enterKeyHint="previous"` the
    default return key rather than Android's `previous`: neither value exists in
@@ -413,16 +413,16 @@ Compose field.
     `'right'` are absolute on both platforms (Android used to resolve
     `'left'` as start). A `prefix` sits at the start edge and a `suffix` at
     the end: the plain field swaps its accessory views on iOS and uses
-    start / end gravity on Android, and the morph has the engine mirror the
+    start / end gravity on Android, and the reflow has the engine mirror the
     run block by block - prefix, body and suffix each move to their mirror
     image and keep their own order, so the digits still read left to right,
     and a sign laid out ahead of the prefix lands at the far right. The
     frame's label and its notch sit at the start edge. What a `TextInput`
-    has that the morph does not: shaped bidi text. The overlay draws one
+    has that the reflow does not: shaped bidi text. The overlay draws one
     layer per character with no contextual shaping, so a word in an Arabic
-    or Hebrew script morphs as disconnected letters; a plain field, which
+    or Hebrew script reflows as disconnected letters; a plain field, which
     the system draws, shapes it. Checked on the iOS simulator and the Android emulator under
-    `I18nManager.forceRTL`: alignment, plain and morphed affixes, the
+    `I18nManager.forceRTL`: alignment, plain and reflowed affixes, the
     negative, the floated label and its notch, on both.
 
 ## Re-running the comparison

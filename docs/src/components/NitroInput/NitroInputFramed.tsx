@@ -12,12 +12,12 @@ import {
   type NitroInputCanvasHandle,
   type NitroInputCanvasProps,
 } from './NitroInputCanvas';
-import {useMorphModule} from '@site/src/engine/useMorphEngine';
+import {useReflowModule} from '@site/src/engine/useReflowEngine';
 
 // ---------------------------------------------------------------------------
 // The outlined / filled frame, split the way the native views split it: this
 // draws the frame and owns the label, and the field inside it only draws text.
-// A single line is the morph canvas; a wrapping one is a <textarea>, because
+// A single line is the reflow canvas; a wrapping one is a <textarea>, because
 // `multiline` is plain on the real component too - the glyph engine lays one
 // run out on one baseline and never sees a wrapped one.
 //
@@ -44,8 +44,8 @@ export interface NitroInputFramedProps extends NitroInputCanvasProps {
   multiline?: boolean;
   numberOfLines?: number;
   lineHeight?: number;
-  /** Off is a plain field: the browser draws the text, with no morph. */
-  morph?: boolean;
+  /** Off is a plain field: the browser draws the text, with no reflow. */
+  reflow?: boolean;
 }
 
 /** The native views' timings: 200ms on a decelerate curve, notch staggered behind. */
@@ -94,7 +94,7 @@ export const NitroInputFramed = forwardRef<NitroInputFramedHandle, NitroInputFra
       multiline = false,
       numberOfLines = 0,
       lineHeight,
-      morph = true,
+      reflow = true,
       fontSize = 17,
       fontWeight = 400,
       fontFamily,
@@ -108,7 +108,7 @@ export const NitroInputFramed = forwardRef<NitroInputFramedHandle, NitroInputFra
       ...canvasProps
     } = props;
 
-    const module = useMorphModule();
+    const module = useReflowModule();
     const editable = (canvasProps as {editable?: boolean}).editable !== false;
     const draws = variant !== 'none';
     const hasLabel = draws && label.length > 0;
@@ -463,7 +463,7 @@ export const NitroInputFramed = forwardRef<NitroInputFramedHandle, NitroInputFra
               placeholderColor={placeholderColor}
               textAlign={textAlign}
               maxLength={maxLength}
-              duration={morph ? canvasProps.duration : 0}
+              duration={reflow ? canvasProps.duration : 0}
               onChangeText={(text) => {
                 setFilled(text.length > 0);
                 onChangeText?.(text);

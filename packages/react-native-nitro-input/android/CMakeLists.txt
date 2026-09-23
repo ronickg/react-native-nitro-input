@@ -8,15 +8,17 @@ set (CMAKE_CXX_STANDARD 20)
 # Define C++ library and add all sources
 add_library(${PACKAGE_NAME} SHARED
         src/main/cpp/cpp-adapter.cpp
-        src/main/cpp/JMorphEngine.cpp
+        src/main/cpp/JReflowEngine.cpp
         src/main/cpp/JAmountFormatter.cpp
         src/main/cpp/JMaskEngine.cpp
         src/main/cpp/JOutlineGeometry.cpp
         src/main/cpp/JNitroInputWorklets.cpp
-        ../cpp/MorphEngine.cpp
+        src/main/cpp/JRollingEngine.cpp
+        ../cpp/ReflowEngine.cpp
         ../cpp/AmountFormatter.cpp
         ../cpp/MaskEngine.cpp
         ../cpp/OutlineGeometry.cpp
+        ../cpp/RollingEngine.cpp
         ../cpp/worklets/NitroInputWorkletsBridge.cpp
         ../cpp/worklets/HybridNitroInputWorklets.cpp
 )
@@ -35,7 +37,7 @@ include_directories(
 # run `transform` / `onChangeText` worklets synchronously on the UI thread.
 find_package(react-native-worklets CONFIG QUIET)
 if(react-native-worklets_FOUND)
-  target_compile_definitions(${PACKAGE_NAME} PRIVATE MORPH_INPUT_WORKLETS=1)
+  target_compile_definitions(${PACKAGE_NAME} PRIVATE NITRO_INPUT_WORKLETS=1)
   target_link_libraries(${PACKAGE_NAME} react-native-worklets::worklets)
   message(STATUS "NitroInput: react-native-worklets found, worklet support enabled")
 else()

@@ -4,7 +4,7 @@ title: Worklets
 description: "Masks, every event handler and the field's state on the UI thread, with react-native-worklets."
 ---
 
-With [`react-native-worklets`](https://docs.swmansion.com/react-native-worklets/) installed (it ships with Reanimated 4), three things run on the UI thread while the native input handles the keystroke, before a frame is drawn: a `transform` that rewrites the edit, any event handler marked `'worklet'`, and the shared values `useNitroInputState` keeps current from those handlers. None of them touch the JS thread, so a mask written in JS applies with no flicker and an animation can follow the field without a render. `NitroInput` and `MorphInput` take the same worklet props.
+With [`react-native-worklets`](https://docs.swmansion.com/react-native-worklets/) installed (it ships with Reanimated 4), three things run on the UI thread while the native input handles the keystroke, before a frame is drawn: a `transform` that rewrites the edit, any event handler marked `'worklet'`, and the shared values `useNitroInputState` keeps current from those handlers. None of them touch the JS thread, so a mask written in JS applies with no flicker and an animation can follow the field without a render. The worklet props work the same whether the field reflows or not.
 
 ## A mask written in JS
 

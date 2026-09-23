@@ -1,7 +1,7 @@
 {
   "name": "react-native-nitro-input",
   "version": "0.1.0",
-  "description": "Native text and amount input for React Native with Torph-style text morphing: characters slide, fade and reflow as you type, currency formatting applied natively, no JS round trip. Built with Nitro.",
+  "description": "Native text for React Native, built with Nitro: a text and amount input with native formatting, masks and a Torph-style reflow, and a rolling number (odometer / ticker) whose digits roll or swap natively, with currency layouts, shrink-to-fit and a loading shimmer.",
   "main": "lib/commonjs/src/index.js",
   "module": "lib/module/src/index.js",
   "types": "lib/typescript/src/index.d.ts",
@@ -39,7 +39,7 @@
     "specs": "nitrogen --logLevel=\"debug\"",
     "prepack": "bun run build",
     "test": "jest",
-    "test:cpp": "mkdir -p .cache && clang++ -std=c++20 -O1 -Wall -Wextra -Icpp cpp/MorphEngine.cpp cpp/AmountFormatter.cpp cpp/__tests__/MorphEngineTest.cpp -o .cache/morph-engine-test && .cache/morph-engine-test && clang++ -std=c++20 -O1 -Wall -Wextra -Icpp cpp/AmountFormatter.cpp cpp/__tests__/AmountFormatterTest.cpp -o .cache/amount-formatter-test && .cache/amount-formatter-test && clang++ -std=c++20 -O1 -Wall -Wextra -Icpp cpp/AmountFormatter.cpp cpp/MaskEngine.cpp cpp/__tests__/MaskEngineTest.cpp -o .cache/mask-engine-test && .cache/mask-engine-test && clang++ -std=c++20 -O1 -Wall -Wextra -Icpp cpp/OutlineGeometry.cpp cpp/__tests__/OutlineGeometryTest.cpp -o .cache/outline-geometry-test && .cache/outline-geometry-test",
+    "test:cpp": "mkdir -p .cache && clang++ -std=c++20 -O1 -Wall -Wextra -Icpp cpp/ReflowEngine.cpp cpp/AmountFormatter.cpp cpp/__tests__/ReflowEngineTest.cpp -o .cache/reflow-engine-test && .cache/reflow-engine-test && clang++ -std=c++20 -O1 -Wall -Wextra -Icpp cpp/AmountFormatter.cpp cpp/__tests__/AmountFormatterTest.cpp -o .cache/amount-formatter-test && .cache/amount-formatter-test && clang++ -std=c++20 -O1 -Wall -Wextra -Icpp cpp/AmountFormatter.cpp cpp/MaskEngine.cpp cpp/__tests__/MaskEngineTest.cpp -o .cache/mask-engine-test && .cache/mask-engine-test && clang++ -std=c++20 -O1 -Wall -Wextra -Icpp cpp/OutlineGeometry.cpp cpp/__tests__/OutlineGeometryTest.cpp -o .cache/outline-geometry-test && .cache/outline-geometry-test && clang++ -std=c++20 -O1 -Wall -Wextra -Icpp cpp/RollingEngine.cpp cpp/__tests__/RollingEngineTest.cpp -o .cache/rolling-engine-test && .cache/rolling-engine-test",
     "release": "release-it"
   },
   "keywords": [
@@ -51,7 +51,12 @@
     "currency-input",
     "text-morph",
     "torph",
-    "animated-input"
+    "animated-input",
+    "rolling-number",
+    "odometer",
+    "ticker",
+    "animated-number",
+    "counter"
   ],
   "repository": {
     "type": "git",

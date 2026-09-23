@@ -10,7 +10,7 @@
 //
 //  This header is plain C++ (no JSI, no worklets types) so Swift can import
 //  it. Everything compiles to no-ops when `react-native-worklets` is not
-//  installed (`MORPH_INPUT_WORKLETS` undefined).
+//  installed (`NITRO_INPUT_WORKLETS` undefined).
 //
 
 #pragma once

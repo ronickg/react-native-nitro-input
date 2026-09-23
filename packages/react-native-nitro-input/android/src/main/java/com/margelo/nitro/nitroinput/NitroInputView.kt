@@ -43,10 +43,10 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * The morphing input. A hidden [AppCompatEditText] filling the bounds owns the
+ * The reflowing input. A hidden [AppCompatEditText] filling the bounds owns the
  * keyboard, editing, selection, paste and accessibility; an overlay on top
- * draws the glyphs the shared C++ `MorphEngine` reports (through the
- * [MorphEngine] JNI handle) plus our own caret. In number mode every edit is
+ * draws the glyphs the shared C++ `ReflowEngine` reports (through the
+ * [ReflowEngine] JNI handle) plus our own caret. In number mode every edit is
  * run through the shared `AmountFormatter` before it is committed, so the
  * field never shows an unformatted frame.
  *
@@ -173,7 +173,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     /** `NitroInput`: the EditText draws its own text and the overlay is off. */
     val plain: Boolean = false,
     /**
-     * Wrapping field. Always plain and always text - the JS side drops `morph`
+     * Wrapping field. Always plain and always text - the JS side drops `transition="reflow"`
      * and any non-text mode before it gets here - so nothing below has to
      * reconcile a wrapped run with the glyph engine.
      */
@@ -435,7 +435,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     var scale = 1f
   }
 
-  private val engine = MorphEngine()
+  private val engine = ReflowEngine()
   private val formatter = AmountFormatter()
   private val maskEngine = MaskEngine()
   private val density = context.resources.displayMetrics.density
@@ -470,7 +470,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   private var contentWidth = 0f
   private var lastReportedWidth = -1f
   private var lastReportedHeight = -1f
-  /** A narrower settled size waiting for the running morph to finish before it is reported. */
+  /** A narrower settled size waiting for the running reflow to finish before it is reported. */
   private var pendingSizeReport = false
   private var frameScheduled = false
   private var applying = false
@@ -1123,7 +1123,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     inputMethodManager()?.hideSoftInputFromWindow(editText.windowToken, 0)
   }
 
-  /** Empties the field, morphing the characters away. */
+  /** Empties the field, reflowing the characters away. */
   fun clear() = setProgrammatic("", notify = true)
 
   /** Replaces the text (formatted in number mode), caret at the end. */
@@ -1640,7 +1640,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   }
 
   /**
-   * The width the content asks for: the engine's layout in morph mode; in plain
+   * The width the content asks for: the engine's layout in reflow mode; in plain
    * mode, which never feeds the engine, the text (or the hint) and the affixes
    * measured with the paints the field draws them in.
    */
@@ -1666,7 +1666,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       return
     }
     // Growing: report right away so React widens the box before the new glyph
-    // has arrived. Shrinking mid-morph: keep the wider box until the morph has
+    // has arrived. Shrinking mid-reflow: keep the wider box until the reflow has
     // finished, otherwise adjustsFontSizeToFit would squeeze the leaving glyphs.
     if (lastReportedWidth > 0f && widthDp < lastReportedWidth && engine.isAnimating()) {
       pendingSizeReport = true
@@ -1778,7 +1778,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       val base = if (g.placeholder) placeholderColor else textColor
       paint.color = base
       // The hint colour carries its own alpha — the platform's is translucent
-      // black, not grey. Multiply the morph's opacity into it rather than
+      // black, not grey. Multiply the reflow's opacity into it rather than
       // replacing it, or the placeholder is drawn solid.
       val alpha = (Color.alpha(base) * g.opacity).roundToInt().coerceIn(0, 255)
       if (alpha == 0) continue
@@ -1918,7 +1918,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   }
 
   /**
-   * Runs the label to where it belongs. The morph glyphs are laid out against
+   * Runs the label to where it belongs. The reflow glyphs are laid out against
    * the insets, and the placeholder appears only once the label is clear of it,
    * so a change re-feeds the engine as well as redrawing.
    */

@@ -33,7 +33,6 @@
     "react-native-mask-input": "1.2.3",
     "react-native-nitro-input": "workspace:*",
     "react-native-nitro-modules": "0.37.1",
-    "react-native-nitro-rolling-number": "workspace:*",
     "react-native-number-animation": "0.1.5",
     "react-native-number-bloom": "1.1.7",
     "react-native-reanimated": "4.6.0",

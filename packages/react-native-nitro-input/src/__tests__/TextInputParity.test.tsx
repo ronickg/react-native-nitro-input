@@ -23,7 +23,6 @@ import { dirname, join } from 'path'
 import React, { createRef, Profiler } from 'react'
 import { StyleSheet } from 'react-native'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
-import { MorphInput } from '../MorphInput'
 import { NitroInput, type NitroInputHandle } from '../NitroInput'
 
 jest.unmock('react-native/Libraries/Components/TextInput/TextInput')
@@ -379,7 +378,6 @@ describe('aliases resolve the same way', () => {
   it('names itself for DevTools, as TextInput does', () => {
     expect(TextInput.displayName).toBe('TextInput')
     expect(NitroInput.displayName).toBe('NitroInput')
-    expect(MorphInput.displayName).toBe('MorphInput')
   })
 
   it('testID reaches the host on both', () => {
@@ -732,9 +730,10 @@ describe('deliberate differences', () => {
     // `TextInput` has no intrinsic width. Ours measures its text, which is what
     // makes an amount field possible, but only under `autoWidth`: `false` (the
     // default) takes no width of its own, so flexbox stretches the field like
-    // a `TextInput`; `'auto'` (what `MorphInput` uses) infers it unless `style`
-    // gives a `width` or `flex`; `true` always sizes to content. The measured
-    // size is the first entry of the host's `style`, ahead of the caller's.
+    // a `TextInput`; `'auto'` (the default under `transition="reflow"`) infers
+    // it unless `style` gives a `width` or `flex`; `true` always sizes to
+    // content. The measured size is the first entry of the host's `style`,
+    // ahead of the caller's.
     const measured = (renderer: ReactTestRenderer) => {
       const onSizeChange = ourHost(renderer).onSizeChange as { f: (w: number, h: number) => void }
       act(() => onSizeChange.f(120, 48))
@@ -747,6 +746,12 @@ describe('deliberate differences', () => {
     expect(measured(render(<NitroInput autoWidth="auto" style={{ flex: 1 }} />))).toEqual({ height: 48 })
     expect(measured(render(<NitroInput autoWidth />))).toEqual({ width: 120, height: 48 })
     expect(measured(render(<NitroInput autoWidth style={{ width: 200 }} />))).toEqual({ width: 120, height: 48 })
+    // A reflowing field defaults to `'auto'`, so an amount grows as digits
+    // arrive; an explicit `autoWidth` still wins, and a multiline one does not reflow.
+    expect(measured(render(<NitroInput transition="reflow" />))).toEqual({ width: 120, height: 48 })
+    expect(measured(render(<NitroInput transition="reflow" style={{ width: 200 }} />))).toEqual({ height: 48 })
+    expect(measured(render(<NitroInput transition="reflow" autoWidth={false} />))).toEqual({ height: 48 })
+    expect(measured(render(<NitroInput transition="reflow" multiline />))).toEqual({ height: 48 })
     // A box pinned on both axes never takes the measurement: `style` would win
     // anyway, and the state update would be a wasted commit per field.
     expect(measured(render(<NitroInput style={{ width: 200, height: 40 }} />))).toEqual({ height: 40 })
@@ -795,16 +800,16 @@ describe('deliberate differences', () => {
     expect(ourHost(ours).mostRecentEventCount).toBe(2)
   })
 
-  it('multiline turns the morph off, because one run cannot wrap', () => {
+  it('multiline turns the reflow off, because one run cannot wrap', () => {
     // The glyph engine lays a single run out on one baseline. A wrapping field
-    // is drawn by the platform instead, so `plain` goes true whatever `morph`
-    // asked for.
+    // is drawn by the platform instead, so `plain` goes true whatever
+    // `transition` asked for.
     expect(ourHost(render(<NitroInput multiline />)).plain).toBe(true)
-    expect(ourHost(render(<NitroInput multiline morph />)).plain).toBe(true)
-    // `morph` is opt-in: a plain field is the drop-in, and `MorphInput` is the
-    // wrapper that turns it on.
+    expect(ourHost(render(<NitroInput multiline transition="reflow" />)).plain).toBe(true)
+    // The reflow is opt-in: a plain field is the drop-in.
     expect(ourHost(render(<NitroInput />)).plain).toBe(true)
-    expect(ourHost(render(<NitroInput morph />)).plain).toBe(false)
+    expect(ourHost(render(<NitroInput transition="none" />)).plain).toBe(true)
+    expect(ourHost(render(<NitroInput transition="reflow" />)).plain).toBe(false)
   })
 
   it('reports a number as well as text, which TextInput has no notion of', () => {

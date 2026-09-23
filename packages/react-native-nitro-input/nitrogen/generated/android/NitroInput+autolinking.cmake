@@ -36,9 +36,13 @@ target_sources(
   ../nitrogen/generated/shared/c++/HybridNitroInputViewSpec.cpp
   ../nitrogen/generated/shared/c++/views/HybridNitroInputViewComponent.cpp
   ../nitrogen/generated/shared/c++/HybridNitroInputWorkletsSpec.cpp
+  ../nitrogen/generated/shared/c++/HybridRollingNumberViewSpec.cpp
+  ../nitrogen/generated/shared/c++/views/HybridRollingNumberViewComponent.cpp
   # Android-specific Nitrogen C++ sources
   ../nitrogen/generated/android/c++/JHybridNitroInputViewSpec.cpp
   ../nitrogen/generated/android/c++/views/JHybridNitroInputViewStateUpdater.cpp
+  ../nitrogen/generated/android/c++/JHybridRollingNumberViewSpec.cpp
+  ../nitrogen/generated/android/c++/views/JHybridRollingNumberViewStateUpdater.cpp
 )
 
 # From node_modules/react-native/ReactAndroid/cmake-utils/folly-flags.cmake

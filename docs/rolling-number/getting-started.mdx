@@ -1,14 +1,14 @@
 ---
 sidebar_position: 1
 title: Getting started
-description: Install react-native-nitro-rolling-number and render your first rolling number.
+description: Install react-native-nitro-input and render your first rolling number.
 ---
 
 import {Frame, BasicDemo} from '@site/src/components/Demo/Demo';
 
 # Getting started
 
-`react-native-nitro-rolling-number` is a **native rolling number** (odometer / ticker) view for React Native, built with [Nitro Modules](https://nitro.margelo.com). Every digit is a wheel that rolls to its new glyph, like SwiftUI's `.contentTransition(.numericText())`, with the same look on iOS **and** Android.
+`RollingNumber` is a **native rolling number** (odometer / ticker) view for React Native, built with [Nitro Modules](https://nitro.margelo.com). It ships in `react-native-nitro-input`, next to [`NitroInput`](/input). Every digit is a wheel that rolls to its new glyph, like SwiftUI's `.contentTransition(.numericText())`, with the same look on iOS **and** Android.
 
 <Frame caption="Live, in your browser: the same C++ engine the native views use, compiled to WebAssembly.">
   <BasicDemo />
@@ -23,7 +23,7 @@ import {Frame, BasicDemo} from '@site/src/components/Demo/Demo';
 ## Install
 
 ```bash
-bun add react-native-nitro-rolling-number react-native-nitro-modules
+bun add react-native-nitro-input react-native-nitro-modules
 ```
 
 ```bash
@@ -41,7 +41,7 @@ Nitro never hands a Hybrid View its `backgroundColor`, `border*`, `opacity`, `tr
 ## First number
 
 ```tsx
-import { RollingNumber } from 'react-native-nitro-rolling-number'
+import { RollingNumber } from 'react-native-nitro-input'
 
 export function Balance({ amount }: { amount: number }) {
   return (

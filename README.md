@@ -1,8 +1,8 @@
 <h1 align="center">Nitro Rolling Number &amp; Nitro Input</h1>
 
 <p align="center">
-  Two native components for React Native, built with <a href="https://nitro.margelo.com">Nitro Modules</a>:<br/>
-  a <b>rolling number</b> whose digits are wheels, and a <b>text input</b> that formats amounts and applies masks natively, with a morph you can turn on.<br/>
+  One package, <a href="https://www.npmjs.com/package/react-native-nitro-input"><code>react-native-nitro-input</code></a>, two native components for React Native, built with <a href="https://nitro.margelo.com">Nitro Modules</a>:<br/>
+  a <b>rolling number</b> whose digits are wheels, and a <b>text input</b> that formats amounts and applies masks natively, with a reflow you can turn on.<br/>
   One C++ engine each, iOS and Android, the new architecture.
 </p>
 
@@ -14,9 +14,7 @@
 <table align="center">
   <tr>
     <td align="center" valign="top" width="50%">
-      <h3><code>react-native-nitro-rolling-number</code></h3>
-      <a href="https://www.npmjs.com/package/react-native-nitro-rolling-number"><img src="https://img.shields.io/npm/v/react-native-nitro-rolling-number?label=npm&amp;color=2563eb" alt="react-native-nitro-rolling-number on npm"></a>
-      <br/><br/>
+      <h3><code>RollingNumber</code></h3>
       <img src="docs/static/img/readme/market.webp" width="400" alt="A live market screen with about thirty rolling numbers, on an iPhone and a Pixel" />
       <p>An odometer for React Native. Every digit is a wheel driven by one C++ engine, with currency layouts, shrink-to-fit, a loading shimmer and the jackpot reveal.</p>
       <p>
@@ -24,30 +22,37 @@
         <a href="https://ronickg.github.io/react-native-nitro-rolling-number/rolling-number/getting-started">Guide</a> ·
         <a href="https://ronickg.github.io/react-native-nitro-rolling-number/rolling-number/reveal">Jackpot reveal</a> ·
         <a href="https://ronickg.github.io/react-native-nitro-rolling-number/rolling-number/benchmarks">Benchmarks</a> ·
-        <a href="packages/react-native-nitro-rolling-number/README.md">Package README</a>
+        <a href="packages/react-native-nitro-input/README.md#rollingnumber">API reference</a>
       </p>
     </td>
     <td align="center" valign="top" width="50%">
-      <h3><code>react-native-nitro-input</code></h3>
-      <a href="https://www.npmjs.com/package/react-native-nitro-input"><img src="https://img.shields.io/npm/v/react-native-nitro-input?label=npm&amp;color=2563eb" alt="react-native-nitro-input on npm"></a>
-      <br/><br/>
-      <img src="docs/static/img/readme/input.webp" width="400" alt="An amount being typed into a native field, formatted as it is typed and morphing into place, on an iPhone and a Pixel" />
-      <p>A native text input. The system keyboard and accessibility stay; amounts are formatted and masks applied in C++ before a frame is drawn, the floating label is native, and the morph is there when you turn it on.</p>
+      <h3><code>NitroInput</code></h3>
+      <img src="docs/static/img/readme/input.webp" width="400" alt="An amount being typed into a native field, formatted as it is typed and reflowing into place, on an iPhone and a Pixel" />
+      <p>A native text input. The system keyboard and accessibility stay; amounts are formatted and masks applied in C++ before a frame is drawn, the floating label is native, and the reflow is there when you turn it on.</p>
       <p>
         <a href="#text-input">Below</a> ·
         <a href="https://ronickg.github.io/react-native-nitro-rolling-number/input">Guide</a> ·
         <a href="https://ronickg.github.io/react-native-nitro-rolling-number/input/amount-field">Amount field</a> ·
         <a href="https://ronickg.github.io/react-native-nitro-rolling-number/input/masked-field">Masks</a> ·
         <a href="https://ronickg.github.io/react-native-nitro-rolling-number/input/benchmarks">Benchmarks</a> ·
-        <a href="packages/react-native-nitro-input/README.md">Package README</a>
+        <a href="packages/react-native-nitro-input/README.md#nitroinput">API reference</a>
       </p>
     </td>
   </tr>
 </table>
 
-<p align="center"><sub>The example app on an iPhone 13 Pro Max (left) and a Pixel 10 (right). Left: the market showcase, fourteen coins with price and 24 h change, a handful ticking every 200 ms, the balance derived from them. Right: an amount typed into a <code>MorphInput</code>, formatted as it is typed. Every number is native.</sub></p>
+<p align="center"><sub>The example app on an iPhone 13 Pro Max (left) and a Pixel 10 (right). Left: the market showcase, fourteen coins with price and 24 h change, a handful ticking every 200 ms, the balance derived from them. Right: an amount typed into a reflowing <code>NitroInput</code>, formatted as it is typed. Every number is native.</sub></p>
 
-Both packages share the same formatting model (prefix and suffix at their own size, pinned to the top, bottom, baseline or centre of the digits; grouping and decimal separators of your choice), install the same way and release independently. React Native 0.78+ with the new architecture, Nitro Modules 0.37+; see the [Android note](#known-issue-view-props-on-android) before you ship.
+Both components share the same formatting model (prefix and suffix at their own size, pinned to the top, bottom, baseline or centre of the digits; grouping and decimal separators of your choice) and ship in one package. React Native 0.78+ with the new architecture, Nitro Modules 0.37+; see the [Android note](#known-issue-view-props-on-android) before you ship.
+
+## Install
+
+```sh
+bun add react-native-nitro-input react-native-nitro-modules
+cd ios && pod install
+```
+
+`react-native-nitro-rolling-number` was the rolling number's own package until 0.1.0; `RollingNumber` now comes from `react-native-nitro-input`, with the same props.
 
 ## Rolling number
 
@@ -59,17 +64,10 @@ Both packages share the same formatting model (prefix and suffix at their own si
 - **Jackpot reveal.** The casino win-meter rollup (tiers that punch and hold, a figure that grows as it climbs) and the slot-reel reveal, all native.
 - **Loading, accessible, recyclable.** A text-shaped shimmer while the value loads, VoiceOver / TalkBack read the formatted amount, Reduce Motion snaps, Fabric can recycle it in long lists.
 
-### Install
-
-```sh
-bun add react-native-nitro-rolling-number react-native-nitro-modules
-cd ios && pod install
-```
-
 ### Use
 
 ```tsx
-import { RollingNumber } from 'react-native-nitro-rolling-number'
+import { RollingNumber } from 'react-native-nitro-input'
 
 <RollingNumber
   value={balance}
@@ -134,26 +132,19 @@ Method, the JS-thread and CPU columns, the ten-a-second and one-copy cases, a sc
 
 ## Text input
 
-`NitroInput` is a system text field (`UITextField` / `EditText`) that owns the keyboard, editing, selection, paste and accessibility, with native formatting, native masking and an outlined or filled frame with a floating label on top of it. `MorphInput` is the same component with `morph` on, for the one case where animating the characters is the point: an amount.
+`NitroInput` is a system text field (`UITextField` / `EditText`) that owns the keyboard, editing, selection, paste and accessibility, with native formatting, native masking and an outlined or filled frame with a floating label on top of it. `transition="reflow"` animates the characters as they change, for the one case where that is the point: an amount.
 
 - **It is a real input.** Focus, blur, return key, keyboard types, auto-capitalisation, max length, selection, the text-input registry, all the usual. Not a re-implementation of text editing.
 - **Amounts are formatted natively as you type.** In `mode="number"` every keystroke is formatted on the native side before the field shows a frame: grouping separators, one decimal separator, at most `fractionDigits` decimals, a currency `prefix` / `suffix`, the caret kept where you typed. No JS round trip, so none of the flicker, caret jumps or dropped keystrokes of a controlled `TextInput` that formats in `onChangeText`.
 - **Masks are native.** `mode="mask"` compiles the pattern once into a state machine in C++ and applies it below the keystroke, no caret fighting.
 - **The outlined frame's notch is a real hole** in the stroked path, not background paint over the line, so whatever is behind the field shows through it. No Skia.
-- **Morph, when you want it.** With `morph` on, text morphs as you type the way [Torph](https://torph.lochie.me) morphs text on the web: characters that stay glide to their new place, new ones slide or fade in, removed ones leave with their neighbours.
+- **Reflow, when you want it.** With `transition="reflow"`, text reflows as you type the way [Torph](https://torph.lochie.me) morphs text on the web: characters that stay glide to their new place, new ones slide or fade in, removed ones leave with their neighbours.
 - **Worklets, if you have them.** With `react-native-worklets` installed, a `transform` worklet and worklet change handlers run on the UI thread inside the edit, for masks written in JS and shared values updated before the next frame.
-
-### Install
-
-```sh
-bun add react-native-nitro-input react-native-nitro-modules
-cd ios && pod install
-```
 
 ### Use
 
 ```tsx
-import { NitroInput, MorphInput } from 'react-native-nitro-input'
+import { NitroInput } from 'react-native-nitro-input'
 
 // a form field: outlined frame, floating label, the system keyboard
 <NitroInput variant="outlined" label="Email address" keyboardType="email-address" />
@@ -164,8 +155,8 @@ import { NitroInput, MorphInput } from 'react-native-nitro-input'
 // a mask, compiled once in C++
 <NitroInput mode="mask" mask="+1 (###) ###-####" keyboardType="number-pad" />
 
-// the send-money screen: the amount morphs into place
-<MorphInput mode="number" prefix="$" prefixFontSize={28} affixAlign="top" placeholder="0" fontSize={48} fontWeight="700" textAlign="center" style={{ width: '100%' }} onChangeValue={setAmount} />
+// the send-money screen: the amount reflows into place
+<NitroInput transition="reflow" mode="number" prefix="$" prefixFontSize={28} affixAlign="top" placeholder="0" fontSize={48} fontWeight="700" textAlign="center" style={{ width: '100%' }} onChangeValue={setAmount} />
 ```
 
 [Guide and live demo →](https://ronickg.github.io/react-native-nitro-rolling-number/input) · [Every prop →](https://ronickg.github.io/react-native-nitro-rolling-number/input/props)
@@ -177,7 +168,7 @@ Typed into at eight keys a second by the benchmark probe, the way a keyboard typ
 | | iPhone 13 Pro Max | iPhone 11 Pro | Galaxy A22 |
 | --- | --- | --- | --- |
 | **NitroInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 1 ms/key | 0 of 12 keys, 0 ms, JS 2 ms/key | 0 of 12 keys, 0 ms, JS 5 ms/key |
-| **MorphInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 19 ms/key |
+| **NitroInput reflow** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 19 ms/key |
 | TextInput + formatting in `onChangeText` | 10 of 12 keys, 50 ms, JS 9 ms/key | 10 of 12 keys, 54 ms, JS 10 ms/key | 10 of 12 keys, 77 ms, JS 47 ms/key |
 | react-native-currency-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 55 ms, JS 11 ms/key | 10 of 12 keys, 67 ms, JS 48 ms/key |
 | react-native-mask-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 66 ms, JS 11 ms/key | 10 of 12 keys, 66 ms, JS 41 ms/key |
@@ -187,27 +178,26 @@ Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inp
 
 ## Repository
 
-- [`packages/react-native-nitro-rolling-number`](packages/react-native-nitro-rolling-number) – the rolling number: the shared C++ engine (`cpp/`), the Swift and Kotlin views, the Nitro spec and the JS wrapper. Its [README](packages/react-native-nitro-rolling-number/README.md) is the API reference.
-- [`packages/react-native-nitro-input`](packages/react-native-nitro-input) – the text input, same layout: `cpp/MorphEngine` + `cpp/AmountFormatter`, a Swift and a Kotlin view around a hidden system text field. Its [README](packages/react-native-nitro-input/README.md) is the API reference.
+- [`packages/react-native-nitro-input`](packages/react-native-nitro-input) – the package: the shared C++ engines (`cpp/RollingEngine` for the rolling number; `cpp/ReflowEngine`, `cpp/AmountFormatter`, `cpp/MaskEngine` and `cpp/OutlineGeometry` for the input), the Swift and Kotlin views (the input's around a hidden system text field), the Nitro specs and the JS wrappers. Its [README](packages/react-native-nitro-input/README.md) is the API reference.
 - [`example/`](example) – React Native 0.87 app with every demo, the benchmark harness and the showcase screens the recordings come from. Its [`__tests__/*.harness.tsx`](example/__tests__) are on-device suites run by [React Native Harness](https://www.react-native-harness.dev) inside the app (see [`example/__tests__/README.md`](example/__tests__/README.md)); CI runs them on an Android emulator and an iOS simulator.
-- [`docs/`](docs) – the Docusaurus site. Its live demos run the very same `RollingEngine.cpp` and `MorphEngine.cpp`, compiled to WebAssembly.
+- [`docs/`](docs) – the Docusaurus site. Its live demos run the very same `RollingEngine.cpp` and `ReflowEngine.cpp`, compiled to WebAssembly.
 - [`scripts/bench`](scripts/bench) – the device benchmarks behind [BENCHMARKS.md](BENCHMARKS.md): `run.mjs` builds, installs and drives the example app on real phones, `report.mjs` renders the tables from `results/`. [`scripts/ui`](scripts/ui) – `recycle-check.mjs` drives the example's "Recycle check" screen through [argent](https://github.com/software-mansion/argent) on a simulator, an emulator or a phone and checks that every row shows and paints the value it should, mid-roll frames included; the release-time check for view recycling.
 
 ```sh
 bun install                 # hoisted linker, see bunfig.toml
 bun specs                   # re-run nitrogen after editing src/specs/*.nitro.ts
 bun run test                # jest tests for the JS wrappers (plain `bun test` would run Bun's own runner against them)
-bun run test:cpp            # C++ engine tests for both packages (host clang++)
-bun run build               # lib/ for both packages: ES modules, CommonJS and declarations
+bun run test:cpp            # C++ engine tests (host clang++)
+bun run build               # lib/: ES modules, CommonJS and declarations
 bun example ios             # or: bun example android
 bun run test:harness:ios    # on-device suites (example/__tests__/*.harness.tsx) in the example app on a simulator; `:android` for the emulator
 node scripts/ui/recycle-check.mjs --udid <device>   # the recycling check, on a device with the example app installed (needs argent)
 cd docs && npm install && npm start                                  # docs site
 ```
 
-Releasing: `bun --cwd packages/<package> release <patch|minor|major>` runs the typecheck, the Jest and engine tests, bumps the version, commits, tags, publishes to npm and creates the GitHub release (needs `npm login` and a `GITHUB_TOKEN`).
+Releasing: `bun --cwd packages/react-native-nitro-input release <patch|minor|major>` runs the typecheck, the Jest and engine tests, bumps the version, commits, tags, publishes to npm and creates the GitHub release (needs `npm login` and a `GITHUB_TOKEN`).
 
-The two packages release independently out of one history, so each keeps to its own tags: `v<version>` for the rolling number, `nitro-input-v<version>` for the input. Each `release-it` config pins `tagMatch` to that prefix and `commitsPath` to the package directory, so "the previous release" and "what changed since it" mean this package's, not whichever package was tagged last. A release with no commits touching the package is refused. The GitHub release body is the matching `## <version>` section of the package's own `CHANGELOG.md`, read by `scripts/release/changelog-section.mjs` — write that section before releasing, or the release stops.
+Releases are tagged `nitro-input-v<version>` (the `v<version>` tags are the retired `react-native-nitro-rolling-number`'s). The `release-it` config pins `tagMatch` to that prefix and `commitsPath` to the package directory, so "the previous release" and "what changed since it" mean this package's. A release with no commits touching the package is refused. The GitHub release body is the matching `## <version>` section of the package's own `CHANGELOG.md`, read by `scripts/release/changelog-section.mjs` — write that section before releasing, or the release stops.
 
 The example's Android Gradle files point at the workspace root `node_modules`, and Metro watches the whole repo.
 
@@ -217,7 +207,7 @@ Nitro Modules 0.37 never fills a Hybrid View's raw props on Android from React N
 
 ## Credits
 
-The input's morph is based on [Torph](https://torph.lochie.me) by [Lochie Axon](https://github.com/lochie). Thanks for building it.
+The input's reflow is based on [Torph](https://torph.lochie.me) by [Lochie Axon](https://github.com/lochie). Thanks for building it.
 
 The rolling number's numeric transition follows SwiftUI's `.contentTransition(.numericText())`; it is our own reading of that effect, in the shared engine. [react-native-numeric-text](https://github.com/AmatoGiulio/react-native-numeric-text) by [Giulio Amato](https://github.com/AmatoGiulio) is a native re-implementation of the same effect for React Native `Text`, and the place to go when a whole text should transition rather than a number.
 

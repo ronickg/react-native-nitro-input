@@ -6,7 +6,7 @@
 import React, { createRef } from 'react'
 import { View, type LayoutRectangle } from 'react-native'
 import { describe, expect, it, render, waitFor } from 'react-native-harness'
-import { RollingNumber, type RollingNumberHandle } from 'react-native-nitro-rolling-number'
+import { RollingNumber, type RollingNumberHandle } from 'react-native-nitro-input'
 import { deferred, sleep, withTimeout } from './test-utils'
 import { forceGc, trackNativeViews, trackedLiveCount } from '../src/bench/probe'
 

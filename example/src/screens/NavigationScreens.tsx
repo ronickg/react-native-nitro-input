@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react'
 import { ScrollView, Text, TextInput, View } from 'react-native'
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native'
-import { MorphInput, type MorphInputHandle } from 'react-native-nitro-input'
+import { NitroInput, type NitroInputHandle } from 'react-native-nitro-input'
 import { Btn, Card, EventLog, FieldLabel, Row, styles, useEventLog } from '../harness'
 import type { RootStackParamList } from '../navigation'
 
@@ -11,7 +11,7 @@ type Kind = 'morph' | 'rn'
 export function NavAScreen() {
   const nav = useNavigation<any>()
   const { lines, push, clear } = useEventLog()
-  const morph = useRef<MorphInputHandle>(null)
+  const morph = useRef<NitroInputHandle>(null)
   const rn = useRef<React.ComponentRef<typeof TextInput>>(null)
 
   useFocusEffect(useCallback(() => {
@@ -22,8 +22,8 @@ export function NavAScreen() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Card title="Screen A" hint="Focus a field here, then push B. Coming back, check whether the keyboard and caret behave the same for both.">
-        <FieldLabel>MorphInput</FieldLabel>
-        <MorphInput
+        <FieldLabel>NitroInput (reflow)</FieldLabel>
+        <NitroInput transition="reflow"
           testID="navA-morph"
           ref={morph}
           style={styles.field}
@@ -75,7 +75,7 @@ export function NavBScreen() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Card title={`Screen B — autoFocus on ${kind}`} hint="The keyboard should already be up when the push transition ends.">
         {kind === 'morph' ? (
-          <MorphInput
+          <NitroInput transition="reflow"
             testID="navB-morph"
             autoFocus
             style={styles.field}
@@ -110,7 +110,7 @@ export function FormSheetScreen() {
   const kind: Kind = route.params?.kind ?? 'morph'
   const auto = route.params?.autoFocus ?? true
   const { lines, push } = useEventLog()
-  const morph = useRef<MorphInputHandle>(null)
+  const morph = useRef<NitroInputHandle>(null)
   const rn = useRef<React.ComponentRef<typeof TextInput>>(null)
 
   return (
@@ -120,7 +120,7 @@ export function FormSheetScreen() {
         The sheet must resize or lift for the keyboard, and the caret must stay visible. Both components get the same treatment.
       </Text>
       {kind === 'morph' ? (
-        <MorphInput
+        <NitroInput transition="reflow"
           testID="sheet-morph"
           ref={morph}
           autoFocus={auto}

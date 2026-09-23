@@ -28,6 +28,16 @@
         "language": "c++",
         "implementationClassName": "HybridNitroInputWorklets"
       }
+    },
+    "RollingNumberView": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridRollingNumberView"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridRollingNumberView"
+      }
     }
   },
   "ignorePaths": [

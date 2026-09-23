@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { ScrollView, Text, TextInput, View } from 'react-native'
-import { MorphInput, type MorphInputHandle } from 'react-native-nitro-input'
+import { NitroInput, type NitroInputHandle } from 'react-native-nitro-input'
 import { Btn, Card, EventLog, FieldLabel, Row, styles, useEventLog } from '../harness'
 
 /**
@@ -10,9 +10,9 @@ import { Btn, Card, EventLog, FieldLabel, Row, styles, useEventLog } from '../ha
  */
 export function StateChangeScreen() {
   const { lines, push, clear } = useEventLog()
-  const morph = useRef<MorphInputHandle>(null)
+  const morph = useRef<NitroInputHandle>(null)
   const rn = useRef<React.ComponentRef<typeof TextInput>>(null)
-  const revealMorph = useRef<MorphInputHandle>(null)
+  const revealMorph = useRef<NitroInputHandle>(null)
   const revealRn = useRef<React.ComponentRef<typeof TextInput>>(null)
 
   const [banner, setBanner] = useState(false)
@@ -23,8 +23,8 @@ export function StateChangeScreen() {
 
   const fields = (
     <>
-      <FieldLabel>MorphInput</FieldLabel>
-      <MorphInput
+      <FieldLabel>NitroInput (reflow)</FieldLabel>
+      <NitroInput transition="reflow"
         key={`morph-${remountKey}`}
         testID="state-morph"
         ref={morph}
@@ -86,7 +86,7 @@ export function StateChangeScreen() {
         </Row>
         {revealed ? (
           <View style={{ gap: 8 }} testID="state-revealed">
-            <MorphInput
+            <NitroInput transition="reflow"
               testID="state-reveal-morph-field"
               ref={revealMorph}
               style={styles.field}

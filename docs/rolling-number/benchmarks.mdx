@@ -574,7 +574,7 @@ it started on all three phones: 146 → 132 MB on the 13 Pro Max, 103 → 109 on
 the 11 Pro, 409 → 411 on the A22 (the A22 figures sit on top of what earlier
 scenarios left in the process; only the difference means anything). Plain
 text moves by the same few megabytes (36 → 47, 34 → 41, 243 → 258). The
-fields are the same story: NitroInput and MorphInput end within 3–15 MB of
+fields are the same story: NitroInput, plain and reflowing, end within 3–15 MB of
 where they began on the iPhones and within 15–40 MB on the A22, alongside
 `TextInput` (265 → 258, 228 → 231, 726 → 756). (The mask field climbed 58 MB in the long run on the A22, at 750 MB of
 process footprint; rerun on its own in a fresh process it moves like the
@@ -625,7 +625,7 @@ about 50 KB on the Galaxy A22 (46 KB of malloc and 8 KB of Java heap, the
 median of three) and 70–90 KB cold on the iPhones, where plain `Text` costs
 100–130 KB on every mount because its layer backing store is redrawn each
 time. A NitroInput field is about 65 KB on the A22 and 140–155 KB cold on
-the iPhones, a `TextInput` 60 and 100–110; MorphInput is within the noise
+the iPhones, a `TextInput` 60 and 100–110; a reflowing NitroInput is within the noise
 of NitroInput on all three (a native heap profile on the A22 puts it at
 about 27 KB of malloc more, Hermes and Fabric objects rather than the glyph
 engine; an earlier single run had said four times, and it was the run's

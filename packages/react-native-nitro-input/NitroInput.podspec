@@ -22,10 +22,10 @@ Pod::Spec.new do |s|
     "cpp/**/*.{hpp,cpp}",
   ]
 
-  # The shared C++ engine and formatter are public headers so the pod's Swift
+  # The shared C++ engines and formatter are public headers so the pod's Swift
   # sources can call them directly through Swift/C++ interop (enabled by Nitro below).
   s.public_header_files = ["cpp/**/*.hpp"]
-  # The engine's unit tests build as a host executable (`bun run test:cpp`).
+  # The engines' unit tests build as a host executable (`bun run test:cpp`).
   s.exclude_files = ["cpp/__tests__/**"]
 
   # Worklets are optional: with react-native-worklets in the app, `transform`
@@ -40,7 +40,7 @@ Pod::Spec.new do |s|
     Pod::UI.puts "[NitroInput] react-native-worklets found, worklet support enabled"
     s.dependency 'RNWorklets'
     s.pod_target_xcconfig = {
-      "GCC_PREPROCESSOR_DEFINITIONS" => "$(inherited) MORPH_INPUT_WORKLETS=1",
+      "GCC_PREPROCESSOR_DEFINITIONS" => "$(inherited) NITRO_INPUT_WORKLETS=1",
       "HEADER_SEARCH_PATHS" => "$(inherited) \"$(PODS_ROOT)/Headers/Public/RNWorklets\"",
     }
   end

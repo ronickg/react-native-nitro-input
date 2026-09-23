@@ -10,8 +10,8 @@ import {Playground} from '@site/src/components/NitroInput/Playground';
 # Playground
 
 Turn the knobs and watch the field change. It is the real thing as far as the
-web can carry it: the amount formatting and the morph are the C++
-`AmountFormatter` and `MorphEngine` compiled to WebAssembly, and the gap under a
+web can carry it: the amount formatting and the reflow are the C++
+`AmountFormatter` and `ReflowEngine` compiled to WebAssembly, and the gap under a
 floating label is cut by the same `OutlineGeometry` iOS and Android replay — a
 real hole in the stroked path rather than a patch of background painted over
 the line.
@@ -25,7 +25,7 @@ props you actually changed.
 
 Controls appear only when they apply. `label` needs a `variant` to sit on;
 `fractionDigits` and the separators are `mode="number"` only; `duration`,
-`easing` and `effect` belong to the morph, so they disappear until you turn it on — and a
+`easing` and `effect` belong to the reflow, so they disappear until you turn it on — and a
 `multiline` field is plain by definition, because the glyph engine lays one run
 out on one baseline and never sees a wrapped one.
 

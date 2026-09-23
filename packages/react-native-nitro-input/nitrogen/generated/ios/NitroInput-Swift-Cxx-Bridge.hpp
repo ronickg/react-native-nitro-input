@@ -10,16 +10,39 @@
 // Forward declarations of C++ defined types
 // Forward declaration of `HybridNitroInputViewSpec` to properly resolve imports.
 namespace margelo::nitro::nitroinput { class HybridNitroInputViewSpec; }
+// Forward declaration of `HybridRollingNumberViewSpec` to properly resolve imports.
+namespace margelo::nitro::nitroinput { class HybridRollingNumberViewSpec; }
 // Forward declaration of `NitroInputNotation` to properly resolve imports.
 namespace margelo::nitro::nitroinput { struct NitroInputNotation; }
+// Forward declaration of `RollingNumberAffixAlign` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class RollingNumberAffixAlign; }
+// Forward declaration of `RollingNumberDirection` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class RollingNumberDirection; }
+// Forward declaration of `RollingNumberEasing` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class RollingNumberEasing; }
+// Forward declaration of `RollingNumberRevealStyle` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class RollingNumberRevealStyle; }
+// Forward declaration of `RollingNumberTextAlign` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class RollingNumberTextAlign; }
+// Forward declaration of `RollingNumberTransition` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class RollingNumberTransition; }
 
 // Forward declarations of Swift defined types
 // Forward declaration of `HybridNitroInputViewSpec_cxx` to properly resolve imports.
 namespace NitroInput { class HybridNitroInputViewSpec_cxx; }
+// Forward declaration of `HybridRollingNumberViewSpec_cxx` to properly resolve imports.
+namespace NitroInput { class HybridRollingNumberViewSpec_cxx; }
 
 // Include C++ defined types
 #include "HybridNitroInputViewSpec.hpp"
+#include "HybridRollingNumberViewSpec.hpp"
 #include "NitroInputNotation.hpp"
+#include "RollingNumberAffixAlign.hpp"
+#include "RollingNumberDirection.hpp"
+#include "RollingNumberEasing.hpp"
+#include "RollingNumberRevealStyle.hpp"
+#include "RollingNumberTextAlign.hpp"
+#include "RollingNumberTransition.hpp"
 #include <NitroModules/Result.hpp>
 #include <exception>
 #include <functional>
@@ -344,5 +367,230 @@ namespace margelo::nitro::nitroinput::bridge::swift {
   inline Result_bool_ create_Result_bool_(const std::exception_ptr& error) noexcept {
     return Result<bool>::withError(error);
   }
+  
+  // pragma MARK: std::optional<double>
+  /**
+   * Specialized version of `std::optional<double>`.
+   */
+  using std__optional_double_ = std::optional<double>;
+  inline std::optional<double> create_std__optional_double_(const double& value) noexcept {
+    return std::optional<double>(value);
+  }
+  inline bool has_value_std__optional_double_(const std::optional<double>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline double get_std__optional_double_(const std::optional<double>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::optional<std::string>
+  /**
+   * Specialized version of `std::optional<std::string>`.
+   */
+  using std__optional_std__string_ = std::optional<std::string>;
+  inline std::optional<std::string> create_std__optional_std__string_(const std::string& value) noexcept {
+    return std::optional<std::string>(value);
+  }
+  inline bool has_value_std__optional_std__string_(const std::optional<std::string>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::string get_std__optional_std__string_(const std::optional<std::string>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::optional<RollingNumberEasing>
+  /**
+   * Specialized version of `std::optional<RollingNumberEasing>`.
+   */
+  using std__optional_RollingNumberEasing_ = std::optional<RollingNumberEasing>;
+  inline std::optional<RollingNumberEasing> create_std__optional_RollingNumberEasing_(const RollingNumberEasing& value) noexcept {
+    return std::optional<RollingNumberEasing>(value);
+  }
+  inline bool has_value_std__optional_RollingNumberEasing_(const std::optional<RollingNumberEasing>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline RollingNumberEasing get_std__optional_RollingNumberEasing_(const std::optional<RollingNumberEasing>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::optional<RollingNumberTransition>
+  /**
+   * Specialized version of `std::optional<RollingNumberTransition>`.
+   */
+  using std__optional_RollingNumberTransition_ = std::optional<RollingNumberTransition>;
+  inline std::optional<RollingNumberTransition> create_std__optional_RollingNumberTransition_(const RollingNumberTransition& value) noexcept {
+    return std::optional<RollingNumberTransition>(value);
+  }
+  inline bool has_value_std__optional_RollingNumberTransition_(const std::optional<RollingNumberTransition>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline RollingNumberTransition get_std__optional_RollingNumberTransition_(const std::optional<RollingNumberTransition>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::optional<RollingNumberDirection>
+  /**
+   * Specialized version of `std::optional<RollingNumberDirection>`.
+   */
+  using std__optional_RollingNumberDirection_ = std::optional<RollingNumberDirection>;
+  inline std::optional<RollingNumberDirection> create_std__optional_RollingNumberDirection_(const RollingNumberDirection& value) noexcept {
+    return std::optional<RollingNumberDirection>(value);
+  }
+  inline bool has_value_std__optional_RollingNumberDirection_(const std::optional<RollingNumberDirection>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline RollingNumberDirection get_std__optional_RollingNumberDirection_(const std::optional<RollingNumberDirection>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::optional<RollingNumberRevealStyle>
+  /**
+   * Specialized version of `std::optional<RollingNumberRevealStyle>`.
+   */
+  using std__optional_RollingNumberRevealStyle_ = std::optional<RollingNumberRevealStyle>;
+  inline std::optional<RollingNumberRevealStyle> create_std__optional_RollingNumberRevealStyle_(const RollingNumberRevealStyle& value) noexcept {
+    return std::optional<RollingNumberRevealStyle>(value);
+  }
+  inline bool has_value_std__optional_RollingNumberRevealStyle_(const std::optional<RollingNumberRevealStyle>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline RollingNumberRevealStyle get_std__optional_RollingNumberRevealStyle_(const std::optional<RollingNumberRevealStyle>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::vector<double>
+  /**
+   * Specialized version of `std::vector<double>`.
+   */
+  using std__vector_double_ = std::vector<double>;
+  inline std::vector<double> create_std__vector_double_(size_t size) noexcept {
+    std::vector<double> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::optional<std::vector<double>>
+  /**
+   * Specialized version of `std::optional<std::vector<double>>`.
+   */
+  using std__optional_std__vector_double__ = std::optional<std::vector<double>>;
+  inline std::optional<std::vector<double>> create_std__optional_std__vector_double__(const std::vector<double>& value) noexcept {
+    return std::optional<std::vector<double>>(value);
+  }
+  inline bool has_value_std__optional_std__vector_double__(const std::optional<std::vector<double>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::vector<double> get_std__optional_std__vector_double__(const std::optional<std::vector<double>>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::optional<bool>
+  /**
+   * Specialized version of `std::optional<bool>`.
+   */
+  using std__optional_bool_ = std::optional<bool>;
+  inline std::optional<bool> create_std__optional_bool_(const bool& value) noexcept {
+    return std::optional<bool>(value);
+  }
+  inline bool has_value_std__optional_bool_(const std::optional<bool>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline bool get_std__optional_bool_(const std::optional<bool>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::optional<RollingNumberAffixAlign>
+  /**
+   * Specialized version of `std::optional<RollingNumberAffixAlign>`.
+   */
+  using std__optional_RollingNumberAffixAlign_ = std::optional<RollingNumberAffixAlign>;
+  inline std::optional<RollingNumberAffixAlign> create_std__optional_RollingNumberAffixAlign_(const RollingNumberAffixAlign& value) noexcept {
+    return std::optional<RollingNumberAffixAlign>(value);
+  }
+  inline bool has_value_std__optional_RollingNumberAffixAlign_(const std::optional<RollingNumberAffixAlign>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline RollingNumberAffixAlign get_std__optional_RollingNumberAffixAlign_(const std::optional<RollingNumberAffixAlign>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::optional<RollingNumberTextAlign>
+  /**
+   * Specialized version of `std::optional<RollingNumberTextAlign>`.
+   */
+  using std__optional_RollingNumberTextAlign_ = std::optional<RollingNumberTextAlign>;
+  inline std::optional<RollingNumberTextAlign> create_std__optional_RollingNumberTextAlign_(const RollingNumberTextAlign& value) noexcept {
+    return std::optional<RollingNumberTextAlign>(value);
+  }
+  inline bool has_value_std__optional_RollingNumberTextAlign_(const std::optional<RollingNumberTextAlign>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline RollingNumberTextAlign get_std__optional_RollingNumberTextAlign_(const std::optional<RollingNumberTextAlign>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::function<void()>
+  /**
+   * Specialized version of `std::function<void()>`.
+   */
+  using Func_void = std::function<void()>;
+  /**
+   * Wrapper class for a `std::function<void()>`, this can be used from Swift.
+   */
+  class Func_void_Wrapper final {
+  public:
+    explicit Func_void_Wrapper(std::function<void()>&& func): _function(std::make_unique<std::function<void()>>(std::move(func))) {}
+    inline void call() const noexcept {
+      _function->operator()();
+    }
+  private:
+    std::unique_ptr<std::function<void()>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void create_Func_void(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_Wrapper wrap_Func_void(Func_void value) noexcept {
+    return Func_void_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::optional<std::function<void()>>
+  /**
+   * Specialized version of `std::optional<std::function<void()>>`.
+   */
+  using std__optional_std__function_void____ = std::optional<std::function<void()>>;
+  inline std::optional<std::function<void()>> create_std__optional_std__function_void____(const std::function<void()>& value) noexcept {
+    return std::optional<std::function<void()>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void____(const std::optional<std::function<void()>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void()> get_std__optional_std__function_void____(const std::optional<std::function<void()>>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::optional<std::function<void(double /* index */, double /* value */)>>
+  /**
+   * Specialized version of `std::optional<std::function<void(double / * index * /, double / * value * /)>>`.
+   */
+  using std__optional_std__function_void_double____index_____double____value______ = std::optional<std::function<void(double /* index */, double /* value */)>>;
+  inline std::optional<std::function<void(double /* index */, double /* value */)>> create_std__optional_std__function_void_double____index_____double____value______(const std::function<void(double /* index */, double /* value */)>& value) noexcept {
+    return std::optional<std::function<void(double /* index */, double /* value */)>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void_double____index_____double____value______(const std::optional<std::function<void(double /* index */, double /* value */)>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void(double /* index */, double /* value */)> get_std__optional_std__function_void_double____index_____double____value______(const std::optional<std::function<void(double /* index */, double /* value */)>>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridRollingNumberViewSpec>
+  /**
+   * Specialized version of `std::shared_ptr<HybridRollingNumberViewSpec>`.
+   */
+  using std__shared_ptr_HybridRollingNumberViewSpec_ = std::shared_ptr<HybridRollingNumberViewSpec>;
+  std::shared_ptr<HybridRollingNumberViewSpec> create_std__shared_ptr_HybridRollingNumberViewSpec_(void* NON_NULL swiftUnsafePointer) noexcept;
+  void* NON_NULL get_std__shared_ptr_HybridRollingNumberViewSpec_(std__shared_ptr_HybridRollingNumberViewSpec_ cppType);
+  
+  // pragma MARK: std::weak_ptr<HybridRollingNumberViewSpec>
+  using std__weak_ptr_HybridRollingNumberViewSpec_ = std::weak_ptr<HybridRollingNumberViewSpec>;
+  inline std__weak_ptr_HybridRollingNumberViewSpec_ weakify_std__shared_ptr_HybridRollingNumberViewSpec_(const std::shared_ptr<HybridRollingNumberViewSpec>& strong) noexcept { return strong; }
 
 } // namespace margelo::nitro::nitroinput::bridge::swift

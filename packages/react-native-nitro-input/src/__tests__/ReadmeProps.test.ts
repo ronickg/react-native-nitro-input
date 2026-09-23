@@ -17,7 +17,7 @@ const props = propsOfInterface(readFileSync(join(__dirname, '..', 'NitroInput.ts
 const readme = readFileSync(join(__dirname, '..', '..', 'README.md'), 'utf8')
 
 function propsTable(): string {
-  const start = readme.indexOf('\n## Props')
+  const start = readme.indexOf('\n## NitroInput props')
   expect(start).toBeGreaterThanOrEqual(0)
   const end = readme.indexOf('\n## ', start + 1)
   return readme.slice(start, end === -1 ? undefined : end)

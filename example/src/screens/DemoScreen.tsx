@@ -10,11 +10,10 @@ import {
   useColorScheme,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { RollingNumber, type RollingNumberHandle } from 'react-native-nitro-rolling-number'
+import { RollingNumber, type RollingNumberHandle } from 'react-native-nitro-input'
 import {
-  MorphInput,
   NitroInput,
-  type MorphInputHandle,
+  type NitroInputHandle,
   type NitroInputTransform,
 } from 'react-native-nitro-input'
 import { useNitroInputState } from 'react-native-nitro-input'
@@ -95,7 +94,7 @@ function MorphWorkletDemo() {
   }
   return (
     <Section title="Worklets" hint="onChangeValue is a worklet: it writes a shared value on the UI thread, no JS in between. The username field's transform worklet masks the text before it is drawn; the phone field's transform runs libphonenumber-js inside the worklet (Bundle Mode).">
-      <MorphInput
+      <NitroInput transition="reflow"
         testID="morph-worklet-amount"
         mode="number"
         prefix="$"
@@ -110,7 +109,7 @@ function MorphWorkletDemo() {
         <Animated.View style={[styles.morphBar, barStyle]} />
       </View>
       <View style={styles.morphTextBox}>
-        <MorphInput
+        <NitroInput transition="reflow"
           testID="morph-worklet-username"
           placeholder="@username"
           fontSize={22}
@@ -121,7 +120,7 @@ function MorphWorkletDemo() {
         />
       </View>
       <View style={styles.morphTextBox}>
-        <MorphInput
+        <NitroInput transition="reflow"
           testID="morph-worklet-phone"
           placeholder="(555) 555-5555"
           fontSize={22}
@@ -136,13 +135,13 @@ function MorphWorkletDemo() {
   )
 }
 
-function MorphInputDemo() {
-  const amountRef = useRef<MorphInputHandle>(null)
+function ReflowInputDemo() {
+  const amountRef = useRef<NitroInputHandle>(null)
   const [amountText, setAmountText] = useState('')
   const [amountValue, setAmountValue] = useState(NaN)
   const [note, setNote] = useState('')
   const [focused, setFocused] = useState(false)
-  const maskPhoneRef = useRef<MorphInputHandle>(null)
+  const maskPhoneRef = useRef<NitroInputHandle>(null)
   const [maskSel, setMaskSel] = useState('-')
   const [outlinedText, setOutlinedText] = useState('')
   const [multilineText, setMultilineText] = useState('')
@@ -154,7 +153,7 @@ function MorphInputDemo() {
   return (
     <Section title="Morph input" hint="A native input whose text morphs as you type. The amount is formatted natively, caret and all, with no JS round trip.">
       <View style={styles.morphAmountBox}>
-        <MorphInput
+        <NitroInput transition="reflow"
           ref={amountRef}
           testID="morph-amount"
           mode="number"
@@ -316,7 +315,7 @@ function MorphInputDemo() {
           // The other placement: a symbol styled as an ornament reads better
           // with the sign against the digits.
           signPlacement="afterAffix"
-          morph
+          transition="reflow"
           variant="outlined"
           label="signPlacement afterAffix"
           fontSize={17}
@@ -331,7 +330,7 @@ function MorphInputDemo() {
         outlined "{outlinedText}"
       </Text>
       <View style={styles.morphTextBox}>
-        <MorphInput
+        <NitroInput transition="reflow"
           ref={maskPhoneRef}
           testID="morph-mask-phone"
           mode="mask"
@@ -375,7 +374,7 @@ function MorphInputDemo() {
         {maskPhone.complete ? 'complete' : 'incomplete'}
       </Text>
       <View style={styles.morphTextBox}>
-        <MorphInput
+        <NitroInput transition="reflow"
           testID="morph-mask-hex"
           mode="mask"
           mask="#[HHHHHH]"
@@ -394,7 +393,7 @@ function MorphInputDemo() {
         {maskHex.complete ? 'complete' : 'incomplete'}
       </Text>
       <View style={styles.morphTextBox}>
-        <MorphInput
+        <NitroInput transition="reflow"
           testID="morph-text"
           placeholder="Type something"
           fontSize={22}
@@ -887,7 +886,7 @@ function RevealShowcase({ onExit }: { onExit: () => void }) {
 
 /** The morph input, typed for you: digits arrive, commas reflow, the figure is swapped. */
 function MorphShowcase({ onExit }: { onExit: () => void }) {
-  const field = useRef<MorphInputHandle>(null)
+  const field = useRef<NitroInputHandle>(null)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
   const [caption, setCaption] = useState('Type an amount')
 
@@ -932,7 +931,7 @@ function MorphShowcase({ onExit }: { onExit: () => void }) {
       <View style={[showcase.glowB, showcase.glowMorphB]} />
       <Pressable style={showcase.exit} onPress={onExit} testID="showcase-exit" />
       <Text style={showcase.eyebrow}>Send money</Text>
-      <MorphInput
+      <NitroInput transition="reflow"
         ref={field}
         mode="number"
         prefix="$"
@@ -1010,7 +1009,7 @@ export function DemoScreen() {
             <Button title="Showcase: Reveal" testID="showcase-reveal" onPress={() => setShowing('reveal')} />
             <Button title="Showcase: Morph" testID="showcase-morph" onPress={() => setShowing('morph')} />
           </View>
-          <MorphInputDemo />
+          <ReflowInputDemo />
           <MorphWorkletDemo />
           <RevealDemo />
           <ReactDrivenDemo />

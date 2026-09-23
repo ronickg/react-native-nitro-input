@@ -7,12 +7,12 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import {useMorphModule, type AmountFormatter, type MorphEngine} from '@site/src/engine/useMorphEngine';
+import {useReflowModule, type AmountFormatter, type ReflowEngine} from '@site/src/engine/useReflowEngine';
 
 // ---------------------------------------------------------------------------
 // A web port of the native input views: a real <input> owns the keyboard,
 // editing and selection (its text is transparent), and a <canvas> on top draws
-// the glyphs where the WebAssembly build of the C++ MorphEngine puts them, plus
+// the glyphs where the WebAssembly build of the C++ ReflowEngine puts them, plus
 // our own caret. In number mode every edit goes through the C++ AmountFormatter
 // before the <input> shows it, exactly like the Swift and Kotlin views.
 // ---------------------------------------------------------------------------
@@ -217,11 +217,11 @@ export const NitroInputCanvas = forwardRef<NitroInputCanvasHandle, NitroInputCan
       className,
     } = props;
 
-    const module = useMorphModule();
+    const module = useReflowModule();
     const rootRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-    const engineRef = useRef<MorphEngine | null>(null);
+    const engineRef = useRef<ReflowEngine | null>(null);
     const formatterRef = useRef<AmountFormatter | null>(null);
     const fontsRef = useRef<FontSet | null>(null);
     const frameRef = useRef(0);
@@ -240,7 +240,7 @@ export const NitroInputCanvas = forwardRef<NitroInputCanvasHandle, NitroInputCan
     // Engine + formatter live as long as the component.
     useEffect(() => {
       if (!module) return;
-      const engine = new module.MorphEngine();
+      const engine = new module.ReflowEngine();
       const formatter = new module.AmountFormatter();
       engineRef.current = engine;
       formatterRef.current = formatter;

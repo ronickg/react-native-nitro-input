@@ -30,6 +30,6 @@ class AmountFormatter {
   external fun format(value: Double): String
   /** NaN when there are no digits. */
   external fun value(text: String): Double
-  /** MorphEngine kind of a character in formatted text. */
+  /** ReflowEngine kind of a character in formatted text. */
   external fun kindOf(codePoint: Int): Int
 }

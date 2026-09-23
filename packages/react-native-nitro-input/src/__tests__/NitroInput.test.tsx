@@ -1,6 +1,6 @@
 /**
  * The wrapper's own resolution rules: what it sends native for the props it
- * reshapes, and what it does not do per render. `MorphInput.test.tsx` covers
+ * reshapes, and what it does not do per render. `Reflow.test.tsx` covers
  * the defaults and the callback plumbing; `TextInputParity.test.tsx` compares
  * against React Native's `TextInput`.
  */

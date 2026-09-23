@@ -175,14 +175,16 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: 'Morph',
+    title: 'Reflow',
     knobs: [
       {
-        key: 'morph',
-        kind: 'bool',
-        def: false,
+        key: 'transition',
+        kind: 'seg',
+        def: 'none',
+        options: ['none', 'reflow'],
+        quote: true,
         when: single,
-        hint: 'Off is a plain field, as NitroInput is by default: the system draws the text',
+        hint: "'none' is a plain field, as NitroInput is by default: the system draws the text",
       },
       {
         key: 'duration',
@@ -191,7 +193,7 @@ const GROUPS: Group[] = [
         min: 80,
         max: 1200,
         step: 20,
-        when: (s) => single(s) && s.morph === true,
+        when: (s) => single(s) && s.transition === 'reflow',
       },
       {
         key: 'easing',
@@ -199,7 +201,7 @@ const GROUPS: Group[] = [
         def: 'expo',
         options: ['expo', 'easeOut', 'easeInOut', 'linear', 'spring'],
         quote: true,
-        when: (s) => single(s) && s.morph === true,
+        when: (s) => single(s) && s.transition === 'reflow',
       },
       {
         key: 'bounce',
@@ -208,7 +210,7 @@ const GROUPS: Group[] = [
         min: 0,
         max: 0.6,
         step: 0.05,
-        when: (s) => single(s) && s.morph === true && s.easing === 'spring',
+        when: (s) => single(s) && s.transition === 'reflow' && s.easing === 'spring',
       },
       {
         key: 'effect',
@@ -216,7 +218,7 @@ const GROUPS: Group[] = [
         def: 'auto',
         options: ['auto', 'slide', 'fade'],
         quote: true,
-        when: (s) => single(s) && s.morph === true,
+        when: (s) => single(s) && s.transition === 'reflow',
       },
     ],
   },
@@ -437,7 +439,7 @@ function PlaygroundInner() {
               suffix={active.suffix as string}
               affixAlign={active.affixAlign as never}
               prefixFontSize={orUndef(active.prefixFontSize)}
-              morph={active.morph !== false}
+              reflow={active.transition !== 'none'}
               duration={active.duration as number}
               easing={active.easing as never}
               bounce={active.bounce as number}

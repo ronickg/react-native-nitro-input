@@ -1,12 +1,12 @@
 ---
 sidebar_position: 7
 title: Props
-description: 'Every prop, method and event of NitroInput and MorphInput, with types and defaults.'
+description: 'Every prop, method and event of NitroInput, with types and defaults.'
 ---
 
 # Props
 
-`NitroInput` takes every `View` prop (`style`, `testID`, `accessibilityLabel`, …) plus the ones below. All are optional. `MorphInput` is the same component with [`morph`](#the-morph) on and [`autoWidth`](#size-and-alignment) set to `'auto'`, and takes every prop here except `morph`.
+`NitroInput` takes every `View` prop (`style`, `testID`, `accessibilityLabel`, …) plus the ones below. All are optional.
 
 A test in the package fails when this page misses a prop the component declares, so what is listed here is what the component takes. Every entry links to itself.
 
@@ -21,7 +21,7 @@ The initial text (uncontrolled).
 </Prop>
 
 <Prop name="placeholder" type="string" default="''">
-Shown while the field is empty. With `morph` the first character morphs it away. In `'number'` mode `'0'` reads well.
+Shown while the field is empty. With `transition="reflow"` the first character reflows it away. In `'number'` mode `'0'` reads well.
 </Prop>
 
 <Prop name="placeholderTextColor" type="ColorValue" default="platform">
@@ -67,7 +67,7 @@ Placed between integer and fraction digits. Whatever the keyboard's decimal key 
 </Prop>
 
 <Prop name="signPlacement" type="'beforeAffix' | 'afterAffix'" default="'beforeAffix'">
-Where a negative amount's sign sits relative to `prefix`: `-$1,234.56`, or `$-1,234.56` with `'afterAffix'`. Only the morph honours it; a plain field's affixes are accessory views outside the text, so it is always `'afterAffix'` there. See [Negative amounts](/input/amount-field#negative-amounts).
+Where a negative amount's sign sits relative to `prefix`: `-$1,234.56`, or `$-1,234.56` with `'afterAffix'`. Only the reflow honours it; a plain field's affixes are accessory views outside the text, so it is always `'afterAffix'` there. See [Negative amounts](/input/amount-field#negative-amounts).
 </Prop>
 
 ### Mask mode
@@ -189,7 +189,7 @@ Text colour.
 </Prop>
 
 <Prop name="lineHeight" type="number" default="the font's">
-Height of the line box in points, in the CSS sense: the total height a line occupies. Unlike `TextInput`, a line height tighter than the font is centred correctly too, and it applies to single-line and morphing fields as well as wrapped ones.
+Height of the line box in points, in the CSS sense: the total height a line occupies. Unlike `TextInput`, a line height tighter than the font is centred correctly too, and it applies to single-line and reflowing fields as well as wrapped ones.
 </Prop>
 
 <Prop name="allowFontScaling" type="boolean" default="false">
@@ -202,8 +202,8 @@ Upper bound for `allowFontScaling`, e.g. `1.3`. `0` is no cap.
 
 ## Size and alignment
 
-<Prop name="autoWidth" type="boolean | 'auto'" default="false">
-Whether the field sizes itself to its content. `false` takes its width from the parent the way a `TextInput` does, which is what makes it a drop-in. `true` always sizes to content. `'auto'` infers it: on unless `style` gives a `width` or `flex`, which lets an amount grow as digits arrive, and is what `MorphInput` uses.
+<Prop name="autoWidth" type="boolean | 'auto'" default="false, or 'auto' when reflowing">
+Whether the field sizes itself to its content. `false` takes its width from the parent the way a `TextInput` does, which is what makes it a drop-in. `true` always sizes to content. `'auto'` infers it: on unless `style` gives a `width` or `flex`, which lets an amount grow as digits arrive, and is the default with `transition="reflow"`.
 </Prop>
 
 <Prop name="textAlign" type="'auto' | 'left' | 'center' | 'right'" default="'auto'">
@@ -220,7 +220,7 @@ Smallest scale `adjustsFontSizeToFit` may apply, `0`–`1`.
 
 ## Multiline
 
-A wrapping field is drawn by the system view and is always `'text'` mode: `morph`, a non-text `mode` and the affixes are ignored alongside it, with one warning each in development. See [Multiline](/input/multiline).
+A wrapping field is drawn by the system view and is always `'text'` mode: `transition="reflow"`, a non-text `mode` and the affixes are ignored alongside it, with one warning each in development. See [Multiline](/input/multiline).
 
 <Prop name="multiline" type="boolean" default="false">
 Let the text wrap onto more than one line. The return key inserts a line break unless `submitBehavior` says otherwise.
@@ -340,20 +340,20 @@ Hides the caret.
 The caret or selection to apply, in code points into the (formatted) text. `onSelectionChange` reports moves in the same units.
 </Prop>
 
-## The morph
+## The reflow
 
-The opt-in glyph animation: every edit morphs from the old text to the new one. See [The morph](/input/morph).
+The opt-in glyph animation: every edit reflows from the old text to the new one. See [The reflow](/input/reflow).
 
-<Prop name="morph" type="boolean" default="false">
-Run the glyph engine, so text morphs as it changes rather than simply appearing. Off by default: this is a text field first, and a `TextInput` does not animate its characters. `MorphInput` is this component with it on.
+<Prop name="transition" type="'none' | 'reflow'" default="'none'">
+How the text changes. `'none'` draws it the instant it changes: this is a text field first, and a `TextInput` does not animate its characters. `'reflow'` runs the glyph engine, so characters that stay glide to their new place, new ones slide or fade in and removed ones leave alongside their neighbours. A multiline field is always `'none'`.
 </Prop>
 
 <Prop name="duration" type="number" default="400">
-Duration in ms of the morph played on every change. `0` snaps.
+Duration in ms of the reflow played on every change. `0` snaps.
 </Prop>
 
 <Prop name="easing" type="'expo' | 'easeOut' | 'easeInOut' | 'linear' | 'spring'" default="'expo'">
-Timing curve of the morph. `'expo'` is Torph's `cubic-bezier(0.19, 1, 0.22, 1)`.
+Timing curve of the reflow. `'expo'` is Torph's `cubic-bezier(0.19, 1, 0.22, 1)`.
 </Prop>
 
 <Prop name="bounce" type="number" default="0.15">
@@ -458,7 +458,7 @@ The handle queues a call made before the native view exists and replays it once 
 | --- | --- |
 | `focus()` | Focuses the field. |
 | `blur()` | Blurs it. |
-| `clear()` | Empties the field; with `morph` the characters morph away. |
+| `clear()` | Empties the field; with `transition="reflow"` the characters reflow away. |
 | `setText(text)` | Replaces the text (formatted in `'number'` mode), caret at the end. |
 | `setValue(value)` | `'number'` mode: shows `value` formatted; `NaN` empties the field. |
 | `getText()` | The field's current (formatted) text. |

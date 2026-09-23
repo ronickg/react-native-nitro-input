@@ -5,7 +5,6 @@ on:
     branches: [main]
     paths:
       - 'docs/**'
-      - 'packages/react-native-nitro-rolling-number/cpp/**'
       - 'packages/react-native-nitro-input/cpp/**'
       - 'BENCHMARKS.md'
       - '.github/workflows/docs.yml'
@@ -40,7 +39,7 @@ jobs:
           version: latest
       - name: Build the engines to WebAssembly
         working-directory: docs
-        run: npm run build:wasm && npm run build:wasm:morph
+        run: npm run build:wasm && npm run build:wasm:reflow
       - name: Build
         working-directory: docs
         run: npm run build

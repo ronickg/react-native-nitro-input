@@ -63,6 +63,16 @@ function declaredProps(specSource: string): string[] {
   return [...names];
 }
 
+/**
+ * Names we know clash and have decided to live with. Empty, and the intent is
+ * to keep it that way: `direction` used to be here (Yoga's layout property,
+ * which logged `Could not parse yoga::Direction: up` on every prop update) and
+ * was retired by renaming the *native* prop to `rollDirection`. The public prop
+ * is still `direction` - the wrapper forwards every prop explicitly, so the two
+ * names never have to agree.
+ */
+const ACCEPTED = new Set<string>([]);
+
 describe('prop names', () => {
   const reserved = namesReactNativeParses();
 
@@ -89,10 +99,21 @@ describe('prop names', () => {
   const specDir = join(__dirname, '..', 'specs');
   const specs = readdirSync(specDir).filter((f) => f.endsWith('.nitro.ts'));
 
+  it('still sees the clashes we accepted, so the list cannot go stale', () => {
+    // If RN ever drops one of these, the entry should go too.
+    for (const name of ACCEPTED) expect(reserved.has(name)).toBe(true);
+  });
+
+  it('no longer declares the Yoga name it used to', () => {
+    const spec = readFileSync(join(__dirname, '..', 'specs', 'RollingNumber.nitro.ts'), 'utf8');
+    expect(declaredProps(spec)).not.toContain('direction');
+    expect(declaredProps(spec)).toContain('rollDirection');
+  });
+
   it.each(specs)('%s declares nothing react-native also parses', (spec) => {
     const props = declaredProps(readFileSync(join(specDir, spec), 'utf8'));
     expect(props.length).toBeGreaterThan(0);
-    const clashing = props.filter((name) => reserved.has(name));
+    const clashing = props.filter((name) => reserved.has(name) && !ACCEPTED.has(name));
     expect(clashing).toEqual([]);
   });
 });

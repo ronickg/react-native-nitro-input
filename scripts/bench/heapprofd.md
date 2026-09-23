@@ -3,7 +3,7 @@
 Where a mounted view's memory comes from, by call site, on a real phone.
 The in-app `footprint` benchmark says how many KB a mounted copy costs;
 this says which allocations they are. It found, for instance, that a
-MorphInput on a Galaxy A22 costs about 27 KB of malloc more than a plain
+A reflowing NitroInput on a Galaxy A22 costs about 27 KB of malloc more than a plain
 NitroInput, in Hermes handle objects and Fabric props rather than in the
 glyph engine, after a single footprint run had suggested four times as much.
 
@@ -34,7 +34,7 @@ git.
   numbers carry startup (shader compiles, ART, the JS bundle). Compare two
   implementations recorded the same way, or two builds; the difference is
   the signal.
-- Symbols resolve for `libNitroInput.so`, `libNitroRollingNumber.so`,
+- Symbols resolve for `libNitroInput.so` (both components),
   `libreactnative.so`, `libhwui.so` and `libhermesvm.so` (exported names
   only, so some frames print as `?`, with the next named frame in the
   example chain).

@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { Keyboard, ScrollView, Text, TextInput, View } from 'react-native'
-import { MorphInput, type MorphInputHandle } from 'react-native-nitro-input'
+import { NitroInput, type NitroInputHandle } from 'react-native-nitro-input'
 import { Btn, Card, EventLog, FieldLabel, Row, styles, useEventLog } from '../harness'
 
 /**
@@ -9,7 +9,7 @@ import { Btn, Card, EventLog, FieldLabel, Row, styles, useEventLog } from '../ha
  */
 export function ParityScreen() {
   const { lines, push, clear } = useEventLog()
-  const morph = useRef<MorphInputHandle>(null)
+  const morph = useRef<NitroInputHandle>(null)
   const rn = useRef<React.ComponentRef<typeof TextInput>>(null)
   const [editable, setEditable] = useState(true)
   const [secure, setSecure] = useState(false)
@@ -59,8 +59,8 @@ export function ParityScreen() {
         <Text testID="parity-values" style={styles.cardHint}>{`morph="${morphText}"  rn="${rnText}"`}</Text>
       </Card>
       <Card title="Same props, both components" hint="Type in each and watch the log: callback names, order and payloads should line up.">
-        <FieldLabel>MorphInput</FieldLabel>
-        <MorphInput
+        <FieldLabel>NitroInput (reflow)</FieldLabel>
+        <NitroInput transition="reflow"
           testID="parity-morph"
           accessibilityLabel="morph field"
           ref={morph}

@@ -1,6 +1,6 @@
 import React, { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import { StyleSheet, TextInput, View, type StyleProp, type ViewStyle } from 'react-native'
-import { MorphInput, NitroInput, type NitroInputHandle } from 'react-native-nitro-input'
+import { NitroInput, type NitroInputHandle } from 'react-native-nitro-input'
 import MaskInput, { createNumberMask } from 'react-native-mask-input'
 import CurrencyInput from 'react-native-currency-input'
 import { MaskedTextInput, type MaskedTextInputRef } from 'react-native-advanced-input-mask'
@@ -38,12 +38,12 @@ const PHONE_MASK = '[000] [000] [0000]'
 export const INPUT_IMPLS: InputImpl[] = [
   { key: 'rn-text', label: 'TextInput (text)', short: 'TextInput', package: 'react-native', how: "React Native's own field, uncontrolled: the floor.", keys: DIGITS },
   { key: 'nitro-text', label: 'NitroInput (text)', short: 'NitroInput text', package: 'react-native-nitro-input', how: 'The plain field, uncontrolled: a system field inside a Nitro view.', keys: DIGITS },
-  { key: 'morph-text', label: 'MorphInput (text)', short: 'MorphInput text', package: 'react-native-nitro-input', how: 'The morphing field: every keystroke animates glyphs on an overlay.', keys: DIGITS },
+  { key: 'morph-text', label: 'NitroInput reflow (text)', short: 'Reflow text', package: 'react-native-nitro-input', how: 'NitroInput with transition="reflow": every keystroke animates glyphs on an overlay.', keys: DIGITS },
   { key: 'rn-number-js', label: 'TextInput + JS formatting', short: 'TextInput + JS', package: 'react-native', how: 'The usual amount field: controlled, formatted with Intl in onChangeText, the formatted text sent back as value.', keys: DIGITS },
   { key: 'currency-input', label: 'react-native-currency-input', short: 'currency-input', package: 'react-native-currency-input', how: 'A controlled TextInput formatting the amount in JS on every change.', keys: DIGITS },
   { key: 'mask-input', label: 'react-native-mask-input (number mask)', short: 'mask-input', package: 'react-native-mask-input', how: 'A controlled TextInput applying a number mask in JS on every change.', keys: DIGITS },
   { key: 'nitro-number', label: 'NitroInput (number)', short: 'NitroInput number', package: 'react-native-nitro-input', how: 'mode="number": grouping and prefix applied natively inside the edit, before a frame is drawn.', keys: DIGITS },
-  { key: 'morph-number', label: 'MorphInput (number)', short: 'MorphInput number', package: 'react-native-nitro-input', how: 'The same native formatting, with the digits morphing into place.', keys: DIGITS },
+  { key: 'morph-number', label: 'NitroInput reflow (number)', short: 'Reflow number', package: 'react-native-nitro-input', how: 'The same native formatting, with the digits reflowing into place.', keys: DIGITS },
   { key: 'advanced-mask', label: 'react-native-advanced-input-mask', short: 'advanced-input-mask', package: 'react-native-advanced-input-mask', how: 'A native (Fabric) masked field; the phone mask below.', keys: PHONE },
   { key: 'nitro-mask', label: 'NitroInput (mask)', short: 'NitroInput mask', package: 'react-native-nitro-input', how: 'mode="mask" with the same phone mask, applied natively.', keys: PHONE },
   { key: 'expo', label: 'Expo UI TextField', short: 'Expo UI', package: '@expo/ui', how: 'The SwiftUI / Compose field behind an Expo host view.', keys: DIGITS },
@@ -123,7 +123,7 @@ export const InputItem = forwardRef<
     case 'nitro-text':
       return <NitroInput ref={nitro} style={[styles.field, style]} fontSize={FONT_SIZE} onChangeText={onChangeText} {...focusProps} />
     case 'morph-text':
-      return <MorphInput ref={nitro} style={[styles.field, style]} fontSize={FONT_SIZE} onChangeText={onChangeText} {...focusProps} />
+      return <NitroInput transition="reflow" ref={nitro} style={[styles.field, style]} fontSize={FONT_SIZE} onChangeText={onChangeText} {...focusProps} />
     case 'rn-number-js':
       return <JsFormattedInput ref={rn} onChangeText={onChangeText} {...focusProps} />
     case 'currency-input':
@@ -162,7 +162,7 @@ export const InputItem = forwardRef<
       )
     case 'morph-number':
       return (
-        <MorphInput ref={nitro} style={[styles.field, style]} mode="number" prefix="$" fractionDigits={0} fontSize={FONT_SIZE} onChangeText={onChangeText} {...focusProps} />
+        <NitroInput transition="reflow" ref={nitro} style={[styles.field, style]} mode="number" prefix="$" fractionDigits={0} fontSize={FONT_SIZE} onChangeText={onChangeText} {...focusProps} />
       )
     case 'advanced-mask':
       return (

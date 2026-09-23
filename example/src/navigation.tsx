@@ -70,7 +70,7 @@ function HomeScreen() {
   const nav = useNavigation<any>()
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Card title="MorphInput vs TextInput" hint="Each screen puts the two components side by side under the same conditions.">
+      <Card title="Reflowing NitroInput vs TextInput" hint="Each screen puts the two components side by side under the same conditions.">
         <Row>
           <Btn testID="home-parity" tone="primary" title="Parity / all callbacks" onPress={() => nav.navigate('Parity')} />
           <Btn testID="home-nav" tone="primary" title="Two-screen routing" onPress={() => nav.navigate('NavA')} />
@@ -120,7 +120,7 @@ function HomeScreen() {
         <Row><Btn testID="home-rolling-bench" tone="primary" title="Benchmark vs other libraries" onPress={() => nav.navigate('RollingBench')} /></Row>
         <Row><Btn testID="home-recycle" title="Recycle check (400-row lists)" onPress={() => nav.navigate('RecycleCheck')} /></Row>
       </Card>
-      <Card title="Original demo" hint="The rolling number and morph input showcase this example shipped with.">
+      <Card title="Original demo" hint="The rolling number and reflowing input showcase this example shipped with.">
         <Row><Btn testID="home-demo" title="Open demo" onPress={() => nav.navigate('Demo')} /></Row>
       </Card>
       <Text style={styles.cardHint}>Screens are driven by testID; see HANDOFF.md.</Text>

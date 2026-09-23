@@ -1,8 +1,8 @@
 import React, { useCallback, useRef, useState } from 'react'
 import { ScrollView, Text, TextInput, View } from 'react-native'
-import { RollingNumber } from 'react-native-nitro-rolling-number'
+import { RollingNumber } from 'react-native-nitro-input'
 import { ExpoField, type ExpoFieldRef } from '../expoField'
-import { MorphInput, NitroInput, type MorphInputHandle } from 'react-native-nitro-input'
+import { NitroInput, type NitroInputHandle } from 'react-native-nitro-input'
 import { Btn, Card, Row, styles } from '../harness'
 
 // React Native exposes performance.now() at runtime; the RN types omit the DOM lib.
@@ -43,8 +43,8 @@ export function BenchScreen() {
 
   // Focus-latency probes: one field of each kind, kept mounted.
   const expoProbe = useRef<ExpoFieldRef>(null)
-  const plainProbe = useRef<MorphInputHandle>(null)
-  const morphProbe = useRef<MorphInputHandle>(null)
+  const plainProbe = useRef<NitroInputHandle>(null)
+  const morphProbe = useRef<NitroInputHandle>(null)
   const rnProbe = useRef<React.ComponentRef<typeof TextInput>>(null)
   const focusT0 = useRef(0)
   const focusResolve = useRef<((ms: number) => void) | null>(null)
@@ -197,7 +197,7 @@ export function BenchScreen() {
           placeholder="plain probe"
           onFocus={settleFocus}
         />
-        <MorphInput
+        <NitroInput transition="reflow"
           testID="bench-probe-morph"
           ref={morphProbe}
           style={styles.field}
@@ -230,7 +230,7 @@ export function BenchScreen() {
               ))
             : mounted === 'morph'
             ? Array.from({ length: BATCH }, (_, i) => (
-                <MorphInput key={i} style={styles.field} fontSize={18} placeholder={`m${i}`} onLayout={onItemLayout} />
+                <NitroInput transition="reflow" key={i} style={styles.field} fontSize={18} placeholder={`m${i}`} onLayout={onItemLayout} />
               ))
             : mounted === 'rn'
               ? Array.from({ length: BATCH }, (_, i) => (

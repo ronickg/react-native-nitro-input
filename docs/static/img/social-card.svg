@@ -38,7 +38,7 @@
   <text x="88" y="478" font-family="Helvetica Neue" font-size="27" fill="#94a3b8">One C++ engine each, iOS and Android.</text>
 
   <line x1="88" y1="528" x2="1112" y2="528" stroke="#ffffff" stroke-opacity="0.1" stroke-width="1"/>
-  <text x="88" y="570" font-family="Menlo" font-size="21" fill="#60a5fa">react-native-nitro-rolling-number</text>
+  <text x="88" y="570" font-family="Menlo" font-size="21" fill="#60a5fa">react-native-nitro-input</text>
   <text x="528" y="570" font-family="Helvetica Neue" font-size="21" fill="#475569">·</text>
-  <text x="556" y="570" font-family="Menlo" font-size="21" fill="#60a5fa">react-native-nitro-input</text>
+  <text x="556" y="570" font-family="Menlo" font-size="21" fill="#60a5fa">RollingNumber, NitroInput</text>
 </svg>

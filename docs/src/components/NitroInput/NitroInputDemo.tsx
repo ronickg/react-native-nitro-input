@@ -23,7 +23,7 @@ const LOCALES = [
 ] as const;
 const DECIMALS = [0, 2] as const;
 
-/** The field as it comes: no morph. The text appears the instant it is typed. */
+/** The field as it comes: no reflow. The text appears the instant it is typed. */
 export function NitroInputPlainDemo() {
   const theme = useThemeColors();
   return (
@@ -40,7 +40,7 @@ export function NitroInputPlainDemo() {
   );
 }
 
-/** Outlined and filled: the label floats and the notch opens, inside the view. No morph. */
+/** Outlined and filled: the label floats and the notch opens, inside the view. No reflow. */
 export function NitroInputFramesDemo() {
   const theme = useThemeColors();
   const [variant, setVariant] = useState<'outlined' | 'filled'>('outlined');
@@ -49,7 +49,7 @@ export function NitroInputFramesDemo() {
       <Stage height={110}>
         <div style={{width: '100%', padding: '12px 16px 4px'}}>
           <NitroInputFramed
-            morph={false}
+            reflow={false}
             variant={variant}
             label="Email address"
             placeholder="you@example.com"
@@ -70,19 +70,19 @@ export function NitroInputFramesDemo() {
   );
 }
 
-/** The amount field: prefix, grouping, decimals, placeholder, and the knobs to feel each one. The morph is a switch, off. */
+/** The amount field: prefix, grouping, decimals, placeholder, and the knobs to feel each one. The reflow is a switch, off. */
 export function NitroInputAmountDemo() {
   const ref = useRef<NitroInputCanvasHandle>(null);
   const [text, setText] = useState('');
   const [value, setValue] = useState(NaN);
-  const [morph, setMorph] = useState(false);
+  const [reflow, setReflow] = useState(false);
   const [speed, setSpeed] = useState(0);
   const [easing, setEasing] = useState(0);
   const [align, setAlign] = useState(1);
   const [locale, setLocale] = useState(0);
   const [decimals, setDecimals] = useState(1);
   return (
-    <Frame caption="Click the field and type, and turn the knobs while you do. The amount is formatted by the C++ formatter before the input shows a frame. Switch Morph on to see what the `morph` prop adds: the C++ engine, compiled to WebAssembly like the formatter.">
+    <Frame caption='Click the field and type, and turn the knobs while you do. The amount is formatted by the C++ formatter before the input shows a frame. Switch Reflow on to see what `transition="reflow"` adds: the C++ engine, compiled to WebAssembly like the formatter.'>
       <Stage height={120}>
         <div style={{width: '100%'}}>
         <div style={{padding: '12px 16px 4px'}}>
@@ -96,7 +96,7 @@ export function NitroInputAmountDemo() {
             fontSize={56}
             fontWeight={800}
             textAlign={ALIGNS[align].value}
-            duration={morph ? SPEEDS[speed].duration : 0}
+            duration={reflow ? SPEEDS[speed].duration : 0}
             easing={EASINGS[easing]}
             fractionDigits={DECIMALS[decimals]}
             groupingSeparator={LOCALES[locale].grouping}
@@ -111,12 +111,12 @@ export function NitroInputAmountDemo() {
         </div>
       </Stage>
       <Controls>
-        <Btn selected={!morph} onClick={() => setMorph(false)}>Plain</Btn>
-        <Btn selected={morph} onClick={() => setMorph(true)}>Morph</Btn>
-        {morph && SPEEDS.map((s, i) => (
+        <Btn selected={!reflow} onClick={() => setReflow(false)}>Plain</Btn>
+        <Btn selected={reflow} onClick={() => setReflow(true)}>Reflow</Btn>
+        {reflow && SPEEDS.map((s, i) => (
           <Btn key={s.label} selected={speed === i} onClick={() => setSpeed(i)}>{s.label}</Btn>
         ))}
-        {morph && EASINGS.map((e, i) => (
+        {reflow && EASINGS.map((e, i) => (
           <Btn key={e} selected={easing === i} onClick={() => setEasing(i)}>{e}</Btn>
         ))}
       </Controls>
@@ -142,11 +142,11 @@ export function NitroInputAmountDemo() {
   );
 }
 
-/** The morph on text: characters fade and scale, and a word that shrinks stays one shape. */
+/** The reflow on text: characters fade and scale, and a word that shrinks stays one shape. */
 export function NitroInputTextDemo() {
   const ref = useRef<NitroInputCanvasHandle>(null);
   return (
-    <Frame caption='With `morph` on, in text mode: every character fades and scales in and out. Try "Continue" then "Confirm".'>
+    <Frame caption='With `transition="reflow"`, in text mode: every character fades and scales in and out. Try "Continue" then "Confirm".'>
       <Stage height={80}>
         <div style={{width: '100%', padding: '12px 16px 4px'}}>
           <NitroInputCanvas ref={ref} placeholder="Type something" fontSize={34} fontWeight={600} />

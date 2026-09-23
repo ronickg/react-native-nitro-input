@@ -1,6 +1,6 @@
 import React from 'react'
 import { Text, type TextStyle } from 'react-native'
-import { RollingNumber, type RollingNumberHandle } from 'react-native-nitro-rolling-number'
+import { RollingNumber, type RollingNumberHandle } from 'react-native-nitro-input'
 import { NumberFlow } from 'number-flow-react-native'
 import { SkiaNumberFlow } from 'number-flow-react-native/skia'
 import { Canvas, type SkFont } from '@shopify/react-native-skia'
@@ -49,21 +49,21 @@ export const IMPLS: Impl[] = [
     key: 'nitro-prop',
     label: 'Nitro value prop',
     short: 'Nitro prop',
-    package: 'react-native-nitro-rolling-number',
+    package: 'react-native-nitro-input',
     how: 'RollingNumber driven by its value prop: a React render per update, then one JSI call.',
   },
   {
     key: 'nitro-jump',
     label: 'Nitro jumpTo',
     short: 'Nitro jumpTo',
-    package: 'react-native-nitro-rolling-number',
+    package: 'react-native-nitro-input',
     how: 'ref.jumpTo(value): one JSI call per update, no React render.',
   },
   {
     key: 'nitro-numeric',
     label: 'Nitro numeric transition',
     short: 'Nitro numeric',
-    package: 'react-native-nitro-rolling-number',
+    package: 'react-native-nitro-input',
     how: 'RollingNumber driven by its value prop with transition="numeric": each changed digit swaps in place, scaled, faded and blurred, after SwiftUI.',
   },
   {

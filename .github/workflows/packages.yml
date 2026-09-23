@@ -61,7 +61,7 @@ jobs:
       - name: NDK
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;27.1.12297006" > /dev/null'
       - uses: gradle/actions/setup-gradle@v4
-      # Both libraries' Kotlin and JNI, for the one ABI the emulators use. The
+      # The library's Kotlin and JNI, for the one ABI the emulators use. The
       # example app itself is not assembled: what this guards is that the
       # library code compiles, and the app would triple the time.
       - name: Compile
@@ -69,7 +69,6 @@ jobs:
         run: >
           ./gradlew
           :react-native-nitro-input:assembleDebug
-          :react-native-nitro-rolling-number:assembleDebug
           -PreactNativeArchitectures=arm64-v8a
           --no-daemon
 

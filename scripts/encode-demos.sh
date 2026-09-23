@@ -23,7 +23,7 @@ TRIM_ios_rolling="10.4 12.0"
 TRIM_ios_reveal="4.95 13.8"
 TRIM_android_rolling="2.0 12.0"
 TRIM_android_reveal="2.2 15.0"
-# The morph showcase types, backspaces, reshapes and clears on an 8.8 s loop;
+# The reflow showcase types, backspaces, reshapes and clears on an 8.8 s loop;
 # the window is one whole turn of it, which the <video loop> repeats.
 TRIM_ios_input="1.55 8.8"
 TRIM_android_input="2.35 8.8"

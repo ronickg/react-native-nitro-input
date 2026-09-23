@@ -23,4 +23,16 @@ public final class NitroInputAutolinking {
   public static func isNitroInputViewRecyclable() -> Bool {
     return HybridNitroInputView.self is any RecyclableView.Type
   }
+  
+  public static func createRollingNumberView() -> bridge.std__shared_ptr_HybridRollingNumberViewSpec_ {
+    let hybridObject = HybridRollingNumberView()
+    return { () -> bridge.std__shared_ptr_HybridRollingNumberViewSpec_ in
+      let __cxxWrapped = hybridObject.getCxxWrapper()
+      return __cxxWrapped.getCxxPart()
+    }()
+  }
+  
+  public static func isRollingNumberViewRecyclable() -> Bool {
+    return HybridRollingNumberView.self is any RecyclableView.Type
+  }
 }
