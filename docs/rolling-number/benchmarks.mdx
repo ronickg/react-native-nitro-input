@@ -25,7 +25,7 @@ matrix is in the package changelog, and everything here is measured after it.
 seconds. UI = main-thread frames per second and how many the main thread
 missed; JS = frames per second the JS thread still managed:
 
-<BenchChart group="stream|24|frame" metrics={['ui.fps', 'ui.dropped', 'js.fps', 'cpu.main', 'cpu.js']} caption="Hover a bar for every column of its row; the table has the same figures." />
+<BenchChart group="stream|24|frame" metrics={['ui.fps', 'ui.dropped', 'js.fps']} caption="Hover a bar for every column of its row; the table has the same figures." />
 
 | Implementation | iPhone 13 Pro Max, 120 Hz | iPhone 11 Pro, 60 Hz | Galaxy A22, 90 Hz |
 | --- | --- | --- | --- |
@@ -189,8 +189,6 @@ re-rendering), `react-native-countup-component`, `react-native-rolling-number-ti
 
 ## iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
-<BenchChart device="iPhone14,3" groups={['stream|24|frame', 'stream|24|10', 'stream|1|frame']} metrics={['ui.fps', 'ui.dropped', 'js.fps', 'cpu.main', 'cpu.js']} />
-
 | Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | runs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Text (no animation) | 120.0 | 0 | 8 | 60.0 | 47 % | 26 % | 20 % | 3 |
@@ -255,8 +253,6 @@ into a 120 Hz UI thread.
 
 ## iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
 
-<BenchChart device="iPhone12,3" groups={['stream|24|frame', 'stream|24|10', 'stream|1|frame']} metrics={['ui.fps', 'ui.dropped', 'js.fps', 'cpu.main', 'cpu.js']} />
-
 | Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | runs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Text (no animation) | 59.9 | 0 | 17 | 59.9 | 41 % | 24 % | 15 % | 3 |
@@ -316,8 +312,6 @@ Ten values a second is the live-ticker case: the differences stay the same,
 only smaller, and `jumpTo` runs the whole screen at 10 % of a core.
 
 ## Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
-
-<BenchChart device="SM-A225F" groups={['stream|24|frame', 'stream|24|10', 'stream|1|frame']} metrics={['ui.fps', 'ui.dropped', 'js.fps', 'cpu.main', 'cpu.js']} />
 
 | Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | RenderThread | HWUI janky (of frames drawn) | runs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -412,7 +406,7 @@ NumberFlow View to 0.5–3 fps with a JS thread at 0.5–2 frames a second, and
 the Skia renderers to 35–60, because each row mounting on the way in is a
 whole digit tree or a canvas to create, on top of the updates.
 
-<BenchChart group="list|200|10" metrics={['ui.fps', 'ui.dropped', 'js.fps', 'cpu.main', 'cpu.js']} />
+<BenchChart group="list|200|10" metrics={['ui.fps', 'ui.dropped', 'js.fps']} />
 
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
@@ -493,7 +487,7 @@ mounts rows as they scroll, the list section above is the measurement that
 matters, and there the same views are the ones that keep the list at the
 panel's rate.
 
-<BenchChart group="mount|24" metrics={['mountMs.p50', 'unmountMs.p50', 'mountMainMs', 'mountJsMs']} />
+<BenchChart group="mount|24" metrics={['mountMs.p50']} />
 
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
@@ -706,8 +700,6 @@ flatter.
 
 ### A list scrolling for 30 seconds
 
-<BenchChart group="leaklist|200" metrics={['growthKbPerSecond']} caption="Footprint growth per second of scrolling, after the first six seconds. A negative figure is a footprint that fell over the run, nothing to draw; a bar is what kept rising." />
-
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
 | Implementation | footprint, start | footprint, end | peak | growth per second | malloc heap, start → end | runs |
@@ -760,8 +752,6 @@ flatter.
 | AnimatedNumbers | 915.5 MB | 892.6 MB | 1043.1 MB | -1868.4 KB | 393.8 → 323.3 MB | 1694 → 1088 | 1 |
 
 ### What one copy costs
-
-<BenchChart group="footprint|100" metrics={['perViewFootprintKb', 'perViewNativeKb', 'perViewJavaKb', 'leftFootprintKb']} caption="Medians of three interleaved rounds on the Galaxy A22, the first mount on the iPhones; the Java heap is Android only." />
 
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
