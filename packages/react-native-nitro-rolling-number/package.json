@@ -1,6 +1,6 @@
 {
   "name": "react-native-nitro-rolling-number",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Native rolling number (odometer / ticker) view for React Native, built with Nitro. Digits roll natively when the value changes; supports currency prefix/suffix, shrink-to-fit and a loading shimmer.",
   "main": "lib/commonjs/src/index.js",
   "module": "lib/module/src/index.js",
