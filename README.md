@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://ronickg.github.io/react-native-nitro-rolling-number/"><b>Docs &amp; live demos</b></a> ·
+  <a href="https://ronickg.github.io/react-native-nitro-input/"><b>Docs &amp; live demos</b></a> ·
   <a href="BENCHMARKS.md">Benchmarks</a>
 </p>
 
@@ -19,9 +19,9 @@
       <p>An odometer for React Native. Every digit is a wheel driven by one C++ engine, with currency layouts, shrink-to-fit, a loading shimmer and the jackpot reveal.</p>
       <p>
         <a href="#rolling-number">Below</a> ·
-        <a href="https://ronickg.github.io/react-native-nitro-rolling-number/rolling-number/getting-started">Guide</a> ·
-        <a href="https://ronickg.github.io/react-native-nitro-rolling-number/rolling-number/reveal">Jackpot reveal</a> ·
-        <a href="https://ronickg.github.io/react-native-nitro-rolling-number/rolling-number/benchmarks">Benchmarks</a> ·
+        <a href="https://ronickg.github.io/react-native-nitro-input/rolling-number/getting-started">Guide</a> ·
+        <a href="https://ronickg.github.io/react-native-nitro-input/rolling-number/reveal">Jackpot reveal</a> ·
+        <a href="https://ronickg.github.io/react-native-nitro-input/rolling-number/benchmarks">Benchmarks</a> ·
         <a href="packages/react-native-nitro-input/README.md#rollingnumber">API reference</a>
       </p>
     </td>
@@ -31,10 +31,10 @@
       <p>A native text input. The system keyboard and accessibility stay; amounts are formatted and masks applied in C++ before a frame is drawn, the floating label is native, and the reflow is there when you turn it on.</p>
       <p>
         <a href="#text-input">Below</a> ·
-        <a href="https://ronickg.github.io/react-native-nitro-rolling-number/input">Guide</a> ·
-        <a href="https://ronickg.github.io/react-native-nitro-rolling-number/input/amount-field">Amount field</a> ·
-        <a href="https://ronickg.github.io/react-native-nitro-rolling-number/input/masked-field">Masks</a> ·
-        <a href="https://ronickg.github.io/react-native-nitro-rolling-number/input/benchmarks">Benchmarks</a> ·
+        <a href="https://ronickg.github.io/react-native-nitro-input/input">Guide</a> ·
+        <a href="https://ronickg.github.io/react-native-nitro-input/input/amount-field">Amount field</a> ·
+        <a href="https://ronickg.github.io/react-native-nitro-input/input/masked-field">Masks</a> ·
+        <a href="https://ronickg.github.io/react-native-nitro-input/input/benchmarks">Benchmarks</a> ·
         <a href="packages/react-native-nitro-input/README.md#nitroinput">API reference</a>
       </p>
     </td>
@@ -83,7 +83,7 @@ import { RollingNumber } from 'react-native-nitro-input'
 />
 ```
 
-Change `value` and the digits roll. `ref.current.jumpTo(v)` positions the wheels continuously for scrubbing, `animateTo(v)` rolls, `revealTo(v)` plays a jackpot reveal. [Guide →](https://ronickg.github.io/react-native-nitro-rolling-number/rolling-number/getting-started) · [Every prop →](https://ronickg.github.io/react-native-nitro-rolling-number/rolling-number/props)
+Change `value` and the digits roll. `ref.current.jumpTo(v)` positions the wheels continuously for scrubbing, `animateTo(v)` rolls, `revealTo(v)` plays a jackpot reveal. [Guide →](https://ronickg.github.io/react-native-nitro-input/rolling-number/getting-started) · [Every prop →](https://ronickg.github.io/react-native-nitro-input/rolling-number/props)
 
 ### Jackpot reveal
 
@@ -105,7 +105,7 @@ Change `value` and the digits roll. `ref.current.jumpTo(v)` positions the wheels
 />
 ```
 
-The count follows how slot machines present a win: a constant-rate tally per tier that winds up out of each milestone and crawls into the next, a figure that opens smaller and grows as it climbs, and punches that settle without dipping under the resting size. `jumpTo(value)` skips (tap to slam). Banners, confetti and sounds stay in the app: the callbacks give you the beats. [Guide →](https://ronickg.github.io/react-native-nitro-rolling-number/rolling-number/reveal)
+The count follows how slot machines present a win: a constant-rate tally per tier that winds up out of each milestone and crawls into the next, a figure that opens smaller and grows as it climbs, and punches that settle without dipping under the resting size. `jumpTo(value)` skips (tap to slam). Banners, confetti and sounds stay in the app: the callbacks give you the beats. [Guide →](https://ronickg.github.io/react-native-nitro-input/rolling-number/reveal)
 
 ### Performance
 
@@ -128,7 +128,7 @@ Release builds on real phones, 24 copies fed a new value on every frame, frames 
 | react-native-animated-numbers | 116 fps (21 dropped) | 56.7 fps (16 dropped) | 51.2 fps (199 dropped) |
 | react-native-ticker | 11.8 fps (544 dropped) | 7.6 fps (258 dropped) | 12.6 fps (379 dropped) |
 
-Method, the JS-thread and CPU columns, the ten-a-second and one-copy cases, a scrolling list, mount cost and the Instruments cross-check: [BENCHMARKS.md](BENCHMARKS.md); the same tables as charts you can hover and switch between metrics: [the benchmark pages of the docs](https://ronickg.github.io/react-native-nitro-rolling-number/rolling-number/benchmarks).
+Method, the JS-thread and CPU columns, the ten-a-second and one-copy cases, a scrolling list, mount cost and the Instruments cross-check: [BENCHMARKS.md](BENCHMARKS.md); the same tables as charts you can hover and switch between metrics: [the benchmark pages of the docs](https://ronickg.github.io/react-native-nitro-input/rolling-number/benchmarks).
 
 ## Text input
 
@@ -159,7 +159,7 @@ import { NitroInput } from 'react-native-nitro-input'
 <NitroInput transition="reflow" mode="number" prefix="$" prefixFontSize={28} affixAlign="top" placeholder="0" fontSize={48} fontWeight="700" textAlign="center" style={{ width: '100%' }} onChangeValue={setAmount} />
 ```
 
-[Guide and live demo →](https://ronickg.github.io/react-native-nitro-rolling-number/input) · [Every prop →](https://ronickg.github.io/react-native-nitro-rolling-number/input/props)
+[Guide and live demo →](https://ronickg.github.io/react-native-nitro-input/input) · [Every prop →](https://ronickg.github.io/react-native-nitro-input/input/props)
 
 ### Performance
 
@@ -174,7 +174,7 @@ Typed into at eight keys a second by the benchmark probe, the way a keyboard typ
 | react-native-mask-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 66 ms, JS 11 ms/key | 10 of 12 keys, 66 ms, JS 41 ms/key |
 | TextInput (plain, no formatting) | 0 of 12 keys, 0 ms, JS 6 ms/key | 0 of 12 keys, 0 ms, JS 8 ms/key | 0 of 12 keys, 0 ms, JS 22 ms/key |
 
-Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inputs); as charts: [the input benchmarks page](https://ronickg.github.io/react-native-nitro-rolling-number/input/benchmarks).
+Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inputs); as charts: [the input benchmarks page](https://ronickg.github.io/react-native-nitro-input/input/benchmarks).
 
 ## Repository
 

@@ -4,7 +4,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
-const GITHUB = 'https://github.com/ronickg/react-native-nitro-rolling-number';
+const GITHUB = 'https://github.com/ronickg/react-native-nitro-input';
 const EDIT_URL = `${GITHUB}/tree/main/docs/`;
 
 /** Pages that used to live under /docs, now split across the two sections. */
@@ -35,9 +35,9 @@ const config: Config = {
   },
 
   url: 'https://ronickg.github.io',
-  baseUrl: '/react-native-nitro-rolling-number/',
+  baseUrl: '/react-native-nitro-input/',
   organizationName: 'ronickg',
-  projectName: 'react-native-nitro-rolling-number',
+  projectName: 'react-native-nitro-input',
   trailingSlash: false,
 
   onBrokenLinks: 'throw',
