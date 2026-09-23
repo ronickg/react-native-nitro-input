@@ -17,7 +17,10 @@ import com.facebook.proguard.annotations.DoNotStrip
 @Keep
 enum class RollingNumberTransition(@DoNotStrip @Keep val value: Int) {
   ROLL(0),
-  NUMERIC(1);
+  NUMERIC(1),
+  FLIP(2),
+  SCRAMBLE(3),
+  MORPH(4);
 
   companion object
 }

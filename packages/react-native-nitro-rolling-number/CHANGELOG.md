@@ -20,6 +20,31 @@
   is a native re-implementation of it for React Native `Text` if a whole
   text should transition rather than a rolling number.
 
+- Three more transitions on the same machinery. `transition="flip"` is a
+  split-flap board: each changed digit flips card by card through the digits
+  between at the board's constant rate, the flap turning about the centre
+  line with perspective (Core Animation on iOS, a `Camera` on Android, a
+  squash in the docs' canvas). `"scramble"` shows a different random digit
+  every few frames, never the one a wheel is leaving or arriving at, until
+  each changed digit locks on its target from the left; the engine does all
+  of it, a renderer draws its strip as usual. `"morph"` turns the outline of
+  the old glyph into the new one point by point: `GlyphMorph` (C++) resamples
+  every contour of a glyph's outline to 64 points by arc length, one winding,
+  a stable start, pairs contours by size and lets an unpaired one close onto
+  or open from its centre, and the platforms fill the interpolated outline
+  even-odd from CoreText's glyph path (iOS) or `getTextPath` (Android). The
+  morph is native only; the docs' canvas shows the numeric transition for it.
+  Each swap style has its own `duration` / `easing` / `stagger` defaults.
+
+- The change flash and the pop, with any transition. `flashUpColor` /
+  `flashDownColor` light every digit whose glyph changes in the up or the
+  down colour and fade it back over `flashDuration`; a snap under Reduce
+  Motion still flashes, a `jumpTo` never does. `popOnChange` punches the
+  whole figure on every change, rung out like the reveal's landing pop and
+  folded into the same scale the renderers already apply. Both are engine
+  state (`Wheel::flash`, `revealScale()`), so every renderer reads them the
+  same way.
+
 ## 0.1.0
 
 - Android: the digit strip is a software-rendered bitmap inside a layer, and

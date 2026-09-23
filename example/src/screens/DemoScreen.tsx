@@ -410,12 +410,16 @@ function MorphInputDemo() {
   )
 }
 
+const TRANSITIONS = ['roll', 'numeric', 'flip', 'scramble', 'morph'] as const
+
 function ReactDrivenDemo() {
   const [value, setValue] = useState(1234.5)
   const [mounted, setMounted] = useState(true)
-  const [numeric, setNumeric] = useState(false)
+  const [transitionIndex, setTransitionIndex] = useState(0)
+  const [effects, setEffects] = useState(false)
+  const transition = TRANSITIONS[transitionIndex]!
   return (
-    <Section title="React prop" hint="Change `value`, the digits roll natively. Fits the card: full size until it would overflow, then it shrinks. Numeric: each changed glyph swaps in place instead (SwiftUI's numericText).">
+    <Section title="React prop" hint="Change `value`, the digits roll natively. Fits the card: full size until it would overflow, then it shrinks. The transition button cycles roll → numeric (SwiftUI's numericText) → flip (split-flap) → scramble → morph; effects adds the change flash and a pop.">
       <View style={styles.display}>
         {mounted ? (
         <RollingNumber
@@ -426,11 +430,11 @@ function ReactDrivenDemo() {
           fontSize={52}
           fontWeight="700"
           color="#0A84FF"
-          transition={numeric ? 'numeric' : 'roll'}
-          easing="spring"
-          bounce={0.2}
-          duration={numeric ? 450 : 700}
-          stagger={40}
+          transition={transition}
+          flashUpColor={effects ? '#16a34a' : undefined}
+          flashDownColor={effects ? '#dc2626' : undefined}
+          popOnChange={effects ? 0.08 : 0}
+          {...(transition === 'roll' ? { easing: 'spring' as const, bounce: 0.2, duration: 700, stagger: 40 } : {})}
           adjustsFontSizeToFit
           minimumFontScale={0.35}
           style={styles.fitCard}
@@ -450,7 +454,8 @@ function ReactDrivenDemo() {
         <Button title="Negate" onPress={() => setValue((v) => -v)} />
         <Button title="Reset" onPress={() => setValue(1234.5)} />
         <Button title={mounted ? 'Unmount' : 'Remount'} onPress={() => setMounted((m) => !m)} />
-        <Button title={numeric ? 'Transition: numeric' : 'Transition: roll'} onPress={() => setNumeric((n) => !n)} testID="react-driven-transition" />
+        <Button title={`Transition: ${transition}`} onPress={() => setTransitionIndex((i) => (i + 1) % TRANSITIONS.length)} testID="react-driven-transition" />
+        <Button title={effects ? 'Effects: flash + pop' : 'Effects: off'} onPress={() => setEffects((e) => !e)} testID="react-driven-effects" />
       </View>
     </Section>
   )

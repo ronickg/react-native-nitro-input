@@ -25,6 +25,8 @@ public:
   void setFormat(int fractionDigits, int minimumIntegerDigits);
   void setTiming(double durationSeconds, int easing, double bounce, double staggerSeconds, int direction);
   void setTransition(int transition);
+  void setFlash(double seconds);
+  void setPopOnChange(double overshoot);
   void setReduceMotion(bool reduceMotion);
   void setValue(double value);
   void animateTo(double value, double now);

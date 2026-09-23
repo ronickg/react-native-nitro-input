@@ -50,24 +50,50 @@ import { RollingNumber } from 'react-native-nitro-rolling-number'
 Whenever `value` changes, each digit rolls from its old glyph to its new one in
 the direction of the change. The first value is shown without animation.
 
-### The numeric transition
+### The transitions
 
 ```tsx
 <RollingNumber value={count} transition="numeric" fontSize={48} fontWeight="700" />
+<RollingNumber value={count} transition="flip" />
+<RollingNumber value={count} transition="scramble" />
+<RollingNumber value={count} transition="morph" />
 ```
 
-The other way a change can play, after SwiftUI's
-`.contentTransition(.numericText())`: instead of rolling through the digits
-between, each changed glyph swaps in place. The old one softens, shrinks and
-slides out; the new one slides in from the other side, a little small and out
-of focus, and resolves. The glyphs move up when the value grows and down when
-it shrinks (`direction` overrides that), the change cascades from the
-leftmost digit to the right (`stagger`, 50 ms by default here), and digits
-that don't change stay put. `duration` and `easing` apply as to a roll, with
-their own defaults of 450 ms and `'spring'`. The blur is real on all three
-platforms: a blurred copy of each glyph rendered once per font and
-cross-faded with the sharp one, so a frame of the transition costs the same
-as a frame of a roll.
+The roll is the default. The others swap each changed glyph in place, digits
+that don't change staying put, the change cascading from the leftmost changed
+digit to the right (`stagger`); `duration` and `easing` apply to all of them,
+each with its own defaults.
+
+- **`numeric`**, after SwiftUI's `.contentTransition(.numericText())`: the
+  old glyph softens, shrinks and slides out; the new one slides in from the
+  other side, a little small and out of focus, and resolves. The glyphs move
+  up when the value grows and down when it shrinks (`direction` overrides
+  that). The blur is real on all three platforms: a blurred copy of each
+  glyph rendered once per font and cross-faded with the sharp one, so a frame
+  costs the same as a frame of a roll.
+- **`flip`**, a split-flap departure board: each changed digit flips card by
+  card through the digits between, at the board's constant rate, the flap
+  turning about the centre line with a little perspective, falling for a
+  bigger value and rising for a smaller one.
+- **`scramble`**: each changed digit shows a different random digit every
+  few frames, never the one it is leaving or arriving at, and locks on its
+  target; the lock runs from the left.
+- **`morph`**: the outline of the old glyph turns into the outline of the new
+  one, point by point, the second hole of an 8 closing as it becomes a 0. The
+  glyph outlines come from the platform's font engine, so this one is iOS and
+  Android only; the docs' web demo shows the numeric transition for it.
+
+Two more things happen on a change if you ask for them, with any transition:
+
+```tsx
+<RollingNumber value={price} flashUpColor="#16a34a" flashDownColor="#dc2626" popOnChange={0.08} />
+```
+
+`flashUpColor` / `flashDownColor` is the change flash of a trading screen:
+every digit whose glyph changes lights up in the up colour when the value grew
+and the down colour when it shrank, fading back over `flashDuration` (600 ms).
+`popOnChange` punches the whole figure on every change, its peak overshoot as
+a fraction of the size, rung out like the reveal's landing pop.
 
 ### Currency layouts and fitting a width
 
@@ -168,7 +194,10 @@ scroll or drag handler drives the number.
 | `easing` | `'linear' \| 'easeIn' \| 'easeOut' \| 'easeInOut' \| 'spring'` | `'easeInOut'` | Roll timing curve. A value that arrives while the wheels are still rolling continues with the ease-out half of the curve, so rapid updates never stall. |
 | `bounce` | `number` | `0.15` | Overshoot of the `spring` easing (0–1). |
 | `stagger` | `number` | `0` | ms between the start of each digit's roll (least significant first), a cascading carry; from the left in the numeric transition, where it defaults to `50`. |
-| `transition` | `'roll' \| 'numeric'` | `'roll'` | How a change plays: the odometer roll, or the numeric transition (each changed glyph swaps in place, SwiftUI's `numericText`); the latter defaults to `duration` 450, `easing` `'spring'`, `stagger` 50. |
+| `transition` | `'roll' \| 'numeric' \| 'flip' \| 'scramble' \| 'morph'` | `'roll'` | How a change plays: the odometer roll; the numeric transition (each changed glyph swaps in place, SwiftUI's `numericText`); a split-flap board; a scramble that locks from the left; or an outline morph (native only). Each swap style has its own `duration` / `easing` / `stagger` defaults (numeric 450 / spring / 50, flip 600 / linear / 40, scramble 500 / linear / 60, morph 400 / easeInOut / 40). |
+| `flashUpColor`, `flashDownColor` | `ColorValue` | unset | The change flash: digits whose glyph changes light up in the up colour when the value grew, the down colour when it shrank, fading back over `flashDuration`. Unset: no flash. |
+| `flashDuration` | `number` | `600` | ms a change flash takes to fade. |
+| `popOnChange` | `number` | `0` | A punch of the whole figure on every change, peak overshoot 0–1, rung out like the reveal's landing pop. |
 | `direction` | `'auto' \| 'up' \| 'down'` | `'auto'` | Roll direction; `auto` follows the sign of the change. |
 | `reveal` | `boolean` | – | `false` holds the opening frame (`$0.00` in the final layout); `true` plays the reveal to `value`. Unset = a normal rolling number. |
 | `revealStyle` | `'count' \| 'spin'` | `'count'` | The win-meter rollup, or slot reels locking from the left. |

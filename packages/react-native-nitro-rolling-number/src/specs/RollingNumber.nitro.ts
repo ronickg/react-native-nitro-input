@@ -29,9 +29,14 @@ export type RollingNumberDirection = 'auto' | 'up' | 'down'
  * numeric transition of SwiftUI's `.contentTransition(.numericText())`: each
  * changed glyph swaps in place, the old one softening, shrinking and sliding
  * out while the new one slides in from the other side and comes into focus,
- * digits cascading from the left; the unchanged digits stay put.
+ * digits cascading from the left; the unchanged digits stay put. `'flip'` is
+ * a split-flap board: each changed digit flips card by card through the
+ * digits between, the flap turning about the centre line. `'scramble'` shows
+ * a different random digit every few frames until each changed digit locks
+ * on its target, from the left. `'morph'` interpolates the outline of the old
+ * glyph into the new one (iOS and Android; the web demo shows `'numeric'`).
  */
-export type RollingNumberTransition = 'roll' | 'numeric'
+export type RollingNumberTransition = 'roll' | 'numeric' | 'flip' | 'scramble' | 'morph'
 
 /**
  * How a jackpot reveal plays: `'count'` is the casino win-meter rollup (the
@@ -95,6 +100,22 @@ export interface RollingNumberProps extends HybridViewProps {
    * (glyphs swap in place). Default: `'roll'`.
    */
   transition?: RollingNumberTransition
+  /**
+   * The change flash: every digit whose glyph changes lights up in this
+   * colour when the value grew, fading back over `flashDuration`. A processed
+   * ARGB integer; `Infinity` (the wrapper's "unset") turns the flash off.
+   */
+  flashUpColor?: number
+  /** The change flash's colour when the value shrank. `Infinity` = off. */
+  flashDownColor?: number
+  /** Milliseconds a change flash takes to fade. Default: `600`. */
+  flashDuration?: number
+  /**
+   * A punch of the whole figure on every value change, its peak overshoot
+   * as a fraction of the size, `0` (none, the default) to `1`; rung out like
+   * the reveal's landing pop.
+   */
+  popOnChange?: number
   /**
    * Which way the digits roll. Default: `'auto'`.
    *

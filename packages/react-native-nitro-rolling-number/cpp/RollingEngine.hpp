@@ -46,6 +46,11 @@ public:
     double toGlyph = -1;
     double blend = 1;
     bool fromAbove = true;
+    /// The change flash (`setFlash`): 1 the moment this wheel's glyph changed,
+    /// fading to 0; a renderer tints the glyph towards the up or the down
+    /// colour by this much. `flashUp`: the value grew.
+    double flash = 0;
+    bool flashUp = true;
   };
 
   // The numeric transition as the renderers draw it, in line heights, so all
@@ -64,9 +69,26 @@ public:
   static constexpr double kNumericScale = 0.6;
   static constexpr double kNumericBlur = 0.16;
 
+  // The other glyph-swap transitions reuse the same fields:
+  //   flip (2), a split-flap board: the wheel steps through every card
+  //     between its old and its new glyph in the direction of the change,
+  //     `fromGlyph` the card showing, `toGlyph` the next one, `blend` how far
+  //     the flap has fallen (0 hanging, 1 landed). A renderer draws the top
+  //     half of the next card and the bottom half of the current one, with
+  //     the flap (the current card's top on its front, the next card's bottom
+  //     on its back) turning about the centre line.
+  //   scramble (3): the wheel shows a different random digit every
+  //     kScrambleStepSeconds until it locks on its target; `position` is that
+  //     digit and `blend` stays 1, so a renderer needs nothing new.
+  //   morph (4): planned exactly like the numeric transition; a renderer
+  //     interpolates the outline of `fromGlyph` into that of `toGlyph` by
+  //     `blend` (see GlyphMorph.hpp) instead of cross-fading.
+  static constexpr double kScrambleStepSeconds = 0.045;
+
   // Easing: 0 linear, 1 easeIn, 2 easeOut, 3 easeInOut, 4 spring.
   // Direction: 0 auto (sign of the change), 1 up, 2 down.
-  // Transition: 0 roll (the odometer), 1 numeric (glyphs swap in place).
+  // Transition: 0 roll (the odometer), 1 numeric (glyphs swap in place),
+  // 2 flip (split-flap), 3 scramble, 4 morph (outlines).
 
   RollingEngine();
 
@@ -84,6 +106,13 @@ public:
   /// next `animateTo`.
   void setTransition(int transition);
   int transition() const { return transitionStyle_; }
+  /// The change flash: every digit whose glyph changes lights up and fades
+  /// back over `seconds` (`Wheel::flash`). 0 turns it off. A jump
+  /// (`setValue`) never flashes; a reveal's count never does either.
+  void setFlash(double seconds);
+  /// A punch of the whole figure on every value change, `overshoot` 0 (none)
+  /// to 1, rung out like the reveal's landing pop; part of `revealScale()`.
+  void setPopOnChange(double overshoot);
   /// Reduce Motion / "remove animations": rolls snap and the shimmer freezes.
   void setReduceMotion(bool reduceMotion);
 
@@ -142,9 +171,9 @@ public:
   void reveal(double value, double now);
   /// True while a reveal counts or its landing pop rings out.
   bool isRevealing() const { return reveal_.active; }
-  /// Scale of the figure during a reveal (its growth times the punches),
-  /// about its centre; 1 when idle.
-  double revealScale() const { return revealScale_; }
+  /// Scale of the figure about its centre: a reveal's growth times its
+  /// punches, times the change pop (`setPopOnChange`); 1 when idle.
+  double revealScale() const { return revealScale_ * popScale_; }
   /// Wall-clock length of a whole reveal (count, milestone holds, landing pop).
   double revealTotalSeconds() const;
 
@@ -218,8 +247,15 @@ private:
     /// roll skips the ease-in half of the curve so rapid updates keep flowing
     /// instead of restarting from rest on every call.
     bool fromMotion = false;
-    /// The numeric transition: wheels blend between glyphs instead of rolling.
+    /// The transition style this was planned with (see `setTransition`).
+    int style = 0;
+    /// Any glyph-swap style: wheels blend between glyphs instead of rolling.
     bool numeric = false;
+  };
+  /// One wheel's change flash: when its glyph last changed, and which way.
+  struct Flash {
+    double start = -1;
+    bool up = true;
   };
 
   /// One slot reel of a spin-style reveal (index 0 is the leftmost digit).
@@ -258,6 +294,9 @@ private:
   void planRoll(Transition& next, const Target& target, bool increasing, int count, int mandatory) const;
   void planNumeric(Transition& next, const Target& target, bool increasing, int count, int mandatory) const;
   void apply(double elapsed);
+  /// The flash and the pop follow the clock, not the transition: they keep
+  /// fading after a roll has finished or a snap had none.
+  void applyEffects(double now);
   void finish();
   void cancelReveal();
   void planReels();
@@ -286,6 +325,8 @@ private:
   double stagger_ = 0;
   int direction_ = 0;
   int transitionStyle_ = 0;
+  double flashSeconds_ = 0;
+  double popOnChange_ = 0;
   bool reduceMotion_ = false;
   double revealDuration_ = 2.2;
   double revealBounce_ = 0.12;
@@ -306,6 +347,13 @@ private:
   Transition transition_;
   Reveal reveal_;
   double revealScale_ = 1;
+  /// Per wheel (least significant first), kept across transitions.
+  std::vector<Flash> flashes_;
+  double popStart_ = -1;
+  double popScale_ = 1;
+  /// The clock of the last `tick`, for `needsFrames` on the effects.
+  double lastNow_ = 0;
+  bool effectsActive_ = false;
 
   bool loading_ = false;
   double loadingProgress_ = 0;

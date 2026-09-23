@@ -31,6 +31,9 @@ namespace margelo::nitro::nitrorollingnumber {
   enum class RollingNumberTransition {
     ROLL      SWIFT_NAME(roll) = 0,
     NUMERIC      SWIFT_NAME(numeric) = 1,
+    FLIP      SWIFT_NAME(flip) = 2,
+    SCRAMBLE      SWIFT_NAME(scramble) = 3,
+    MORPH      SWIFT_NAME(morph) = 4,
   } CLOSED_ENUM;
 
 } // namespace margelo::nitro::nitrorollingnumber
@@ -45,6 +48,9 @@ namespace margelo::nitro {
       switch (hashString(unionValue.c_str(), unionValue.size())) {
         case hashString("roll"): return margelo::nitro::nitrorollingnumber::RollingNumberTransition::ROLL;
         case hashString("numeric"): return margelo::nitro::nitrorollingnumber::RollingNumberTransition::NUMERIC;
+        case hashString("flip"): return margelo::nitro::nitrorollingnumber::RollingNumberTransition::FLIP;
+        case hashString("scramble"): return margelo::nitro::nitrorollingnumber::RollingNumberTransition::SCRAMBLE;
+        case hashString("morph"): return margelo::nitro::nitrorollingnumber::RollingNumberTransition::MORPH;
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert \"" + unionValue + "\" to enum RollingNumberTransition - invalid value!");
       }
@@ -53,6 +59,9 @@ namespace margelo::nitro {
       switch (arg) {
         case margelo::nitro::nitrorollingnumber::RollingNumberTransition::ROLL: return JSIConverter<std::string>::toJSI(runtime, "roll");
         case margelo::nitro::nitrorollingnumber::RollingNumberTransition::NUMERIC: return JSIConverter<std::string>::toJSI(runtime, "numeric");
+        case margelo::nitro::nitrorollingnumber::RollingNumberTransition::FLIP: return JSIConverter<std::string>::toJSI(runtime, "flip");
+        case margelo::nitro::nitrorollingnumber::RollingNumberTransition::SCRAMBLE: return JSIConverter<std::string>::toJSI(runtime, "scramble");
+        case margelo::nitro::nitrorollingnumber::RollingNumberTransition::MORPH: return JSIConverter<std::string>::toJSI(runtime, "morph");
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert RollingNumberTransition to JS - invalid value: "
                                     + std::to_string(static_cast<int>(arg)) + "!");
@@ -66,6 +75,9 @@ namespace margelo::nitro {
       switch (hashString(unionValue.c_str(), unionValue.size())) {
         case hashString("roll"):
         case hashString("numeric"):
+        case hashString("flip"):
+        case hashString("scramble"):
+        case hashString("morph"):
           return true;
         default:
           return false;

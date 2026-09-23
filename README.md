@@ -53,7 +53,7 @@ Both packages share the same formatting model (prefix and suffix at their own si
 
 - **Native on both platforms.** A `value` change is one JSI call; the roll runs on a `CADisplayLink` (Core Animation layers) or a `Choreographer` (Canvas). A busy JS thread never delays an animation in flight.
 - **Every digit is a wheel.** Shortest path in the direction of the change, columns sliding in and out as the number grows, easing, spring or a cascading stagger.
-- **Or a numeric transition.** `transition="numeric"` plays a change the way SwiftUI's `numericText` does: each changed glyph swaps in place, softening, shrinking and sliding out as the new one slides in and comes into focus, cascading from the left; unchanged digits stay put.
+- **Or another transition.** `transition="numeric"` plays a change the way SwiftUI's `numericText` does: each changed glyph swaps in place, softening, shrinking and sliding out as the new one slides in and comes into focus, cascading from the left; unchanged digits stay put. `"flip"` is a split-flap board, `"scramble"` locks random digits from the left, `"morph"` turns one glyph's outline into the next. A change flash (`flashUpColor` / `flashDownColor`) and a pop (`popOnChange`) go with any of them.
 - **Money-ready.** Fraction digits, grouping and decimal separators, a currency symbol or code at its own size pinned to the top or bottom of the digits, zero padding, negatives.
 - **Fits its box.** Auto-sizes to its content, or shrinks continuously to a fixed width without squeezing digits still on their way out.
 - **Jackpot reveal.** The casino win-meter rollup (tiers that punch and hold, a figure that grows as it climbs) and the slot-reel reveal, all native.

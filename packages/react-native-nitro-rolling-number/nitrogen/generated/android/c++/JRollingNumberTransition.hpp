@@ -48,6 +48,15 @@ namespace margelo::nitro::nitrorollingnumber {
         case RollingNumberTransition::NUMERIC:
           static const auto fieldNUMERIC = clazz->getStaticField<JRollingNumberTransition>("NUMERIC");
           return clazz->getStaticFieldValue(fieldNUMERIC);
+        case RollingNumberTransition::FLIP:
+          static const auto fieldFLIP = clazz->getStaticField<JRollingNumberTransition>("FLIP");
+          return clazz->getStaticFieldValue(fieldFLIP);
+        case RollingNumberTransition::SCRAMBLE:
+          static const auto fieldSCRAMBLE = clazz->getStaticField<JRollingNumberTransition>("SCRAMBLE");
+          return clazz->getStaticFieldValue(fieldSCRAMBLE);
+        case RollingNumberTransition::MORPH:
+          static const auto fieldMORPH = clazz->getStaticField<JRollingNumberTransition>("MORPH");
+          return clazz->getStaticFieldValue(fieldMORPH);
         default:
           std::string stringValue = std::to_string(static_cast<int>(value));
           throw std::invalid_argument("Invalid enum value (" + stringValue + "!");

@@ -165,6 +165,34 @@ namespace margelo::nitro::nitrorollingnumber {
     inline void setTransition(std::optional<RollingNumberTransition> transition) noexcept override {
       _swiftPart.setTransition(transition);
     }
+    inline std::optional<double> getFlashUpColor() noexcept override {
+      auto __result = _swiftPart.getFlashUpColor();
+      return __result;
+    }
+    inline void setFlashUpColor(std::optional<double> flashUpColor) noexcept override {
+      _swiftPart.setFlashUpColor(flashUpColor);
+    }
+    inline std::optional<double> getFlashDownColor() noexcept override {
+      auto __result = _swiftPart.getFlashDownColor();
+      return __result;
+    }
+    inline void setFlashDownColor(std::optional<double> flashDownColor) noexcept override {
+      _swiftPart.setFlashDownColor(flashDownColor);
+    }
+    inline std::optional<double> getFlashDuration() noexcept override {
+      auto __result = _swiftPart.getFlashDuration();
+      return __result;
+    }
+    inline void setFlashDuration(std::optional<double> flashDuration) noexcept override {
+      _swiftPart.setFlashDuration(flashDuration);
+    }
+    inline std::optional<double> getPopOnChange() noexcept override {
+      auto __result = _swiftPart.getPopOnChange();
+      return __result;
+    }
+    inline void setPopOnChange(std::optional<double> popOnChange) noexcept override {
+      _swiftPart.setPopOnChange(popOnChange);
+    }
     inline std::optional<RollingNumberDirection> getRollDirection() noexcept override {
       auto __result = _swiftPart.getRollDirection();
       return __result;

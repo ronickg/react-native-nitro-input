@@ -72,13 +72,38 @@ export interface RollingNumberProps extends Omit<ViewProps, 'children'> {
    * effect of SwiftUI's `.contentTransition(.numericText())`: each changed
    * glyph swaps in place, the old one softening, shrinking and sliding out
    * while the new one slides in from the other side and comes into focus, the
-   * digits cascading from the left; unchanged digits stay put. Its own
-   * defaults: `duration` 450, `easing` `'spring'`, `stagger` 50.
+   * digits cascading from the left; unchanged digits stay put. `'flip'` is a
+   * split-flap board: each changed digit flips card by card through the
+   * digits between, the flap turning about the centre line. `'scramble'`
+   * shows a different random digit every few frames until each changed digit
+   * locks on its target, from the left. `'morph'` interpolates the outline of
+   * the old glyph into the new one, on iOS and Android (the docs' web demo
+   * shows `'numeric'` for it).
+   *
+   * Each swap style has its own defaults for `duration`, `easing` and
+   * `stagger`: numeric 450 / `'spring'` / 50, flip 600 / `'linear'` / 40,
+   * scramble 500 / `'linear'` / 60, morph 400 / `'easeInOut'` / 40.
    */
   transition?: RollingNumberTransition
-  /** Duration in ms of the roll played when `value` changes. `0` snaps. Default: `500` (`450` for the numeric transition). */
+  /**
+   * The change flash: every digit whose glyph changes lights up in this
+   * colour when the value grew (e.g. a green), fading back over
+   * `flashDuration`. Unset: no flash.
+   */
+  flashUpColor?: ColorValue
+  /** The change flash's colour when the value shrank (e.g. a red). Unset: no flash. */
+  flashDownColor?: ColorValue
+  /** Milliseconds a change flash takes to fade. Default: `600`. */
+  flashDuration?: number
+  /**
+   * A punch of the whole figure on every value change, its peak overshoot
+   * as a fraction of the size, `0` (none, the default) to `1`; rung out like
+   * the reveal's landing pop. `0.08` is a nudge, `0.2` a slam.
+   */
+  popOnChange?: number
+  /** Duration in ms of the roll played when `value` changes. `0` snaps. Default: `500` (each swap transition has its own, see `transition`). */
   duration?: number
-  /** Timing curve of the roll. Default: `'easeInOut'` (`'spring'` for the numeric transition). */
+  /** Timing curve of the roll. Default: `'easeInOut'` (each swap transition has its own, see `transition`). */
   easing?: RollingNumberEasing
   /** Overshoot of the `'spring'` easing, `0`–`1`. Default: `0.15`. */
   bounce?: number
@@ -252,6 +277,15 @@ interface Size {
   height: number
 }
 
+/** Each transition's own timing, used when the props leave it unsaid. */
+const TRANSITION_DEFAULTS: Record<RollingNumberTransition, { duration: number; easing: RollingNumberEasing; stagger: number }> = {
+  roll: { duration: 500, easing: 'easeInOut', stagger: 0 },
+  numeric: { duration: 450, easing: 'spring', stagger: 50 },
+  flip: { duration: 600, easing: 'linear', stagger: 40 },
+  scramble: { duration: 500, easing: 'linear', stagger: 60 },
+  morph: { duration: 400, easing: 'easeInOut', stagger: 40 },
+}
+
 /**
  * A natively animated rolling number (odometer / ticker).
  *
@@ -272,6 +306,10 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
       prefix,
       suffix,
       transition,
+      flashUpColor,
+      flashDownColor,
+      flashDuration,
+      popOnChange,
       duration,
       easing,
       bounce,
@@ -400,6 +438,8 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
       () => toProcessedColor(shimmerColor) ?? Infinity,
       [shimmerColor]
     )
+    const processedFlashUp = useMemo(() => toProcessedColor(flashUpColor) ?? Infinity, [flashUpColor])
+    const processedFlashDown = useMemo(() => toProcessedColor(flashDownColor) ?? Infinity, [flashDownColor])
     const numericWeight = toNumericWeight(fontWeight) ?? 400
     const resolvedFontSize = fontSize ?? 32
     const resolvedAffixAlign = affixAlign ?? 'baseline'
@@ -434,10 +474,14 @@ export const RollingNumber = forwardRef<RollingNumberHandle, RollingNumberProps>
         prefix={prefix ?? ''}
         suffix={suffix ?? ''}
         transition={transition ?? 'roll'}
-        duration={duration ?? (transition === 'numeric' ? 450 : 500)}
-        easing={easing ?? (transition === 'numeric' ? 'spring' : 'easeInOut')}
+        flashUpColor={processedFlashUp}
+        flashDownColor={processedFlashDown}
+        flashDuration={flashDuration ?? 600}
+        popOnChange={popOnChange ?? 0}
+        duration={duration ?? TRANSITION_DEFAULTS[transition ?? 'roll'].duration}
+        easing={easing ?? TRANSITION_DEFAULTS[transition ?? 'roll'].easing}
         bounce={bounce ?? 0.15}
-        stagger={stagger ?? (transition === 'numeric' ? 50 : 0)}
+        stagger={stagger ?? TRANSITION_DEFAULTS[transition ?? 'roll'].stagger}
         rollDirection={direction ?? 'auto'}
         revealState={reveal === undefined ? 0 : reveal ? 2 : 1}
         revealStyle={revealStyle ?? 'count'}

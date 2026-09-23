@@ -20,6 +20,8 @@ class RollingEngine {
   external fun setFormat(fractionDigits: Int, minimumIntegerDigits: Int)
   external fun setTiming(durationSeconds: Double, easing: Int, bounce: Double, staggerSeconds: Double, direction: Int)
   external fun setTransition(transition: Int)
+  external fun setFlash(seconds: Double)
+  external fun setPopOnChange(overshoot: Double)
   external fun setReduceMotion(reduceMotion: Boolean)
   external fun setValue(value: Double)
   external fun animateTo(value: Double, now: Double)
@@ -40,7 +42,7 @@ class RollingEngine {
   external fun revealMilestoneValue(index: Int): Double
   /**
    * Fills [out] with the render state without allocating:
-   * `[signFactor, loadingProgress, revealScale, wheelCount, (position, width, linear, blankZero, fromGlyph, toGlyph, blend, fromAbove)…]`.
+   * `[signFactor, loadingProgress, revealScale, wheelCount, (position, width, linear, blankZero, fromGlyph, toGlyph, blend, fromAbove, flash, flashUp)…]`.
    * Returns the number of doubles written, or -1 if [out] is too small.
    */
   external fun frameInto(out: DoubleArray): Int

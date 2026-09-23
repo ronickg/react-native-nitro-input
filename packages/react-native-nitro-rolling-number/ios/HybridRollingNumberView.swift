@@ -50,6 +50,10 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
   var prefix: String? { didSet { markConfigDirty() } }
   var suffix: String? { didSet { markConfigDirty() } }
   var transition: RollingNumberTransition? { didSet { markConfigDirty() } }
+  var flashUpColor: Double? { didSet { markConfigDirty() } }
+  var flashDownColor: Double? { didSet { markConfigDirty() } }
+  var flashDuration: Double? { didSet { markConfigDirty() } }
+  var popOnChange: Double? { didSet { markConfigDirty() } }
   var duration: Double? { didSet { markConfigDirty() } }
   var easing: RollingNumberEasing? { didSet { markConfigDirty() } }
   var bounce: Double? { didSet { markConfigDirty() } }
@@ -192,6 +196,10 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
     prefix = nil
     suffix = nil
     transition = nil
+    flashUpColor = nil
+    flashDownColor = nil
+    flashDuration = nil
+    popOnChange = nil
     duration = nil
     easing = nil
     bounce = nil
@@ -303,7 +311,8 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
     typography.maxFontSizeMultiplier = CGFloat(max(0, maxFontSizeMultiplier ?? 0))
 
     var timing = RollingNumberView.Timing()
-    timing.transition = transition == .numeric ? .numeric : .roll
+    timing.transition = Self.mapTransition(transition)
+    timing.popOnChange = min(1, max(0, popOnChange ?? 0))
     timing.duration = max(0, (duration ?? 500) / 1000)
     timing.easing = Self.mapEasing(easing)
     timing.bounce = bounce ?? 0.15
@@ -319,6 +328,12 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
     var shimmer = RollingNumberView.Shimmer()
     shimmer.color = shimmerColor.map(Self.color(fromARGB:))
     shimmer.duration = max(0.2, (shimmerDuration ?? 950) / 1000)
+
+    var flash = RollingNumberView.Flash()
+    flash.upColor = flashUpColor.flatMap(Self.optionalColor(fromARGB:))
+    flash.downColor = flashDownColor.flatMap(Self.optionalColor(fromARGB:))
+    flash.duration = max(0.05, (flashDuration ?? 600) / 1000)
+    rollingView.flash = flash
 
     rollingView.typography = typography
     rollingView.format = format
@@ -360,6 +375,24 @@ final class HybridRollingNumberView: HybridRollingNumberViewSpec, RecyclableView
     let g = CGFloat((bits >> 8) & 0xff) / 255
     let b = CGFloat(bits & 0xff) / 255
     return UIColor(red: r, green: g, blue: b, alpha: a)
+  }
+
+  private static func mapTransition(_ transition: RollingNumberTransition?) -> RollingNumberView.Transition {
+    guard let transition else { return .roll }
+    switch transition {
+    case .roll: return .roll
+    case .numeric: return .numeric
+    case .flip: return .flip
+    case .scramble: return .scramble
+    case .morph: return .morph
+    default: return .roll
+    }
+  }
+
+  /// A colour prop that may be unset (`Infinity`): nil then, unlike `color(fromARGB:)`'s label fallback.
+  private static func optionalColor(fromARGB value: Double) -> UIColor? {
+    guard value.isFinite else { return nil }
+    return color(fromARGB: value)
   }
 
   private static func mapEasing(_ easing: RollingNumberEasing?) -> RollingNumberView.Easing {

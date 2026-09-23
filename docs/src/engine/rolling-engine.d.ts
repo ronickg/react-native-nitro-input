@@ -19,13 +19,17 @@ export type Wheel = {
   fromGlyph: number,
   toGlyph: number,
   blend: number,
-  fromAbove: boolean
+  fromAbove: boolean,
+  flash: number,
+  flashUp: boolean
 };
 
 export interface RollingEngine extends ClassHandle {
   setFormat(_0: number, _1: number): void;
   setTiming(_0: number, _1: number, _2: number, _3: number, _4: number): void;
   setTransition(_0: number): void;
+  setFlash(_0: number): void;
+  setPopOnChange(_0: number): void;
   setReduceMotion(_0: boolean): void;
   setValue(_0: number): void;
   animateTo(_0: number, _1: number): void;

@@ -39,7 +39,7 @@
     "specs": "nitrogen --logLevel=\"debug\"",
     "prepack": "bun run build",
     "test": "jest",
-    "test:cpp": "mkdir -p .cache && clang++ -std=c++20 -O1 -Wall -Wextra -Icpp cpp/RollingEngine.cpp cpp/__tests__/RollingEngineTest.cpp -o .cache/rolling-engine-test && .cache/rolling-engine-test",
+    "test:cpp": "mkdir -p .cache && clang++ -std=c++20 -O1 -Wall -Wextra -Icpp cpp/RollingEngine.cpp cpp/GlyphMorph.cpp cpp/__tests__/RollingEngineTest.cpp cpp/__tests__/GlyphMorphTest.cpp -o .cache/rolling-engine-test && .cache/rolling-engine-test",
     "release": "release-it"
   },
   "keywords": [

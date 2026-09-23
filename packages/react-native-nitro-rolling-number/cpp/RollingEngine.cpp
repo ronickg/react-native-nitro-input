@@ -156,7 +156,15 @@ void RollingEngine::setTiming(double durationSeconds, int easing, double bounce,
 }
 
 void RollingEngine::setTransition(int transition) {
-  transitionStyle_ = transition == 1 ? 1 : 0;
+  transitionStyle_ = transition >= 0 && transition <= 4 ? transition : 0;
+}
+
+void RollingEngine::setFlash(double seconds) {
+  flashSeconds_ = std::max(0.0, seconds);
+}
+
+void RollingEngine::setPopOnChange(double overshoot) {
+  popOnChange_ = clamp01(overshoot);
 }
 
 void RollingEngine::setReduceMotion(bool reduceMotion) {
@@ -215,11 +223,6 @@ void RollingEngine::animateTo(double value, double now) {
   const double previous = targetValue_;
   targetValue_ = value;
   const Target target = makeTarget(value);
-  if (!hasShownValue_ || duration_ <= 0 || reduceMotion_) {
-    snap(target);
-    return;
-  }
-
   bool increasing;
   switch (direction_) {
     case 1:
@@ -232,6 +235,29 @@ void RollingEngine::animateTo(double value, double now) {
       increasing = value >= previous;
       break;
   }
+  if (!hasShownValue_ || duration_ <= 0 || reduceMotion_) {
+    // A snap changes the digits at once; the flash and the pop still say so.
+    const bool first = !hasShownValue_;
+    std::vector<int> before;
+    for (const Wheel& w : wheels_) {
+      before.push_back(shownGlyph(w));
+    }
+    snap(target);
+    if (!first) {
+      flashes_.resize(wheels_.size());
+      for (size_t i = 0; i < wheels_.size(); i++) {
+        const int was = i < before.size() ? before[i] : -1;
+        if (was != shownGlyph(wheels_[i])) {
+          flashes_[i] = Flash{now, increasing};
+        }
+      }
+      if (popOnChange_ > 0) {
+        popStart_ = now;
+      }
+      applyEffects(now);
+    }
+    return;
+  }
   const int mandatory = minimumIntegerDigits_ + fractionDigits_;
   const int currentCount = static_cast<int>(wheels_.size());
   const int count = std::max(currentCount, target.powerCount);
@@ -241,7 +267,8 @@ void RollingEngine::animateTo(double value, double now) {
   next.start = now;
   next.duration = duration_;
   next.fromMotion = transition_.active;
-  next.numeric = transitionStyle_ == 1;
+  next.style = transitionStyle_;
+  next.numeric = transitionStyle_ != 0;
   next.wheels.reserve(static_cast<size_t>(count));
   next.finals.reserve(static_cast<size_t>(target.powerCount));
   next.delays.reserve(static_cast<size_t>(count));
@@ -285,8 +312,24 @@ void RollingEngine::animateTo(double value, double now) {
   next.signFrom = signFactor_;
   next.signTo = target.negative ? 1.0 : 0.0;
 
+  // The change flash lights every wheel whose glyph changes; the pop kicks once.
+  flashes_.resize(static_cast<size_t>(count));
+  bool anyChange = false;
+  for (int power = 0; power < count; power++) {
+    const WheelTransition& wt = next.wheels[static_cast<size_t>(power)];
+    const bool changes = next.numeric ? wt.from.blend < 1 : (wt.from.position != wt.to.position || wt.from.width != wt.to.width);
+    if (changes) {
+      flashes_[static_cast<size_t>(power)] = Flash{now, increasing};
+      anyChange = true;
+    }
+  }
+  if (anyChange && popOnChange_ > 0) {
+    popStart_ = now;
+  }
+
   transition_ = std::move(next);
   apply(0);
+  applyEffects(now);
   settle(target);
 }
 
@@ -738,14 +781,67 @@ void RollingEngine::apply(double elapsed) {
     w.width = clamp01(wt.from.width + (wt.to.width - wt.from.width) * t);
     w.linear = wt.from.linear;
     w.blankZero = wt.from.blankZero;
-    if (tr.numeric) {
-      // The glyphs swap in place: the position is the digit arriving, and
-      // `blend` is how far the swap is (1 for a wheel whose glyph stays).
+    if (tr.numeric && wt.from.blend >= 1) {
+      // A wheel whose glyph does not change (it may still be growing to full width).
+      w.position = wt.from.position;
+      w.fromGlyph = -1;
+      w.toGlyph = -1;
+      w.blend = 1;
+    } else if (tr.style == 3) {
+      // Scramble: a different digit every step until the wheel locks.
+      const int from = static_cast<int>(wt.from.fromGlyph);
+      const int to = static_cast<int>(wt.from.toGlyph);
+      if (raw >= 1) {
+        w.position = static_cast<double>(std::max(0, to));
+      } else {
+        const uint64_t step = static_cast<uint64_t>(std::max(0.0, elapsed - delay) / kScrambleStepSeconds);
+        // A mixed hash of the step and the wheel (a plain multiply mod 10 is a counter).
+        uint64_t h = step * 2654435761ULL + static_cast<uint64_t>(i) * 40503ULL + 7ULL;
+        h ^= h >> 13;
+        h *= 0x5bd1e995ULL;
+        h ^= h >> 15;
+        int glyph = static_cast<int>(h % 10);
+        // Never sit on the digit the wheel is leaving or arriving at: it would read as a stall.
+        while (glyph == from || glyph == to) {
+          glyph = (glyph + 1) % 10;
+        }
+        w.position = static_cast<double>(glyph);
+      }
+      w.fromGlyph = -1;
+      w.toGlyph = -1;
+      w.blend = 1;
+    } else if (tr.style == 2) {
+      // Flip: card by card, at the board's constant rate, each flap falling on its own.
+      const int from = static_cast<int>(wt.from.fromGlyph);
+      const int to = static_cast<int>(wt.from.toGlyph);
+      const bool up = wt.from.fromAbove;
+      int steps = 1;
+      if (from >= 0 && to >= 0) {
+        steps = static_cast<int>(up ? wrap(static_cast<double>(to - from)) : wrap(static_cast<double>(from - to)));
+        steps = std::max(1, steps);
+      }
+      const double along = raw * steps;
+      const int stepIndex = std::min(steps - 1, static_cast<int>(std::floor(along)));
+      const double stepT = raw >= 1 ? 1.0 : along - stepIndex;
+      int current = from;
+      int next = to;
+      if (from >= 0 && to >= 0) {
+        current = (((up ? from + stepIndex : from - stepIndex) % 10) + 10) % 10;
+        next = stepIndex == steps - 1 ? to : (((up ? current + 1 : current - 1) % 10) + 10) % 10;
+      }
+      w.fromGlyph = static_cast<double>(current);
+      w.toGlyph = static_cast<double>(next);
+      w.fromAbove = up;
+      w.blend = stepT;
+      w.position = static_cast<double>(std::max(0, next));
+    } else if (tr.numeric) {
+      // Numeric and morph: the glyphs swap in place; the position is the
+      // digit arriving and `blend` is how far the swap is.
       w.position = wt.from.position;
       w.fromGlyph = wt.from.fromGlyph;
       w.toGlyph = wt.from.toGlyph;
       w.fromAbove = wt.from.fromAbove;
-      w.blend = wt.from.blend >= 1 ? 1.0 : t;
+      w.blend = t;
     } else {
       w.position = wt.from.position + (wt.to.position - wt.from.position) * t;
       w.fromGlyph = -1;
@@ -762,6 +858,43 @@ void RollingEngine::finish() {
   wheels_ = transition_.finals;
   signFactor_ = transition_.signTo;
   transition_.active = false;
+}
+
+void RollingEngine::applyEffects(double now) {
+  lastNow_ = now;
+  bool active = false;
+  if (flashes_.size() < wheels_.size()) {
+    flashes_.resize(wheels_.size());
+  }
+  for (size_t i = 0; i < wheels_.size(); i++) {
+    Wheel& w = wheels_[i];
+    const Flash& f = flashes_[i];
+    if (flashSeconds_ <= 0 || f.start < 0) {
+      w.flash = 0;
+      continue;
+    }
+    const double u = clamp01((now - f.start) / flashSeconds_);
+    // Lights at once, fades with a tail.
+    w.flash = std::pow(1 - u, 1.5);
+    w.flashUp = f.up;
+    if (u < 1) {
+      active = true;
+    }
+  }
+  if (popStart_ >= 0 && popOnChange_ > 0) {
+    const double tau = now - popStart_;
+    const double p = punch(tau, popOnChange_);
+    popScale_ = 1 + p;
+    if (tau < kPunchPeakSeconds * 8) {
+      active = true;
+    } else {
+      popScale_ = 1;
+      popStart_ = -1;
+    }
+  } else {
+    popScale_ = 1;
+  }
+  effectsActive_ = active;
 }
 
 bool RollingEngine::tick(double now) {
@@ -791,12 +924,13 @@ bool RollingEngine::tick(double now) {
       loadingFadeActive_ = false;
     }
   }
+  applyEffects(now);
   return needsFrames();
 }
 
 bool RollingEngine::needsFrames() const {
   const bool sweeping = loadingProgress_ > 0 && !reduceMotion_;
-  return transition_.active || reveal_.active || loadingFadeActive_ || sweeping;
+  return transition_.active || reveal_.active || loadingFadeActive_ || sweeping || effectsActive_;
 }
 
 bool RollingEngine::isRolling() const {
@@ -864,6 +998,13 @@ void RollingEngine::reset() {
   stagger_ = 0;
   direction_ = 0;
   transitionStyle_ = 0;
+  flashSeconds_ = 0;
+  popOnChange_ = 0;
+  flashes_.clear();
+  popStart_ = -1;
+  popScale_ = 1;
+  lastNow_ = 0;
+  effectsActive_ = false;
   revealDuration_ = 2.2;
   revealBounce_ = 0.12;
   revealStyle_ = 0;

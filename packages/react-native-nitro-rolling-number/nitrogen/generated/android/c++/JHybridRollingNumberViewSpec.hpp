@@ -74,6 +74,14 @@ namespace margelo::nitro::nitrorollingnumber {
     void setStagger(std::optional<double> stagger) override;
     std::optional<RollingNumberTransition> getTransition() override;
     void setTransition(std::optional<RollingNumberTransition> transition) override;
+    std::optional<double> getFlashUpColor() override;
+    void setFlashUpColor(std::optional<double> flashUpColor) override;
+    std::optional<double> getFlashDownColor() override;
+    void setFlashDownColor(std::optional<double> flashDownColor) override;
+    std::optional<double> getFlashDuration() override;
+    void setFlashDuration(std::optional<double> flashDuration) override;
+    std::optional<double> getPopOnChange() override;
+    void setPopOnChange(std::optional<double> popOnChange) override;
     std::optional<RollingNumberDirection> getRollDirection() override;
     void setRollDirection(std::optional<RollingNumberDirection> rollDirection) override;
     std::optional<double> getRevealState() override;

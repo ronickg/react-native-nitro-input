@@ -21,6 +21,12 @@ public extension RollingNumberTransition {
         self = .roll
       case "numeric":
         self = .numeric
+      case "flip":
+        self = .flip
+      case "scramble":
+        self = .scramble
+      case "morph":
+        self = .morph
       default:
         return nil
     }
@@ -35,6 +41,12 @@ public extension RollingNumberTransition {
         return "roll"
       case .numeric:
         return "numeric"
+      case .flip:
+        return "flip"
+      case .scramble:
+        return "scramble"
+      case .morph:
+        return "morph"
     }
   }
 }

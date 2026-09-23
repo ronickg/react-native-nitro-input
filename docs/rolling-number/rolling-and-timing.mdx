@@ -4,7 +4,7 @@ title: Rolling and timing
 description: How a change to value becomes a roll, and the curve, stagger and direction it rolls with.
 ---
 
-import {Example, TimingDemo, NumericDemo} from '@site/src/components/Demo/Demo';
+import {Example, TimingDemo, TransitionsDemo, ChangeEffectsDemo} from '@site/src/components/Demo/Demo';
 
 The only thing the view needs is a number. Every change to `value` becomes one native roll: each digit takes the shortest path to its new glyph in the direction of the change, columns that appear slide in from blank, columns that disappear slide out.
 
@@ -28,21 +28,41 @@ A value that arrives while the wheels are still rolling doesn't restart them fro
   <TimingDemo />
 </Example>
 
-## The numeric transition
+## The transitions
 
-The roll is not the only way a change can play. `transition="numeric"` is the effect of SwiftUI's `.contentTransition(.numericText())`: instead of rolling through the digits between, each changed glyph swaps in place. The old one softens, shrinks and slides out; the new one slides in from the other side, a little small and out of focus, and resolves. The glyphs move up when the value grows and down when it shrinks, the change cascades from the leftmost digit to the right, and digits that don't change stay put, which is what makes a live figure read as one number changing rather than a machine turning.
+The roll is not the only way a change can play. `transition` picks one of four others; all of them swap each changed glyph in place, digits that don't change stay put, and the change cascades from the leftmost changed digit to the right (`stagger`). `duration` and `easing` apply to each, with their own defaults. Under Reduce Motion every one of them snaps, like a roll.
 
-The same `duration`, `easing` and `stagger` apply, with their own defaults: 450 ms, `spring`, and a 50 ms cascade. Under Reduce Motion the swap snaps, like a roll. The blur is real on iOS, Android and here: a blurred copy of each glyph rendered once per font and cross-faded with the sharp one, so a frame of the transition costs what a frame of a roll does.
+- **`numeric`** is the effect of SwiftUI's `.contentTransition(.numericText())`: the old glyph softens, shrinks and slides out; the new one slides in from the other side, a little small and out of focus, and resolves. The glyphs move up when the value grows and down when it shrinks. The blur is real on iOS, Android and here: a blurred copy of each glyph rendered once per font and cross-faded with the sharp one, so a frame costs what a frame of a roll does.
+- **`flip`** is a split-flap departure board: each changed digit flips card by card through the digits between, at the board's constant rate, the flap turning about the centre line, falling for a bigger value and rising for a smaller one.
+- **`scramble`**: each changed digit shows a different random digit every few frames, never the one it is leaving or arriving at, and locks on its target from the left.
+- **`morph`** turns the outline of the old glyph into the new one point by point, the second hole of an 8 closing as it becomes a 0. The outlines come from the platform's font engine, so the morph is iOS and Android only: this demo shows the numeric transition when you pick it.
 
 <Example
   code={`<RollingNumber
   value={value}
-  transition="numeric"   // 'roll' (default) | 'numeric'
+  transition="numeric"   // 'roll' | 'numeric' | 'flip' | 'scramble' | 'morph'
   groupingSeparator=","
   fontSize={56}
   fontWeight="800"
 />`}>
-  <NumericDemo />
+  <TransitionsDemo />
+</Example>
+
+## The change flash and the pop
+
+Two more things can happen on a change, with any transition. `flashUpColor` and `flashDownColor` are the change flash of a trading screen: every digit whose glyph changes lights up in the up colour when the value grew and the down colour when it shrank, and fades back over `flashDuration` (600 ms). `popOnChange` punches the whole figure on every change, its peak overshoot as a fraction of the size, rung out like the reveal's landing pop; `0.08` is a nudge, `0.2` a slam.
+
+<Example
+  code={`<RollingNumber
+  value={price}
+  fractionDigits={2}
+  groupingSeparator=","
+  prefix="$"
+  flashUpColor="#16a34a"
+  flashDownColor="#dc2626"
+  popOnChange={0.08}
+/>`}>
+  <ChangeEffectsDemo />
 </Example>
 
 ## Direction

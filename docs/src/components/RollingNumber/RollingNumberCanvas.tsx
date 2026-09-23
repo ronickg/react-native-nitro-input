@@ -35,8 +35,19 @@ export interface RollingNumberCanvasProps {
   suffix?: string;
   duration?: number;
   easing?: Easing;
-  /** The odometer roll, or the numeric transition (glyphs swap in place). */
-  transition?: 'roll' | 'numeric';
+  /**
+   * The odometer roll, or one of the glyph-swap transitions. The morph is
+   * native-only (a canvas has no glyph outlines): this canvas shows the
+   * numeric transition for it.
+   */
+  transition?: 'roll' | 'numeric' | 'flip' | 'scramble' | 'morph';
+  /** The change flash: the colour a changed digit lights up in when the value grew / shrank. */
+  flashUpColor?: string;
+  flashDownColor?: string;
+  /** Milliseconds a change flash takes to fade. Default 600. */
+  flashDuration?: number;
+  /** A punch of the whole figure on every change, peak overshoot 0–1. Default 0. */
+  popOnChange?: number;
   bounce?: number;
   stagger?: number;
   direction?: Direction;
@@ -87,6 +98,29 @@ const SHIMMER_SEED = 0.25;
 const SHIMMER_SLANT = 0.6;
 const DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
+const colorCache = new Map<string, [number, number, number, number]>();
+/** A CSS colour as r g b a, through a canvas so any syntax the browser knows works. */
+function parseColor(color: string): [number, number, number, number] {
+  const cached = colorCache.get(color);
+  if (cached) return cached;
+  const c = document.createElement('canvas');
+  c.width = 1;
+  c.height = 1;
+  const g = c.getContext('2d')!;
+  g.fillStyle = color;
+  g.fillRect(0, 0, 1, 1);
+  const d = g.getImageData(0, 0, 1, 1).data;
+  const out: [number, number, number, number] = [d[0]!, d[1]!, d[2]!, d[3]! / 255];
+  colorCache.set(color, out);
+  return out;
+}
+function mixColor(from: string, to: string, t: number): string {
+  const a = parseColor(from);
+  const b = parseColor(to);
+  const m = (i: 0 | 1 | 2) => Math.round(a[i] + (b[i] - a[i]) * t);
+  return `rgba(${m(0)}, ${m(1)}, ${m(2)}, ${a[3] + (b[3] - a[3]) * t})`;
+}
+
 type Role = 'digit' | 'prefix' | 'suffix';
 
 interface Wheel {
@@ -98,7 +132,11 @@ interface Wheel {
   toGlyph: number;
   blend: number;
   fromAbove: boolean;
+  flash: number;
+  flashUp: boolean;
 }
+
+const TRANSITIONS: Record<string, number> = {roll: 0, numeric: 1, flip: 2, scramble: 3, morph: 4};
 
 // The numeric transition's geometry, in line heights; mirrors
 // `RollingEngine::kNumeric*`, where the effect is described.
@@ -228,6 +266,10 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
       duration = 500,
       easing = 'easeInOut',
       transition = 'roll',
+      flashUpColor,
+      flashDownColor,
+      flashDuration = 600,
+      popOnChange = 0,
       bounce = 0.15,
       stagger = 0,
       direction = 'auto',
@@ -344,7 +386,7 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
 
     const measureSettled = (engine: RollingEngine, f: FontSet): number => {
       const count = engine.settledPowerCount();
-      const wheels: Wheel[] = Array.from({length: count}, () => ({position: 0, width: 1, linear: false, blankZero: false, fromGlyph: -1, toGlyph: -1, blend: 1, fromAbove: true}));
+      const wheels: Wheel[] = Array.from({length: count}, () => ({position: 0, width: 1, linear: false, blankZero: false, fromGlyph: -1, toGlyph: -1, blend: 1, fromAbove: true, flash: 0, flashUp: true}));
       return buildElements(f, wheels, engine.settledNegative() ? 1 : 0).reduce((sum, e) => sum + e.width, 0);
     };
 
@@ -476,6 +518,48 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
       }
     };
 
+    // The split-flap board, without a third dimension: the flap squashes about
+    // the centre line instead of turning, which reads the same at this size.
+    const drawFlip = (ctx: CanvasRenderingContext2D, f: FontSet, wheel: Wheel, x: number, w: number) => {
+      const lineHeight = f.lineHeight;
+      const baseline = f.baseline('digit', '0', 0);
+      const cx = x + w - f.digitWidth / 2;
+      const mid = lineHeight / 2;
+      const current = wheel.fromGlyph >= 0 ? DIGITS[wheel.fromGlyph % 10]! : null;
+      const next = wheel.toGlyph >= 0 ? DIGITS[wheel.toGlyph % 10]! : null;
+      const b = wheel.blend;
+      const half = (text: string | null, top: boolean, squash: number, shade: number) => {
+        if (!text) return;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x, top ? 0 : mid + 0.5, w, top ? mid - 0.5 : mid);
+        ctx.clip();
+        ctx.translate(cx, mid);
+        ctx.scale(1, Math.max(0.001, squash));
+        ctx.globalAlpha = wheel.width * (1 - shade);
+        ctx.font = f.digit;
+        ctx.fillText(text, -f.width(text, 'digit') / 2, baseline - mid);
+        ctx.restore();
+      };
+      // The eased angle of the flap: 0 hanging, 1 landed; it passes the horizontal at 0.5.
+      const angle = b < 0.5 ? 2 * b * b : 1 - 2 * (1 - b) * (1 - b);
+      half(next, true, 1, 0);          // the next card's top, already in place under the flap
+      half(current, false, 1, 0);      // the current card's bottom, until the flap lands
+      if (angle < 0.5) {
+        half(current, true, 1 - angle * 2, angle * 0.6);        // the flap's front, falling
+      } else {
+        half(next, false, (angle - 0.5) * 2, (1 - angle) * 0.6); // the flap's back, landing
+      }
+      // The board's hinge line.
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, 0, w, lineHeight);
+      ctx.clip();
+      ctx.globalAlpha = wheel.width * 0.9;
+      ctx.clearRect(x, mid - 0.5, w, 1);
+      ctx.restore();
+    };
+
     const drawWheel = (ctx: CanvasRenderingContext2D, f: FontSet, wheel: Wheel, x: number, w: number) => {
       if (w <= 0) return;
       const lineHeight = f.lineHeight;
@@ -484,8 +568,14 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
       ctx.beginPath();
       ctx.rect(x, 0, w, lineHeight);
       ctx.clip();
+      // The change flash tints this wheel's glyphs towards the up or down colour.
+      const tint = wheel.flash > 0.002 ? (wheel.flashUp ? flashUpColor : flashDownColor) : undefined;
+      if (tint) {
+        ctx.fillStyle = mixColor(ctx.fillStyle as string, tint, wheel.flash);
+      }
       if (wheel.blend < 1) {
-        drawSwap(ctx, f, wheel, x, w);
+        if (transition === 'flip') drawFlip(ctx, f, wheel, x, w);
+        else drawSwap(ctx, f, wheel, x, w);
         ctx.restore();
         return;
       }
@@ -598,7 +688,9 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
       if (!e || !module) return;
       e.setFormat(fractionDigits, minimumIntegerDigits);
       e.setTiming(duration / 1000, EASINGS[easing], bounce, stagger / 1000, DIRECTIONS[direction]);
-      e.setTransition(transition === 'numeric' ? 1 : 0);
+      e.setTransition(TRANSITIONS[transition] ?? 0);
+      e.setFlash(flashUpColor || flashDownColor ? flashDuration / 1000 : 0);
+      e.setPopOnChange(popOnChange);
       e.setRevealTiming(revealDuration / 1000, revealBounce, revealStyle === 'spin' ? 1 : 0, revealStagger / 1000);
       e.setRevealGrow(revealGrow);
       e.setRevealMilestoneHold(revealMilestoneHold / 1000);
@@ -607,7 +699,7 @@ export const RollingNumberCanvas = forwardRef<RollingNumberCanvasHandle, Rolling
       if (e.hasShownValue()) reportSize();
       draw();
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [module, fractionDigits, minimumIntegerDigits, duration, easing, transition, bounce, stagger, direction, revealDuration, revealBounce, revealGrow, revealStyle, revealStagger, revealMilestoneHold, milestonesKey]);
+    }, [module, fractionDigits, minimumIntegerDigits, duration, easing, transition, flashUpColor, flashDownColor, flashDuration, popOnChange, bounce, stagger, direction, revealDuration, revealBounce, revealGrow, revealStyle, revealStagger, revealMilestoneHold, milestonesKey]);
 
     // Loading glint.
     useEffect(() => {

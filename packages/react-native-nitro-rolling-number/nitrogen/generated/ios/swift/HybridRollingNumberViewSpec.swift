@@ -22,6 +22,10 @@ public protocol HybridRollingNumberViewSpec_protocol: HybridObject, HybridView {
   var bounce: Double? { get set }
   var stagger: Double? { get set }
   var transition: RollingNumberTransition? { get set }
+  var flashUpColor: Double? { get set }
+  var flashDownColor: Double? { get set }
+  var flashDuration: Double? { get set }
+  var popOnChange: Double? { get set }
   var rollDirection: RollingNumberDirection? { get set }
   var revealState: Double? { get set }
   var revealStyle: RollingNumberRevealStyle? { get set }

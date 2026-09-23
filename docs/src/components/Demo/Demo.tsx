@@ -5,6 +5,7 @@ import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import {
   RollingNumberCanvas,
+  type Easing,
   type RollingNumberCanvasHandle,
   type RollingNumberCanvasProps,
 } from '../RollingNumber/RollingNumberCanvas';
@@ -160,16 +161,27 @@ export function TimingDemo() {
   );
 }
 
-export function NumericDemo() {
+type Transition = 'roll' | 'numeric' | 'flip' | 'scramble' | 'morph';
+/** Each transition's own timing, as the React Native wrapper defaults it. */
+const TRANSITION_DEFAULTS: Record<Transition, {duration: number; easing: Easing; stagger: number}> = {
+  roll: {duration: 500, easing: 'easeInOut', stagger: 0},
+  numeric: {duration: 450, easing: 'spring', stagger: 50},
+  flip: {duration: 600, easing: 'linear', stagger: 40},
+  scramble: {duration: 500, easing: 'linear', stagger: 60},
+  morph: {duration: 400, easing: 'easeInOut', stagger: 40},
+};
+
+export function TransitionsDemo() {
   const [value, setValue] = useState(4280);
-  const [transition, setTransition] = useState<'roll' | 'numeric'>('numeric');
-  const [duration, setDuration] = useState(450);
-  const [stagger, setStagger] = useState(50);
+  const [transition, setTransition] = useState<Transition>('numeric');
+  const [duration, setDuration] = useState<number | null>(null);
+  const [stagger, setStagger] = useState<number | null>(null);
+  const defaults = TRANSITION_DEFAULTS[transition];
   const bump = () => setValue((v) => v + 1 + Math.round(Math.random() * 9));
   return (
     <>
       <Stage>
-        <RollingNumberCanvas value={value} groupingSeparator="," fontSize={56} fontWeight={800} transition={transition} easing={transition === 'numeric' ? 'spring' : 'easeInOut'} duration={duration} stagger={stagger} />
+        <RollingNumberCanvas value={value} groupingSeparator="," fontSize={56} fontWeight={800} transition={transition} easing={defaults.easing} duration={duration ?? defaults.duration} stagger={stagger ?? defaults.stagger} />
       </Stage>
       <Controls>
         <Btn primary onClick={bump}>
@@ -177,20 +189,68 @@ export function NumericDemo() {
         </Btn>
         <Btn onClick={() => setValue((v) => v + 1000 + Math.round(Math.random() * 9000))}>Big change</Btn>
         <Btn onClick={() => setValue((v) => Math.max(0, v - 1 - Math.round(Math.random() * 9)))}>Down</Btn>
-        <Btn selected={transition === 'numeric'} onClick={() => setTransition('numeric')}>
-          numeric
-        </Btn>
-        <Btn selected={transition === 'roll'} onClick={() => setTransition('roll')}>
-          roll
-        </Btn>
+        {(['numeric', 'flip', 'scramble', 'morph', 'roll'] as const).map((t) => (
+          <Btn key={t} selected={transition === t} onClick={() => setTransition(t)}>
+            {t === 'morph' ? 'morph (native)' : t}
+          </Btn>
+        ))}
         <label>
-          duration {duration} ms
-          <input type="range" min={100} max={1500} step={50} value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
+          duration {duration ?? defaults.duration} ms
+          <input type="range" min={100} max={1500} step={50} value={duration ?? defaults.duration} onChange={(e) => setDuration(Number(e.target.value))} />
         </label>
         <label>
-          stagger {stagger} ms
-          <input type="range" min={0} max={150} step={5} value={stagger} onChange={(e) => setStagger(Number(e.target.value))} />
+          stagger {stagger ?? defaults.stagger} ms
+          <input type="range" min={0} max={150} step={5} value={stagger ?? defaults.stagger} onChange={(e) => setStagger(Number(e.target.value))} />
         </label>
+      </Controls>
+    </>
+  );
+}
+
+export function ChangeEffectsDemo() {
+  const [value, setValue] = useState(64166.13);
+  const [flash, setFlash] = useState(true);
+  const [pop, setPop] = useState(0.08);
+  const [transition, setTransition] = useState<Transition>('roll');
+  const move = (sign: number) => setValue((v) => Math.max(0, Math.round((v + sign * (1 + Math.random() * 400)) * 100) / 100));
+  return (
+    <>
+      <Stage>
+        <RollingNumberCanvas
+          value={value}
+          fractionDigits={2}
+          groupingSeparator=","
+          prefix="$"
+          fontSize={56}
+          fontWeight={800}
+          transition={transition}
+          easing={TRANSITION_DEFAULTS[transition].easing}
+          duration={TRANSITION_DEFAULTS[transition].duration}
+          stagger={TRANSITION_DEFAULTS[transition].stagger}
+          flashUpColor={flash ? '#16a34a' : undefined}
+          flashDownColor={flash ? '#dc2626' : undefined}
+          popOnChange={pop}
+        />
+      </Stage>
+      <Controls>
+        <Btn primary onClick={() => move(1)}>
+          Up
+        </Btn>
+        <Btn primary onClick={() => move(-1)}>
+          Down
+        </Btn>
+        <Btn selected={flash} onClick={() => setFlash((f) => !f)}>
+          flash
+        </Btn>
+        <label>
+          popOnChange {pop.toFixed(2)}
+          <input type="range" min={0} max={0.4} step={0.02} value={pop} onChange={(e) => setPop(Number(e.target.value))} />
+        </label>
+        {(['roll', 'numeric', 'flip'] as const).map((t) => (
+          <Btn key={t} selected={transition === t} onClick={() => setTransition(t)}>
+            {t}
+          </Btn>
+        ))}
       </Controls>
     </>
   );

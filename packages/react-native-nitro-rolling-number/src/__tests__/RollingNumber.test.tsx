@@ -53,6 +53,22 @@ describe('RollingNumber', () => {
 
     const tuned = nativeProps(render(<RollingNumber value={1} transition="numeric" duration={200} easing="easeOut" stagger={0} />))
     expect([tuned.duration, tuned.easing, tuned.stagger]).toEqual([200, 'easeOut', 0])
+
+    const flip = nativeProps(render(<RollingNumber value={1} transition="flip" />))
+    expect([flip.transition, flip.duration, flip.easing, flip.stagger]).toEqual(['flip', 600, 'linear', 40])
+    const scramble = nativeProps(render(<RollingNumber value={1} transition="scramble" />))
+    expect([scramble.duration, scramble.easing, scramble.stagger]).toEqual([500, 'linear', 60])
+    const morph = nativeProps(render(<RollingNumber value={1} transition="morph" />))
+    expect([morph.duration, morph.easing, morph.stagger]).toEqual([400, 'easeInOut', 40])
+  })
+
+  it('passes the change flash and the pop through, off by default', () => {
+    const off = nativeProps(render(<RollingNumber value={1} />))
+    expect([off.flashUpColor, off.flashDownColor, off.flashDuration, off.popOnChange]).toEqual([Infinity, Infinity, 600, 0])
+    const on = nativeProps(render(<RollingNumber value={1} flashUpColor="#00ff00" flashDownColor="#ff0000" flashDuration={300} popOnChange={0.1} />))
+    expect(on.flashUpColor).toBe(processColor('#00ff00'))
+    expect(on.flashDownColor).toBe(processColor('#ff0000'))
+    expect([on.flashDuration, on.popOnChange]).toEqual([300, 0.1])
   })
 
   it('maps numeric and string font weights', () => {

@@ -88,6 +88,14 @@ namespace margelo::nitro::nitrorollingnumber {
       virtual void setStagger(std::optional<double> stagger) = 0;
       virtual std::optional<RollingNumberTransition> getTransition() = 0;
       virtual void setTransition(std::optional<RollingNumberTransition> transition) = 0;
+      virtual std::optional<double> getFlashUpColor() = 0;
+      virtual void setFlashUpColor(std::optional<double> flashUpColor) = 0;
+      virtual std::optional<double> getFlashDownColor() = 0;
+      virtual void setFlashDownColor(std::optional<double> flashDownColor) = 0;
+      virtual std::optional<double> getFlashDuration() = 0;
+      virtual void setFlashDuration(std::optional<double> flashDuration) = 0;
+      virtual std::optional<double> getPopOnChange() = 0;
+      virtual void setPopOnChange(std::optional<double> popOnChange) = 0;
       virtual std::optional<RollingNumberDirection> getRollDirection() = 0;
       virtual void setRollDirection(std::optional<RollingNumberDirection> rollDirection) = 0;
       virtual std::optional<double> getRevealState() = 0;

@@ -32,6 +32,10 @@ namespace margelo::nitro::nitrorollingnumber::views {
     bounce(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "bounce", rawProps, sourceProps.bounce)),
     stagger(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "stagger", rawProps, sourceProps.stagger)),
     transition(nitro::ReactProp<std::optional<RollingNumberTransition>>::fromRawValue("RollingNumberView", "transition", rawProps, sourceProps.transition)),
+    flashUpColor(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "flashUpColor", rawProps, sourceProps.flashUpColor)),
+    flashDownColor(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "flashDownColor", rawProps, sourceProps.flashDownColor)),
+    flashDuration(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "flashDuration", rawProps, sourceProps.flashDuration)),
+    popOnChange(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "popOnChange", rawProps, sourceProps.popOnChange)),
     rollDirection(nitro::ReactProp<std::optional<RollingNumberDirection>>::fromRawValue("RollingNumberView", "rollDirection", rawProps, sourceProps.rollDirection)),
     revealState(nitro::ReactProp<std::optional<double>>::fromRawValue("RollingNumberView", "revealState", rawProps, sourceProps.revealState)),
     revealStyle(nitro::ReactProp<std::optional<RollingNumberRevealStyle>>::fromRawValue("RollingNumberView", "revealStyle", rawProps, sourceProps.revealStyle)),
@@ -78,6 +82,10 @@ namespace margelo::nitro::nitrorollingnumber::views {
       case hashString("bounce"): return true;
       case hashString("stagger"): return true;
       case hashString("transition"): return true;
+      case hashString("flashUpColor"): return true;
+      case hashString("flashDownColor"): return true;
+      case hashString("flashDuration"): return true;
+      case hashString("popOnChange"): return true;
       case hashString("rollDirection"): return true;
       case hashString("revealState"): return true;
       case hashString("revealStyle"): return true;

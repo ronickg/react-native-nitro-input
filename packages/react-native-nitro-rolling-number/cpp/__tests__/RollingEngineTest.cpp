@@ -675,7 +675,180 @@ static void numericTransitionRetargetsFromTheArrivingGlyph() {
   CHECK(!e.needsFrames());
 }
 
+static void flipStepsThroughEveryCard() {
+  RollingEngine e;
+  e.setFormat(0, 1);
+  e.setTiming(0.6, /* linear */ 0, 0.15, 0, 0);
+  e.setTransition(2);
+  e.animateTo(2, 0);
+  e.animateTo(5, 0);   // three cards: 2→3, 3→4, 4→5, 0.2 s each
+  RollingEngine::Wheel w = e.wheelAt(0);
+  CHECK(near(w.fromGlyph, 2));
+  CHECK(near(w.toGlyph, 3));
+  CHECK(near(w.blend, 0));
+  CHECK(w.fromAbove);
+  e.tick(0.1);
+  w = e.wheelAt(0);
+  CHECK(near(w.fromGlyph, 2));
+  CHECK(near(w.toGlyph, 3));
+  CHECK(near(w.blend, 0.5));
+  e.tick(0.3);
+  w = e.wheelAt(0);
+  CHECK(near(w.fromGlyph, 3));
+  CHECK(near(w.toGlyph, 4));
+  CHECK(near(w.blend, 0.5));
+  e.tick(0.5);
+  w = e.wheelAt(0);
+  CHECK(near(w.fromGlyph, 4));
+  CHECK(near(w.toGlyph, 5));
+  CHECK(near(w.blend, 0.5));
+  e.tick(0.6);
+  CHECK(!e.needsFrames());
+  CHECK(near(e.wheelAt(0).position, 5));
+  CHECK(near(e.wheelAt(0).blend, 1));
+
+  // The direction follows the value: 21 → 19 shrinks, so the units fall 1 → 0 → 9
+  // through the wrap (two cards) while the tens fall 2 → 1 (one card).
+  e.animateTo(21, 1);
+  e.tick(2);
+  e.animateTo(19, 3);
+  e.tick(3.15);
+  w = e.wheelAt(0);
+  CHECK(near(w.fromGlyph, 1));
+  CHECK(near(w.toGlyph, 0));
+  CHECK(!w.fromAbove);
+  CHECK(near(e.wheelAt(1).fromGlyph, 2));
+  CHECK(near(e.wheelAt(1).toGlyph, 1));
+  CHECK(near(e.wheelAt(1).blend, 0.25));
+  e.tick(3.45);
+  w = e.wheelAt(0);
+  CHECK(near(w.fromGlyph, 0));
+  CHECK(near(w.toGlyph, 9));
+  e.tick(3.65);
+  CHECK(near(e.wheelAt(0).position, 9));
+  CHECK(near(e.wheelAt(1).position, 1));
+
+  // A column appearing flips once from blank while it opens.
+  e.animateTo(119, 4);
+  w = e.wheelAt(2);
+  CHECK(near(w.fromGlyph, -1));
+  CHECK(near(w.toGlyph, 1));
+  CHECK(near(e.wheelAt(1).blend, 1));   // the tens keep their 1
+  e.tick(4.3);
+  CHECK(near(e.wheelAt(2).blend, 0.5));
+  CHECK(near(e.wheelAt(2).width, 0.5));
+}
+
+static void scrambleShowsRandomDigitsUntilItLocks() {
+  RollingEngine e;
+  e.setFormat(0, 1);
+  e.setTiming(0.5, /* linear */ 0, 0.15, 0, 0);
+  e.setTransition(3);
+  e.animateTo(4, 0);
+  e.animateTo(7, 0);
+  CHECK(e.needsFrames());
+  int distinct = 0;
+  double last = -1;
+  bool sawEndpoints = false;
+  for (double t = 0.0; t < 0.5; t += 0.045) {
+    e.tick(t);
+    const RollingEngine::Wheel w = e.wheelAt(0);
+    CHECK(near(w.blend, 1));                 // nothing for a renderer to blend
+    CHECK(near(w.position, std::floor(w.position)));   // always a whole glyph
+    if (w.position == 4 || w.position == 7) sawEndpoints = true;
+    if (w.position != last) distinct++;
+    last = w.position;
+  }
+  CHECK(distinct >= 5);
+  CHECK(!sawEndpoints);
+  // Not a counter: the digits do not step by one.
+  {
+    RollingEngine s;
+    s.setFormat(0, 1);
+    s.setTiming(1, 0, 0.15, 0, 0);
+    s.setTransition(3);
+    s.animateTo(1, 0);
+    s.animateTo(2, 0);
+    int increments = 0;
+    double previous = -1;
+    for (double t = 0; t < 0.9; t += 0.045) {
+      s.tick(t);
+      const double g = s.wheelAt(0).position;
+      if (previous >= 0 && std::fmod(g - previous + 10, 10) == 1) increments++;
+      previous = g;
+    }
+    CHECK(increments < 8);
+  }
+  e.tick(0.5);
+  CHECK(!e.needsFrames());
+  CHECK(near(e.wheelAt(0).position, 7));
+
+  // Unchanged wheels never scramble.
+  e.animateTo(17, 1);
+  e.tick(2);
+  e.animateTo(18, 2);
+  e.tick(2.1);
+  CHECK(near(e.wheelAt(1).position, 1));
+  CHECK(e.wheelAt(0).position != 8);
+}
+
+static void changeFlashAndPop() {
+  RollingEngine e;
+  e.setFormat(0, 1);
+  e.setTiming(0.2, /* linear */ 0, 0.15, 0, 0);
+  e.setFlash(0.5);
+  e.setPopOnChange(0.1);
+  e.animateTo(10, 0);   // the first value: no flash, no pop
+  CHECK(near(e.wheelAt(0).flash, 0));
+  CHECK(near(e.revealScale(), 1));
+  CHECK(!e.needsFrames());
+
+  e.animateTo(15, 1);   // the units change and grow: units flash up, tens don't
+  CHECK(near(e.wheelAt(0).flash, 1));
+  CHECK(e.wheelAt(0).flashUp);
+  CHECK(near(e.wheelAt(1).flash, 0));
+  e.tick(1.1);
+  CHECK(e.revealScale() > 1.05);   // the punch peaks at 0.1 s
+  e.tick(1.25);
+  CHECK(!e.isRolling());
+  CHECK(e.needsFrames());          // the flash and the pop are still fading
+  CHECK(e.wheelAt(0).flash > 0.3);
+  CHECK(e.wheelAt(0).flash < 0.9);
+  e.tick(2.6);
+  CHECK(near(e.wheelAt(0).flash, 0));
+  CHECK(near(e.revealScale(), 1));
+  CHECK(!e.needsFrames());
+
+  // Down: flashDown. A snap (Reduce Motion) still flashes; a jump never does.
+  e.setReduceMotion(true);
+  e.animateTo(12, 3);
+  CHECK(near(e.wheelAt(0).flash, 1));
+  CHECK(!e.wheelAt(0).flashUp);
+  CHECK(near(e.wheelAt(1).flash, 0));
+  e.setReduceMotion(false);
+  e.tick(4);
+  e.setValue(99);
+  e.tick(4.01);
+  CHECK(near(e.wheelAt(0).flash, 0));
+  CHECK(near(e.wheelAt(1).flash, 0));
+
+  // Off by default.
+  RollingEngine quiet;
+  quiet.setFormat(0, 1);
+  quiet.setTiming(0.2, 0, 0.15, 0, 0);
+  quiet.animateTo(1, 0);
+  quiet.animateTo(2, 1);
+  quiet.tick(1.05);
+  CHECK(near(quiet.wheelAt(0).flash, 0));
+  CHECK(near(quiet.revealScale(), 1));
+  quiet.tick(1.25);
+  CHECK(!quiet.needsFrames());
+}
+
+int glyphMorphTests();
+
 int main() {
+  failures += glyphMorphTests();
   odometerPositions();
   tickerRollsShortestPathInDirection();
   wheelsAppearAndDisappear();
@@ -693,6 +866,9 @@ int main() {
   numericTransitionCascadesLeftToRight();
   numericTransitionGrowsAndShrinksColumns();
   numericTransitionRetargetsFromTheArrivingGlyph();
+  flipStepsThroughEveryCard();
+  scrambleShowsRandomDigitsUntilItLocks();
+  changeFlashAndPop();
   if (failures == 0) {
     std::printf("RollingEngine: all checks passed\n");
     return 0;
