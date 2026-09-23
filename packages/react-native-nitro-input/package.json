@@ -115,15 +115,20 @@
     "git": {
       "requireBranch": "main",
       "requireCleanWorkingDir": true,
+      "requireCommits": true,
+      "commitsPath": ".",
+      "tagMatch": "nitro-input-v[0-9]*",
+      "tagName": "nitro-input-v${version}",
       "commitMessage": "chore: release nitro-input v${version}",
-      "tagName": "nitro-input-v${version}"
+      "changelog": "git log --no-merges --pretty=format:\"* %s (%h)\" ${from}...${to} -- ."
     },
     "npm": {
       "publish": true
     },
     "github": {
       "release": true,
-      "releaseName": "nitro-input v${version}"
+      "releaseName": "nitro-input v${version}",
+      "releaseNotes": "node ../../scripts/release/changelog-section.mjs ${version}"
     },
     "hooks": {
       "before:init": [

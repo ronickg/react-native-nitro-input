@@ -147,7 +147,9 @@ node scripts/ui/recycle-check.mjs --udid <device>   # the recycling check, on a 
 cd docs && npm install && npm start                                  # docs site
 ```
 
-Releasing: `bun --cwd packages/<package> release <patch|minor|major>` runs the typecheck, the Jest and engine tests, bumps the version, commits and tags `v<version>`, publishes to npm and creates the GitHub release (needs `npm login` and a `GITHUB_TOKEN`).
+Releasing: `bun --cwd packages/<package> release <patch|minor|major>` runs the typecheck, the Jest and engine tests, bumps the version, commits, tags, publishes to npm and creates the GitHub release (needs `npm login` and a `GITHUB_TOKEN`).
+
+The two packages release independently out of one history, so each keeps to its own tags: `v<version>` for the rolling number, `nitro-input-v<version>` for the input. Each `release-it` config pins `tagMatch` to that prefix and `commitsPath` to the package directory, so "the previous release" and "what changed since it" mean this package's, not whichever package was tagged last. A release with no commits touching the package is refused. The GitHub release body is the matching `## <version>` section of the package's own `CHANGELOG.md`, read by `scripts/release/changelog-section.mjs` — write that section before releasing, or the release stops.
 
 The example's Android Gradle files point at the workspace root `node_modules`, and Metro watches the whole repo.
 

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.0
 
 - Android: the digit strip is a software-rendered bitmap inside a layer, and
   it is recorded again when the renderer drops it. Two things were wrong with
