@@ -1,7 +1,7 @@
 name: Harness
 
 # The on-device suites (example/__tests__/*.harness.tsx) run inside the
-# example app through React Native Harness: the packages' handles, events,
+# example app through React Native Harness: the components' handles, events,
 # formatter and layout, on an Android emulator and an iOS simulator. The
 # libraries' own compile checks live in packages.yml; this is what an app
 # sees when it uses them.
@@ -11,6 +11,7 @@ on:
     paths:
       - 'packages/**'
       - 'example/**'
+      - 'modules/**'
       - 'patches/**'
       - 'bun.lock'
       - '.github/workflows/harness.yml'
@@ -18,6 +19,7 @@ on:
     paths:
       - 'packages/**'
       - 'example/**'
+      - 'modules/**'
       - 'patches/**'
       - 'bun.lock'
       - '.github/workflows/harness.yml'

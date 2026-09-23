@@ -1,0 +1,54 @@
+---
+title: The reflow
+description: 'transition="reflow": characters that stay glide to their new place, new ones slide or fade in, removed ones leave with their neighbours.'
+---
+
+import {Example} from '@site/src/components/Demo/Demo';
+import {NitroInputTextDemo} from '@site/src/components/NitroInput/NitroInputDemo';
+
+# The reflow
+
+`transition="reflow"` turns on the glyph engine. The system field still owns the keyboard, editing, selection and accessibility, but a layer on top draws the glyphs, and each edit animates from the old text to the new one: characters that stay glide to their new place, new ones slide or fade in, removed ones leave with their neighbours. A comma travels to where it now belongs instead of blinking into existence.
+
+```tsx
+<NitroInput transition="reflow" mode="number" prefix="$" fontSize={48} style={{ width: '100%' }} />
+```
+
+It is off unless you ask for it. Reach for it where the animation is the point, which in practice means an amount; for an email or a name, the plain field is the right one. A reflowing field sizes itself to its content unless you say otherwise (`autoWidth` defaults to `'auto'` with it), so the box grows as digits arrive.
+
+In `mode="number"` the reflow and the formatting are the same event: the formatter runs in C++ on the keystroke, and the reflow animates from what was there to what it produced. Type `1234` and the `1` slides over to make room as the comma arrives from below. The [amount demo](/docs/nitro-input#amounts) has a **Reflow** switch.
+
+<Example
+  code={`<NitroInput
+  transition="reflow"
+  placeholder="Your name"
+  fontSize={22}
+  autoCapitalize="words"
+  style={{ width: '100%', height: 44, paddingHorizontal: 12 }}
+/>`}>
+  <NitroInputTextDemo />
+</Example>
+
+In `mode="text"` characters fade and scale, and a run that persists keeps its shape: `Continue → Confirm` keeps `Con`.
+
+## Tuning it
+
+| Prop | Default | |
+| --- | --- | --- |
+| `duration` | `400` | Milliseconds per reflow. `0` snaps. |
+| `easing` | `'expo'` | `'expo'` (Torph's `cubic-bezier(0.19, 1, 0.22, 1)`), `'easeOut'`, `'easeInOut'`, `'linear'` or `'spring'`. |
+| `bounce` | `0.15` | `'spring'` only: the overshoot, `0` to `1`. |
+| `effect` | `'auto'` | `'auto'` slides digits and separators and fades text; `'slide'` or `'fade'` applies one style to everything. |
+
+Reduce Motion on iOS and "Remove animations" on Android snap it. A placeholder is not a value, so trading it for one snaps too.
+
+## What moves
+
+Each update pairs the old characters with the new ones in `cpp/ReflowEngine.cpp`, shared by Swift and Kotlin, and the pairing decides what moves.
+
+- **Typing** (the caret is known): characters before the caret pair by position from the left and those after it from the right, so the edit is exactly the characters that entered or left. Grouping separators pair from the units end, so the thousands comma stays the thousands comma and glides, unless the integer gained or lost a column, when every comma belongs a group further along and a new one rises instead.
+- **A value set from code** (`setValue`, `setText`, `clear`, the `value` prop): digits pair by their column from the decimal point, so `1,204 → 1,318` swaps the three low columns in place. Text pairs by longest common subsequence.
+
+A persisting character eases to its new x. A new digit drops in from above through the clipped line box (a separator rises from below), a leaving digit drops out, and text fades and scales to 0.95×; characters that enter or leave ride with their nearest persisting neighbour. Six or more adjacent characters replaced at once recede and arrive as one shape, scaled about the run's centre, so `100,000 → 100,000,000` reads as one quantity swapped for another.
+
+The reflow is based on [Torph](https://torph.lochie.me) by [Lochie Axon](https://github.com/lochie).

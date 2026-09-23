@@ -3,20 +3,18 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "react-native-nitro-rolling-number-monorepo",
+      "name": "react-native-nitro-input-monorepo",
     },
-    "example": {
-      "name": "RollingNumberExample",
+    "bench": {
+      "name": "NitroInputBench",
       "version": "0.0.1",
       "dependencies": {
         "@expo/ui": "58.0.0-canary-20260909-ea7a89a",
-        "@react-native/new-app-screen": "0.87.1",
         "@react-navigation/native": "^7.4.1",
         "@react-navigation/native-stack": "^7.19.2",
         "@shopify/react-native-skia": "2.12.0",
         "bench-probe": "workspace:*",
         "expo": "58.0.0-canary-20260909-ea7a89a",
-        "libphonenumber-js": "^1.13.13",
         "number-flow-react-native": "0.5.1",
         "react": "19.2.3",
         "react-native": "0.87.1",
@@ -25,7 +23,6 @@
         "react-native-animated-numbers": "0.6.3",
         "react-native-animated-rolling-numbers": "2.0.0",
         "react-native-currency-input": "1.1.1",
-        "react-native-keyboard-controller": "^1.22.5",
         "react-native-mask-input": "1.2.3",
         "react-native-nitro-input": "workspace:*",
         "react-native-nitro-modules": "0.37.1",
@@ -35,6 +32,38 @@
         "react-native-safe-area-context": "^5.5.2",
         "react-native-screens": "^4.28.0",
         "react-native-ticker": "6.0.1",
+        "react-native-worklets": "0.12.2",
+      },
+      "devDependencies": {
+        "@babel/core": "^7.25.2",
+        "@babel/preset-env": "^7.25.3",
+        "@babel/runtime": "^7.25.0",
+        "@react-native-community/cli": "20.2.0",
+        "@react-native-community/cli-platform-android": "20.2.0",
+        "@react-native-community/cli-platform-ios": "20.2.0",
+        "@react-native/babel-preset": "0.87.1",
+        "@react-native/metro-config": "0.87.1",
+        "@react-native/typescript-config": "0.87.1",
+        "@types/react": "^19.2.0",
+        "typescript": "^6.0.3",
+      },
+    },
+    "example": {
+      "name": "RollingNumberExample",
+      "version": "0.0.1",
+      "dependencies": {
+        "@react-navigation/native": "^7.4.1",
+        "@react-navigation/native-stack": "^7.19.2",
+        "bench-probe": "workspace:*",
+        "libphonenumber-js": "^1.13.13",
+        "react": "19.2.3",
+        "react-native": "0.87.1",
+        "react-native-keyboard-controller": "^1.22.5",
+        "react-native-nitro-input": "workspace:*",
+        "react-native-nitro-modules": "0.37.1",
+        "react-native-reanimated": "4.6.0",
+        "react-native-safe-area-context": "^5.5.2",
+        "react-native-screens": "^4.28.0",
         "react-native-worklets": "0.12.2",
       },
       "devDependencies": {
@@ -62,7 +91,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "example/modules/bench-probe": {
+    "modules/bench-probe": {
       "name": "bench-probe",
       "version": "0.1.0",
       "peerDependencies": {
@@ -798,8 +827,6 @@
 
     "@react-native/metro-config": ["@react-native/metro-config@0.87.1", "", { "dependencies": { "@react-native/js-polyfills": "0.87.1", "@react-native/metro-babel-transformer": "0.87.1", "metro-config": "^0.87.0", "metro-runtime": "^0.87.0" } }, "sha512-oHgFFZpWDElw/ZO7YmNsTproNtHL0Ty/PWAR7Lf7YjuT7HuY11RyihQ4Kh/YseepHi/9vMBe8QNFqJCB8eMNZg=="],
 
-    "@react-native/new-app-screen": ["@react-native/new-app-screen@0.87.1", "", { "peerDependencies": { "@types/react": "^19.1.0", "react": "*", "react-native": "0.87.1" }, "optionalPeers": ["@types/react"] }, "sha512-HkDOFfiwZmO+LGKG0ONAKAQMBx5HbgsvB0MRV16nSt+UE4sqEPcOvMPJiKBPWqzgsiBdHwX5wQuzY2rfLc6PMA=="],
-
     "@react-native/normalize-color": ["@react-native/normalize-color@2.1.0", "", {}, "sha512-Z1jQI2NpdFJCVgpY+8Dq/Bt3d+YUi1928Q+/CZm/oh66fzM0RUl54vvuXlPJKybH4pdCZey1eDTPaLHkMPNgWA=="],
 
     "@react-native/normalize-colors": ["@react-native/normalize-colors@0.87.1", "", {}, "sha512-8+AutemzX+a7cuKgTUyb7JUk3sFYgLyrSnlTLrL6LuW/LKDE+FYE8lJGWYhJPJcE51Ge1D8yRzxgQEdEFZtuIw=="],
@@ -1006,6 +1033,8 @@
 
     "@xmldom/xmldom": ["@xmldom/xmldom@0.8.15", "", {}, "sha512-/5NV/vDALVFDXgLmfsy9TRCBlKwO2LNBFzpzvb9iIj+jR+eSc6DLYYvVOdivT/jm7MtU6TebYuRmzEOI7w40UA=="],
 
+    "NitroInputBench": ["NitroInputBench@workspace:bench"],
+
     "RollingNumberExample": ["RollingNumberExample@workspace:example"],
 
     "accepts": ["accepts@1.3.8", "", { "dependencies": { "mime-types": "~2.1.34", "negotiator": "0.6.3" } }, "sha512-PYAthTa2m2VKxuvSD3DPC/Gy+U+sOA1LAuT8mkmRuvw+NACSaeXEQ+NHcVF7rONl6qcaxV3Uuemwawk+7+SJLw=="],
@@ -1106,7 +1135,7 @@
 
     "before-after-hook": ["before-after-hook@4.0.0", "", {}, "sha512-q6tR3RPqIB1pMiTRMFcZwuG5T8vwp+vUvEG0vuI6B+Rikh5BfPp2fQ82c925FOs+b0lcFQ8CFrL+KbilfZFhOQ=="],
 
-    "bench-probe": ["bench-probe@workspace:example/modules/bench-probe"],
+    "bench-probe": ["bench-probe@workspace:modules/bench-probe"],
 
     "big-integer": ["big-integer@1.6.52", "", {}, "sha512-QxD8cf2eVqJOOz63z6JIN9BzvVs/dlySa5HGSBH5xtR8dPteIRQnBxxKqkNTiT6jbDTF6jAfrd4oMcND9RGbQg=="],
 
@@ -2362,7 +2391,7 @@
 
     "type-detect": ["type-detect@4.0.8", "", {}, "sha512-0fr/mIH1dlO+x7TlcMy+bIDqKPsw/70tVyeHW787goQjhmqaZe10uwLujubK9q9Lg6Fiho1KUKDYz0Z7k7g5/g=="],
 
-    "type-fest": ["type-fest@0.20.2", "", {}, "sha512-Ne+eE4r0/iWnpAxD852z3A+N0Bt5RN//NjJwRd2VFHEmrywxf5vsZlh4R6lixl6B+wz/8d+maTSAkN1FIkI3LQ=="],
+    "type-fest": ["type-fest@0.7.1", "", {}, "sha512-Ne2YiiGN8bmrmJJEuTWTLJR32nh/JdL1+PSicowtNb0WFpn59GK8/lfD61bVtzguz7b3PBt74nxpv/Pw5po5Rg=="],
 
     "type-is": ["type-is@2.1.0", "", { "dependencies": { "content-type": "^2.0.0", "media-typer": "^1.1.0", "mime-types": "^3.0.0" } }, "sha512-faYHw0anBbc/kWF3zFTEnxSFOAGUX9GFbOBthvDdLsIlEoWOFOtS0zgCiQYwIskL9iGXZL3kAXD8OoZ4GmMATA=="],
 
@@ -2672,6 +2701,8 @@
 
     "glob/minimatch": ["minimatch@10.2.6", "", { "dependencies": { "brace-expansion": "^5.0.8" } }, "sha512-vpLQEs+VLCr1nU0BXS07maYoFwlDAH0gngQuuttxIwutDFEMHq2blX+8vpgxDdK3J1PwjCJiep77OitTZ4Ll1A=="],
 
+    "globals/type-fest": ["type-fest@0.20.2", "", {}, "sha512-Ne+eE4r0/iWnpAxD852z3A+N0Bt5RN//NjJwRd2VFHEmrywxf5vsZlh4R6lixl6B+wz/8d+maTSAkN1FIkI3LQ=="],
+
     "hosted-git-info/lru-cache": ["lru-cache@10.4.3", "", {}, "sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ=="],
 
     "import-fresh/resolve-from": ["resolve-from@4.0.0", "", {}, "sha512-pb/MYmXstAkysRFx8piNI1tGFNQIFA3vkE3Gq4EuA1dF6gHp/+vgZqsCGJapvy8N3Q+4o7FwvquPJcnZ7RYy4g=="],
@@ -2795,8 +2826,6 @@
     "source-map-support/source-map": ["source-map@0.6.1", "", {}, "sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g=="],
 
     "stack-utils/escape-string-regexp": ["escape-string-regexp@2.0.0", "", {}, "sha512-UpzcLCXolUWcNu5HtVMHYdXJjArjsF9C0aNnquZYY4uW/Vu0miy5YoWvbV345HauVvcAUnpRuhMMcqTcGOY2+w=="],
-
-    "stacktrace-parser/type-fest": ["type-fest@0.7.1", "", {}, "sha512-Ne2YiiGN8bmrmJJEuTWTLJR32nh/JdL1+PSicowtNb0WFpn59GK8/lfD61bVtzguz7b3PBt74nxpv/Pw5po5Rg=="],
 
     "terser/commander": ["commander@2.20.3", "", {}, "sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ=="],
 

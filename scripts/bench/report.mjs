@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 const here = path.dirname(fileURLToPath(import.meta.url))
 export const RESULTS_DIR = path.join(here, 'results')
 
-// Mirrors example/src/bench/impls.tsx, in table order.
+// Mirrors bench/src/bench/impls.tsx, in table order.
 export const IMPLS = [
   ['text', 'Text (no animation)'],
   ['atext', 'AnimateableText (shared value)'],
@@ -24,7 +24,7 @@ export const IMPLS = [
   ['ticker', 'react-native-ticker'],
   ['anim-numbers', 'AnimatedNumbers'],
 ]
-// Mirrors example/src/bench/inputs.tsx, in table order.
+// Mirrors bench/src/bench/inputs.tsx, in table order.
 export const INPUT_IMPLS = [
   ['rn-text', 'TextInput (text)'],
   ['nitro-text', '**NitroInput (text)**'],

@@ -22,7 +22,7 @@ const config = {
     applePlatform({
       name: 'ios',
       device: appleSimulator(iosSimulatorName, iosSimulatorVersion),
-      bundleId: 'org.reactjs.native.example.RollingNumberExample',
+      bundleId: 'com.nitroinput.example',
     }),
     androidPlatform({
       name: 'android',
@@ -34,7 +34,7 @@ const config = {
         diskSize: '2G',
         heapSize: '1G',
       }),
-      bundleId: 'com.rollingnumberexample',
+      bundleId: 'com.nitroinput.example',
     }),
   ],
   defaultRunner: 'ios',

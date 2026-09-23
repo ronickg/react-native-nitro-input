@@ -1,0 +1,52 @@
+{
+  "name": "NitroInputBench",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "start": "react-native start"
+  },
+  "dependencies": {
+    "@expo/ui": "58.0.0-canary-20260909-ea7a89a",
+    "@react-navigation/native": "^7.4.1",
+    "@react-navigation/native-stack": "^7.19.2",
+    "@shopify/react-native-skia": "2.12.0",
+    "bench-probe": "workspace:*",
+    "expo": "58.0.0-canary-20260909-ea7a89a",
+    "number-flow-react-native": "0.5.1",
+    "react": "19.2.3",
+    "react-native": "0.87.1",
+    "react-native-advanced-input-mask": "1.4.6",
+    "react-native-animateable-text": "0.19.3",
+    "react-native-animated-numbers": "0.6.3",
+    "react-native-animated-rolling-numbers": "2.0.0",
+    "react-native-currency-input": "1.1.1",
+    "react-native-mask-input": "1.2.3",
+    "react-native-nitro-input": "workspace:*",
+    "react-native-nitro-modules": "0.37.1",
+    "react-native-number-animation": "0.1.5",
+    "react-native-number-bloom": "1.1.7",
+    "react-native-reanimated": "4.6.0",
+    "react-native-safe-area-context": "^5.5.2",
+    "react-native-screens": "^4.28.0",
+    "react-native-ticker": "6.0.1",
+    "react-native-worklets": "0.12.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.25.3",
+    "@babel/runtime": "^7.25.0",
+    "@react-native-community/cli": "20.2.0",
+    "@react-native-community/cli-platform-android": "20.2.0",
+    "@react-native-community/cli-platform-ios": "20.2.0",
+    "@react-native/babel-preset": "0.87.1",
+    "@react-native/metro-config": "0.87.1",
+    "@react-native/typescript-config": "0.87.1",
+    "@types/react": "^19.2.0",
+    "typescript": "^6.0.3"
+  },
+  "engines": {
+    "node": ">= 22.11.0"
+  }
+}

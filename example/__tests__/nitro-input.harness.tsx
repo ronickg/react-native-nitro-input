@@ -15,7 +15,7 @@ import {
   type NitroInputSelectionEvent,
 } from 'react-native-nitro-input'
 import { deferred, sleep, withTimeout } from './test-utils'
-import { forceGc, trackNativeViews, trackedLiveCount } from '../src/bench/probe'
+import { forceGc, trackNativeViews, trackedLiveCount } from 'bench-probe'
 
 function layoutOf() {
   const state: { current: LayoutRectangle | null } = { current: null }

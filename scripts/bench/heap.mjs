@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// A native heap profile of the example app on Android while it mounts copies
+// A native heap profile of the bench app on Android while it mounts copies
 // of one implementation: which call sites the memory of a mounted view comes
 // from, as KB per copy. Perfetto's heapprofd samples every malloc (and, with
 // all_heaps, the ART heap) from process start, so the trace is started
@@ -8,7 +8,7 @@
 //
 //   node scripts/bench/heap.mjs --android <adb serial> --impl morph-text [--count 50] [--python .venv/bin/python]
 //
-// Needs: the release example app installed (its manifest is
+// Needs: the release bench app installed (its manifest is
 // <profileable android:shell="true"/>, which lets the shell attach to it),
 // and a Python with the `perfetto` package for the attribution
 // (python3 -m venv .venv && .venv/bin/pip install perfetto; the package

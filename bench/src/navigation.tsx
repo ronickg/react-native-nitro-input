@@ -1,0 +1,66 @@
+import React from 'react'
+import { ScrollView, Text } from 'react-native'
+import { NavigationContainer, useNavigation, useNavigationContainerRef } from '@react-navigation/native'
+import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import { launchPlan } from 'bench-probe'
+import { Btn, Card, Row, styles } from './harness'
+import { InputBenchScreen } from './bench/InputBenchScreen'
+import { RollingBenchScreen, type RollingBenchParams } from './bench/RollingBenchScreen'
+import { parsePlan } from './bench/plan'
+
+export type RootStackParamList = {
+  Home: undefined
+  RollingBench: RollingBenchParams
+  InputBench: undefined
+}
+
+const Stack = createNativeStackNavigator<RootStackParamList>()
+
+function HomeScreen() {
+  const nav = useNavigation<any>()
+  return (
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <Card title="Rolling number" hint="This library against every other animated-number library on npm that builds here: frame pacing on both threads and per-thread CPU, on this device.">
+        <Row><Btn testID="home-rolling-bench" tone="primary" title="Benchmark vs other libraries" onPress={() => nav.navigate('RollingBench')} /></Row>
+      </Card>
+      <Card title="Text input" hint="Mount and focus cost of NitroInput against TextInput and Expo UI's TextField.">
+        <Row><Btn testID="home-bench" tone="primary" title="Mount / focus benchmark" onPress={() => nav.navigate('InputBench')} /></Row>
+      </Card>
+      <Text style={styles.cardHint}>scripts/bench/run.mjs launches this app with a plan and drives it; see BENCHMARKS.md.</Text>
+    </ScrollView>
+  )
+}
+
+/**
+ * Launched with a benchmark plan (scripts/bench/run.mjs passes one through the
+ * probe), the app goes straight to the benchmark screen and runs it. Android
+ * reports the activity's intent a beat after the bundle loads, hence the retries.
+ */
+function useLaunchPlan(navRef: ReturnType<typeof useNavigationContainerRef<RootStackParamList>>) {
+  return React.useCallback(() => {
+    let tries = 0
+    const check = () => {
+      const plan = parsePlan(launchPlan())
+      if (plan) {
+        navRef.navigate('RollingBench', { plan })
+        return
+      }
+      if (++tries < 6) setTimeout(check, 500)
+    }
+    check()
+  }, [navRef])
+}
+
+export function RootNavigator() {
+  const navRef = useNavigationContainerRef<RootStackParamList>()
+  const onReady = useLaunchPlan(navRef)
+  return (
+    <NavigationContainer ref={navRef} onReady={onReady}>
+      <Stack.Navigator>
+        <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Benchmarks' }} />
+        <Stack.Screen name="RollingBench" component={RollingBenchScreen} options={{ title: 'Rolling number benchmark' }} />
+        <Stack.Screen name="InputBench" component={InputBenchScreen} options={{ title: 'Input benchmark' }} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  )
+}

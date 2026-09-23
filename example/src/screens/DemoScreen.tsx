@@ -151,7 +151,7 @@ function ReflowInputDemo() {
   const [maskPhone, setMaskPhone] = useState(EMPTY_MASK)
   const [maskHex, setMaskHex] = useState(EMPTY_MASK)
   return (
-    <Section title="Morph input" hint="A native input whose text morphs as you type. The amount is formatted natively, caret and all, with no JS round trip.">
+    <Section title="Reflow input" hint="A native input whose text reflows as you type (transition reflow). The amount is formatted natively, caret and all, with no JS round trip.">
       <View style={styles.morphAmountBox}>
         <NitroInput transition="reflow"
           ref={amountRef}
@@ -306,7 +306,7 @@ function ReflowInputDemo() {
           cornerRadius={10}
           defaultValue={'One line\nTwo lines\nThree lines'}
         />
-        {/* The same amount without the morph: `NitroInput` is plain unless asked,
+        {/* The same amount without the reflow: `NitroInput` is plain unless asked,
             so this is what a currency field looks like by default. */}
         <NitroInput
           testID="morph-plain-negative"
@@ -884,7 +884,7 @@ function RevealShowcase({ onExit }: { onExit: () => void }) {
   )
 }
 
-/** The morph input, typed for you: digits arrive, commas reflow, the figure is swapped. */
+/** The reflowing input, typed for you: digits arrive, commas reflow, the figure is swapped. */
 function MorphShowcase({ onExit }: { onExit: () => void }) {
   const field = useRef<NitroInputHandle>(null)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
@@ -1007,7 +1007,7 @@ export function DemoScreen() {
           <View style={styles.row}>
             <Button title="Showcase: Balance" testID="showcase-balance" onPress={() => setShowing('balance')} />
             <Button title="Showcase: Reveal" testID="showcase-reveal" onPress={() => setShowing('reveal')} />
-            <Button title="Showcase: Morph" testID="showcase-morph" onPress={() => setShowing('morph')} />
+            <Button title="Showcase: Reflow" testID="showcase-morph" onPress={() => setShowing('morph')} />
           </View>
           <ReflowInputDemo />
           <MorphWorkletDemo />
