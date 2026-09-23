@@ -1,7 +1,7 @@
 # Benchmarks
 
-Measured on 2026‑09‑22 on three phones with the example app's benchmark
-screen (`example/src/bench`, driven from the host by `scripts/bench/run.mjs`):
+Measured on 2026‑09‑22 on three phones with the bench app
+(`bench/src/bench`, driven from the host by `scripts/bench/run.mjs`):
 an **iPhone 13 Pro Max** (iOS 26.6.2, 120 Hz ProMotion), an **iPhone 11 Pro**
 (iOS 26.6.1, 60 Hz) and a **Samsung Galaxy A22** (Android 13, 90 Hz, a
 MediaTek Helio G80: a low-end phone). Release builds, React Native 0.87.1,
@@ -43,7 +43,7 @@ unmounting, and then the text fields.
 
 ## Method
 
-Everything below comes from `scripts/bench/run.mjs`, which builds the example
+Everything below comes from `scripts/bench/run.mjs`, which builds the bench
 app in release, installs it on each phone, launches it with a plan and collects
 what the app reports; the tables are `scripts/bench/report.mjs` over the
 result files in `scripts/bench/results/`. Nothing on the host touches the
@@ -62,7 +62,7 @@ debugger, no Metro.
   and no library runs hotter than its neighbours.
 - **UI fps / dropped / p95** come from a display link on the main thread
   (`CADisplayLink` on iOS, `Choreographer` on Android) inside a small native
-  probe module in the example app. A gap of *n* refresh intervals counts as
+  probe module (`modules/bench-probe`). A gap of *n* refresh intervals counts as
   *n − 1* dropped frames; p95 is the 95th percentile gap in ms. The interval is
   the one the display was actually running at: the display link's own
   `targetTimestamp` on iOS, the display mode on Android (checked against the

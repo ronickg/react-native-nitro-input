@@ -1,6 +1,6 @@
 import React from 'react'
 import { DevSettings, I18nManager, ScrollView, Text } from 'react-native'
-import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native'
+import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { useNavigation } from '@react-navigation/native'
 import { Btn, Card, Row, styles } from './harness'
@@ -9,13 +9,9 @@ import { ParityScreen } from './screens/ParityScreen'
 import { FormSheetScreen, NavAScreen, NavBScreen } from './screens/NavigationScreens'
 import { StateChangeScreen } from './screens/StateChangeScreen'
 import { KeyboardControllerScreen } from './screens/KeyboardControllerScreen'
-import { BenchScreen } from './screens/BenchScreen'
 import { ViewPropsReproScreen } from './screens/ViewPropsRepro'
 import { RtlScreen } from './screens/RtlScreen'
 import { RecycleCheckScreen } from './screens/RecycleCheckScreen'
-import { RollingBenchScreen, type RollingBenchParams } from './bench/RollingBenchScreen'
-import { parsePlan } from './bench/plan'
-import { launchPlan } from './bench/probe'
 import {
   FlowAmountScreen,
   FlowEmailScreen,
@@ -33,8 +29,6 @@ export type RootStackParamList = {
   Sheet: { kind: 'morph' | 'rn'; autoFocus?: boolean }
   StateChange: undefined
   KeyboardController: undefined
-  Bench: undefined
-  RollingBench: RollingBenchParams
   FlowEmail: { impl: Impl }
   FlowAmount: { impl: Impl }
   FlowForm: { impl: Impl }
@@ -76,7 +70,6 @@ function HomeScreen() {
           <Btn testID="home-nav" tone="primary" title="Two-screen routing" onPress={() => nav.navigate('NavA')} />
           <Btn testID="home-state" tone="primary" title="In-screen state change" onPress={() => nav.navigate('StateChange')} />
           <Btn testID="home-kc" tone="primary" title="keyboard-controller" onPress={() => nav.navigate('KeyboardController')} />
-          <Btn testID="home-bench" tone="primary" title="Mount / focus benchmark" onPress={() => nav.navigate('Bench')} />
         </Row>
       </Card>
       <Card
@@ -116,8 +109,7 @@ function HomeScreen() {
           <Btn testID="home-sheet-rn-manual" title="Sheet (rn, manual)" onPress={() => nav.navigate('Sheet', { kind: 'rn', autoFocus: false })} />
         </Row>
       </Card>
-      <Card title="Rolling number" hint="This library against every other animated-number library on npm that builds here: frame pacing on both threads and per-thread CPU, on this device.">
-        <Row><Btn testID="home-rolling-bench" tone="primary" title="Benchmark vs other libraries" onPress={() => nav.navigate('RollingBench')} /></Row>
+      <Card title="Rolling number" hint="The benchmarks against other libraries live in the bench app (bench/).">
         <Row><Btn testID="home-recycle" title="Recycle check (400-row lists)" onPress={() => nav.navigate('RecycleCheck')} /></Row>
       </Card>
       <Card title="Original demo" hint="The rolling number and reflowing input showcase this example shipped with.">
@@ -128,31 +120,10 @@ function HomeScreen() {
   )
 }
 
-/**
- * Launched with a benchmark plan (scripts/bench/run.mjs passes one through the
- * probe), the app goes straight to the benchmark screen and runs it. Android
- * reports the activity's intent a beat after the bundle loads, hence the retries.
- */
-function useLaunchPlan(navRef: ReturnType<typeof useNavigationContainerRef<RootStackParamList>>) {
-  return React.useCallback(() => {
-    let tries = 0
-    const check = () => {
-      const plan = parsePlan(launchPlan())
-      if (plan) {
-        navRef.navigate('RollingBench', { plan })
-        return
-      }
-      if (++tries < 6) setTimeout(check, 500)
-    }
-    check()
-  }, [navRef])
-}
 
 export function RootNavigator() {
-  const navRef = useNavigationContainerRef<RootStackParamList>()
-  const onReady = useLaunchPlan(navRef)
   return (
-    <NavigationContainer ref={navRef} onReady={onReady}>
+    <NavigationContainer>
       <Stack.Navigator screenOptions={STACK_OPTIONS}>
         <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Input parity' }} />
         <Stack.Screen name="Parity" component={ParityScreen} options={{ title: 'Parity' }} />
@@ -160,8 +131,6 @@ export function RootNavigator() {
         <Stack.Screen name="NavB" component={NavBScreen} options={{ title: 'Screen B' }} />
         <Stack.Screen name="StateChange" component={StateChangeScreen} options={{ title: 'State change' }} />
         <Stack.Screen name="KeyboardController" component={KeyboardControllerScreen} options={{ title: 'keyboard-controller' }} />
-        <Stack.Screen name="Bench" component={BenchScreen} options={{ title: 'Benchmark' }} />
-        <Stack.Screen name="RollingBench" component={RollingBenchScreen} options={{ title: 'Rolling number benchmark' }} />
         <Stack.Screen name="FlowEmail" component={FlowEmailScreen} options={FLOW_STEP} />
         <Stack.Screen name="FlowAmount" component={FlowAmountScreen} options={FLOW_STEP} />
         <Stack.Screen name="FlowForm" component={FlowFormScreen} options={FLOW_STEP} />

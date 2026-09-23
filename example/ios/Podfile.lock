@@ -25,85 +25,6 @@ PODS:
     - ReactNativeDependencies
   - DoubleConversion (1.1.6):
     - ReactNativeDependencies
-  - EXConstants (58.0.0-canary-20260909-ea7a89a):
-    - ExpoModulesCore
-  - Expo (58.0.0-canary-20260909-ea7a89a):
-    - ExpoModulesCore
-    - ExpoModulesJSI
-    - hermes-engine
-    - RCTRequired
-    - RCTTypeSafety
-    - React-bridging
-    - React-Core
-    - React-Core-prebuilt
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTAppDelegate
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactAppDependencyProvider
-    - ReactCodegen
-    - ReactCommon/turbomodule/core
-    - ReactNativeDependencies
-    - Yoga
-  - ExpoAsset (58.0.0-canary-20260909-ea7a89a):
-    - ExpoModulesCore
-  - ExpoDomWebView (58.0.0-canary-20260909-ea7a89a):
-    - ExpoModulesCore
-  - ExpoFileSystem (58.0.0-canary-20260909-ea7a89a):
-    - ExpoModulesCore
-  - ExpoFont (58.0.0-canary-20260909-ea7a89a):
-    - ExpoModulesCore
-  - ExpoKeepAwake (58.0.0-canary-20260909-ea7a89a):
-    - ExpoModulesCore
-  - ExpoLogBox (58.0.0-canary-20260909-ea7a89a):
-    - React-Core
-  - ExpoModulesCore (58.0.0-canary-20260909-ea7a89a):
-    - ExpoModulesJSI
-    - hermes-engine
-    - RCTRequired
-    - RCTTypeSafety
-    - React-bridging
-    - React-Core
-    - React-Core-prebuilt
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - React-jsinspector
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/core
-    - ReactNativeDependencies
-    - Yoga
-  - ExpoModulesJSI (58.0.0-canary-20260909-ea7a89a):
-    - React-Core
-    - ReactCommon
-  - ExpoModulesWorklets (58.0.0-canary-20260909-ea7a89a):
-    - ExpoModulesCore
-    - ExpoModulesJSI
-  - ExpoModulesWorkletsAdapter (58.0.0-canary-20260909-ea7a89a):
-    - ExpoModulesCore
-    - ExpoModulesJSI
-    - ExpoModulesWorklets
-    - RNWorklets
-  - ExpoUI (58.0.0-canary-20260909-ea7a89a):
-    - ExpoModulesCore
-    - ExpoModulesWorklets
-    - React-RCTFabric
   - fast_float (8.0.0):
     - ReactNativeDependencies
   - FBLazyVector (0.87.1):
@@ -146,28 +67,6 @@ PODS:
     - RCTTypeSafety
     - React-bridging
     - React-callinvoker
-    - React-Core
-    - React-Core-prebuilt
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/core
-    - ReactNativeDependencies
-    - Yoga
-  - NumberAnimation (0.1.5):
-    - hermes-engine
-    - RCTRequired
-    - RCTTypeSafety
-    - React-bridging
     - React-Core
     - React-Core-prebuilt
     - React-debug
@@ -1417,53 +1316,6 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-animateable-text (0.19.3):
-    - hermes-engine
-    - RCTRequired
-    - RCTTypeSafety
-    - React-bridging
-    - React-Core
-    - React-Core-prebuilt
-    - React-debug
-    - React-Fabric
-    - React-FabricComponents
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - react-native-animateable-text/newarch (= 0.19.3)
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/core
-    - ReactNativeDependencies
-    - Yoga
-  - react-native-animateable-text/newarch (0.19.3):
-    - hermes-engine
-    - RCTRequired
-    - RCTTypeSafety
-    - React-bridging
-    - React-Core
-    - React-Core-prebuilt
-    - React-debug
-    - React-Fabric
-    - React-FabricComponents
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/core
-    - ReactNativeDependencies
-    - Yoga
   - react-native-keyboard-controller (1.22.5):
     - hermes-engine
     - RCTRequired
@@ -1569,30 +1421,6 @@ PODS:
     - React-ImageManager
     - React-jsi
     - react-native-safe-area-context/common
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/core
-    - ReactNativeDependencies
-    - Yoga
-  - react-native-skia (2.12.0):
-    - hermes-engine
-    - RCTRequired
-    - RCTTypeSafety
-    - React
-    - React-bridging
-    - React-callinvoker
-    - React-Core
-    - React-Core-prebuilt
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
     - React-NativeModulesApple
     - React-RCTFabric
     - React-renderercss
@@ -2186,19 +2014,6 @@ DEPENDENCIES:
   - BenchProbe (from `../../node_modules/bench-probe`)
   - boost (from `build/rndeps-facades/boost`)
   - DoubleConversion (from `build/rndeps-facades/DoubleConversion`)
-  - EXConstants (from `../../node_modules/expo-constants/ios`)
-  - Expo (from `../../node_modules/expo`)
-  - ExpoAsset (from `../../node_modules/expo-asset/ios`)
-  - "ExpoDomWebView (from `../../node_modules/@expo/dom-webview/ios`)"
-  - ExpoFileSystem (from `../../node_modules/expo-file-system/ios`)
-  - ExpoFont (from `../../node_modules/expo-font/ios`)
-  - ExpoKeepAwake (from `../../node_modules/expo-keep-awake/ios`)
-  - "ExpoLogBox (from `../../node_modules/@expo/log-box`)"
-  - ExpoModulesCore (from `../../node_modules/expo-modules-core`)
-  - ExpoModulesJSI (from `../../node_modules/expo-modules-jsi/apple`)
-  - ExpoModulesWorklets (from `../../node_modules/expo-modules-core`)
-  - ExpoModulesWorkletsAdapter (from `../../node_modules/expo-modules-core`)
-  - "ExpoUI (from `../../node_modules/@expo/ui/ios`)"
   - fast_float (from `build/rndeps-facades/fast_float`)
   - FBLazyVector (from `build/rncore-facades/FBLazyVector`)
   - fmt (from `build/rndeps-facades/fmt`)
@@ -2206,7 +2021,6 @@ DEPENDENCIES:
   - hermes-engine (from `../../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - NitroInput (from `../../node_modules/react-native-nitro-input`)
   - NitroModules (from `../../node_modules/react-native-nitro-modules`)
-  - NumberAnimation (from `../../node_modules/react-native-number-animation`)
   - RCT-Folly (from `build/rndeps-facades/RCT-Folly`)
   - RCTDeprecation (from `build/rncore-facades/RCTDeprecation`)
   - RCTRequired (from `build/rncore-facades/RCTRequired`)
@@ -2248,10 +2062,8 @@ DEPENDENCIES:
   - React-Mapbuffer (from `../../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
   - React-mutationobservernativemodule (from `../../node_modules/react-native/ReactCommon/react/nativemodule/mutationobserver`)
-  - react-native-animateable-text (from `../../node_modules/react-native-animateable-text`)
   - react-native-keyboard-controller (from `../../node_modules/react-native-keyboard-controller`)
   - react-native-safe-area-context (from `../../node_modules/react-native-safe-area-context`)
-  - "react-native-skia (from `../../node_modules/@shopify/react-native-skia`)"
   - React-NativeModulesApple (from `../../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-networking (from `../../node_modules/react-native/ReactCommon/react/networking`)
   - React-oscompat (from `../../node_modules/react-native/ReactCommon/oscompat`)
@@ -2301,32 +2113,6 @@ EXTERNAL SOURCES:
     :path: build/rndeps-facades/boost
   DoubleConversion:
     :path: build/rndeps-facades/DoubleConversion
-  EXConstants:
-    :path: "../../node_modules/expo-constants/ios"
-  Expo:
-    :path: "../../node_modules/expo"
-  ExpoAsset:
-    :path: "../../node_modules/expo-asset/ios"
-  ExpoDomWebView:
-    :path: "../../node_modules/@expo/dom-webview/ios"
-  ExpoFileSystem:
-    :path: "../../node_modules/expo-file-system/ios"
-  ExpoFont:
-    :path: "../../node_modules/expo-font/ios"
-  ExpoKeepAwake:
-    :path: "../../node_modules/expo-keep-awake/ios"
-  ExpoLogBox:
-    :path: "../../node_modules/@expo/log-box"
-  ExpoModulesCore:
-    :path: "../../node_modules/expo-modules-core"
-  ExpoModulesJSI:
-    :path: "../../node_modules/expo-modules-jsi/apple"
-  ExpoModulesWorklets:
-    :path: "../../node_modules/expo-modules-core"
-  ExpoModulesWorkletsAdapter:
-    :path: "../../node_modules/expo-modules-core"
-  ExpoUI:
-    :path: "../../node_modules/@expo/ui/ios"
   fast_float:
     :path: build/rndeps-facades/fast_float
   FBLazyVector:
@@ -2342,8 +2128,6 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/react-native-nitro-input"
   NitroModules:
     :path: "../../node_modules/react-native-nitro-modules"
-  NumberAnimation:
-    :path: "../../node_modules/react-native-number-animation"
   RCT-Folly:
     :path: build/rndeps-facades/RCT-Folly
   RCTDeprecation:
@@ -2424,14 +2208,10 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
   React-mutationobservernativemodule:
     :path: "../../node_modules/react-native/ReactCommon/react/nativemodule/mutationobserver"
-  react-native-animateable-text:
-    :path: "../../node_modules/react-native-animateable-text"
   react-native-keyboard-controller:
     :path: "../../node_modules/react-native-keyboard-controller"
   react-native-safe-area-context:
     :path: "../../node_modules/react-native-safe-area-context"
-  react-native-skia:
-    :path: "../../node_modules/@shopify/react-native-skia"
   React-NativeModulesApple:
     :path: "../../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios"
   React-networking:
@@ -2516,30 +2296,16 @@ EXTERNAL SOURCES:
     :path: build/rncore-facades/Yoga
 
 SPEC CHECKSUMS:
-  BenchProbe: a1ca4e8966513edf2045b5189a2e9ace0cf0fc4a
+  BenchProbe: cb0e693271415a4220fd2ceb4b9d94a68e5a6bda
   boost: 8502bfdc46e2804408af2e163049ece181009af4
   DoubleConversion: 501a575c40c0b50c89685762dd3e415e6bb26fb0
-  EXConstants: 846d7281efc95e1b82745829db7dedea7a67ae64
-  Expo: 91f9902f8e0f3d17e0a8434de7fe12e8865cdb70
-  ExpoAsset: 3070461f01d3cb5d55436995693a1cfc07905df8
-  ExpoDomWebView: a83ddb2441fe423e0148ee7a43c727d479ea1d92
-  ExpoFileSystem: 18032ffc5680a63b2bb2785f0c2fec909a01588e
-  ExpoFont: bbec42969b39318b6cf357661523ba8110a320e8
-  ExpoKeepAwake: 667ee64558f230a2971e278d4eb83e4dcd20aae1
-  ExpoLogBox: 52cbceb334a663c00b14221bef0faf0682814792
-  ExpoModulesCore: d004a51a445916ab465e47d493269463846c2258
-  ExpoModulesJSI: a7f6cd3dd549c3012d9d1912467aae54515c5169
-  ExpoModulesWorklets: fc4bfa2867656079c582e5e78890561ded6bd868
-  ExpoModulesWorkletsAdapter: 57564b875c59a84f2a8ba676a6c43187b8d14f80
-  ExpoUI: c3a6edba13d95155adde117685bc45f65f50e065
   fast_float: 7c925d1cebf8328d4018d061f49377e9f887e3b4
   FBLazyVector: e08a27053b503eeb756ea4bd75d570d2f2522a1b
   fmt: ba0886e864ebb21d14c98b2e12e164b8002f5b93
   glog: 3cf7cb46f743c4bc758ae3e6d9c15bd1b4cfd6d4
   hermes-engine: 35975068890c71d4609534b47111140882468c3a
-  NitroInput: 4a52970a5fdf30730afe0da305f9ed9ddb442a5d
+  NitroInput: c4dd65e75163e4467eb25c631d15c5aca29a1e86
   NitroModules: b4d92f95f7e70027935b09736d7a589181bc0912
-  NumberAnimation: e6d4595fba7f7daf20fadf3e6e49c173d258fea9
   RCT-Folly: 82921e585c0400eda46fac1068297aa9dfb035e4
   RCTDeprecation: 5cc865306ce4974b7a57ddbc575fd1f3fef41957
   RCTRequired: ea6f2c41f2670961ce9a48a4bf17a190dd53e493
@@ -2580,10 +2346,8 @@ SPEC CHECKSUMS:
   React-Mapbuffer: 295203fc648a43acf7fba609ddf573aa9fca849f
   React-microtasksnativemodule: 269f81deee27a2a9bedb6b2d1088c1ae93de9bd3
   React-mutationobservernativemodule: 877e9f730e0d8175c2e952901b55c170fc3d372f
-  react-native-animateable-text: b1a0b9e8d969a71c373cafe7cb16dffb954a8b95
   react-native-keyboard-controller: 84a367945ee9155a576a37f648a79039a8862666
   react-native-safe-area-context: b3e507b0dbfb44dfadb29f7a31e884ac13789723
-  react-native-skia: 5ef297a9eff3d3f2b190d7a352600bb0feb26e5d
   React-NativeModulesApple: adb1dd8361dff80e9f6652fb3fdbf033cfbe2a89
   React-networking: c00b437c4408f0640ba0d4158357133488521eca
   React-oscompat: 3175a287dd7175d1a20fdce5048a4b9e11f4b915
@@ -2626,6 +2390,6 @@ SPEC CHECKSUMS:
   SocketRocket: 37aec555668fb852ec12e3c0de59a86ca58f0871
   Yoga: d1c536142c5ff8ec8cd856ab2a7c227a1d875c8e
 
-PODFILE CHECKSUM: 0d8111af7d22889b54cb972930e3d010c1654b1b
+PODFILE CHECKSUM: ab103bda77fd40f199270ddd4eb81bf09761c955
 
 COCOAPODS: 1.16.2
