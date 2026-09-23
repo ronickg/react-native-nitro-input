@@ -189,6 +189,8 @@ re-rendering), `react-native-countup-component`, `react-native-rolling-number-ti
 
 ## iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
+<BenchChart device="iPhone14,3" groups={['stream|24|frame', 'stream|24|10', 'stream|1|frame']} metrics={['ui.fps', 'ui.dropped', 'js.fps', 'cpu.main', 'cpu.js']} />
+
 | Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | runs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Text (no animation) | 120.0 | 0 | 8 | 60.0 | 47 % | 26 % | 20 % | 3 |
@@ -253,6 +255,8 @@ into a 120 Hz UI thread.
 
 ## iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
 
+<BenchChart device="iPhone12,3" groups={['stream|24|frame', 'stream|24|10', 'stream|1|frame']} metrics={['ui.fps', 'ui.dropped', 'js.fps', 'cpu.main', 'cpu.js']} />
+
 | Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | runs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Text (no animation) | 59.9 | 0 | 17 | 59.9 | 41 % | 24 % | 15 % | 3 |
@@ -312,6 +316,8 @@ Ten values a second is the live-ticker case: the differences stay the same,
 only smaller, and `jumpTo` runs the whole screen at 10 % of a core.
 
 ## Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+<BenchChart device="SM-A225F" groups={['stream|24|frame', 'stream|24|10', 'stream|1|frame']} metrics={['ui.fps', 'ui.dropped', 'js.fps', 'cpu.main', 'cpu.js']} />
 
 | Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | RenderThread | HWUI janky (of frames drawn) | runs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -754,6 +760,8 @@ flatter.
 | AnimatedNumbers | 915.5 MB | 892.6 MB | 1043.1 MB | -1868.4 KB | 393.8 → 323.3 MB | 1694 → 1088 | 1 |
 
 ### What one copy costs
+
+<BenchChart group="footprint|100" metrics={['perViewFootprintKb', 'perViewNativeKb', 'perViewJavaKb', 'leftFootprintKb']} caption="Medians of three interleaved rounds on the Galaxy A22, the first mount on the iPhones; the Java heap is Android only." />
 
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
