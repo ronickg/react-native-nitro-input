@@ -69,6 +69,14 @@ int glyphMorphTests() {
     MCHECK(std::fabs(mid[2 * i + 1] - b[2 * i + 1]) < 1e-6);
   }
 
+  // Aligning once and interpolating without the search is the same outline.
+  const std::vector<double> aligned = GlyphMorph::align(b, c);
+  std::vector<double> fast(static_cast<size_t>(D));
+  GlyphMorph::interpolate(b.data(), 1, aligned.data(), 1, 0.5, fast.data(), true);
+  for (int i = 0; i < D; i++) {
+    MCHECK(std::fabs(fast[i] - mid[i]) < 1e-9);
+  }
+
   // Degenerate contours are dropped.
   const std::vector<double> flat = GlyphMorph::normalize({0, 0, 5, 0, 10, 0}, {3});
   MCHECK(flat.empty());

@@ -27,8 +27,9 @@ namespace margelo::nitro::nitrorollingnumber {
 
 class GlyphMorph final {
 public:
-  /// Points per normalized contour.
-  static constexpr int kSamples = 64;
+  /// Points per normalized contour: enough that the polygon is the glyph to
+  /// the pixel at display sizes, so a morph starts and ends without a jump.
+  static constexpr int kSamples = 192;
   /// Doubles per normalized contour (x, y pairs).
   static constexpr int kContourDoubles = kSamples * 2;
 
@@ -39,12 +40,19 @@ public:
   /// vertices or no area are dropped.
   static int normalize(const double* points, const int* sizes, int contourCount, double* out);
 
+  /// `b` rotated so every contour paired with one of `a`'s starts at the
+  /// point closest to its partner's start (the rotation with the least total
+  /// distance); unpaired contours are copied. Written to `outB`, `contoursB`
+  /// contours. Done once per pair of glyphs, so a frame needs no search.
+  static int align(const double* a, int contoursA, const double* b, int contoursB, double* outB);
+
   /// The outline between `a` (`contoursA` normalized contours) and `b` at
   /// `t` 0…1, written to `out` as `max(contoursA, contoursB)` contours of
   /// `kContourDoubles`; returns that count. Paired contours move point to
-  /// point (each pair's start aligned by the closest rotation); an unpaired
-  /// one scales about its centroid, to nothing (from `a`) or from nothing (in `b`).
-  static int interpolate(const double* a, int contoursA, const double* b, int contoursB, double t, double* out);
+  /// point; an unpaired one scales about its centroid, to nothing (from `a`)
+  /// or from nothing (in `b`). With `aligned` false the pairs are aligned
+  /// here first (see `align`), which is the slow path.
+  static int interpolate(const double* a, int contoursA, const double* b, int contoursB, double t, double* out, bool aligned = false);
 
   /// The largest number of doubles `interpolate` writes for these outlines.
   static int outputDoubles(int contoursA, int contoursB) {
@@ -53,6 +61,7 @@ public:
 
   // The std::vector forms, for the tests and the WebAssembly bindings.
   static std::vector<double> normalize(const std::vector<double>& points, const std::vector<int>& sizes);
+  static std::vector<double> align(const std::vector<double>& a, const std::vector<double>& b);
   static std::vector<double> interpolate(const std::vector<double>& a, const std::vector<double>& b, double t);
 };
 

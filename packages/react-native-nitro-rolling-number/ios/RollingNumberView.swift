@@ -275,6 +275,13 @@ final class RollingNumberView: UIView {
       let digit: Int
     }
     private static var sharedOutlines: [OutlineKey: [Double]] = [:]
+    /// The target digit's outline aligned to the source's, once per pair (see GlyphMorph::align).
+    private struct PairKey: Hashable {
+      let font: String
+      let from: Int
+      let to: Int
+    }
+    private static var sharedAligned: [PairKey: [Double]] = [:]
     private static var sharedStrips: [StripKey: UIImage] = [:]
     private static let sharedCapacity = 512
     private static let ciContext = CIContext(options: [.useSoftwareRenderer: false])
@@ -412,7 +419,15 @@ final class RollingNumberView: UIView {
       var glyphs = [CGGlyph](repeating: 0, count: unichars.count)
       let offsetX = Double((digitWidth - width(of: text, role: .digit)) / 2)
       let baseline = Double(self.digit.ascender)
-      if CTFontGetGlyphsForCharacters(ctFont, &unichars, &glyphs, unichars.count), let path = CTFontCreatePathForGlyph(ctFont, glyphs[0], nil) {
+      if CTFontGetGlyphsForCharacters(ctFont, &unichars, &glyphs, unichars.count), let raw = CTFontCreatePathForGlyph(ctFont, glyphs[0], nil) {
+        // One clean outline: a glyph built from overlapping strokes becomes its
+        // outer contour and its holes, so no stroke morphs as a piece of its own.
+        let path: CGPath
+        if #available(iOS 16.0, *) {
+          path = raw.normalized(using: .winding)
+        } else {
+          path = raw
+        }
         var current = CGPoint.zero
         var start = CGPoint.zero
         var contour = 0
@@ -475,6 +490,26 @@ final class RollingNumberView: UIView {
       out.removeLast(out.count - contours * RollingNumberView.morphContourDoubles)
       if Self.sharedOutlines.count >= 64 { Self.sharedOutlines.removeAll(keepingCapacity: true) }
       Self.sharedOutlines[key] = out
+      return out
+    }
+
+    func alignedOutline(from: Int, to: Int) -> [Double] {
+      let key = PairKey(font: fontTag(.digit) + "|\(renderScale)", from: from, to: to)
+      if let cached = Self.sharedAligned[key] { return cached }
+      let a = outline(of: from)
+      let b = outline(of: to)
+      guard !a.isEmpty, !b.isEmpty else { return b }
+      var out = [Double](repeating: 0, count: b.count)
+      let d = RollingNumberView.morphContourDoubles
+      _ = a.withUnsafeBufferPointer { pa in
+        b.withUnsafeBufferPointer { pb in
+          out.withUnsafeMutableBufferPointer { o in
+            GlyphMorph.align(pa.baseAddress, Int32(a.count / d), pb.baseAddress, Int32(b.count / d), o.baseAddress)
+          }
+        }
+      }
+      if Self.sharedAligned.count >= 256 { Self.sharedAligned.removeAll(keepingCapacity: true) }
+      Self.sharedAligned[key] = out
       return out
     }
 
@@ -1313,6 +1348,7 @@ final class RollingNumberView: UIView {
   static let numericOffset: CGFloat = 0.4
   static let numericScale: CGFloat = 0.6
   static let numericBlur: CGFloat = 0.16
+  static let numericMorphDip: CGFloat = 0.25
 
   /// Places the leaving and the arriving glyph of a swapping wheel for this
   /// frame: each scaled about its centre, offset along the axis, faded, and
@@ -1424,8 +1460,9 @@ final class RollingNumberView: UIView {
     return UIColor(red: ar + (br - ar) * t, green: ag + (bg - ag) * t, blue: ab + (bb - ab) * t, alpha: aa + (ba - aa) * t)
   }
 
-  // The morph's contour size, mirroring `GlyphMorph::kContourDoubles`.
-  static let morphContourDoubles = 128
+  // The morph's contour size, mirroring `GlyphMorph::kSamples` and `kContourDoubles`.
+  static let morphSamples = 192
+  static let morphContourDoubles = 384
 
   /// The morph for this frame: the outline between the two digits, as a path.
   private func layoutMorph(_ morph: MorphLayer, wheel: Engine.Wheel, fonts: FontSet, cellWidth: CGFloat) {
@@ -1433,7 +1470,7 @@ final class RollingNumberView: UIView {
     let to = Int(wheel.toGlyph)
     // A blank turning into a digit (or back) is the numeric look; the morph needs two shapes.
     let a = from >= 0 ? fonts.outline(of: from) : []
-    let b = to >= 0 ? fonts.outline(of: to) : []
+    let b = to >= 0 ? (from >= 0 ? fonts.alignedOutline(from: from, to: to) : fonts.outline(of: to)) : []
     let ca = a.count / Self.morphContourDoubles
     let cb = b.count / Self.morphContourDoubles
     let count = max(ca, cb)
@@ -1446,7 +1483,7 @@ final class RollingNumberView: UIView {
       contours = a.withUnsafeBufferPointer { pa in
         b.withUnsafeBufferPointer { pb in
           morph.buffer.withUnsafeMutableBufferPointer { o in
-            Int(GlyphMorph.interpolate(pa.baseAddress, Int32(ca), pb.baseAddress, Int32(cb), Double(t), o.baseAddress))
+            Int(GlyphMorph.interpolate(pa.baseAddress, Int32(ca), pb.baseAddress, Int32(cb), Double(t), o.baseAddress, true))
           }
         }
       }
@@ -1457,13 +1494,13 @@ final class RollingNumberView: UIView {
       contours = src.count / Self.morphContourDoubles
       for c in 0..<contours {
         var cx = 0.0, cy = 0.0
-        for i in 0..<64 {
+        for i in 0..<Self.morphSamples {
           cx += src[c * Self.morphContourDoubles + 2 * i]
           cy += src[c * Self.morphContourDoubles + 2 * i + 1]
         }
-        cx /= 64
-        cy /= 64
-        for i in 0..<64 {
+        cx /= Double(Self.morphSamples)
+        cy /= Double(Self.morphSamples)
+        for i in 0..<Self.morphSamples {
           morph.buffer[c * Self.morphContourDoubles + 2 * i] = cx + (src[c * Self.morphContourDoubles + 2 * i] - cx) * Double(scale)
           morph.buffer[c * Self.morphContourDoubles + 2 * i + 1] = cy + (src[c * Self.morphContourDoubles + 2 * i + 1] - cy) * Double(scale)
         }
@@ -1474,7 +1511,7 @@ final class RollingNumberView: UIView {
     for c in 0..<contours {
       let base = c * Self.morphContourDoubles
       path.move(to: CGPoint(x: columnLeft + CGFloat(morph.buffer[base]), y: CGFloat(morph.buffer[base + 1])))
-      for i in 1..<64 {
+      for i in 1..<Self.morphSamples {
         path.addLine(to: CGPoint(x: columnLeft + CGFloat(morph.buffer[base + 2 * i]), y: CGFloat(morph.buffer[base + 2 * i + 1])))
       }
       path.closeSubpath()
@@ -1485,7 +1522,8 @@ final class RollingNumberView: UIView {
       fill = Self.mix(fonts.color, tint, CGFloat(wheel.flash))
     }
     morph.shape.fillColor = fill.cgColor
-    morph.shape.opacity = Float(wheel.width)
+    // A shape half way between two glyphs is neither; a slight dip in the ink lets the eye skip over it.
+    morph.shape.opacity = Float(CGFloat(wheel.width) * (1 - Self.numericMorphDip * sin(.pi * t)))
     if morph.shape.isHidden { morph.shape.isHidden = false }
     morph.hidden = false
   }

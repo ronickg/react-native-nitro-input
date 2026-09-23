@@ -49,6 +49,8 @@ import kotlin.math.min
 private const val NUMERIC_OFFSET = 0.4f
 private const val NUMERIC_SCALE = 0.6f
 private const val NUMERIC_BLUR = 0.16f
+/** How much the morph's ink dips half way (see RollingEngine.hpp). */
+private const val NUMERIC_MORPH_DIP = 0.25f
 
 class RollingNumberView(context: Context) : View(context) {
 
@@ -322,8 +324,13 @@ class RollingNumberView(context: Context) : View(context) {
     private val outlines = HashMap<Int, DoubleArray>()
     fun outline(digitIndex: Int): DoubleArray = outlines.getOrPut(digitIndex) {
       val text = DIGITS[digitIndex]
+      val raw = Path()
+      digit.getTextPath(text, 0, 1, (digitWidth - width(text, GlyphRole.DIGIT)) / 2f, baseline(GlyphRole.DIGIT, text, 0f), raw)
+      // One clean outline: a glyph the font builds from overlapping strokes
+      // (Roboto's digits) becomes its outer contour and its holes, so no
+      // stroke morphs as a piece of its own.
       val path = Path()
-      digit.getTextPath(text, 0, 1, (digitWidth - width(text, GlyphRole.DIGIT)) / 2f, baseline(GlyphRole.DIGIT, text, 0f), path)
+      if (!path.op(raw, raw, Path.Op.UNION)) path.set(raw)
       val points = ArrayList<Double>()
       val sizes = ArrayList<Int>()
       val measure = PathMeasure(path, false)
@@ -344,6 +351,17 @@ class RollingNumberView(context: Context) : View(context) {
       val out = DoubleArray(sizes.size * GlyphMorph.CONTOUR_DOUBLES)
       val count = GlyphMorph.normalize(points.toDoubleArray(), sizes.toIntArray(), out)
       if (count <= 0) DoubleArray(0) else out.copyOf(count * GlyphMorph.CONTOUR_DOUBLES)
+    }
+
+    /** The target digit's outline aligned to the source's, once per pair (see [GlyphMorph.align]). */
+    private val alignedOutlines = HashMap<Int, DoubleArray>()
+    fun alignedOutline(from: Int, to: Int): DoubleArray = alignedOutlines.getOrPut(from * 10 + to) {
+      val a = outline(from)
+      val b = outline(to)
+      if (a.isEmpty() || b.isEmpty()) return@getOrPut b
+      val out = DoubleArray(b.size)
+      val count = GlyphMorph.align(a, a.size / GlyphMorph.CONTOUR_DOUBLES, b, b.size / GlyphMorph.CONTOUR_DOUBLES, out)
+      if (count <= 0) b else out
     }
 
     private fun renderStrip(blankZero: Boolean): Bitmap {
@@ -1233,7 +1251,7 @@ class RollingNumberView(context: Context) : View(context) {
     val from = wheel.fromGlyph.toInt()
     val to = wheel.toGlyph.toInt()
     val a = if (from >= 0) fonts.outline(from) else DoubleArray(0)
-    val b = if (to >= 0) fonts.outline(to) else DoubleArray(0)
+    val b = if (to >= 0) (if (from >= 0) fonts.alignedOutline(from, to) else fonts.outline(to)) else DoubleArray(0)
     val ca = a.size / GlyphMorph.CONTOUR_DOUBLES
     val cb = b.size / GlyphMorph.CONTOUR_DOUBLES
     val count = max(ca, cb)
@@ -1242,7 +1260,7 @@ class RollingNumberView(context: Context) : View(context) {
     val t = wheel.blend
     var contours = 0
     if (ca > 0 && cb > 0) {
-      contours = GlyphMorph.interpolate(a, ca, b, cb, t, morphBuffer)
+      contours = GlyphMorph.interpolate(a, ca, b, cb, t, morphBuffer, true)
     } else {
       // One side blank: the other shape grows from, or shrinks to, its centre.
       val src = if (ca > 0) a else b
@@ -1276,7 +1294,9 @@ class RollingNumberView(context: Context) : View(context) {
     }
     canvas.save()
     canvas.clipRect(x, 0f, x + width, fonts.lineHeight)
-    paint.alpha = (wheel.width.toFloat().coerceIn(0f, 1f) * 255f).toInt()
+    // A shape half way between two glyphs is neither; a slight dip in the ink lets the eye skip over it.
+    val dip = 1f - NUMERIC_MORPH_DIP * Math.sin(Math.PI * t).toFloat()
+    paint.alpha = (wheel.width.toFloat().coerceIn(0f, 1f) * dip * 255f).toInt().coerceIn(0, 255)
     canvas.drawPath(morphPath, paint)
     paint.alpha = 255
     canvas.restore()

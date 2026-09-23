@@ -12,7 +12,7 @@ import com.facebook.proguard.annotations.DoNotStrip
 @DoNotStrip
 object GlyphMorph {
   /** Points per normalized contour, and doubles per contour (x, y pairs). */
-  const val SAMPLES = 64
+  const val SAMPLES = 192
   const val CONTOUR_DOUBLES = SAMPLES * 2
 
   /**
@@ -24,10 +24,19 @@ object GlyphMorph {
   external fun normalize(points: DoubleArray, sizes: IntArray, out: DoubleArray): Int
 
   /**
-   * The outline between two normalized ones at [t] 0…1, written to [out]
-   * (`max(contoursA, contoursB) * CONTOUR_DOUBLES` doubles). Returns the
-   * contour count, or -1 if [out] is too small.
+   * [b] with every contour paired with one of [a]'s rotated to its best
+   * alignment, written to [out] (`contoursB * CONTOUR_DOUBLES` doubles);
+   * done once per pair of glyphs. Returns [contoursB], or -1 if [out] is too small.
    */
   @JvmStatic
-  external fun interpolate(a: DoubleArray, contoursA: Int, b: DoubleArray, contoursB: Int, t: Double, out: DoubleArray): Int
+  external fun align(a: DoubleArray, contoursA: Int, b: DoubleArray, contoursB: Int, out: DoubleArray): Int
+
+  /**
+   * The outline between two normalized ones at [t] 0…1, written to [out]
+   * (`max(contoursA, contoursB) * CONTOUR_DOUBLES` doubles). With [aligned]
+   * true, [b] came from [align] and no search is needed. Returns the contour
+   * count, or -1 if [out] is too small.
+   */
+  @JvmStatic
+  external fun interpolate(a: DoubleArray, contoursA: Int, b: DoubleArray, contoursB: Int, t: Double, out: DoubleArray, aligned: Boolean): Int
 }

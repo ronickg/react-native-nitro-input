@@ -68,6 +68,10 @@ public:
   static constexpr double kNumericOffset = 0.4;
   static constexpr double kNumericScale = 0.6;
   static constexpr double kNumericBlur = 0.16;
+  /// The morph: the outline between two glyphs is drawn with its ink dipped
+  /// by this much at the half-way point (times sin(π·blend)), where the
+  /// shape is neither glyph.
+  static constexpr double kNumericMorphDip = 0.25;
 
   // The other glyph-swap transitions reuse the same fields:
   //   flip (2), a split-flap board: the wheel steps through every card

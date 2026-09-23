@@ -119,7 +119,48 @@ int GlyphMorph::normalize(const double* points, const int* sizes, int contourCou
   return static_cast<int>(contours.size());
 }
 
-int GlyphMorph::interpolate(const double* a, int contoursA, const double* b, int contoursB, double t, double* out) {
+namespace {
+
+/// The rotation of `pb`'s points that keeps every point closest to its partner in `pa`.
+int bestShift(const double* pa, const double* pb) {
+  int best = 0;
+  double bestCost = 1e300;
+  for (int shift = 0; shift < kS; shift++) {
+    double cost = 0;
+    for (int i = 0; i < kS; i++) {
+      const int j = (i + shift) % kS;
+      const double dx = pa[2 * i] - pb[2 * j];
+      const double dy = pa[2 * i + 1] - pb[2 * j + 1];
+      cost += dx * dx + dy * dy;
+      if (cost >= bestCost) {
+        break;
+      }
+    }
+    if (cost < bestCost) {
+      bestCost = cost;
+      best = shift;
+    }
+  }
+  return best;
+}
+
+} // namespace
+
+int GlyphMorph::align(const double* a, int contoursA, const double* b, int contoursB, double* outB) {
+  for (int c = 0; c < contoursB; c++) {
+    const double* pb = b + c * kD;
+    double* o = outB + c * kD;
+    const int shift = c < contoursA ? bestShift(a + c * kD, pb) : 0;
+    for (int i = 0; i < kS; i++) {
+      const int j = (i + shift) % kS;
+      o[2 * i] = pb[2 * j];
+      o[2 * i + 1] = pb[2 * j + 1];
+    }
+  }
+  return contoursB;
+}
+
+int GlyphMorph::interpolate(const double* a, int contoursA, const double* b, int contoursB, double t, double* out, bool aligned) {
   t = std::min(1.0, std::max(0.0, t));
   const int count = std::max(contoursA, contoursB);
   for (int c = 0; c < count; c++) {
@@ -127,27 +168,9 @@ int GlyphMorph::interpolate(const double* a, int contoursA, const double* b, int
     if (c < contoursA && c < contoursB) {
       const double* pa = a + c * kD;
       const double* pb = b + c * kD;
-      // The rotation of b's points that keeps every point closest to its partner.
-      int best = 0;
-      double bestCost = 1e300;
-      for (int shift = 0; shift < kS; shift++) {
-        double cost = 0;
-        for (int i = 0; i < kS; i++) {
-          const int j = (i + shift) % kS;
-          const double dx = pa[2 * i] - pb[2 * j];
-          const double dy = pa[2 * i + 1] - pb[2 * j + 1];
-          cost += dx * dx + dy * dy;
-          if (cost >= bestCost) {
-            break;
-          }
-        }
-        if (cost < bestCost) {
-          bestCost = cost;
-          best = shift;
-        }
-      }
+      const int shift = aligned ? 0 : bestShift(pa, pb);
       for (int i = 0; i < kS; i++) {
-        const int j = (i + best) % kS;
+        const int j = (i + shift) % kS;
         o[2 * i] = pa[2 * i] + (pb[2 * j] - pa[2 * i]) * t;
         o[2 * i + 1] = pa[2 * i + 1] + (pb[2 * j + 1] - pa[2 * i + 1]) * t;
       }
@@ -171,6 +194,12 @@ std::vector<double> GlyphMorph::normalize(const std::vector<double>& points, con
   std::vector<double> out(sizes.size() * static_cast<size_t>(kD));
   const int count = normalize(points.data(), sizes.data(), static_cast<int>(sizes.size()), out.data());
   out.resize(static_cast<size_t>(count) * kD);
+  return out;
+}
+
+std::vector<double> GlyphMorph::align(const std::vector<double>& a, const std::vector<double>& b) {
+  std::vector<double> out(b.size());
+  align(a.data(), static_cast<int>(a.size() / kD), b.data(), static_cast<int>(b.size() / kD), out.data());
   return out;
 }
 
