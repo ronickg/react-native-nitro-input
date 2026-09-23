@@ -603,6 +603,9 @@ class NitroNumberView(context: Context) : View(context) {
     revealScale = 1f
     fontScale = 1f
     lastReportedWidth = -1f
+    autoAnchor = null
+    laidLeft = Int.MIN_VALUE
+    laidRight = Int.MIN_VALUE
     lastReportedHeight = -1f
     format = Format()
     typography = Typography()
@@ -919,9 +922,56 @@ class NitroNumberView(context: Context) : View(context) {
   /** Whether this view is laid out right-to-left. The hybrid sets it from the `rightToLeft` prop. */
   val isRtl: Boolean get() = layoutDirection == LAYOUT_DIRECTION_RTL
 
-  /** `AUTO` resolved against the layout direction; the rest are already absolute. */
+  /**
+   * `AUTO` resolved: in a box that hugs the figure, the edge the box kept the
+   * last time it changed width (see [learnAnchor]), else the start edge of
+   * the layout direction. The rest are already absolute.
+   */
   private val resolvedAlignment: Alignment
-    get() = if (alignment == Alignment.AUTO) (if (isRtl) Alignment.RIGHT else Alignment.LEFT) else alignment
+    get() {
+      if (alignment != Alignment.AUTO) return alignment
+      val anchor = autoAnchor
+      if (anchor != null && hugsFigure()) return anchor
+      return if (isRtl) Alignment.RIGHT else Alignment.LEFT
+    }
+
+  /**
+   * A box that hugs the figure is as wide as the figure at rest, so its
+   * alignment only shows while the figure grows or shrinks: the box takes the
+   * new width at once and the digits open or close inside it. Which edge they
+   * keep to is the edge the parent keeps the box to: a figure at the end of a
+   * row (`justifyContent: 'space-between'`) keeps its right edge, and
+   * start-aligned it jumped a digit to the left and then opened a gap after
+   * its prefix. So `AUTO` follows the box: the edge that stayed put when its
+   * width last changed, both for a centred box.
+   */
+  private var autoAnchor: Alignment? = null
+  private var laidLeft = Int.MIN_VALUE
+  private var laidRight = Int.MIN_VALUE
+
+  private fun hugsFigure(): Boolean = lastReportedWidth > 0f && abs(width - lastReportedWidth * density) <= density
+
+  private fun learnAnchor(left: Int, right: Int) {
+    val previousLeft = laidLeft
+    val previousRight = laidRight
+    laidLeft = left
+    laidRight = right
+    if (previousLeft == Int.MIN_VALUE || right - left == previousRight - previousLeft) return
+    val tolerance = 1
+    val dl = left - previousLeft
+    val dr = right - previousRight
+    autoAnchor = when {
+      abs(dl) <= tolerance -> Alignment.LEFT
+      abs(dr) <= tolerance -> Alignment.RIGHT
+      abs(dl + dr) <= 2 * tolerance -> Alignment.CENTER
+      else -> autoAnchor
+    }
+  }
+
+  override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+    super.onLayout(changed, left, top, right, bottom)
+    learnAnchor(left, right)
+  }
 
   override fun onRtlPropertiesChanged(layoutDirection: Int) {
     super.onRtlPropertiesChanged(layoutDirection)
@@ -1093,12 +1143,14 @@ class NitroNumberView(context: Context) : View(context) {
     return if (night) 0xFF2B2E37.toInt() else 0xFFD6D9E1.toInt()
   }
 
-  private fun drawGlyph(canvas: Canvas, fonts: FontSet, text: String, role: GlyphRole, x: Float, width: Float, fullWidth: Float, alpha: Double) {
+  private fun drawGlyph(canvas: Canvas, fonts: FontSet, text: String, role: GlyphRole, x: Float, width: Float, fullWidth: Float, factor: Double) {
     if (width <= 0f) return
     val paint = fonts.paint(role)
     canvas.save()
-    canvas.clipRect(x, 0f, x + width, fonts.lineHeight)
-    paint.alpha = (alpha * 255).toInt().coerceIn(0, 255)
+    // An opening or closing cell (a separator, the sign) keeps its glyph whole
+    // against the text it joins and fades with the cell; see [openingAlpha].
+    canvas.clipRect(x + width - fullWidth, 0f, x + width, fonts.lineHeight)
+    paint.alpha = (openingAlpha(factor) * 255).toInt().coerceIn(0, 255)
     canvas.drawText(text, x + width - fullWidth, fonts.baseline(role, text, 0f), paint)
     canvas.restore()
   }
@@ -1154,7 +1206,10 @@ class NitroNumberView(context: Context) : View(context) {
     }
     val baseline = fonts.baseline(GlyphRole.DIGIT, "0", 0f)
     canvas.save()
-    canvas.clipRect(x, 0f, x + width, lineHeight)
+    // The roll's window, the whole digit wide: a column still opening or
+    // closing is not cut to its width (the glyph read as a sliver of its right
+    // edge, a ")" of a 0 rolling past), it overhangs the cell's far side, faded.
+    canvas.clipRect(x + width - fonts.digitWidth, 0f, x + width, lineHeight)
     val base = floor(wheel.position)
     val fraction = (wheel.position - base).toFloat()
     val index = base.toInt()
@@ -1171,9 +1226,10 @@ class NitroNumberView(context: Context) : View(context) {
       }
       paint.alpha = 255
     }
-    glyphs(fonts.digit, wheel.width.toFloat())
+    val opening = openingAlpha(wheel.width).toFloat()
+    glyphs(fonts.digit, opening)
     // The change flash rides the roll: the same glyphs again, in the tint.
-    flashColor(wheel)?.let { color -> glyphs(fonts.tinted(color), (wheel.flash * wheel.width).toFloat()) }
+    flashColor(wheel)?.let { color -> glyphs(fonts.tinted(color), wheel.flash.toFloat() * opening) }
     canvas.restore()
   }
 
@@ -1269,6 +1325,15 @@ class NitroNumberView(context: Context) : View(context) {
       }
     }
     canvas.restore()
+  }
+
+  /**
+   * Opacity of a cell [width] open (0…1). Squared, so while a glyph
+   * overhangs a narrow cell the overlap stays faint.
+   */
+  private fun openingAlpha(width: Double): Double {
+    val w = width.coerceIn(0.0, 1.0)
+    return w * w
   }
 
   private fun glyphAt(index: Int, wheel: Wheel): String? {

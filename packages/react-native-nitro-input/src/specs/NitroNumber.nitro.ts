@@ -8,7 +8,9 @@ import type {
 /**
  * `'auto'` is the start edge of the layout direction - left in a left-to-right
  * app, right in a right-to-left one - which is what `Text` does with no
- * `textAlign`. `'left'` and `'right'` are absolute, whatever the direction.
+ * `textAlign`; in a view that hugs the number it is the edge the parent keeps
+ * the view to (the end of a row: right), so the digits open and close against
+ * it. `'left'` and `'right'` are absolute, whatever the direction.
  */
 export type NitroNumberTextAlign = 'auto' | 'left' | 'center' | 'right'
 

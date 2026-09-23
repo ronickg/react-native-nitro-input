@@ -476,13 +476,21 @@ export const NitroNumberCanvas = forwardRef<NitroNumberCanvasHandle, NitroNumber
     const drawGlyph = (ctx: CanvasRenderingContext2D, f: FontSet, text: string, role: Role, x: number, w: number, fullWidth: number, alpha: number) => {
       if (w <= 0) return;
       ctx.save();
+      // Whole against the text it joins while its cell opens, faded (see drawWheel).
       ctx.beginPath();
-      ctx.rect(x, 0, w, f.lineHeight);
+      ctx.rect(x + w - fullWidth, 0, fullWidth, f.lineHeight);
       ctx.clip();
-      ctx.globalAlpha = alpha;
+      ctx.globalAlpha = openingAlpha(alpha);
       ctx.font = f.font(role);
       ctx.fillText(text, x + w - fullWidth, f.baseline(role, text, 0));
       ctx.restore();
+    };
+
+    // Opacity of a cell `width` open (0…1): squared, so while a glyph
+    // overhangs a narrow cell the overlap stays faint.
+    const openingAlpha = (width: number) => {
+      const v = Math.min(1, Math.max(0, width));
+      return v * v;
     };
 
     const glyphAt = (index: number, wheel: Wheel): string | null => {
@@ -540,10 +548,13 @@ export const NitroNumberCanvas = forwardRef<NitroNumberCanvasHandle, NitroNumber
         ctx.restore();
         return;
       }
+      // The roll's window, the whole digit wide: a column still opening or
+      // closing is not cut to its width (the glyph read as a sliver of its
+      // right edge, a ")" of a 0 rolling past), it overhangs its far side, faded.
       ctx.beginPath();
-      ctx.rect(x, 0, w, lineHeight);
+      ctx.rect(x + w - f.digitWidth, 0, f.digitWidth, lineHeight);
       ctx.clip();
-      ctx.globalAlpha = wheel.width;
+      ctx.globalAlpha = openingAlpha(wheel.width);
       ctx.font = f.digit;
       const base = Math.floor(wheel.position);
       const fraction = wheel.position - base;

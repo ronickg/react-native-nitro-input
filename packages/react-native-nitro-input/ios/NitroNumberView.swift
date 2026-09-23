@@ -705,6 +705,7 @@ final class NitroNumberView: UIView {
 
   override func layoutSubviews() {
     super.layoutSubviews()
+    learnAnchor()
     // The shrink-to-fit scale and alignment depend on the bounds.
     render()
   }
@@ -766,6 +767,8 @@ final class NitroNumberView: UIView {
     engine.reset()
     fontScale = 1
     lastReportedSize = .zero
+    autoAnchor = nil
+    laidFrame = nil
     pendingSizeReport = false
     format = Format()
     typography = Typography()
@@ -1081,9 +1084,46 @@ final class NitroNumberView: UIView {
   /// never hands a Hybrid View its resolved direction.
   var isRTL: Bool { effectiveUserInterfaceLayoutDirection == .rightToLeft }
 
-  /// `.auto` resolved against the layout direction; the rest are already absolute.
+  /// `.auto` resolved: in a box that hugs the figure, the edge the box kept
+  /// the last time it changed width (`learnAnchor`), else the start edge of
+  /// the layout direction. The rest are already absolute.
   private var resolvedAlignment: Alignment {
-    alignment == .auto ? (isRTL ? .right : .left) : alignment
+    guard alignment == .auto else { return alignment }
+    if let autoAnchor, hugsFigure { return autoAnchor }
+    return isRTL ? .right : .left
+  }
+
+  // A box that hugs the figure is as wide as the figure at rest, so its
+  // alignment only shows while the figure grows or shrinks: the box takes the
+  // new width at once and the digits open or close inside it. Which edge they
+  // keep to is the edge the parent keeps the box to: a figure at the end of a
+  // row (`justifyContent: 'space-between'`) keeps its right edge, and
+  // start-aligned it jumped a digit to the left and then opened a gap after
+  // its prefix. So `.auto` follows the box: the edge that stayed put when its
+  // width last changed, both for a centred box.
+  private var autoAnchor: Alignment?
+  private var laidFrame: CGRect?
+
+  private var hugsFigure: Bool {
+    lastReportedSize.width > 0 && abs(bounds.width - lastReportedSize.width) <= 1
+  }
+
+  /// Where the box sits in the view that lays it out (Fabric wraps a Hybrid
+  /// View in its component view, whose parent that is).
+  private func learnAnchor() {
+    guard let container = superview, let parent = container.superview else { return }
+    let frame = convert(bounds, to: parent)
+    defer { laidFrame = frame }
+    guard let previous = laidFrame, abs(frame.width - previous.width) > 0.5 else { return }
+    let dl = frame.minX - previous.minX
+    let dr = frame.maxX - previous.maxX
+    if abs(dl) <= 0.5 {
+      autoAnchor = .left
+    } else if abs(dr) <= 0.5 {
+      autoAnchor = .right
+    } else if abs(dl + dr) <= 1 {
+      autoAnchor = .center
+    }
   }
 
   private static let affixSpaces: Set<Unicode.Scalar> = [" ", "\u{A0}", "\u{2009}", "\u{202F}"]
@@ -1227,18 +1267,23 @@ final class NitroNumberView: UIView {
     for (i, element) in elements.enumerated() {
       let slot = slots[i]
       let frame = CGRect(x: x, y: 0, width: element.width, height: fonts.lineHeight)
-      if slot.frame != frame {
-        slot.layer.frame = frame
+      // The mask: the cell, widened on its far side to the whole glyph. A cell
+      // still opening or closing is not cut to its width (the glyph read as a
+      // sliver of its right edge, a ")" of a 0 rolling past); the glyph
+      // overhangs, faded (`openingOpacity`). Vertically it is the roll's window.
+      let mask = CGRect(x: x + element.width - element.fullWidth, y: 0, width: element.fullWidth, height: fonts.lineHeight)
+      if slot.frame != mask {
+        slot.layer.frame = mask
         slot.overlay?.frame = frame
-        slots[i].frame = frame
+        slots[i].frame = mask
       }
       switch element.kind {
       case .wheel(let index):
         let wheel = wheels[index]
-        let opacity = Float(wheel.width)
+        let opacity = Self.openingOpacity(wheel.width)
         if slot.opacity != opacity {
           slot.layer.opacity = opacity
-          slot.overlay?.opacity = opacity
+          slot.overlay?.opacity = Float(wheel.width)
           slots[i].opacity = opacity
         }
         let strip = slot.layer.sublayers?.first
@@ -1254,7 +1299,7 @@ final class NitroNumberView: UIView {
             // Above every container, unclipped, so the blur's haze stays whole.
             let overlay = CALayer()
             overlay.frame = frame
-            overlay.opacity = opacity
+            overlay.opacity = Float(wheel.width)
             for layer in swap.all { overlay.addSublayer(layer) }
             contentLayer.addSublayer(overlay)
             slots[i].overlay = overlay
@@ -1275,7 +1320,7 @@ final class NitroNumberView: UIView {
           // Linear strips run from -1 (blank) to 9; a roll can be any real, so wrap it onto 0..<10.
           let position = wheel.linear ? wheel.position : Self.wrap10(wheel.position)
           stripFrame = CGRect(
-            x: element.width - fonts.digitWidth,
+            x: element.fullWidth - fonts.digitWidth,
             y: -(position + 1) * fonts.lineHeight,
             width: strip.bounds.width,
             height: strip.bounds.height
@@ -1287,14 +1332,14 @@ final class NitroNumberView: UIView {
         }
         layoutFlash(slotIndex: i, wheel: wheel, tint: swapping ? nil : tint, fonts: fonts, stripFrame: stripFrame)
       case .glyph:
-        let opacity = Float(element.factor)
+        let opacity = Self.openingOpacity(element.factor)
         if slot.opacity != opacity {
           slot.layer.opacity = opacity
           slots[i].opacity = opacity
         }
         if let image = slot.layer.sublayers?.first {
           let imageFrame = CGRect(
-            x: element.width - element.fullWidth,
+            x: 0,
             y: slot.glyphTop,
             width: image.bounds.width,
             height: image.bounds.height
@@ -1307,6 +1352,13 @@ final class NitroNumberView: UIView {
       }
       x += element.width
     }
+  }
+
+  /// Opacity of a cell `width` open (0…1). Squared, so while a glyph
+  /// overhangs a narrow cell the overlap stays faint.
+  static func openingOpacity(_ width: Double) -> Float {
+    let w = max(0, min(1, width))
+    return Float(w * w)
   }
 
   // The numeric transition's geometry, in line heights; mirrors
@@ -1574,8 +1626,9 @@ final class NitroNumberView: UIView {
   private func drawGlyph(_ text: String, role: GlyphRole, fonts: FontSet, x: CGFloat, width: CGFloat, fullWidth: CGFloat, alpha: Double, ctx: CGContext) {
     guard width > 0 else { return }
     ctx.saveGState()
-    ctx.clip(to: CGRect(x: x, y: 0, width: width, height: fonts.lineHeight))
-    ctx.setAlpha(CGFloat(alpha))
+    // Whole against the text it joins while its cell opens, faded; see `renderLayers`.
+    ctx.clip(to: CGRect(x: x + width - fullWidth, y: 0, width: fullWidth, height: fonts.lineHeight))
+    ctx.setAlpha(CGFloat(Self.openingOpacity(alpha)))
     fonts.image(text, role: role)?.draw(at: CGPoint(x: x + width - fullWidth, y: fonts.top(for: role, text: text, lineTop: 0)))
     ctx.restoreGState()
   }
@@ -1584,8 +1637,9 @@ final class NitroNumberView: UIView {
     guard width > 0 else { return }
     let lineHeight = fonts.lineHeight
     ctx.saveGState()
-    ctx.clip(to: CGRect(x: x, y: 0, width: width, height: lineHeight))
-    ctx.setAlpha(CGFloat(wheel.width))
+    // The roll's window, the whole digit wide (see `renderLayers`).
+    ctx.clip(to: CGRect(x: x + width - fonts.digitWidth, y: 0, width: fonts.digitWidth, height: lineHeight))
+    ctx.setAlpha(CGFloat(Self.openingOpacity(wheel.width)))
     if wheel.blend < 1 || wheel.focus < 1 || wheel.grow < 1 {
       // The numeric transition under the glint: the pair, without the blur.
       let b = CGFloat(wheel.blend)

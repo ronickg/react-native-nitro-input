@@ -176,7 +176,7 @@ Text color.
 </Prop>
 
 <Prop name="textAlign" type="'auto' | 'left' | 'center' | 'right'" default="'auto'">
-Alignment inside a wider frame. `'auto'` is the start edge of the layout direction, as `Text`; `'left'` and `'right'` are absolute. In a right-to-left app the prefix sits at the right edge and the suffix at the left, and the digits keep reading left to right; a single figure can be flipped with `style={{ direction: 'rtl' }}`.
+Alignment inside a wider frame. `'auto'` is the start edge of the layout direction, as `Text`, except in a view that hugs the number: there it is the edge the parent keeps the view to, so a figure at the end of a row (`justifyContent: 'space-between'`) grows and shrinks from its right edge instead of jumping. `'left'` and `'right'` are absolute. In a right-to-left app the prefix sits at the right edge and the suffix at the left, and the digits keep reading left to right; a single figure can be flipped with `style={{ direction: 'rtl' }}`.
 </Prop>
 
 <Prop name="onNativeRef" type="(ref) => void">
