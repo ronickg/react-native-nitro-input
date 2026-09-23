@@ -189,6 +189,8 @@ re-rendering), `react-native-countup-component`, `react-native-rolling-number-ti
 
 ## iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
+<BenchChart device="iPhone14,3" groups={['stream|24|frame', 'stream|24|10', 'stream|1|frame']} metrics={['ui.fps', 'ui.dropped', 'js.fps', 'cpu.main', 'cpu.js']} />
+
 | Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | runs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Text (no animation) | 120.0 | 0 | 8 | 60.0 | 47 % | 26 % | 20 % | 3 |
@@ -253,6 +255,8 @@ into a 120 Hz UI thread.
 
 ## iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
 
+<BenchChart device="iPhone12,3" groups={['stream|24|frame', 'stream|24|10', 'stream|1|frame']} metrics={['ui.fps', 'ui.dropped', 'js.fps', 'cpu.main', 'cpu.js']} />
+
 | Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | runs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Text (no animation) | 59.9 | 0 | 17 | 59.9 | 41 % | 24 % | 15 % | 3 |
@@ -312,6 +316,8 @@ Ten values a second is the live-ticker case: the differences stay the same,
 only smaller, and `jumpTo` runs the whole screen at 10 % of a core.
 
 ## Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+<BenchChart device="SM-A225F" groups={['stream|24|frame', 'stream|24|10', 'stream|1|frame']} metrics={['ui.fps', 'ui.dropped', 'js.fps', 'cpu.main', 'cpu.js']} />
 
 | Implementation | UI fps | dropped | p95 ms | JS fps | process CPU | main | JS thread | RenderThread | HWUI janky (of frames drawn) | runs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -645,7 +651,7 @@ flatter.
 
 ### Mount and unmount cycles
 
-<BenchChart group="leak|24|40" metrics={['growthKbPerCycle']} caption="Growth per cycle of the footprint floor; a bar to the left of the line is a floor that fell." />
+<BenchChart group="leak|24|40" metrics={['growthKbPerCycle']} caption="Growth per cycle of the footprint floor, the end minus the start over 40 cycles. A negative figure is a floor that ended lower than it began, nothing leaked and nothing to draw; a bar is what stayed allocated." />
 
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
@@ -700,7 +706,7 @@ flatter.
 
 ### A list scrolling for 30 seconds
 
-<BenchChart group="leaklist|200" metrics={['growthKbPerSecond']} caption="Footprint growth per second of scrolling, after the first six seconds; a bar to the left of the line is a footprint that fell." />
+<BenchChart group="leaklist|200" metrics={['growthKbPerSecond']} caption="Footprint growth per second of scrolling, after the first six seconds. A negative figure is a footprint that fell over the run, nothing to draw; a bar is what kept rising." />
 
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
@@ -754,6 +760,8 @@ flatter.
 | AnimatedNumbers | 915.5 MB | 892.6 MB | 1043.1 MB | -1868.4 KB | 393.8 → 323.3 MB | 1694 → 1088 | 1 |
 
 ### What one copy costs
+
+<BenchChart group="footprint|100" metrics={['perViewFootprintKb', 'perViewNativeKb', 'perViewJavaKb', 'leftFootprintKb']} caption="Medians of three interleaved rounds on the Galaxy A22, the first mount on the iPhones; the Java heap is Android only." />
 
 #### iPhone 13 Pro Max (iPhone14,3, iOS 26.6.2, 120 Hz)
 
