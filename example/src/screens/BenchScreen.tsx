@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react'
 import { ScrollView, Text, TextInput, View } from 'react-native'
-import { RollingNumber } from 'react-native-nitro-rolling-number'
+import { RollingNumber } from 'react-native-nitro-input'
 import { ExpoField, type ExpoFieldRef } from '../expoField'
 import { MorphInput, NitroInput, type MorphInputHandle } from 'react-native-nitro-input'
 import { Btn, Card, Row, styles } from '../harness'

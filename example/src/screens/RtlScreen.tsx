@@ -1,7 +1,7 @@
 import React from 'react'
 import { I18nManager, ScrollView, TextInput } from 'react-native'
 import { MorphInput, NitroInput } from 'react-native-nitro-input'
-import { RollingNumber } from 'react-native-nitro-rolling-number'
+import { RollingNumber } from 'react-native-nitro-input'
 import { Card, FieldLabel, styles } from '../harness'
 
 /**

@@ -12,7 +12,7 @@
 #include "RollingEngine.hpp"
 
 using namespace emscripten;
-using margelo::nitro::nitrorollingnumber::RollingEngine;
+using margelo::nitro::nitroinput::RollingEngine;
 
 EMSCRIPTEN_BINDINGS(rolling_engine) {
   value_object<RollingEngine::Wheel>("Wheel")

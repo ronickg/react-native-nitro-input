@@ -10,7 +10,7 @@ import {
   useColorScheme,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { RollingNumber, type RollingNumberHandle } from 'react-native-nitro-rolling-number'
+import { RollingNumber, type RollingNumberHandle } from 'react-native-nitro-input'
 import {
   MorphInput,
   NitroInput,

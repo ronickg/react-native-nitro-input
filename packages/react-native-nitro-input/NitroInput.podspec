@@ -22,10 +22,10 @@ Pod::Spec.new do |s|
     "cpp/**/*.{hpp,cpp}",
   ]
 
-  # The shared C++ engine and formatter are public headers so the pod's Swift
+  # The shared C++ engines and formatter are public headers so the pod's Swift
   # sources can call them directly through Swift/C++ interop (enabled by Nitro below).
   s.public_header_files = ["cpp/**/*.hpp"]
-  # The engine's unit tests build as a host executable (`bun run test:cpp`).
+  # The engines' unit tests build as a host executable (`bun run test:cpp`).
   s.exclude_files = ["cpp/__tests__/**"]
 
   # Worklets are optional: with react-native-worklets in the app, `transform`

@@ -34,7 +34,7 @@ git.
   numbers carry startup (shader compiles, ART, the JS bundle). Compare two
   implementations recorded the same way, or two builds; the difference is
   the signal.
-- Symbols resolve for `libNitroInput.so`, `libNitroRollingNumber.so`,
+- Symbols resolve for `libNitroInput.so` (both components),
   `libreactnative.so`, `libhwui.so` and `libhermesvm.so` (exported names
   only, so some frames print as `?`, with the next named frame in the
   example chain).

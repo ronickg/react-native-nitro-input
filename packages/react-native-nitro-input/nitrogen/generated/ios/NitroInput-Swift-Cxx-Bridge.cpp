@@ -9,6 +9,7 @@
 
 // Include C++ implementation defined types
 #include "HybridNitroInputViewSpecSwift.hpp"
+#include "HybridRollingNumberViewSpecSwift.hpp"
 #include "NitroInput-Swift-Cxx-Umbrella.hpp"
 #include <NitroModules/NitroDefines.hpp>
 
@@ -75,6 +76,30 @@ namespace margelo::nitro::nitroinput::bridge::swift {
     }
     #endif
     NitroInput::HybridNitroInputViewSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
+    return swiftPart.toUnsafe();
+  }
+  
+  // pragma MARK: std::function<void()>
+  Func_void create_Func_void(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroInput::Func_void::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)]() mutable -> void {
+      swiftClosure.call();
+    };
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridRollingNumberViewSpec>
+  std::shared_ptr<HybridRollingNumberViewSpec> create_std__shared_ptr_HybridRollingNumberViewSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
+    NitroInput::HybridRollingNumberViewSpec_cxx swiftPart = NitroInput::HybridRollingNumberViewSpec_cxx::fromUnsafe(swiftUnsafePointer);
+    return std::make_shared<margelo::nitro::nitroinput::HybridRollingNumberViewSpecSwift>(swiftPart);
+  }
+  void* NON_NULL get_std__shared_ptr_HybridRollingNumberViewSpec_(std__shared_ptr_HybridRollingNumberViewSpec_ cppType) {
+    std::shared_ptr<margelo::nitro::nitroinput::HybridRollingNumberViewSpecSwift> swiftWrapper = std::dynamic_pointer_cast<margelo::nitro::nitroinput::HybridRollingNumberViewSpecSwift>(cppType);
+    #ifdef NITRO_DEBUG
+    if (swiftWrapper == nullptr) [[unlikely]] {
+      throw std::runtime_error("Class \"HybridRollingNumberViewSpec\" is not implemented in Swift!");
+    }
+    #endif
+    NitroInput::HybridRollingNumberViewSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
     return swiftPart.toUnsafe();
   }
 

@@ -8,7 +8,6 @@ import React, {
 } from 'react'
 import {
   I18nManager,
-  processColor,
   StyleSheet,
   type ColorValue,
   type TextStyle,
@@ -52,6 +51,7 @@ import {
   type NitroInputSelection,
   type NitroInputTransform,
 } from './worklets'
+import { toNumericWeight, toProcessedColor } from './styleHelpers'
 
 /**
  * React Native's registry of mounted text inputs. `TextInput.State` only
@@ -574,39 +574,6 @@ export interface NitroInputHandle {
   /** The native Nitro object, or `null` before mount. */
   readonly native: NitroInputRef | null
 }
-
-// shared-helpers:start
-// Kept byte-for-byte identical with packages/react-native-nitro-rolling-number/src/RollingNumber.tsx
-// (a test compares the two blocks); change both together.
-const FONT_WEIGHTS: Record<string, number> = {
-  normal: 400,
-  regular: 400,
-  bold: 700,
-  ultralight: 100,
-  thin: 200,
-  light: 300,
-  medium: 500,
-  semibold: 600,
-  condensedBold: 700,
-  condensed: 400,
-  heavy: 800,
-  black: 900,
-}
-
-function toNumericWeight(weight: TextStyle['fontWeight']): number | undefined {
-  if (weight == null) return undefined
-  if (typeof weight === 'number') return weight
-  const parsed = Number(weight)
-  if (!Number.isNaN(parsed)) return parsed
-  return FONT_WEIGHTS[weight]
-}
-
-function toProcessedColor(color: ColorValue | undefined): number | undefined {
-  if (color == null) return undefined
-  const processed = processColor(color)
-  return typeof processed === 'number' ? processed : undefined
-}
-// shared-helpers:end
 
 interface Size {
   width: number

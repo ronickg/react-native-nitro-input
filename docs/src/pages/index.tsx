@@ -10,7 +10,7 @@ import Phones from '@site/src/components/Phones/Phones';
 
 import styles from './index.module.css';
 
-const USAGE = `import { RollingNumber } from 'react-native-nitro-rolling-number'
+const USAGE = `import { RollingNumber } from 'react-native-nitro-input'
 
 <RollingNumber
   value={balance}
@@ -102,17 +102,18 @@ export default function Home(): ReactNode {
 
         <section className={styles.section}>
           <div className="container">
-            <span className={styles.kicker}>Two packages</span>
+            <span className={styles.kicker}>One package</span>
             <Heading as="h2" className={styles.sectionTitle}>
-              Pick a package
+              Two components
             </Heading>
             <p className={styles.sectionLead}>
-              Both are built on Nitro Modules, both share the same formatting model, and
-              each has its own documentation.
+              Both ship in <code>react-native-nitro-input</code>, both are built on Nitro
+              Modules, both share the same formatting model, and each has its own
+              documentation.
             </p>
             <div className={styles.products}>
               <Link className={styles.product} to="/rolling-number/getting-started">
-                <div className={styles.productName}>react-native-nitro-rolling-number</div>
+                <div className={styles.productName}>RollingNumber</div>
                 <Heading as="h3">Rolling Number</Heading>
                 <p>
                   An odometer for React Native. Every digit is a wheel driven by one C++
@@ -122,7 +123,7 @@ export default function Home(): ReactNode {
                 <span className={styles.productLink}>Get started →</span>
               </Link>
               <Link className={styles.product} to="/input">
-                <div className={styles.productName}>react-native-nitro-input</div>
+                <div className={styles.productName}>NitroInput</div>
                 <Heading as="h3">Text Input</Heading>
                 <p>
                   A native text input. The system keyboard and accessibility stay; amounts

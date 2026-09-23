@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { FlatList, StyleSheet, Text, View } from 'react-native'
-import type { RollingNumberHandle } from 'react-native-nitro-rolling-number'
+import type { RollingNumberHandle } from 'react-native-nitro-input'
 import { BENCH_START, BenchItem, IMPLS, ImplBoundary, type ImplKey } from './impls'
 import { INPUT_IMPLS, InputItem, type InputHandle, type InputImplKey } from './inputs'
 import { cpuBetween, forceGc, sample, thermalState, typeText, type Sample, type TypeStats } from './probe'

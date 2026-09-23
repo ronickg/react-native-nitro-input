@@ -12,6 +12,7 @@
 
 #include "HybridNitroInputViewSpecSwift.hpp"
 #include "HybridNitroInputWorklets.hpp"
+#include "HybridRollingNumberViewSpecSwift.hpp"
 
 @interface NitroInputAutolinking : NSObject
 @end
@@ -36,6 +37,13 @@
                     "The HybridObject \"HybridNitroInputWorklets\" is not default-constructible! "
                     "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
       return std::make_shared<HybridNitroInputWorklets>();
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "RollingNumberView",
+    []() -> std::shared_ptr<HybridObject> {
+      std::shared_ptr<HybridRollingNumberViewSpec> hybridObject = NitroInput::NitroInputAutolinking::createRollingNumberView();
+      return hybridObject;
     }
   );
 }

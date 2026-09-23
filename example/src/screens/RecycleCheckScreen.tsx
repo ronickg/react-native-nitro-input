@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { FlatList, StyleSheet, Text, View } from 'react-native'
-import { RollingNumber } from 'react-native-nitro-rolling-number'
+import { RollingNumber } from 'react-native-nitro-input'
 import { NitroInput } from 'react-native-nitro-input'
 import { Btn, Row } from '../harness'
 

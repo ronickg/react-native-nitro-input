@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { matchFont } from '@shopify/react-native-skia'
 import { useSharedValue } from 'react-native-reanimated'
-import type { RollingNumberHandle } from 'react-native-nitro-rolling-number'
+import type { RollingNumberHandle } from 'react-native-nitro-input'
 import { BENCH_FORMAT, BENCH_START, BenchItem, ImplBoundary, benchValue, type ImplKey } from './impls'
 import {
   cpuBetween,

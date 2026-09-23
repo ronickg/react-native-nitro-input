@@ -6,7 +6,7 @@
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
     "build": "docusaurus build",
-    "build:wasm": "em++ -O3 -std=c++20 --bind -sMODULARIZE=1 -sEXPORT_ES6=1 -sSINGLE_FILE=1 -sENVIRONMENT=web -sEXPORT_NAME=createRollingEngine -sFILESYSTEM=0 -sALLOW_MEMORY_GROWTH=1 --emit-tsd rolling-engine.d.ts -I ../packages/react-native-nitro-rolling-number/cpp ../packages/react-native-nitro-rolling-number/cpp/RollingEngine.cpp wasm/bindings.cpp -o src/engine/rolling-engine.js",
+    "build:wasm": "em++ -O3 -std=c++20 --bind -sMODULARIZE=1 -sEXPORT_ES6=1 -sSINGLE_FILE=1 -sENVIRONMENT=web -sEXPORT_NAME=createRollingEngine -sFILESYSTEM=0 -sALLOW_MEMORY_GROWTH=1 --emit-tsd rolling-engine.d.ts -I ../packages/react-native-nitro-input/cpp ../packages/react-native-nitro-input/cpp/RollingEngine.cpp wasm/bindings.cpp -o src/engine/rolling-engine.js",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",

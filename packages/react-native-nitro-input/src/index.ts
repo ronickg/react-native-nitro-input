@@ -53,3 +53,22 @@ export type {
   NitroInputView,
 } from './specs/NitroInput.nitro'
 export type { NitroInputWorklets } from './specs/NitroInputWorklets.nitro'
+
+export {
+  RollingNumber,
+  NativeRollingNumberView,
+  type RollingNumberProps,
+  type RollingNumberHandle,
+  type RollingNumberRef,
+} from './RollingNumber'
+export type {
+  RollingNumberAffixAlign,
+  RollingNumberDirection,
+  RollingNumberTransition,
+  RollingNumberEasing,
+  RollingNumberRevealStyle,
+  RollingNumberTextAlign,
+  RollingNumberMethods,
+  RollingNumberProps as NativeRollingNumberProps,
+  RollingNumberView,
+} from './specs/RollingNumber.nitro'

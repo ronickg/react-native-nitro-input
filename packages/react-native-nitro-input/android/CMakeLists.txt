@@ -13,10 +13,12 @@ add_library(${PACKAGE_NAME} SHARED
         src/main/cpp/JMaskEngine.cpp
         src/main/cpp/JOutlineGeometry.cpp
         src/main/cpp/JNitroInputWorklets.cpp
+        src/main/cpp/JRollingEngine.cpp
         ../cpp/MorphEngine.cpp
         ../cpp/AmountFormatter.cpp
         ../cpp/MaskEngine.cpp
         ../cpp/OutlineGeometry.cpp
+        ../cpp/RollingEngine.cpp
         ../cpp/worklets/NitroInputWorkletsBridge.cpp
         ../cpp/worklets/HybridNitroInputWorklets.cpp
 )

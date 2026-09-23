@@ -167,7 +167,7 @@ const config: Config = {
           className: 'navbar__item--product',
         },
         {
-          href: 'https://www.npmjs.com/package/react-native-nitro-rolling-number',
+          href: 'https://www.npmjs.com/package/react-native-nitro-input',
           position: 'right',
           className: 'navbar__icon navbar__icon--npm',
           'aria-label': 'npm',
@@ -215,7 +215,7 @@ const config: Config = {
             {label: 'GitHub', href: GITHUB},
             {
               label: 'npm',
-              href: 'https://www.npmjs.com/package/react-native-nitro-rolling-number',
+              href: 'https://www.npmjs.com/package/react-native-nitro-input',
             },
             {label: 'Nitro Modules', href: 'https://nitro.margelo.com'},
           ],

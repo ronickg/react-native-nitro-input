@@ -6,6 +6,7 @@
 #include "JMaskEngine.hpp"
 #include "JOutlineGeometry.hpp"
 #include "JNitroInputWorklets.hpp"
+#include "JRollingEngine.hpp"
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
   return facebook::jni::initialize(vm, []() {
@@ -15,5 +16,6 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
     margelo::nitro::nitroinput::JMaskEngine::registerNatives();
     margelo::nitro::nitroinput::JOutlineGeometry::registerNatives();
     margelo::nitro::nitroinput::JNitroInputWorklets::registerNatives();
+    margelo::nitro::nitroinput::JRollingEngine::registerNatives();
   });
 }
