@@ -15,7 +15,7 @@
   <tr>
     <td align="center" valign="top" width="50%">
       <h3><code>NitroNumber</code></h3>
-      <img src="docs/static/img/readme/market.webp" width="400" alt="A trading dashboard with about 60 NitroNumbers updating at once, on an iPhone and a Pixel" />
+      <img src="docs/static/img/readme/market.webp" width="260" alt="A trading dashboard with 48 NitroNumbers updating at once, on a Samsung Galaxy A22" />
       <p>A number that animates its changes. Every digit is a wheel, or swaps like SwiftUI's numeric text, driven by one C++ engine, with currency layouts, shrink-to-fit, a loading shimmer and the jackpot reveal.</p>
       <p>
         <a href="#nitronumber">Below</a> ·
@@ -27,7 +27,7 @@
     </td>
     <td align="center" valign="top" width="50%">
       <h3><code>NitroInput</code></h3>
-      <img src="docs/static/img/readme/input.webp" width="400" alt="A transfer screen: an amount typed into a native field that reflows as it is formatted, the payout switching currency, on an iPhone and a Pixel" />
+      <img src="docs/static/img/readme/transfer.webp" width="260" alt="A transfer screen: an amount typed into a native field that reflows as it is formatted, the payout switching currency, on a Samsung Galaxy A22" />
       <p>A native text input. The system keyboard and accessibility stay; amounts are formatted and masks applied in C++ before a frame is drawn, the floating label is native, and the reflow is there when you turn it on.</p>
       <p>
         <a href="#nitroinput">Below</a> ·
@@ -41,7 +41,7 @@
   </tr>
 </table>
 
-<p align="center"><sub>The example app on an iPhone 13 Pro Max (left) and a Pixel 10 (right). Left: the market showcase, about 60 NitroNumbers (a portfolio, a heatmap, an order book and a trade tape) driven by one loop, about 280 updates a second with no re-render. Right: a transfer, the amount typed into a reflowing <code>NitroInput</code> while what they receive, the fee and three other currencies follow every keystroke. Every number is native.</sub></p>
+<p align="center"><sub>The example app on a Samsung Galaxy A22, a budget phone (MediaTek Helio G80, 90 Hz), recorded with its own screen recorder. Left: the market showcase, 48 NitroNumbers (a portfolio, a heatmap, an order book and a trade tape) driven by one loop, about 210 updates a second with no re-render. Right: a transfer, the amount typed into a reflowing <code>NitroInput</code> while what they receive, the fee and three other currencies follow every keystroke. Every number is native.</sub></p>
 
 Both components share the same formatting model (prefix and suffix at their own size, pinned to the top, bottom, baseline or centre of the digits; grouping and decimal separators of your choice) and ship in one package. React Native 0.78+ with the new architecture, Nitro Modules 0.37+; see the [Android note](#known-issue-view-props-on-android) before you ship.
 
@@ -89,7 +89,7 @@ Change `value` and the digits roll. `ref.current.jumpTo(v)` positions the wheels
 ### Jackpot reveal
 
 <p align="center">
-  <img src="docs/static/img/readme/reveal.webp" width="536" alt="A jackpot counted up tier by tier, BIG, MEGA and EPIC WIN, on iOS and Android" />
+  <img src="docs/static/img/readme/reveal.webp" width="260" alt="A jackpot counted up tier by tier, BIG, MEGA and EPIC WIN, on a Samsung Galaxy A22" />
 </p>
 
 ```tsx

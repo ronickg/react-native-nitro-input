@@ -68,14 +68,21 @@ export default function Home(): ReactNode {
         <section className={clsx(styles.section, styles.alt)}>
           <div className="container">
             <Heading as="h2" className={styles.sectionTitle}>
-              On iOS and Android
+              On a budget phone
             </Heading>
             <p className={styles.sectionLead}>
-              The example app on an iPhone 13 Pro Max and a Pixel 10: the same JavaScript and the same engines. The{' '}
-              <Link to="/docs/benchmarks">benchmarks</Link> measure it against the other libraries.
+              The example app on a Samsung Galaxy A22 (MediaTek Helio G80, 90 Hz), recorded with the phone&apos;s own
+              screen recorder, which takes a share of its GPU while it runs. iOS runs the same JavaScript on the same
+              engines. The <Link to="/docs/benchmarks">benchmarks</Link> measure it against the other libraries.
             </p>
-            <Phones ios="/video/ios-rolling.mp4" android="/video/android-rolling.mp4" caption="A trading dashboard: about 60 NitroNumbers, about 280 updates a second, no re-renders." />
-            <Phones ios="/video/ios-input.mp4" android="/video/android-input.mp4" caption="A transfer: the amount reflows as it is typed, and the payout switches currency as one change." />
+            <Phones
+              videos={[
+                {src: '/video/market.mp4', label: 'Market'},
+                {src: '/video/transfer.mp4', label: 'Transfer'},
+                {src: '/video/reveal.mp4', label: 'Jackpot'},
+              ]}
+              caption="A trading dashboard with 48 NitroNumbers and about 210 updates a second, no re-renders; a transfer whose amount reflows as it is typed and whose payout switches currency as one change; a jackpot counted up tier by tier."
+            />
           </div>
         </section>
       </main>
