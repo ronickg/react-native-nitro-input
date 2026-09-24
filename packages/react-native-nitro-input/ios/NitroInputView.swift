@@ -560,12 +560,14 @@ final class NitroInputView: UIView {
   /// The width the multiline height was last measured against.
   private var lastMeasuredWidth: CGFloat = 0
   /// Scaled and aligned container for the content (font space).
-  private let contentLayer = CALayer()
+  private let contentLayer = QuietLayer()
   /// Clips glyphs to the line box, extended sideways so glyphs sliding in the
   /// margins are not cut; its mask fades the top and bottom edges.
-  private let clipLayer = CALayer()
-  private let edgeMask = CAGradientLayer()
-  private let caretLayer = CALayer()
+  private let clipLayer = QuietLayer()
+  private let edgeMask = QuietGradientLayer()
+  /// The fade the mask's stops were last set for (-1: not yet).
+  private var edgeFade: CGFloat = -1
+  private let caretLayer = QuietLayer()
   /// One layer per live engine glyph id, with what it was rasterized for.
   /// `topOffset` is the affix's baseline correction (`FontSet.top` with the
   /// line top at 0), a pure function of the role and text, so a frame neither
@@ -575,6 +577,11 @@ final class NitroInputView: UIView {
     let topOffset: CGFloat
     /// The render pass that last saw this glyph; one a pass missed has left.
     var generation: UInt
+    /// What the layer was last given, so a frame only sets what moved: most
+    /// glyphs are at rest while one reflows in.
+    var position = CGPoint(x: CGFloat.nan, y: CGFloat.nan)
+    var opacity: Float = -1
+    var scale: CGFloat = -1
   }
   private var glyphLayers: [Int64: GlyphEntry] = [:]
   private var renderGeneration: UInt = 0
@@ -1662,13 +1669,13 @@ final class NitroInputView: UIView {
     updateFontScale(contentWidth: contentWidth)
     placement = contentPlacement(total: contentWidth, lineHeight: lineHeight)
 
-    CATransaction.begin()
-    CATransaction.setDisableActions(true)
-    defer { CATransaction.commit() }
-
-    contentLayer.bounds = CGRect(x: 0, y: 0, width: max(contentWidth, 1), height: lineHeight)
-    contentLayer.position = placement.origin
-    contentLayer.transform = placement.scale == 1 ? CATransform3DIdentity : CATransform3DMakeScale(placement.scale, placement.scale, 1)
+    // No explicit transaction: the layers are quiet (no implicit animations),
+    // and one of its own was a commit to the render server per frame.
+    let contentBounds = CGRect(x: 0, y: 0, width: max(contentWidth, 1), height: lineHeight)
+    if contentLayer.bounds != contentBounds { contentLayer.bounds = contentBounds }
+    if contentLayer.position != placement.origin { contentLayer.position = placement.origin }
+    let contentTransform = placement.scale == 1 ? CATransform3DIdentity : CATransform3DMakeScale(placement.scale, placement.scale, 1)
+    if !CATransform3DEqualToTransform(contentLayer.transform, contentTransform) { contentLayer.transform = contentTransform }
 
     // The clip box extends one line height to each side so glyphs at the edges
     // are not cut while they slide, and a soft band (0.15 em, Torph's) above and
@@ -1687,10 +1694,16 @@ final class NitroInputView: UIView {
       clipRight = max(contentWidth, 1) + lineHeight
     }
     let pad = -clipLeft
-    clipLayer.frame = CGRect(x: clipLeft, y: -band, width: max(clipRight - clipLeft, 1), height: lineHeight + 2 * band)
-    edgeMask.frame = clipLayer.bounds
+    let clipFrame = CGRect(x: clipLeft, y: -band, width: max(clipRight - clipLeft, 1), height: lineHeight + 2 * band)
+    if clipLayer.frame != clipFrame {
+      clipLayer.frame = clipFrame
+      edgeMask.frame = clipLayer.bounds
+    }
     let fade = band / max(lineHeight + 2 * band, 1)
-    edgeMask.locations = [0, NSNumber(value: Double(fade)), NSNumber(value: Double(1 - fade)), 1]
+    if fade != edgeFade {
+      edgeMask.locations = [0, NSNumber(value: Double(fade)), NSNumber(value: Double(1 - fade)), 1]
+      edgeFade = fade
+    }
 
     // A frame allocates nothing once every glyph has its layer: each entry is
     // stamped with this pass's generation rather than collected into a set,
@@ -1701,31 +1714,42 @@ final class NitroInputView: UIView {
     let count = Int(engine.glyphCount())
     for i in 0..<count {
       let g = engine.glyphAt(Int32(i))
-      let glyphLayer: CALayer
-      let topOffset: CGFloat
-      if let index = glyphLayers.index(forKey: g.id) {
+      let index: Dictionary<Int64, GlyphEntry>.Index
+      if let existing = glyphLayers.index(forKey: g.id) {
+        index = existing
         glyphLayers.values[index].generation = generation
-        glyphLayer = glyphLayers.values[index].layer
-        topOffset = glyphLayers.values[index].topOffset
       } else {
         let role = Self.glyphRole(g.role)
         let text = Self.glyphText(g.character)
-        glyphLayer = CALayer()
+        let glyphLayer = QuietLayer()
         glyphLayer.contentsScale = fonts.renderScale
         if let image = fonts.image(text, role: role, placeholder: g.placeholder) {
           glyphLayer.contents = image.cgImage
           glyphLayer.bounds = CGRect(origin: .zero, size: image.size)
         }
         clipLayer.addSublayer(glyphLayer)
-        topOffset = fonts.top(for: role, text: text, lineTop: 0)
-        glyphLayers[g.id] = GlyphEntry(layer: glyphLayer, topOffset: topOffset, generation: generation)
+        glyphLayers[g.id] = GlyphEntry(layer: glyphLayer, topOffset: fonts.top(for: role, text: text, lineTop: 0), generation: generation)
+        index = glyphLayers.index(forKey: g.id)!
       }
+      let entry = glyphLayers.values[index]
+      let glyphLayer = entry.layer
       let size = glyphLayer.bounds.size
-      let top = band + topOffset + CGFloat(g.y) * lineHeight
-      glyphLayer.position = CGPoint(x: pad + CGFloat(g.x) + size.width / 2, y: top + size.height / 2)
-      glyphLayer.opacity = Float(min(1, max(0, g.opacity)))
-      let scale = CGFloat(g.scale)
-      glyphLayer.transform = abs(scale - 1) < 0.0001 ? CATransform3DIdentity : CATransform3DMakeScale(scale, scale, 1)
+      let top = band + entry.topOffset + CGFloat(g.y) * lineHeight
+      let position = CGPoint(x: pad + CGFloat(g.x) + size.width / 2, y: top + size.height / 2)
+      if position != entry.position {
+        glyphLayer.position = position
+        glyphLayers.values[index].position = position
+      }
+      let opacity = Float(min(1, max(0, g.opacity)))
+      if opacity != entry.opacity {
+        glyphLayer.opacity = opacity
+        glyphLayers.values[index].opacity = opacity
+      }
+      let scale = abs(CGFloat(g.scale) - 1) < 0.0001 ? 1 : CGFloat(g.scale)
+      if scale != entry.scale {
+        glyphLayer.transform = scale == 1 ? CATransform3DIdentity : CATransform3DMakeScale(scale, scale, 1)
+        glyphLayers.values[index].scale = scale
+      }
     }
     if glyphLayers.count != count {
       // Collecting the leavers allocates, but only on the frame they leave.
@@ -1756,20 +1780,19 @@ final class NitroInputView: UIView {
     let lineHeight = fonts.lineHeight
     let height = lineHeight * 0.9
     let x = CGFloat(engine.caretX(caretBodyIndex()))
-    caretLayer.bounds = CGRect(x: 0, y: 0, width: 2, height: height)
-    caretLayer.position = CGPoint(x: x, y: lineHeight / 2)
+    let caretBounds = CGRect(x: 0, y: 0, width: 2, height: height)
+    if caretLayer.bounds != caretBounds { caretLayer.bounds = caretBounds }
+    let caretPosition = CGPoint(x: x, y: lineHeight / 2)
+    if caretLayer.position != caretPosition { caretLayer.position = caretPosition }
   }
 
   fileprivate func updateCaret(restartBlink: Bool = false) {
     // The system caret is the real one in plain mode.
     guard !traits.plain else { return }
     let visible = wantsCaret
-    CATransaction.begin()
-    CATransaction.setDisableActions(true)
     caretLayer.backgroundColor = (traits.caretColor ?? tintColor ?? .systemBlue).resolvedColor(with: traitCollection).cgColor
     positionCaret()
     caretLayer.isHidden = !visible
-    CATransaction.commit()
     if visible {
       if restartBlink || caretLayer.animation(forKey: "blink") == nil {
         startBlink()
@@ -2598,3 +2621,4 @@ extension NitroInputView {
     return path
   }
 }
+

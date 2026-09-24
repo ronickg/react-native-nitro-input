@@ -1918,11 +1918,17 @@ final class NitroNumberView: UIView {
 }
 
 /// A layer that never animates a change implicitly: every layer of a
-/// NitroNumber is placed frame by frame, by the engine. Switching the actions
-/// off with an explicit `CATransaction` did the same, but a display link's
-/// callback runs outside any transaction, so each figure's frame was a commit
-/// of its own to the render server, dozens per frame on a busy screen; these
-/// changes join the run loop's one implicit transaction instead.
+/// NitroNumber, and of a reflowing NitroInput, is placed frame by frame, by
+/// the engine. Switching the actions off with an explicit `CATransaction` did
+/// the same, but a display link's callback runs outside any transaction, so
+/// each view's frame was a commit of its own to the render server, dozens per
+/// frame on a busy screen; these changes join the run loop's one implicit
+/// transaction instead.
 final class QuietLayer: CALayer {
+  override func action(forKey event: String) -> CAAction? { nil }
+}
+
+/// `QuietLayer`'s gradient: NitroInput's edge fade is re-laid out with the text.
+final class QuietGradientLayer: CAGradientLayer {
   override func action(forKey event: String) -> CAAction? { nil }
 }
