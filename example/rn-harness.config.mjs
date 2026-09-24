@@ -3,7 +3,7 @@
 // `:android`). The tests live in `__tests__/*.harness.tsx` and use the
 // components the way an app does; Harness renders each test's tree as an
 // overlay in the running app and reports through a Metro bridge.
-import { androidEmulator, androidPlatform } from '@react-native-harness/platform-android'
+import { androidEmulator, androidPlatform, physicalAndroidDevice } from '@react-native-harness/platform-android'
 import { applePlatform, appleSimulator } from '@react-native-harness/platform-apple'
 
 const isCI = process.env.CI === 'true'
@@ -14,6 +14,11 @@ const androidEmulatorName = process.env.HARNESS_ANDROID_EMULATOR ?? 'Pixel_9_API
 const androidApiLevel = Number.parseInt(process.env.HARNESS_ANDROID_API_LEVEL ?? '36', 10)
 const iosSimulatorName = process.env.HARNESS_IOS_SIMULATOR ?? 'iPhone 17'
 const iosSimulatorVersion = process.env.HARNESS_IOS_SIMULATOR_VERSION ?? '26.5'
+// A cabled phone for the Android suites (`bun run test:harness:android-device`):
+// an emulator shares the host's CPU, and on a busy machine a debug build took
+// over 25 s to start and was killed as not responding. A phone has its own.
+const androidDeviceManufacturer = process.env.HARNESS_ANDROID_DEVICE_MANUFACTURER ?? 'samsung'
+const androidDeviceModel = process.env.HARNESS_ANDROID_DEVICE_MODEL ?? 'SM-A225F'
 
 const config = {
   entryPoint: './index.js',
@@ -40,6 +45,12 @@ const config = {
       // which does not exist, and the app never launched.
       activityName: 'com.rollingnumberexample.MainActivity',
     }),
+    androidPlatform({
+      name: 'android-device',
+      device: physicalAndroidDevice(androidDeviceManufacturer, androidDeviceModel),
+      bundleId: 'com.nitroinput.example',
+      activityName: 'com.rollingnumberexample.MainActivity',
+    }),
   ],
   defaultRunner: 'ios',
   // A jackpot reveal runs for seconds; a roll for half a second.
@@ -47,9 +58,13 @@ const config = {
   testTimeout: 60_000,
   // A CI runner boots a simulator or emulator far slower than a warm machine.
   platformReadyTimeout: isCI ? 900_000 : 300_000,
-  bundleStartTimeout: isCI ? 120_000 : 60_000,
-  bridgeTimeout: isCI ? 120_000 : 60_000,
-  maxAppRestarts: isCI ? 4 : 2,
+  // Startup gets a slow machine's allowance everywhere, not only on CI: a
+  // debug build on a local emulator missed the 60 s defaults (the app took
+  // longer than that to report ready, then exited while preparing the next
+  // file). They only cost time when startup is actually slow.
+  bundleStartTimeout: 120_000,
+  bridgeTimeout: 120_000,
+  maxAppRestarts: 4,
   detectNativeCrashes: true,
   forwardClientLogs: true,
 }

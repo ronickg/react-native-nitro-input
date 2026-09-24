@@ -25,6 +25,7 @@ android`, or the `xcodebuild` / `gradlew` commands in the root README), then:
 ```sh
 bun run test:harness:ios        # from the repo root, or in example/
 bun run test:harness:android
+bun run test:harness:android-device   # a cabled Android phone instead of the emulator
 bun --cwd example test:harness:ios -- --testPathPatterns=nitro-number   # one file
 ```
 
@@ -34,6 +35,20 @@ suites. The device defaults are a stock Xcode simulator (`iPhone 17`, iOS
 `26.5`) and a stock Android Studio AVD (`Pixel_9_API36`); the `HARNESS_*`
 variables in the config override them, and CI (`.github/workflows/harness.yml`)
 sets them to what its images have.
+
+### When they flake
+
+An emulator shares the machine's CPU. On a busy machine (other simulators
+booted, a build running) a debug build can take long enough that Harness gives
+up on it: a render that did not mount within the second Harness allows by
+default, a bridge that was not ready in time, or Android killing an app that
+took over 25 s to start as not responding. The failures then move between
+tests from run to run, and every one is a timeout, never a wrong value.
+`test-utils.ts`'s `render` gives a mount or re-render 5 s, and the config gives
+startup a slow machine's allowance everywhere; past that, run the Android
+suites on a phone (`android-device`, a Galaxy A22 by default, the
+`HARNESS_ANDROID_DEVICE_*` variables for another), which has a CPU of its own,
+or let CI run them.
 
 ## What React Native's own TextInput tests check
 
@@ -53,7 +68,12 @@ next to ours and compares what reaches the host.
 
 - **Set the tree up inline**, with the public components and props, the way
   the README shows them. The only shared helpers are the waiting primitives in
-  `test-utils.ts`.
+  `test-utils.ts`, and its `render`, which is Harness's with a longer timeout:
+  import `render` from there, not from `react-native-harness`.
+- **Compare two views' sizes with `expectSameLength`**, which allows one
+  physical pixel: React Native snaps edges to whole pixels, so equal views at
+  different positions can measure a pixel apart, more than
+  `toBeCloseTo(x, 0)` allows at the Galaxy A22's density.
 - **Assert what an app can observe**: the handle (`getValue`, `getText`,
   `isFocused`), the callbacks (`onRevealEnd`, `onChangeText`, `onFocus`, …)
   and the measured layout (`onLayout`). There is no screenshot comparison; a

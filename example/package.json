@@ -10,7 +10,8 @@
     "test": "jest",
     "test:harness": "react-native-harness",
     "test:harness:ios": "react-native-harness --harnessRunner ios",
-    "test:harness:android": "react-native-harness --harnessRunner android"
+    "test:harness:android": "react-native-harness --harnessRunner android",
+    "test:harness:android-device": "react-native-harness --harnessRunner android-device"
   },
   "dependencies": {
     "@react-navigation/native": "^7.4.1",

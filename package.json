@@ -16,7 +16,8 @@
     "example": "bun --cwd example",
     "bench": "bun --cwd bench",
     "test:harness:ios": "bun --cwd example test:harness:ios",
-    "test:harness:android": "bun --cwd example test:harness:android"
+    "test:harness:android": "bun --cwd example test:harness:android",
+    "test:harness:android-device": "bun --cwd example test:harness:android-device"
   },
   "patchedDependencies": {
     "metro@0.87.1": "patches/metro@0.87.1.patch",
