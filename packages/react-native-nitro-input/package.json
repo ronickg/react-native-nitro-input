@@ -1,6 +1,6 @@
 {
   "name": "react-native-nitro-input",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Native text for React Native, built with Nitro: a text and amount input with native formatting, masks and a Torph-style reflow, and an animated number (odometer, SwiftUI-style numeric text, ticker) whose digits roll or swap natively, with currency layouts and animated currency switches, shrink-to-fit, a loading shimmer and a jackpot reveal.",
   "main": "lib/commonjs/src/index.js",
   "module": "lib/module/src/index.js",
