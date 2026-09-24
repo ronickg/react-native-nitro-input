@@ -109,10 +109,10 @@ function HomeScreen() {
           <Btn testID="home-sheet-rn-manual" title="Sheet (rn, manual)" onPress={() => nav.navigate('Sheet', { kind: 'rn', autoFocus: false })} />
         </Row>
       </Card>
-      <Card title="Rolling number" hint="The benchmarks against other libraries live in the bench app (bench/).">
+      <Card title="NitroNumber" hint="The benchmarks against other libraries live in the bench app (bench/).">
         <Row><Btn testID="home-recycle" title="Recycle check (400-row lists)" onPress={() => nav.navigate('RecycleCheck')} /></Row>
       </Card>
-      <Card title="Original demo" hint="The rolling number and reflowing input showcase this example shipped with.">
+      <Card title="Original demo" hint="The NitroNumber and reflowing input showcases, and the edge cases.">
         <Row><Btn testID="home-demo" title="Open demo" onPress={() => nav.navigate('Demo')} /></Row>
       </Card>
       <Text style={styles.cardHint}>Screens are driven by testID; see HANDOFF.md.</Text>

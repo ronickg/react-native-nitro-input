@@ -21,14 +21,14 @@ const COMPONENTS: {name: string; to: string; body: string}[] = [
   {
     name: 'NitroNumber',
     to: '/docs/nitro-number',
-    body: 'A number that animates its changes: every digit a wheel, or SwiftUI’s numeric transition, with currency layouts, shrink-to-fit, a loading shimmer and the jackpot reveal.',
+    body: 'A number that animates its changes: every digit a wheel, or SwiftUI’s numeric transition, with currency layouts and currency switches that play, shrink-to-fit, a loading shimmer and the jackpot reveal.',
   },
 ];
 
 export default function Home(): ReactNode {
   const {siteConfig} = useDocusaurusContext();
   return (
-    <Layout title="A native text input and a rolling number" description={siteConfig.tagline}>
+    <Layout title="A native text input and an animated number" description={siteConfig.tagline}>
       <header className={clsx('hero', styles.hero)}>
         <div className="container">
           <span className={styles.eyebrow}>
@@ -74,7 +74,7 @@ export default function Home(): ReactNode {
               The example app on an iPhone 13 Pro Max and a Pixel 10: the same JavaScript and the same engines. The{' '}
               <Link to="/docs/benchmarks">benchmarks</Link> measure it against the other libraries.
             </p>
-            <Phones ios="/video/ios-rolling.mp4" android="/video/android-rolling.mp4" caption="A live market screen: around thirty rolling numbers, a handful ticking every 200 ms." />
+            <Phones ios="/video/ios-rolling.mp4" android="/video/android-rolling.mp4" caption="A live market screen: around thirty NitroNumbers, a handful ticking every 200 ms." />
             <Phones ios="/video/ios-input.mp4" android="/video/android-input.mp4" caption="An amount typed, backspaced and set from code, reflowing into place." />
           </div>
         </section>

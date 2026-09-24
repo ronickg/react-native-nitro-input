@@ -258,7 +258,7 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
       self.pendingValue = nil
       let value = changed ?? self.rollingView.targetValue
       guard let reveal = self.reveal else {
-        // Normal rolling number (also when leaving reveal mode).
+        // A normal NitroNumber (also when leaving reveal mode).
         self.appliedReveal = nil
         if let changed { self.rollingView.animate(to: changed) }
         return

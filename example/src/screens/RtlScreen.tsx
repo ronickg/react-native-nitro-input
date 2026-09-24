@@ -36,9 +36,9 @@ export function RtlScreen() {
         <NitroInput transition="reflow" testID="rtl-morph-amount" mode="number" prefix="$" suffix=" USD" defaultValue="1234.56" fontSize={22} style={{ width: '100%' }} />
         <FieldLabel>MORPH, NEGATIVE</FieldLabel>
         <NitroInput transition="reflow" testID="rtl-morph-negative" mode="number" prefix="$" defaultValue="-1234.56" fontSize={22} style={{ width: '100%' }} />
-        <FieldLabel>ROLLING NUMBER, PREFIX + SUFFIX</FieldLabel>
+        <FieldLabel>NITRONUMBER, PREFIX + SUFFIX</FieldLabel>
         <NitroNumber testID="rtl-rolling" value={1234.56} fractionDigits={2} prefix="$" suffix=" USD" fontSize={22} style={{ width: '100%' }} />
-        <FieldLabel>ROLLING NUMBER, NEGATIVE</FieldLabel>
+        <FieldLabel>NITRONUMBER, NEGATIVE</FieldLabel>
         <NitroNumber testID="rtl-rolling-negative" value={-1234.56} fractionDigits={2} prefix="$" fontSize={22} style={{ width: '100%' }} />
       </Card>
       <Card key="frame" title="Frame" hint="The label and the notch sit at the start edge.">

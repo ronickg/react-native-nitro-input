@@ -36,7 +36,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Draws the rolling number. All behaviour (wheel positions, rolls, stagger,
+ * Draws a NitroNumber. All behaviour (wheel positions, rolls, stagger,
  * easing, loading fade, shimmer phase) lives in the shared C++ `RollingEngine`
  * (cpp/RollingEngine.hpp, reached through the [RollingEngine] JNI handle); this
  * view owns fonts, layout, fit-to-width and Canvas drawing, and drives the

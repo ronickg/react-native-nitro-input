@@ -2,7 +2,7 @@
 
 <p align="center">
   Two native components for React Native in one package, built with <a href="https://nitro.margelo.com">Nitro Modules</a>:<br/>
-  a <b>rolling number</b> whose digits are wheels, and a <b>text input</b> that formats amounts and applies masks natively, with a reflow you can turn on.<br/>
+  a <b>number</b> that animates its changes (rolling wheels, or SwiftUI's numeric transition), and a <b>text input</b> that formats amounts and applies masks natively, with a reflow you can turn on.<br/>
   One C++ engine each, iOS and Android, the new architecture.
 </p>
 
@@ -15,8 +15,8 @@
   <tr>
     <td align="center" valign="top" width="50%">
       <h3><code>NitroNumber</code></h3>
-      <img src="docs/static/img/readme/market.webp" width="400" alt="A live market screen with about thirty rolling numbers, on an iPhone and a Pixel" />
-      <p>An odometer for React Native. Every digit is a wheel driven by one C++ engine, with currency layouts, shrink-to-fit, a loading shimmer and the jackpot reveal.</p>
+      <img src="docs/static/img/readme/market.webp" width="400" alt="A live market screen with about thirty NitroNumbers, on an iPhone and a Pixel" />
+      <p>A number that animates its changes. Every digit is a wheel, or swaps like SwiftUI's numeric text, driven by one C++ engine, with currency layouts, shrink-to-fit, a loading shimmer and the jackpot reveal.</p>
       <p>
         <a href="#nitronumber">Below</a> ·
         <a href="https://ronickg.github.io/react-native-nitro-input/docs/nitro-number">Guide</a> ·
@@ -52,15 +52,16 @@ bun add react-native-nitro-input react-native-nitro-modules
 cd ios && pod install
 ```
 
-`react-native-nitro-rolling-number` was the rolling number's own package until 0.1.0, where the component was `RollingNumber`; it is `NitroNumber` in `react-native-nitro-input` now, with the same props.
+`react-native-nitro-rolling-number` was NitroNumber's own package until 0.1.0, where the component was `RollingNumber`; it is `NitroNumber` in `react-native-nitro-input` now, with the same props.
 
 ## NitroNumber
 
 - **Native on both platforms.** A `value` change is one JSI call; the roll runs on a `CADisplayLink` (Core Animation layers) or a `Choreographer` (Canvas). A busy JS thread never delays an animation in flight.
 - **Every digit is a wheel.** Shortest path in the direction of the change, columns sliding in and out as the number grows, easing, spring or a cascading stagger.
 - **Or another transition.** `transition="numeric"` plays a change the way SwiftUI's `numericText` does: each changed glyph swaps in place, softening, shrinking and sliding out as the new one slides in and comes into focus, cascading from the left; unchanged digits stay put. `"scramble"` locks random digits from the left. A change flash (`flashUpColor` / `flashDownColor`) and a pop (`popOnChange`) go with any of them.
-- **Money-ready.** Fraction digits, grouping and decimal separators, a currency symbol or code at its own size pinned to the top or bottom of the digits, zero padding, negatives.
-- **Fits its box.** Auto-sizes to its content, or shrinks continuously to a fixed width without squeezing digits still on their way out.
+- **Money-ready.** Fraction digits, grouping and decimal separators, a currency symbol or code at its own size pinned to the top or bottom of the digits, zero padding, negatives. Switching currency plays as one change: the old mark blurs out as the new one arrives, the decimals open or close, and the digits swap or roll to the new amount.
+- **Drive it from anywhere.** `animateTo` / `jumpTo` on the Nitro object work from a Reanimated worklet, so a feed on the UI thread keeps the figure moving while the JS thread is busy.
+- **Fits its box.** Auto-sizes to its content, growing from whichever edge its parent pins it to, or shrinks continuously to a fixed width without squeezing digits still on their way out.
 - **Jackpot reveal.** The casino win-meter rollup (tiers that punch and hold, a figure that grows as it climbs) and the slot-reel reveal, all native.
 - **Loading, accessible, recyclable.** A text-shaped shimmer while the value loads, VoiceOver / TalkBack read the formatted amount, Reduce Motion snaps, Fabric can recycle it in long lists.
 
@@ -113,7 +114,7 @@ Release builds on real phones, 24 copies fed a new value on every frame, frames 
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/static/img/bench/glance-dark.svg">
-  <img alt="Frames per second the main thread delivered with 24 rolling numbers updating every frame, on an iPhone 13 Pro Max, an iPhone 11 Pro and a Galaxy A22: both Nitro paths hold the panel's rate on every phone" src="docs/static/img/bench/glance-light.svg" width="754">
+  <img alt="Frames per second the main thread delivered with 24 animated numbers updating every frame, on an iPhone 13 Pro Max, an iPhone 11 Pro and a Galaxy A22: both Nitro paths hold the panel's rate on every phone" src="docs/static/img/bench/glance-light.svg" width="754">
 </picture>
 
 | | iPhone 13 Pro Max (120 Hz) | iPhone 11 Pro (60 Hz) | Galaxy A22 (90 Hz, low-end) |
@@ -178,7 +179,7 @@ Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inp
 
 ## Repository
 
-- [`packages/react-native-nitro-input`](packages/react-native-nitro-input) – the package: the shared C++ engines (`cpp/RollingEngine` for the rolling number; `cpp/ReflowEngine`, `cpp/AmountFormatter`, `cpp/MaskEngine` and `cpp/OutlineGeometry` for the input), the Swift and Kotlin views (the input's around a hidden system text field), the Nitro specs and the JS wrappers. Its [README](packages/react-native-nitro-input/README.md) is the API reference.
+- [`packages/react-native-nitro-input`](packages/react-native-nitro-input) – the package: the shared C++ engines (`cpp/RollingEngine` for NitroNumber; `cpp/ReflowEngine`, `cpp/AmountFormatter`, `cpp/MaskEngine` and `cpp/OutlineGeometry` for the input), the Swift and Kotlin views (the input's around a hidden system text field), the Nitro specs and the JS wrappers. Its [README](packages/react-native-nitro-input/README.md) is the API reference.
 - [`example/`](example) – the React Native 0.87 app you test in: the demos, the manual checks and the showcase screens the recordings come from, with only this library and what an app pairs it with, so it builds quickly. Its [`__tests__/*.harness.tsx`](example/__tests__) are on-device suites run by [React Native Harness](https://www.react-native-harness.dev) inside the app (see [`example/__tests__/README.md`](example/__tests__/README.md)); CI runs them on an Android emulator and an iOS simulator.
 - [`bench/`](bench) – the benchmark app: this library against the other animated-number and input libraries on npm (Skia, NumberFlow, Expo UI and the rest), kept out of the example so it never builds them. [`modules/bench-probe`](modules/bench-probe) is the native probe both apps use.
 - [`docs/`](docs) – the Docusaurus site. Its live demos run the very same `RollingEngine.cpp` and `ReflowEngine.cpp`, compiled to WebAssembly.
@@ -211,7 +212,7 @@ Nitro Modules 0.37 never fills a Hybrid View's raw props on Android from React N
 
 The input's reflow is based on [Torph](https://torph.lochie.me) by [Lochie Axon](https://github.com/lochie). Thanks for building it.
 
-The rolling number's numeric transition follows SwiftUI's `.contentTransition(.numericText())`; it is our own reading of that effect, in the shared engine. [react-native-numeric-text](https://github.com/AmatoGiulio/react-native-numeric-text) by [Giulio Amato](https://github.com/AmatoGiulio) is a native re-implementation of the same effect for React Native `Text`, and the place to go when a whole text should transition rather than a number.
+NitroNumber's numeric transition follows SwiftUI's `.contentTransition(.numericText())`; it is our own reading of that effect, in the shared engine. [react-native-numeric-text](https://github.com/AmatoGiulio/react-native-numeric-text) by [Giulio Amato](https://github.com/AmatoGiulio) is a native re-implementation of the same effect for React Native `Text`, and the place to go when a whole text should transition rather than a number.
 
 ## License
 
