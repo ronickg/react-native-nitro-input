@@ -109,6 +109,11 @@ double ramp(double p, double from, double to) {
 } // namespace
 
 ReflowEngine::ReflowEngine() = default;
+ReflowEngine::~ReflowEngine() = default;
+ReflowEngine::ReflowEngine(const ReflowEngine&) = default;
+ReflowEngine& ReflowEngine::operator=(const ReflowEngine&) = default;
+ReflowEngine::ReflowEngine(ReflowEngine&&) noexcept = default;
+ReflowEngine& ReflowEngine::operator=(ReflowEngine&&) noexcept = default;
 
 // MARK: - Configuration
 

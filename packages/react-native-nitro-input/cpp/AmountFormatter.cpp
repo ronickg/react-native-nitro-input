@@ -44,6 +44,11 @@ bool AmountFormatter::takeSign(std::vector<uint32_t>& text) {
 }
 
 AmountFormatter::AmountFormatter() = default;
+AmountFormatter::~AmountFormatter() = default;
+AmountFormatter::AmountFormatter(const AmountFormatter&) = default;
+AmountFormatter& AmountFormatter::operator=(const AmountFormatter&) = default;
+AmountFormatter::AmountFormatter(AmountFormatter&&) noexcept = default;
+AmountFormatter& AmountFormatter::operator=(AmountFormatter&&) noexcept = default;
 
 void AmountFormatter::setFormat(int fractionDigits, int maxIntegerDigits, const std::string& grouping, const std::string& decimal) {
   fractionDigits_ = std::clamp(fractionDigits, 0, 9);

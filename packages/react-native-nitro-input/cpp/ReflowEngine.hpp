@@ -26,9 +26,11 @@
 #include <cstdint>
 #include <vector>
 
+#include "SwiftNonCopyable.hpp"
+
 namespace margelo::nitro::nitroinput {
 
-class ReflowEngine final {
+class SWIFT_NONCOPYABLE ReflowEngine final {
 public:
   /// What a character is; decides how it enters, leaves and is matched.
   enum Kind : int {
@@ -77,6 +79,12 @@ public:
   };
 
   ReflowEngine();
+  // Defined in the .cpp (see SwiftNonCopyable.hpp).
+  ~ReflowEngine();
+  ReflowEngine(const ReflowEngine&);
+  ReflowEngine& operator=(const ReflowEngine&);
+  ReflowEngine(ReflowEngine&&) noexcept;
+  ReflowEngine& operator=(ReflowEngine&&) noexcept;
 
   // MARK: Configuration
 

@@ -17,9 +17,11 @@
 #include <string>
 #include <vector>
 
+#include "SwiftNonCopyable.hpp"
+
 namespace margelo::nitro::nitroinput {
 
-class AmountFormatter final {
+class SWIFT_NONCOPYABLE AmountFormatter final {
 public:
   struct Edit {
     std::string text;
@@ -29,6 +31,12 @@ public:
   };
 
   AmountFormatter();
+  // Defined in the .cpp (see SwiftNonCopyable.hpp).
+  ~AmountFormatter();
+  AmountFormatter(const AmountFormatter&);
+  AmountFormatter& operator=(const AmountFormatter&);
+  AmountFormatter(AmountFormatter&&) noexcept;
+  AmountFormatter& operator=(AmountFormatter&&) noexcept;
 
   /// `grouping` / `decimal`: one character each (UTF-8); empty grouping disables grouping.
   void setFormat(int fractionDigits, int maxIntegerDigits, const std::string& grouping, const std::string& decimal);

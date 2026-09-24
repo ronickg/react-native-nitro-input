@@ -19,9 +19,11 @@
 #include <cstdint>
 #include <vector>
 
+#include "SwiftNonCopyable.hpp"
+
 namespace margelo::nitro::nitroinput {
 
-class RollingEngine final {
+class SWIFT_NONCOPYABLE RollingEngine final {
 public:
   struct Wheel {
     /// Glyph index on the strip. Interior wheels wrap modulo 10; linear wheels
@@ -114,6 +116,12 @@ public:
   // 2 scramble.
 
   RollingEngine();
+  // Defined in the .cpp (see SwiftNonCopyable.hpp).
+  ~RollingEngine();
+  RollingEngine(const RollingEngine&);
+  RollingEngine& operator=(const RollingEngine&);
+  RollingEngine(RollingEngine&&) noexcept;
+  RollingEngine& operator=(RollingEngine&&) noexcept;
 
   // MARK: Configuration
 
