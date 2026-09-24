@@ -74,8 +74,8 @@ export default function Home(): ReactNode {
               The example app on an iPhone 13 Pro Max and a Pixel 10: the same JavaScript and the same engines. The{' '}
               <Link to="/docs/benchmarks">benchmarks</Link> measure it against the other libraries.
             </p>
-            <Phones ios="/video/ios-rolling.mp4" android="/video/android-rolling.mp4" caption="A live market screen: around thirty NitroNumbers, a handful ticking every 200 ms." />
-            <Phones ios="/video/ios-input.mp4" android="/video/android-input.mp4" caption="An amount typed, backspaced and set from code, reflowing into place." />
+            <Phones ios="/video/ios-rolling.mp4" android="/video/android-rolling.mp4" caption="A trading dashboard: about 60 NitroNumbers, about 280 updates a second, no re-renders." />
+            <Phones ios="/video/ios-input.mp4" android="/video/android-input.mp4" caption="A transfer: the amount reflows as it is typed, and the payout switches currency as one change." />
           </div>
         </section>
       </main>

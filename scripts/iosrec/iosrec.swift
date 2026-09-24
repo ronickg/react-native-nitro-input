@@ -89,8 +89,8 @@ final class Recorder: NSObject, AVCaptureFileOutputRecordingDelegate {
             data.setSampleBufferDelegate(counter, queue: DispatchQueue(label: "frames"))
             session.addOutput(data)
             session.startRunning()
-            RunLoop.current.run(until: Date().addingTimeInterval(4))
-            log("probe: \(counter.frames) frames in 4 s, \(counter.size), formats \(dev.formats.count), active \(dev.activeFormat)")
+            RunLoop.current.run(until: Date().addingTimeInterval(15))
+            log("probe: \(counter.frames) frames in 15 s, \(counter.size), connected \(dev.isConnected), suspended \(dev.isSuspended), inUseElsewhere \(dev.isInUseByAnotherApplication), running \(session.isRunning), connections \(data.connections.map { $0.isActive })")
             exit(0)
         }
         session.startRunning()
@@ -115,6 +115,13 @@ final class Recorder: NSObject, AVCaptureFileOutputRecordingDelegate {
 
     var url: URL?
     var attempts = 0
+
+    /// When the file output actually began writing: the length counts from here.
+    var startedAt: Date?
+    func fileOutput(_ o: AVCaptureFileOutput, didStartRecordingTo url: URL, from: [AVCaptureConnection]) {
+        startedAt = Date()
+        log("recording started")
+    }
 
     var stopping = false
     func stop() { stopping = true; output.stopRecording() }
@@ -173,8 +180,14 @@ Thread.sleep(forTimeInterval: 1.5)
 let rec = Recorder()
 do { try rec.start(match: match, to: url) } catch { log("failed: \(error)"); exit(1) }
 
-let deadline = Date().addingTimeInterval(seconds)
-while Date() < deadline { RunLoop.current.run(until: Date().addingTimeInterval(0.1)) }
+// The file output can start writing seconds after startRecording (the stream
+// warms up); counting from the call made clips come out 2-9 s short.
+let asked = Date()
+while rec.startedAt == nil && !rec.done && Date().timeIntervalSince(asked) < 30 {
+    RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+}
+let deadline = (rec.startedAt ?? Date()).addingTimeInterval(seconds)
+while Date() < deadline && !rec.done { RunLoop.current.run(until: Date().addingTimeInterval(0.1)) }
 rec.stop()
 while !rec.done { RunLoop.current.run(until: Date().addingTimeInterval(0.1)) }
 ProcessInfo.processInfo.endActivity(activity)

@@ -1,9 +1,9 @@
 # Re-recording the docs and README demos
 
 The clips in `docs/static/video` and the animations in `docs/static/img/readme`
-come from the example app's two showcase screens (`Showcase: Balance` and
-`Showcase: Reveal` on the main screen — they are button-free and auto-playing,
-built for exactly this).
+come from the example app's three showcase screens (`Showcase: Market`,
+`Showcase: Reward` and `Showcase: Transfer` under Open demo — they are
+button-free and auto-playing, built for exactly this).
 
 Record on **real hardware**, not a simulator or emulator. The reasons are in
 "Why not a simulator" below.
@@ -60,11 +60,20 @@ swiftc -O -o scripts/iosrec/IosRec.app/Contents/MacOS/iosrec scripts/iosrec/iosr
 codesign --force -s - scripts/iosrec/IosRec.app
 # open the showcase screen, then (must go through LaunchServices so the
 # camera permission prompt can appear the first time):
-open -W scripts/iosrec/IosRec.app --args iPhone 20 "$PWD/raw/ios-rolling.mov"
+open -W scripts/iosrec/IosRec.app --args "Ronald’s iPhone" 20 "$PWD/raw/ios-rolling.mov"
 ```
 
-Record 20 s or so for the market screen and 26 s+ for the reveal, which loops
-count -> spin -> count about every 14 s and needs a whole cycle.
+Record 20 s or so for the market screen, 28 s for the reward (one round is
+10-12 s; the window starts as a gift appears) and 24 s for the transfer (a
+10.6 s loop). Match the phone's name exactly, or at least so that it does not
+also match a paired phone's Continuity Camera.
+
+If the phone's screen is listed but no frames arrive (`IOSREC_PROBE=1` counts
+them), the system's `iOSScreenCaptureAssistant` is usually wedged — its log
+says `invalid valeria state`. `sudo killall iOSScreenCaptureAssistant` and
+re-plug the phone; it restarts on demand. Stop any XCUITest runner on the
+phone (argent's) while recording: it costs capture frames. Turn on a Focus so
+notification banners stay out of the clips.
 
 ## 3. Encode
 
@@ -84,8 +93,8 @@ then:
 RAW=raw bash scripts/encode-demos.sh
 ```
 
-Everything ships at 60 fps: that is the iPhone capture ceiling, most displays
-cannot show more, and halving the 120 fps Android capture is a clean 2:1.
+The docs videos keep the Pixel's 120 fps and the iPhone's 60 (its capture
+ceiling); the README animations are 50 fps animated WebP.
 
 ## Why not a simulator
 
