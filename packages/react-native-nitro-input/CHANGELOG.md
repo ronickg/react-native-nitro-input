@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
 - `react-native-nitro-rolling-number` is part of this package now, and its
   `RollingNumber` is called **`NitroNumber`**, next to `NitroInput`: it plays
