@@ -22,6 +22,18 @@ func allowScreenCaptureDevices() {
                               UInt32(MemoryLayout<UInt32>.size), &yes)
 }
 
+/// Counts frames from the source, to tell "no stream" from "can't write".
+final class FrameCounter: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
+    var frames = 0
+    var size = ""
+    func captureOutput(_ o: AVCaptureOutput, didOutput b: CMSampleBuffer, from c: AVCaptureConnection) {
+        frames += 1
+        if let f = CMSampleBufferGetFormatDescription(b) {
+            let d = CMVideoFormatDescriptionGetDimensions(f); size = "\(d.width)x\(d.height)"
+        }
+    }
+}
+
 final class Recorder: NSObject, AVCaptureFileOutputRecordingDelegate {
     let session = AVCaptureSession()
     let output = AVCaptureMovieFileOutput()
@@ -63,8 +75,23 @@ final class Recorder: NSObject, AVCaptureFileOutputRecordingDelegate {
         session.commitConfiguration()
         // The iPhone screen source is muxed; the audio track is dead weight for a
         // silent UI demo and a stalled audio connection can end the recording.
-        for c in output.connections where c.inputPorts.contains(where: { $0.mediaType == .audio }) {
-            c.isEnabled = false
+        // Disabling it made the iPhone 13 Pro Max's recording fail (-11805) at the
+        // end; keep it unless IOSREC_AUDIO=off. The encoder drops audio anyway.
+        if ProcessInfo.processInfo.environment["IOSREC_AUDIO"] == "off" {
+            for c in output.connections where c.inputPorts.contains(where: { $0.mediaType == .audio }) {
+                c.isEnabled = false
+            }
+        }
+        if ProcessInfo.processInfo.environment["IOSREC_PROBE"] != nil {
+            session.removeOutput(output)
+            let data = AVCaptureVideoDataOutput()
+            let counter = FrameCounter()
+            data.setSampleBufferDelegate(counter, queue: DispatchQueue(label: "frames"))
+            session.addOutput(data)
+            session.startRunning()
+            RunLoop.current.run(until: Date().addingTimeInterval(4))
+            log("probe: \(counter.frames) frames in 4 s, \(counter.size), formats \(dev.formats.count), active \(dev.activeFormat)")
+            exit(0)
         }
         session.startRunning()
         // The iPhone screen source publishes its format a beat after the session
@@ -73,15 +100,39 @@ final class Recorder: NSObject, AVCaptureFileOutputRecordingDelegate {
         while !session.isRunning && waited < 5 {
             RunLoop.current.run(until: Date().addingTimeInterval(0.1)); waited += 0.1
         }
-        RunLoop.current.run(until: Date().addingTimeInterval(1.5))
+        // Then wait for the video connection itself to go live: on a phone's first
+        // capture with this Mac that takes several seconds, and a fixed pause
+        // started the file output too early (-11805) every time.
+        var live = 0.0
+        while live < 15 && !(output.connection(with: .video)?.isActive ?? false) {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1)); live += 0.1
+        }
+        log("video connection active after \(live) s")
+        RunLoop.current.run(until: Date().addingTimeInterval(1.0))
+        self.url = url
         output.startRecording(to: url, recordingDelegate: self)
     }
 
-    func stop() { output.stopRecording() }
+    var url: URL?
+    var attempts = 0
+
+    var stopping = false
+    func stop() { stopping = true; output.stopRecording() }
 
     func fileOutput(_ o: AVCaptureFileOutput, didFinishRecordingTo url: URL,
                     from: [AVCaptureConnection], error: Error?) {
-        if let error { failure = error; log("error: \(error)") }
+        if let error {
+            // -11805 at the very start means the stream was not flowing yet: try again.
+            let started = (error as NSError).userInfo[AVErrorRecordingSuccessfullyFinishedKey] as? Bool ?? false
+            if !started && attempts < 4, let url = self.url, !stopping {
+                attempts += 1
+                log("retrying start (\(attempts)) after: \(error.localizedDescription)")
+                RunLoop.current.run(until: Date().addingTimeInterval(1.5))
+                output.startRecording(to: url, recordingDelegate: self)
+                return
+            }
+            failure = error; log("error: \(error)")
+        }
         session.stopRunning()
         done = true
     }

@@ -656,6 +656,7 @@ class NitroNumberView(context: Context) : View(context) {
     fontScale = 1f
     lastReportedWidth = -1f
     autoAnchor = null
+    awaitingLayout = false
     laidLeft = Int.MIN_VALUE
     laidRight = Int.MIN_VALUE
     lastReportedHeight = -1f
@@ -1054,7 +1055,15 @@ class NitroNumberView(context: Context) : View(context) {
   private var laidLeft = Int.MIN_VALUE
   private var laidRight = Int.MIN_VALUE
 
-  private fun hugsFigure(): Boolean = lastReportedWidth > 0f && abs(width - lastReportedWidth * density) <= density
+  /**
+   * A size reported and not yet laid out by React: for a frame or two the box
+   * still has the old width. Counted as hugging, or a shrinking figure fell
+   * back to the start edge for those frames and flashed across the box.
+   */
+  private var awaitingLayout = false
+
+  private fun hugsFigure(): Boolean =
+    lastReportedWidth > 0f && (awaitingLayout || abs(width - lastReportedWidth * density) <= density)
 
   private fun learnAnchor(left: Int, right: Int) {
     val previousLeft = laidLeft
@@ -1075,6 +1084,7 @@ class NitroNumberView(context: Context) : View(context) {
 
   override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
     super.onLayout(changed, left, top, right, bottom)
+    if (awaitingLayout && abs((right - left) - lastReportedWidth * density) <= density) awaitingLayout = false
     learnAnchor(left, right)
   }
 
@@ -1151,6 +1161,8 @@ class NitroNumberView(context: Context) : View(context) {
       return
     }
     pendingSizeReport = false
+    // Only a box that hugged the old size will follow the new one.
+    awaitingLayout = lastReportedWidth > 0f && abs(width - lastReportedWidth * density) <= density
     lastReportedWidth = widthDp
     lastReportedHeight = heightDp
     onIntrinsicSizeChange?.invoke(widthDp, heightDp)

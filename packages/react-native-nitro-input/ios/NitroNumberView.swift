@@ -753,6 +753,7 @@ final class NitroNumberView: UIView {
 
   override func layoutSubviews() {
     super.layoutSubviews()
+    if awaitingLayout, abs(bounds.width - lastReportedSize.width) <= 1 { awaitingLayout = false }
     learnAnchor()
     // The shrink-to-fit scale and alignment depend on the bounds.
     render()
@@ -817,6 +818,7 @@ final class NitroNumberView: UIView {
     lastReportedSize = .zero
     leavingText = [nil, nil, nil, nil]
     autoAnchor = nil
+    awaitingLayout = false
     laidFrame = nil
     pendingSizeReport = false
     format = Format()
@@ -1180,8 +1182,13 @@ final class NitroNumberView: UIView {
   private var autoAnchor: Alignment?
   private var laidFrame: CGRect?
 
+  /// A size reported and not yet laid out by React: for a frame or two the box
+  /// still has the old width. Counted as hugging, or a shrinking figure fell
+  /// back to the start edge for those frames and flashed across the box.
+  private var awaitingLayout = false
+
   private var hugsFigure: Bool {
-    lastReportedSize.width > 0 && abs(bounds.width - lastReportedSize.width) <= 1
+    lastReportedSize.width > 0 && (awaitingLayout || abs(bounds.width - lastReportedSize.width) <= 1)
   }
 
   /// Where the box sits in the view that lays it out (Fabric wraps a Hybrid
@@ -1281,6 +1288,8 @@ final class NitroNumberView: UIView {
       return
     }
     pendingSizeReport = false
+    // Only a box that hugged the old size will follow the new one.
+    awaitingLayout = lastReportedSize.width > 0 && abs(bounds.width - lastReportedSize.width) <= 1
     lastReportedSize = size
     onIntrinsicSizeChange?(size)
   }
