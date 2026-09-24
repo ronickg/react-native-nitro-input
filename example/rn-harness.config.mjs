@@ -35,6 +35,10 @@ const config = {
         heapSize: '1G',
       }),
       bundleId: 'com.nitroinput.example',
+      // The application id changed but the Kotlin package did not: the
+      // default `.MainActivity` resolves to com.nitroinput.example.MainActivity,
+      // which does not exist, and the app never launched.
+      activityName: 'com.rollingnumberexample.MainActivity',
     }),
   ],
   defaultRunner: 'ios',
