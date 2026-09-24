@@ -18,6 +18,7 @@ import { useNitroInputState } from 'react-native-nitro-input'
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated'
 import { AsYouType } from 'libphonenumber-js/min'
 import { MarketShowcase, RewardShowcase, TransferShowcase } from './Showcases'
+import { EdgeCasesScreen } from './EdgeCases'
 import { useNavigation } from '@react-navigation/native'
 
 type MaskReadout = { formatted: string; extracted: string; tail: string; complete: boolean }
@@ -673,7 +674,7 @@ function RevealDemo() {
   )
 }
 
-type Showcase = 'balance' | 'reveal' | 'morph' | null
+type Showcase = 'balance' | 'reveal' | 'morph' | 'edges' | null
 
 export function DemoScreen() {
   const dark = useColorScheme() === 'dark'
@@ -686,6 +687,7 @@ export function DemoScreen() {
   if (showing === 'balance') return <MarketShowcase onExit={() => setShowing(null)} />
   if (showing === 'reveal') return <RewardShowcase onExit={() => setShowing(null)} />
   if (showing === 'morph') return <TransferShowcase onExit={() => setShowing(null)} />
+  if (showing === 'edges') return <EdgeCasesScreen onExit={() => setShowing(null)} />
   return (
       <SafeAreaView style={[styles.root, dark && styles.rootDark]} edges={['bottom']}>
         <ScrollView contentContainerStyle={styles.content}>
@@ -694,6 +696,7 @@ export function DemoScreen() {
             <Button title="Showcase: Market" testID="showcase-balance" onPress={() => setShowing('balance')} />
             <Button title="Showcase: Reward" testID="showcase-reveal" onPress={() => setShowing('reveal')} />
             <Button title="Showcase: Transfer" testID="showcase-morph" onPress={() => setShowing('morph')} />
+            <Button title="Edge cases" testID="showcase-edges" onPress={() => setShowing('edges')} />
           </View>
           <ReflowInputDemo />
           <MorphWorkletDemo />
