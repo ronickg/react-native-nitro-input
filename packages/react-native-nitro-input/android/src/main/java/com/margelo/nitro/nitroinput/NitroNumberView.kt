@@ -267,7 +267,7 @@ class NitroNumberView(context: Context) : View(context) {
     val numericBlur: Float = NUMERIC_BLUR
     /** Width of the widest digit glyph, in px. */
     val digitWidth: Float
-    private val widthCache = java.util.concurrent.ConcurrentHashMap<String, Float>()
+    private val widthCache = Array(GlyphRole.entries.size) { java.util.concurrent.ConcurrentHashMap<String, Float>() }
     /**
      * A wheel's whole digit strip, per blank-zero variant: 12 slots for index
      * -1 (blank) to 10 (the 0 that follows 9 on a wrap), each `lineHeight`
@@ -420,8 +420,24 @@ class NitroNumberView(context: Context) : View(context) {
       GlyphRole.SUFFIX -> suffix
     }
 
+    // One map per role: a joined "role|text" key allocated a string on every
+    // lookup, and the layout looks widths up for every glyph on every frame.
     fun width(text: String, role: GlyphRole): Float =
-      widthCache.getOrPut(role.name + "|" + text) { paint(role).measureText(text) }
+      widthCache[role.ordinal].getOrPut(text) { paint(role).measureText(text) }
+
+    private val shapedCache = Array(GlyphRole.entries.size) { java.util.concurrent.ConcurrentHashMap<String, ShapedText>() }
+
+    /**
+     * [text] of [role] shaped once, for [Canvas.drawGlyphs]: `drawText` runs
+     * the text shaper on every call, and an affix or separator drawn every
+     * frame for every number on screen cost ~45 us a call on a Galaxy A22,
+     * about fifteen times a digit's. The glyphs and positions are the ones
+     * `drawText` would produce; the paint's own shaping settings (size,
+     * typeface, `tnum`) are fixed for this font set.
+     */
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
+    fun shaped(text: String, role: GlyphRole): ShapedText =
+      shapedCache[role.ordinal].getOrPut(text) { ShapedText.of(text, paint(role)) }
 
     /** Baseline y for `role` drawing `text`, given the top of the digit line box. */
     fun baseline(role: GlyphRole, text: String, lineTop: Float): Float {
@@ -609,6 +625,9 @@ class NitroNumberView(context: Context) : View(context) {
   }
   /** Filtered so a strip window in motion between two pixel rows blends rather than steps. */
   private val stripPaint = Paint(Paint.FILTER_BITMAP_FLAG)
+  /** Reused by the resting-wheel draw, which runs for every resting digit on every frame. */
+  private val stripSrc = Rect()
+  private val stripDst = android.graphics.RectF()
   /** The blurred glyph masks of the numeric transition, filled with the digit colour. */
   private val blurPaint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
   /** The strip again, in the change flash's colour: its ink replaced by the tint, at the flash's opacity. */
@@ -1265,20 +1284,33 @@ class NitroNumberView(context: Context) : View(context) {
   private fun drawGlyph(canvas: Canvas, fonts: FontSet, text: String, role: GlyphRole, x: Float, width: Float, fullWidth: Float, factor: Double) {
     if (width <= 0f) return
     val paint = fonts.paint(role)
-    canvas.save()
+    // A full cell needs no clip: the clip only matters while it opens or
+    // closes. Skipping it saves the render thread a save, a clip and a
+    // restore per separator and affix on every frame.
+    val full = width >= fullWidth
+    if (!full) canvas.save()
     // An opening or closing cell (a separator, the sign) keeps its glyph whole
     // against the text it joins and fades with the cell; see [openingAlpha].
-    canvas.clipRect(x + width - fullWidth, 0f, x + width, fonts.lineHeight)
+    if (!full) canvas.clipRect(x + width - fullWidth, 0f, x + width, fonts.lineHeight)
     // The paint is shared and its alpha is the ink colour's: scale it for this
     // draw and put it back. Left faded, the next frame's digits inherited it
     // (a separator easing in drew them invisible), and set to 255 a
     // translucent colour turned opaque.
     val ink = paint.alpha
     paint.alpha = (openingAlpha(factor) * ink).toInt().coerceIn(0, 255)
-    canvas.drawText(text, x + width - fullWidth, fonts.baseline(role, text, 0f), paint)
+    val left = x + width - fullWidth
+    val baseline = fonts.baseline(role, text, 0f)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+      glyphPositions = fonts.shaped(text, role).draw(canvas, left, baseline, paint, glyphPositions)
+    } else {
+      canvas.drawText(text, left, baseline, paint)
+    }
     paint.alpha = ink
-    canvas.restore()
+    if (!full) canvas.restore()
   }
+
+  /** Scratch for [ShapedText.draw]: positions offset to where a glyph run lands. */
+  private var glyphPositions = FloatArray(16)
 
   /**
    * [originX], [originY] and [scale] are the content transform already on the
@@ -1311,6 +1343,29 @@ class NitroNumberView(context: Context) : View(context) {
           // fractional offsets are the motion, and stay.
           tx = Math.round(originX + tx) - originX
           ty = Math.round(originY + ty) - originY
+        }
+        if (position == floor(position)) {
+          // At rest the window shows exactly one slot of the strip: draw that
+          // slot alone, one operation where the window took five (save, clip,
+          // translate, the strip, restore). The same bitmap on the same
+          // pixels; the clip only ever cut transparent rows. With ~50 numbers
+          // on screen the render thread replays these for every resting digit
+          // on every frame, and most digits of a busy screen are resting.
+          val slot = (position + 1).toInt()
+          val lh = lineHeight
+          stripSrc.set(0, Math.round(slot * lh), strip.bitmap.width, Math.round((slot + 1) * lh))
+          val top = ty + slot * lh
+          stripDst.set(tx, top, tx + strip.bitmap.width, top + (stripSrc.bottom - stripSrc.top))
+          canvas.drawBitmap(strip.bitmap, stripSrc, stripDst, stripPaint)
+          flashColor(wheel)?.let { color ->
+            if (flashStripColor != color) {
+              flashStripPaint.colorFilter = PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN)
+              flashStripColor = color
+            }
+            flashStripPaint.alpha = (wheel.flash * 255).toInt().coerceIn(0, 255)
+            canvas.drawBitmap(strip.bitmap, stripSrc, stripDst, flashStripPaint)
+          }
+          return
         }
         canvas.save()
         canvas.clipRect(x, 0f, x + width, lineHeight)
@@ -1595,5 +1650,61 @@ class NitroNumberView(context: Context) : View(context) {
     private const val SHIMMER_SEED = 0.25f
     /** How far the top of the band leads the bottom, as a fraction of the height ("/" slant). */
     private const val SHIMMER_SLANT = 0.6f
+  }
+}
+
+/**
+ * A string shaped once ([android.graphics.text.TextRunShaper]) and drawn with
+ * [Canvas.drawGlyphs]: runs of glyphs per font (a fallback font gets its own
+ * run), positions relative to the run's origin on the baseline.
+ */
+@androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
+internal class ShapedText private constructor(
+  private val fonts: Array<android.graphics.fonts.Font>,
+  private val ids: Array<IntArray>,
+  private val positions: Array<FloatArray>,
+) {
+  /** Draws at ([x], [baseline]); [scratch] is resized when a run is longer. */
+  fun draw(canvas: Canvas, x: Float, baseline: Float, paint: Paint, scratch: FloatArray): FloatArray {
+    var buffer = scratch
+    for (r in fonts.indices) {
+      val pos = positions[r]
+      if (buffer.size < pos.size) buffer = FloatArray(pos.size)
+      var i = 0
+      while (i < pos.size) {
+        buffer[i] = pos[i] + x
+        buffer[i + 1] = pos[i + 1] + baseline
+        i += 2
+      }
+      canvas.drawGlyphs(ids[r], 0, buffer, 0, ids[r].size, fonts[r], paint)
+    }
+    return buffer
+  }
+
+  companion object {
+    fun of(text: String, paint: Paint): ShapedText {
+      val glyphs = android.graphics.text.TextRunShaper.shapeTextRun(text, 0, text.length, 0, text.length, 0f, 0f, false, paint)
+      val runFonts = ArrayList<android.graphics.fonts.Font>()
+      val runIds = ArrayList<IntArray>()
+      val runPositions = ArrayList<FloatArray>()
+      var start = 0
+      val count = glyphs.glyphCount()
+      while (start < count) {
+        val font = glyphs.getFont(start)
+        var end = start + 1
+        while (end < count && glyphs.getFont(end) == font) end++
+        val n = end - start
+        val ids = IntArray(n)
+        val pos = FloatArray(n * 2)
+        for (i in 0 until n) {
+          ids[i] = glyphs.getGlyphId(start + i)
+          pos[i * 2] = glyphs.getGlyphX(start + i)
+          pos[i * 2 + 1] = glyphs.getGlyphY(start + i)
+        }
+        runFonts.add(font); runIds.add(ids); runPositions.add(pos)
+        start = end
+      }
+      return ShapedText(runFonts.toTypedArray(), runIds.toTypedArray(), runPositions.toTypedArray())
+    }
   }
 }
