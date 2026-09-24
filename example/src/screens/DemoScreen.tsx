@@ -17,7 +17,8 @@ import {
 import { useNitroInputState } from 'react-native-nitro-input'
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated'
 import { AsYouType } from 'libphonenumber-js/min'
-import { MarketShowcase, RewardShowcase, TransferShowcase } from './Showcases'
+import { RewardShowcase, TransferShowcase } from './Showcases'
+import { MarketShowcase } from './MarketShowcase'
 import { EdgeCasesScreen } from './EdgeCases'
 import { useNavigation } from '@react-navigation/native'
 

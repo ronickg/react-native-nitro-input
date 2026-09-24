@@ -1,20 +1,16 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Pressable, StatusBar, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native'
+import React, { useEffect, useRef, useState } from 'react'
+import { Pressable, StatusBar, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, {
   Easing,
-  useAnimatedProps,
   useAnimatedStyle,
-  useFrameCallback,
   useSharedValue,
   withDelay,
   withRepeat,
   withSequence,
   withTiming,
-  type FrameInfo,
 } from 'react-native-reanimated'
-import { scheduleOnRN } from 'react-native-worklets'
-import { NitroInput, NitroNumber, type NitroInputHandle, type NitroNumberRef } from 'react-native-nitro-input'
+import { NitroInput, NitroNumber, type NitroInputHandle, type NitroNumberHandle } from 'react-native-nitro-input'
 
 // ---------------------------------------------------------------------------
 // Showcases: button-free, auto-playing screens for the docs and README
@@ -33,7 +29,6 @@ const UP = '#34D399'
 const DOWN = '#FB7185'
 
 const round = (v: number, places: number) => Math.round(v * 10 ** places) / 10 ** places
-const money = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 /** Timers that are all cleared when the screen goes away. */
 function useTimers() {
@@ -41,14 +36,6 @@ function useTimers() {
   useEffect(() => () => pending.current.forEach(clearTimeout), [])
   return (ms: number, fn: () => void) => {
     pending.current.push(setTimeout(fn, ms))
-  }
-}
-
-/** Keeps the JS thread busy, doing nothing else, for `ms`. */
-function blockJsThread(ms: number) {
-  const end = Date.now() + ms
-  while (Date.now() < end) {
-    // spin
   }
 }
 
@@ -66,521 +53,6 @@ function Exit({ onExit }: { onExit: () => void }) {
   return <Pressable style={s.exit} onPress={onExit} testID="showcase-exit" />
 }
 
-// ------------------------------------------------------------------ meters
-
-const AnimatedTextInput = Animated.createAnimatedComponent(TextInput)
-
-/** Frames per second on the UI thread, measured and drawn there: it keeps counting while JS is blocked. */
-function UiFps() {
-  const fps = useSharedValue(0)
-  const window = useSharedValue({ start: 0, frames: 0 })
-  useFrameCallback((frame) => {
-    'worklet'
-    const w = window.value
-    if (w.start === 0) {
-      window.value = { start: frame.timestamp, frames: 0 }
-      return
-    }
-    const frames = w.frames + 1
-    const elapsed = frame.timestamp - w.start
-    if (elapsed >= 500) {
-      fps.value = Math.round((frames * 1000) / elapsed)
-      window.value = { start: frame.timestamp, frames: 0 }
-    } else {
-      window.value = { start: w.start, frames }
-    }
-  })
-  const props = useAnimatedProps(() => {
-    const text = `${fps.value} fps`
-    return { text, defaultValue: text } as never
-  })
-  return (
-    <AnimatedTextInput
-      editable={false}
-      underlineColorAndroid="transparent"
-      style={s.meterValue}
-      animatedProps={props}
-      defaultValue="— fps"
-    />
-  )
-}
-
-
-
-// ------------------------------------------------------------------ market
-//
-// Built so that a tick re-renders only what it changed: the watchlist owns
-// its feed and its rows are memoised, the chart is memoised on its series,
-// and the setState lane and the JS meter keep their own state. A showcase
-// for speed should not spend the phone's time re-rendering itself.
-
-const POINTS = 32
-const CHART_HEIGHT = 140
-
-/** A line chart from plain views: one rotated segment per step, a gradient column under each point. */
-const LineChart = React.memo(function LineChart({ series, color }: { series: number[]; color: string }) {
-  const [width, setWidth] = useState(0)
-  const height = CHART_HEIGHT
-  const lo = Math.min(...series)
-  const hi = Math.max(...series)
-  const span = Math.max(hi - lo, 1e-9)
-  const pad = 14
-  const pts = series.map((v, i) => ({
-    x: (i / (series.length - 1)) * width,
-    y: pad + (1 - (v - lo) / span) * (height - pad * 2),
-  }))
-  const step = width / (series.length - 1)
-  const last = pts[pts.length - 1]
-  return (
-    <View style={[s.chart, { height }]} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
-      {width > 0 &&
-        pts.map((p, i) => (
-          <View
-            key={`a${i}`}
-            style={[
-              s.area,
-              {
-                left: p.x - step / 2 - 0.75,
-                top: p.y,
-                width: step + 1.5,
-                height: height - p.y,
-                backgroundImage: `linear-gradient(180deg, ${color}40, ${color}00)`,
-              },
-            ]}
-          />
-        ))}
-      {width > 0 &&
-        pts.slice(1).map((p, i) => {
-          const a = pts[i]
-          const dx = p.x - a.x
-          const dy = p.y - a.y
-          return (
-            <View
-              key={`l${i}`}
-              style={[
-                s.segment,
-                {
-                  left: a.x,
-                  top: a.y - 1.25,
-                  width: Math.hypot(dx, dy) + 0.8,
-                  backgroundColor: color,
-                  transform: [{ rotate: `${Math.atan2(dy, dx)}rad` }],
-                },
-              ]}
-            />
-          )
-        })}
-      {width > 0 && last && (
-        <View style={[s.dot, { left: last.x - 5, top: last.y - 5, backgroundColor: color, boxShadow: `0 0 12px ${color}` }]} />
-      )}
-    </View>
-  )
-})
-
-/** Frames per second on the JS thread, from requestAnimationFrame: it stops while JS is blocked. */
-function JsFps({ blocked }: { blocked: boolean }) {
-  const [fps, setFps] = useState(0)
-  useEffect(() => {
-    let raf = 0
-    let start = 0
-    let frames = 0
-    const tick = (t: number) => {
-      if (start === 0) start = t
-      frames++
-      if (t - start >= 500) {
-        setFps(Math.round((frames * 1000) / (t - start)))
-        start = t
-        frames = 0
-      }
-      raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [])
-  return <Text style={[s.meterValue, blocked && s.meterValueBlocked]}>{blocked ? 'blocked' : `${fps} fps`}</Text>
-}
-
-const WATCH = [
-  { sym: 'AAPL', name: 'Apple', from: '#E5E7EB', to: '#9CA3AF', price: 227.48 },
-  { sym: 'NVDA', name: 'NVIDIA', from: '#84CC16', to: '#3F6212', price: 131.26 },
-  { sym: 'TSLA', name: 'Tesla', from: '#F87171', to: '#B91C1C', price: 248.5 },
-  { sym: 'ETH', name: 'Ethereum', from: '#A5B4FC', to: '#4F46E5', price: 3_412.75 },
-  { sym: 'SOL', name: 'Solana', from: '#C084FC', to: '#14B8A6', price: 148.32 },
-  { sym: 'MSFT', name: 'Microsoft', from: '#7DD3FC', to: '#0369A1', price: 418.12 },
-]
-const ROW_HEIGHT = 56
-
-/** How long a stress test hands the feeds to the UI thread; it covers the 2 s the JS thread is blocked. */
-const UI_FEED = 2300
-
-/**
- * The state of a feed that runs on the UI thread: `left` ms still to run,
- * `wait` ms to the next tick, and its prices (the rows', or the asset's ticks).
- */
-type UiFeed = { left: number; wait: number; prices: number[] }
-const IDLE: UiFeed = { left: 0, wait: 0, prices: [] }
-
-const WatchRow = React.memo(function WatchRow({
-  item,
-  index,
-  price,
-  up,
-  attach,
-}: {
-  item: (typeof WATCH)[number]
-  index: number
-  price: number
-  up: boolean
-  attach: (index: number, ref: NitroNumberRef) => void
-}) {
-  return (
-    <View style={s.watchRow}>
-      <View style={[s.logo, { backgroundImage: `linear-gradient(135deg, ${item.from}, ${item.to})` }]}>
-        <Text style={s.logoText}>{item.sym[0]}</Text>
-      </View>
-      <View style={s.watchText}>
-        <Text style={s.watchSym}>{item.sym}</Text>
-        <Text style={s.watchName}>{item.name}</Text>
-      </View>
-      <View style={[s.pill, { backgroundColor: up ? '#10B981' : '#F43F5E' }]}>
-        <NitroNumber
-          value={price}
-          prefix="$"
-          fractionDigits={2}
-          groupingSeparator=","
-          transition="numeric"
-          fontFamily={FONT.bold}
-          fontSize={15}
-          color="#FFFFFF"
-          textAlign="right"
-          style={s.pillNumber}
-          onNativeRef={(ref) => attach(index, ref)}
-        />
-      </View>
-    </View>
-  )
-})
-
-/**
- * The watchlist owns its feed: a price moves every 150 ms, and only that row
- * re-renders. While JS is blocked the feed runs on the UI thread instead,
- * calling `animateTo` on the rows' Nitro objects directly, and hands React
- * the prices when it ends.
- */
-function Watchlist({ blocked }: { blocked: boolean }) {
-  const [rows, setRows] = useState(() => WATCH.map((w) => ({ price: w.price, up: true })))
-  const rowsRef = useRef(rows)
-  rowsRef.current = rows
-  const [fit, setFit] = useState(0)
-  const refs = useRef<NitroNumberRef[]>([])
-  const [attached, setAttached] = useState(0)
-  const attach = useCallback((index: number, ref: NitroNumberRef) => {
-    refs.current[index] = ref
-    setAttached((n) => n + 1)
-  }, [])
-
-  const move = useCallback((i: number, price: number) => {
-    setRows((previous) => {
-      const next = [...previous]
-      next[i] = { price, up: price >= previous[i].price }
-      return next
-    })
-  }, [])
-  // React catches up with the UI thread's feed in one render. Posting every
-  // tick instead would replay them once JS is free, rolling each row back
-  // through prices it has already shown.
-  const settle = useCallback((prices: number[]) => {
-    setRows((previous) => previous.map((r, i) => ({ price: prices[i] ?? r.price, up: (prices[i] ?? r.price) >= r.price })))
-  }, [])
-
-  useEffect(() => {
-    if (blocked) return
-    const feed = setInterval(() => {
-      const i = Math.floor(Math.random() * Math.min(WATCH.length, Math.max(fit, 1)))
-      move(i, round(rowsRef.current[i].price * (1 + (Math.random() - 0.47) * 0.004), 2))
-    }, 150)
-    return () => clearInterval(feed)
-  }, [blocked, fit, move])
-
-  const uiFeed = useSharedValue<UiFeed>(IDLE)
-  const views = refs.current.slice(0, fit)
-  useEffect(() => {
-    if (blocked) uiFeed.value = { left: UI_FEED, wait: 0, prices: rowsRef.current.map((r) => r.price) }
-  }, [blocked, uiFeed])
-
-  const tick = useCallback(
-    (frame: FrameInfo) => {
-      'worklet'
-      const feed = uiFeed.value
-      if (feed.left <= 0) return
-      const dt = frame.timeSincePreviousFrame ?? 0
-      const left = feed.left - dt
-      if (left <= 0) {
-        uiFeed.value = IDLE
-        scheduleOnRN(settle, feed.prices)
-        return
-      }
-      if (feed.wait - dt > 0) {
-        uiFeed.value = { left, wait: feed.wait - dt, prices: feed.prices }
-        return
-      }
-      const count = Math.min(views.length, feed.prices.length)
-      const i = Math.floor(Math.random() * count)
-      const prices = feed.prices.slice()
-      prices[i] = Math.round(prices[i] * (1 + (Math.random() - 0.47) * 0.004) * 100) / 100
-      views[i]?.animateTo(prices[i])
-      uiFeed.value = { left, wait: 150, prices }
-    },
-    // The worklet captures the Nitro objects attached so far.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [attached, fit, settle, uiFeed]
-  )
-  useFrameCallback(tick)
-
-  return (
-    <View style={s.watchlist} onLayout={(e) => setFit(Math.floor(e.nativeEvent.layout.height / ROW_HEIGHT))}>
-      {WATCH.slice(0, fit).map((w, i) => (
-        <WatchRow key={w.sym} item={w} index={i} price={rows[i].price} up={rows[i].up} attach={attach} />
-      ))}
-    </View>
-  )
-}
-
-type Phase = 'live' | 'blocking' | 'after'
-
-const OPENING = 64_210.9
-
-/**
- * An asset page: the price rolls as a live feed arrives, the chart extends,
- * the watchlist's prices swap their digits in place, and every ten seconds
- * the JS thread is blocked for two. Then the feed moves to the UI thread and
- * calls the NitroNumbers' `animateTo` directly: every price keeps updating,
- * the UI thread meter holds the display's rate, and the chart and the Text
- * driven by setState freeze until JS catches up.
- */
-export function MarketShowcase({ onExit }: { onExit: () => void }) {
-  const insets = useSafeAreaInsets()
-  const later = useTimers()
-  const [price, setPrice] = useState(OPENING)
-  const [series, setSeries] = useState<number[]>(() =>
-    Array.from({ length: POINTS }, (_, i) => OPENING * (0.985 + 0.012 * Math.sin(i / 4) + 0.006 * Math.cos(i * 1.3) + i * 0.0003))
-  )
-  const [phase, setPhase] = useState<Phase>('live')
-  const blocked = phase === 'blocking'
-  const priceRef = useRef(price)
-  priceRef.current = price
-
-  const tickTo = useCallback((next: number) => {
-    setPrice(next)
-    setSeries((sr) => [...sr.slice(1), next])
-  }, [])
-  // React catches up with the UI thread's feed in one render: the price it
-  // ended on, and every tick on the chart. Posting each tick instead would
-  // replay them once JS is free, rolling the numbers back through old prices.
-  const settle = useCallback((ticks: number[]) => {
-    setPrice(ticks[ticks.length - 1])
-    setSeries((sr) => [...sr, ...ticks.slice(1)].slice(-POINTS))
-  }, [])
-
-  // The asset moves every 650 ms, and the chart with it.
-  useEffect(() => {
-    if (blocked) return
-    const asset = setInterval(() => {
-      tickTo(round(priceRef.current * (1 + (Math.random() - 0.44) * 0.0025), 2))
-    }, 650)
-    return () => clearInterval(asset)
-  }, [blocked, tickTo])
-
-  // The same feed on the UI thread, for the stress test: it drives the
-  // headline, the lane and the change figures through their Nitro objects.
-  const nums = useRef<{ hero?: NitroNumberRef; lane?: NitroNumberRef; change?: NitroNumberRef; pct?: NitroNumberRef }>({})
-  const [attached, setAttached] = useState(0)
-  const attach = (key: keyof typeof nums.current) => (ref: NitroNumberRef) => {
-    nums.current[key] = ref
-    setAttached((n) => n + 1)
-  }
-  const uiFeed = useSharedValue<UiFeed>(IDLE)
-  const { hero, lane, change: changeView, pct: pctView } = nums.current
-  const tick = useCallback(
-    (frame: FrameInfo) => {
-      'worklet'
-      const feed = uiFeed.value
-      if (feed.left <= 0) return
-      const dt = frame.timeSincePreviousFrame ?? 0
-      const left = feed.left - dt
-      if (left <= 0) {
-        uiFeed.value = IDLE
-        scheduleOnRN(settle, feed.prices)
-        return
-      }
-      if (feed.wait - dt > 0) {
-        uiFeed.value = { left, wait: feed.wait - dt, prices: feed.prices }
-        return
-      }
-      const last = feed.prices[feed.prices.length - 1]
-      const next = Math.round(last * (1 + (Math.random() - 0.44) * 0.0025) * 100) / 100
-      // Rounded exactly as the render below rounds them, so that when React
-      // catches up the props match what is already on screen.
-      const change = Math.round((next - OPENING) * 100) / 100
-      const pct = Math.round(((change / OPENING) * 100) * 100) / 100
-      hero?.animateTo(next)
-      lane?.animateTo(next)
-      changeView?.animateTo(Math.abs(change))
-      pctView?.animateTo(Math.abs(pct))
-      uiFeed.value = { left, wait: 500, prices: [...feed.prices, next] }
-    },
-    // The worklet captures the Nitro objects attached so far.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [attached, settle, uiFeed]
-  )
-  useFrameCallback(tick)
-
-  // The stress test, every ten seconds.
-  useEffect(() => {
-    const cycle = () => {
-      later(6000, () => {
-        setPhase('blocking')
-        uiFeed.value = { left: UI_FEED, wait: 0, prices: [priceRef.current] }
-        // Let the phase reach the screen, then take the JS thread away.
-        later(250, () => blockJsThread(2000))
-        later(2400, () => setPhase('after'))
-        later(5200, () => {
-          setPhase('live')
-          cycle()
-        })
-      })
-    }
-    cycle()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const change = round(price - OPENING, 2)
-  const pct = round((change / OPENING) * 100, 2)
-  const up = change >= 0
-  const tone = up ? UP : DOWN
-
-  return (
-    <View style={s.root}>
-      <StatusBar hidden />
-      <Backdrop
-        base="#06080C"
-        lights={[
-          `radial-gradient(circle at 50% 30%, ${up ? 'rgba(16,185,129,0.16)' : 'rgba(244,63,94,0.16)'}, transparent 55%)`,
-          'radial-gradient(circle at 100% 0%, rgba(59,130,246,0.16), transparent 45%)',
-        ]}
-      />
-      <Exit onExit={onExit} />
-      <View style={[s.page, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 8 }]}>
-        <View style={s.assetHeader}>
-          <View style={[s.logo, s.logoLarge, { backgroundImage: 'linear-gradient(135deg, #FDBA74, #F7931A)' }]}>
-            <Text style={[s.logoText, s.logoTextLarge]}>₿</Text>
-          </View>
-          <View style={s.assetTitle}>
-            <Text style={s.assetName}>Bitcoin</Text>
-            <Text style={s.assetSub}>BTC · Crypto</Text>
-          </View>
-          <View style={s.meters}>
-            <View style={s.meter}>
-              <Text style={s.meterLabel}>UI</Text>
-              <UiFps />
-            </View>
-            <View style={[s.meter, blocked && s.meterBlocked]}>
-              <Text style={s.meterLabel}>JS</Text>
-              <JsFps blocked={blocked} />
-            </View>
-          </View>
-        </View>
-
-        <NitroNumber
-          value={price}
-          prefix="$"
-          prefixFontSize={28}
-          affixAlign="top"
-          fractionDigits={2}
-          groupingSeparator=","
-          fontFamily={FONT.bold}
-          fontSize={50}
-          color="#FFFFFF"
-          easing="spring"
-          bounce={0.1}
-          stagger={22}
-          duration={650}
-          style={s.hero}
-          onNativeRef={attach('hero')}
-        />
-        <View style={s.changeRow}>
-          <Text style={[s.changeArrow, { color: tone }]}>{up ? '▲' : '▼'}</Text>
-          <NitroNumber
-            value={Math.abs(change)}
-            prefix="$"
-            fractionDigits={2}
-            groupingSeparator=","
-            transition="numeric"
-            fontFamily={FONT.semibold}
-            fontSize={15}
-            color={tone}
-            onNativeRef={attach('change')}
-          />
-          <NitroNumber
-            value={Math.abs(pct)}
-            prefix="("
-            suffix="%)"
-            fractionDigits={2}
-            transition="numeric"
-            fontFamily={FONT.semibold}
-            fontSize={15}
-            color={tone}
-            onNativeRef={attach('pct')}
-          />
-          <Text style={s.changeToday}>Today</Text>
-        </View>
-
-        <LineChart series={series} color={tone} />
-        <View style={s.ranges}>
-          {['1H', '1D', '1W', '1M', '1Y', 'ALL'].map((r) => (
-            <Text key={r} style={[s.range, r === '1D' && [s.rangeActive, { color: tone }]]}>
-              {r}
-            </Text>
-          ))}
-        </View>
-
-        <View style={[s.versus, blocked && s.versusBlocked]}>
-          <View style={s.lane}>
-            <Text style={s.laneLabel}>NitroNumber · native</Text>
-            <NitroNumber
-              value={price}
-              prefix="$"
-              fractionDigits={2}
-              groupingSeparator=","
-              fontFamily={FONT.semibold}
-              fontSize={17}
-              color={UP}
-              duration={650}
-              easing="easeOut"
-              onNativeRef={attach('lane')}
-            />
-          </View>
-          <View style={s.laneDivider} />
-          <View style={s.lane}>
-            <Text style={s.laneLabel}>Text · setState</Text>
-            <Text style={[s.laneJs, blocked && s.laneJsFrozen]}>${money(price)}</Text>
-          </View>
-        </View>
-        <Text style={[s.caption, blocked && s.captionBlocked]}>
-          {phase === 'blocking'
-            ? 'JS blocked for 2 s. The feed moved to the UI thread: every NitroNumber keeps updating.'
-            : phase === 'after'
-              ? 'The chart and the Text waited for JS. The NitroNumbers never did.'
-              : 'Every price on this screen updates natively.'}
-        </Text>
-
-        <Text style={s.sectionTitle}>Watchlist</Text>
-        <Watchlist blocked={blocked} />
-      </View>
-    </View>
-  )
-}
-
 // ------------------------------------------------------------------- reward
 
 /** The win levels a slot machine escalates through, one per milestone. */
@@ -589,6 +61,89 @@ const TIERS = [
   { name: 'MEGA WIN', color: '#F0ABFC', glow: 'rgba(232,121,249,0.9)' },
   { name: 'EPIC WIN', color: '#FDE047', glow: 'rgba(250,204,21,0.95)' },
 ]
+/** The stake the win is measured against, for the multiplier. */
+const BET = 250
+/** Other machines on the floor, each showing its latest win. */
+const FLOOR = [
+  { name: 'Golden Reels', icon: '🎰', base: 1_240 },
+  { name: 'Lucky Sevens', icon: '7️⃣', base: 380 },
+  { name: 'Diamond Rush', icon: '💎', base: 2_860 },
+]
+
+/** The progressive jackpot pool: it grows by a few cents every beat, driven through its handle. */
+function JackpotPool() {
+  const ref = useRef<NitroNumberHandle>(null)
+  useEffect(() => {
+    let pool = 1_284_512.37
+    const id = setInterval(() => {
+      pool = Math.round((pool + 0.37 + Math.random() * 3.1) * 100) / 100
+      ref.current?.animateTo(pool)
+    }, 140)
+    return () => clearInterval(id)
+  }, [])
+  return (
+    <View style={s.pool}>
+      <Text style={s.poolLabel}>Progressive jackpot</Text>
+      <NitroNumber
+        ref={ref}
+        value={1_284_512.37}
+        prefix="$"
+        fractionDigits={2}
+        groupingSeparator=","
+        transition="numeric"
+        fontFamily={FONT.bold}
+        fontSize={26}
+        color="#FDE68A"
+      />
+    </View>
+  )
+}
+
+/** The latest win on each of the other machines, one of them changing every beat. */
+function LiveWins() {
+  const refs = useRef<(NitroNumberHandle | null)[]>([])
+  useEffect(() => {
+    let i = 0
+    const id = setInterval(() => {
+      const m = FLOOR[i % FLOOR.length]
+      const win = Math.round(m.base * (0.3 + Math.random() * Math.random() * 4)) + Math.round(Math.random() * 100) / 100
+      refs.current[i % FLOOR.length]?.animateTo(win)
+      i++
+    }, 700)
+    return () => clearInterval(id)
+  }, [])
+  return (
+    <View style={s.feed}>
+      <View style={s.feedHead}>
+        <View style={s.feedDot} />
+        <Text style={s.feedTitle}>Live wins</Text>
+      </View>
+      {FLOOR.map((m, i) => (
+        <View key={m.name} style={s.feedRow}>
+          <Text style={s.feedName}>
+            {m.icon}  {m.name}
+          </Text>
+          <NitroNumber
+            ref={(h) => {
+              refs.current[i] = h
+            }}
+            value={m.base}
+            prefix="$"
+            fractionDigits={2}
+            groupingSeparator=","
+            transition="numeric"
+            flashUpColor="#FDE68A"
+            flashDownColor="#F0ABFC"
+            fontFamily={FONT.semibold}
+            fontSize={15}
+            color="rgba(255,247,224,0.9)"
+          />
+        </View>
+      ))}
+    </View>
+  )
+}
+
 const CONFETTI = ['#FBBF24', '#F472B6', '#60A5FA', '#34D399', '#FDE68A', '#C084FC']
 const RAYS = 14
 const COINS = 18
@@ -654,6 +209,8 @@ export function RewardShowcase({ onExit }: { onExit: () => void }) {
   const [reveal, setReveal] = useState(false)
   const [tier, setTier] = useState(-1)
   const [burst, setBurst] = useState(0)
+  const [balance, setBalance] = useState(12_480.5)
+  const [multiplier, setMultiplier] = useState(0)
 
   const box = useSharedValue(1) // 1: the gift is there, 0: it has burst
   const wiggle = useSharedValue(0)
@@ -701,6 +258,7 @@ export function RewardShowcase({ onExit }: { onExit: () => void }) {
       rain.value = withTiming(0.35, { duration: 400 })
       setStyle(next)
       setAmount(next === 'count' ? 50_000 : 25_750)
+      setMultiplier(0)
       later(350, () => setReveal(true))
     })
   }
@@ -710,14 +268,18 @@ export function RewardShowcase({ onExit }: { onExit: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const onRevealMilestone = (index: number) => {
+  const onRevealMilestone = (index: number, value: number) => {
     setTier(index)
+    setMultiplier(value / BET)
     punch()
     rain.value = withTiming(0.45 + index * 0.25, { duration: 250 })
   }
 
   const onRevealEnd = () => {
     setBurst((b) => b + 1)
+    setMultiplier(amount / BET)
+    // The win lands in the balance a beat later.
+    later(700, () => setBalance((b) => Math.round((b + amount) * 100) / 100))
     punch()
     if (style === 'spin') setTier(2)
     rain.value = withTiming(1, { duration: 200 })
@@ -755,7 +317,31 @@ export function RewardShowcase({ onExit }: { onExit: () => void }) {
         ))}
       </View>
       <Exit onExit={onExit} />
-      <Animated.View style={[s.center, { paddingTop: insets.top }, shakeStyle]}>
+      <View style={[s.rewardTop, { paddingTop: insets.top + 8 }]}>
+        <JackpotPool />
+        <View style={s.chips}>
+          <View style={s.chip}>
+            <Text style={s.chipLabel}>Balance</Text>
+            <NitroNumber
+              value={balance}
+              prefix="$"
+              fractionDigits={2}
+              groupingSeparator=","
+              duration={1400}
+              stagger={40}
+              easing="easeInOut"
+              fontFamily={FONT.semibold}
+              fontSize={15}
+              color="#FFF7DB"
+            />
+          </View>
+          <View style={s.chip}>
+            <Text style={s.chipLabel}>Bet</Text>
+            <NitroNumber value={BET} prefix="$" fractionDigits={2} fontFamily={FONT.semibold} fontSize={15} color="#FFF7DB" />
+          </View>
+        </View>
+      </View>
+      <Animated.View style={[s.center, shakeStyle]}>
         <Text style={s.kicker}>Jackpot</Text>
         <View style={s.bannerSlot}>
           {t && (
@@ -809,9 +395,22 @@ export function RewardShowcase({ onExit }: { onExit: () => void }) {
             />
           </Animated.View>
         </View>
-        <Text style={s.rewardSub}>{style === 'count' ? 'Counted tier by tier, natively' : 'Reels locking from the left, natively'}</Text>
+        {/* Hidden, not unmounted, until the first tier: "×0 your bet" reads as a loss. */}
+        <View style={[s.multiplier, multiplier === 0 && s.hidden]}>
+          <NitroNumber
+            value={multiplier}
+            prefix="×"
+            transition="numeric"
+            groupingSeparator=","
+            fontFamily={FONT.bold}
+            fontSize={20}
+            color="#FDE68A"
+          />
+          <Text style={s.rewardSub}> your bet</Text>
+        </View>
       </Animated.View>
-      <View style={[s.footer, { paddingBottom: insets.bottom + 28 }]}>
+      <View style={[s.footer, { paddingBottom: insets.bottom + 20 }]}>
+        <LiveWins />
         <View style={s.goldButton}>
           <Text style={s.goldButtonText}>Collect winnings</Text>
         </View>
@@ -832,8 +431,8 @@ const PAYOUTS = [
   { code: 'CHF', flag: '🇨🇭', rate: 0.8634, prefix: 'CHF ', suffix: '', grouping: '’', decimal: '.', digits: 2 },
 ]
 const FEE = 0.0041
-/** The recipient card and the space around it. */
-const RECIPIENT_HEIGHT = 96
+/** The strip of other currencies and the space around it. */
+const COMPARE_HEIGHT = 62
 
 /** A keypad key; every new `press` count lights it for a moment. */
 function Key({ label, press }: { label: string; press: number }) {
@@ -865,8 +464,9 @@ function Flag({ flag }: { flag: string }) {
 /**
  * A transfer: the keypad types in quick bursts, about seven keys a second, and
  * every keystroke is formatted in C++ before the frame is drawn. What they
- * receive, the fee and the amount converted are NitroNumbers following it,
- * the rate ticks live, and the payout currency changes format as it goes.
+ * receive, the fee, the amount converted and the same money in three other
+ * currencies are NitroNumbers following it, the rate ticks live, and the
+ * payout currency changes format as it goes.
  */
 export function TransferShowcase({ onExit }: { onExit: () => void }) {
   const insets = useSafeAreaInsets()
@@ -1040,24 +640,36 @@ export function TransferShowcase({ onExit }: { onExit: () => void }) {
             <Text style={s.tLineLabel}>Amount we'll convert</Text>
             <NitroNumber value={converted} prefix="$" fractionDigits={2} groupingSeparator="," transition="numeric" fontFamily={FONT.semibold} fontSize={14} color="rgba(255,255,255,0.85)" />
           </View>
-          <View style={s.tLine}>
-            <Text style={s.tLineLabel}>Arrives</Text>
-            <Text style={s.tLineValue}>In seconds</Text>
-          </View>
         </View>
 
-        {/* The recipient fills the space above the keypad, on a screen tall enough for it. */}
-        <View style={s.tRecipientSlot} onLayout={(e) => setRoom(e.nativeEvent.layout.height)}>
-          {room >= RECIPIENT_HEIGHT && (
-            <View style={s.tRecipient}>
-              <View style={s.tAvatar}>
-                <Text style={s.tAvatarText}>AL</Text>
-              </View>
-              <View style={s.tRecipientText}>
-                <Text style={s.tRecipientLabel}>Sending to</Text>
-                <Text style={s.tRecipientName}>Amélie Laurent</Text>
-              </View>
-              <Text style={s.tRecipientAccount}>•••• 4821</Text>
+        {/* The same money in the other currencies, following every keystroke. */}
+        <View style={s.tCompareSlot} onLayout={(e) => setRoom(e.nativeEvent.layout.height)}>
+          {room >= COMPARE_HEIGHT && (
+            <View style={s.tCompare}>
+              {PAYOUTS.filter((_, i) => i !== payout)
+                .slice(0, 3)
+                .map((c) => (
+                  <View key={c.code} style={s.tChip}>
+                    <Text style={s.tChipCode}>
+                      {c.flag} {c.code}
+                    </Text>
+                    <NitroNumber
+                      value={round(converted * c.rate * drift, c.digits)}
+                      prefix={c.prefix}
+                      suffix={c.suffix}
+                      groupingSeparator={c.grouping}
+                      decimalSeparator={c.decimal}
+                      fractionDigits={c.digits}
+                      transition="numeric"
+                      fontFamily={FONT.semibold}
+                      fontSize={14}
+                      color="rgba(255,255,255,0.9)"
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.6}
+                      style={s.tChipAmount}
+                    />
+                  </View>
+                ))}
             </View>
           )}
         </View>
@@ -1080,54 +692,8 @@ export function TransferShowcase({ onExit }: { onExit: () => void }) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#05070D', overflow: 'hidden' },
   exit: { position: 'absolute', top: 0, right: 0, width: 72, height: 72, zIndex: 10 },
-  page: { flex: 1, paddingHorizontal: 18 },
-
-  assetHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 18 },
-  assetTitle: { flex: 1 },
-  assetName: { color: '#F8FAFC', fontFamily: FONT.semibold, fontSize: 17 },
-  assetSub: { color: 'rgba(226,232,240,0.5)', fontFamily: FONT.medium, fontSize: 13, marginTop: 1 },
-  logo: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  logoLarge: { width: 42, height: 42, borderRadius: 21 },
-  logoText: { color: '#fff', fontFamily: FONT.bold, fontSize: 15 },
-  logoTextLarge: { fontSize: 22 },
-  meters: { gap: 6, alignItems: 'flex-end' },
-  meter: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 10, paddingRight: 6, height: 26, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.12)' },
-  meterBlocked: { backgroundColor: 'rgba(244,63,94,0.18)', borderColor: 'rgba(244,63,94,0.5)' },
-  meterLabel: { color: 'rgba(226,232,240,0.5)', fontFamily: FONT.bold, fontSize: 10, letterSpacing: 0.8 },
-  meterValue: { color: '#F8FAFC', fontFamily: FONT.semibold, fontSize: 12, padding: 0, minWidth: 50 },
-  meterValueBlocked: { color: '#FDA4AF' },
 
   hero: { width: '100%' },
-  changeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
-  changeArrow: { fontSize: 11 },
-  changeToday: { color: 'rgba(226,232,240,0.5)', fontFamily: FONT.medium, fontSize: 15 },
-
-  chart: { marginTop: 14, marginHorizontal: -18 },
-  area: { position: 'absolute' },
-  segment: { position: 'absolute', height: 2.5, borderRadius: 1.25, transformOrigin: 'left center' },
-  dot: { position: 'absolute', width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: '#06080C' },
-  ranges: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  range: { color: 'rgba(226,232,240,0.45)', fontFamily: FONT.semibold, fontSize: 13, paddingHorizontal: 11, paddingVertical: 6, borderRadius: 999, overflow: 'hidden' },
-  rangeActive: { backgroundColor: 'rgba(255,255,255,0.09)' },
-
-  versus: { flexDirection: 'row', marginTop: 16, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.045)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.1)', paddingVertical: 10 },
-  versusBlocked: { borderColor: 'rgba(244,63,94,0.55)', backgroundColor: 'rgba(244,63,94,0.07)' },
-  lane: { flex: 1, paddingHorizontal: 14, gap: 3 },
-  laneDivider: { width: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.12)' },
-  laneLabel: { color: 'rgba(226,232,240,0.5)', fontFamily: FONT.medium, fontSize: 11 },
-  laneJs: { color: '#F8FAFC', fontFamily: FONT.semibold, fontSize: 17, fontVariant: ['tabular-nums'] },
-  laneJsFrozen: { color: '#FDA4AF' },
-  caption: { color: 'rgba(226,232,240,0.45)', fontFamily: FONT.medium, fontSize: 12, marginTop: 8, textAlign: 'center' },
-  captionBlocked: { color: '#FDA4AF' },
-
-  sectionTitle: { color: '#F8FAFC', fontFamily: FONT.semibold, fontSize: 17, marginTop: 18, marginBottom: 4 },
-  watchlist: { flex: 1, overflow: 'hidden' },
-  watchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, height: ROW_HEIGHT },
-  watchText: { flex: 1 },
-  watchSym: { color: '#F8FAFC', fontFamily: FONT.semibold, fontSize: 15 },
-  watchName: { color: 'rgba(226,232,240,0.5)', fontFamily: FONT.medium, fontSize: 12, marginTop: 1 },
-  pill: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, minWidth: 108 },
-  pillNumber: { width: 88, alignSelf: 'flex-end' },
 
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   kicker: { color: '#FCD34D', fontFamily: FONT.bold, fontSize: 15, letterSpacing: 4, textTransform: 'uppercase' },
@@ -1151,7 +717,21 @@ const s = StyleSheet.create({
   piece: { position: 'absolute', width: 8, height: 12, borderRadius: 2 },
   coin: { position: 'absolute', top: 0, alignItems: 'center', justifyContent: 'center', backgroundImage: 'radial-gradient(circle at 35% 30%, #FEF3C7, #F59E0B 60%, #B45309)', borderWidth: 1.5, borderColor: '#FDE68A' },
   coinText: { color: '#92400E', fontFamily: FONT.bold },
-  rewardSub: { color: 'rgba(255,247,224,0.65)', fontFamily: FONT.medium, fontSize: 15, marginTop: 8 },
+  rewardSub: { color: 'rgba(255,247,224,0.65)', fontFamily: FONT.medium, fontSize: 15 },
+  multiplier: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+  hidden: { opacity: 0 },
+  rewardTop: { paddingHorizontal: 20, gap: 10, alignItems: 'center' },
+  pool: { alignItems: 'center', paddingHorizontal: 22, paddingVertical: 8, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(253,224,71,0.35)', backgroundColor: 'rgba(0,0,0,0.25)', boxShadow: '0 0 24px rgba(250,204,21,0.18)' },
+  poolLabel: { color: 'rgba(253,230,138,0.75)', fontFamily: FONT.bold, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase' },
+  chips: { flexDirection: 'row', gap: 10 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.14)' },
+  chipLabel: { color: 'rgba(255,247,224,0.55)', fontFamily: FONT.medium, fontSize: 12 },
+  feed: { alignSelf: 'stretch', gap: 6, padding: 12, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.25)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.1)' },
+  feedHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  feedDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#F472B6', boxShadow: '0 0 6px #F472B6' },
+  feedTitle: { color: 'rgba(255,247,224,0.6)', fontFamily: FONT.bold, fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase' },
+  feedRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  feedName: { color: 'rgba(255,247,224,0.8)', fontFamily: FONT.medium, fontSize: 14 },
   footer: { paddingHorizontal: 24, alignItems: 'center', gap: 14 },
   goldButton: { alignSelf: 'stretch', borderRadius: 999, paddingVertical: 17, alignItems: 'center', backgroundImage: 'linear-gradient(90deg, #F59E0B, #FCD34D)', boxShadow: '0 8px 32px rgba(245,158,11,0.45)' },
   goldButtonText: { color: '#2A1602', fontFamily: FONT.bold, fontSize: 17 },
@@ -1180,18 +760,14 @@ const s = StyleSheet.create({
   tBreakdown: { marginTop: 14, paddingHorizontal: 6, gap: 9 },
   tLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   tLineLabel: { color: 'rgba(255,255,255,0.5)', fontFamily: FONT.medium, fontSize: 14 },
-  tLineValue: { color: '#5EEAD4', fontFamily: FONT.semibold, fontSize: 14 },
-  tRecipientSlot: { flex: 1, justifyContent: 'center' },
-  tRecipient: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.08)' },
-  tAvatar: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundImage: 'linear-gradient(135deg, #5EEAD4, #3B82F6)' },
-  tAvatarText: { color: '#04201C', fontFamily: FONT.bold, fontSize: 15 },
-  tRecipientText: { flex: 1 },
-  tRecipientLabel: { color: 'rgba(255,255,255,0.45)', fontFamily: FONT.medium, fontSize: 12 },
-  tRecipientName: { color: '#fff', fontFamily: FONT.semibold, fontSize: 16, marginTop: 2 },
-  tRecipientAccount: { color: 'rgba(255,255,255,0.55)', fontFamily: FONT.medium, fontSize: 14 },
+  tCompareSlot: { flex: 1, justifyContent: 'center' },
+  tCompare: { flexDirection: 'row', gap: 8 },
+  tChip: { flex: 1, paddingHorizontal: 11, paddingVertical: 8, borderRadius: 14, gap: 3, backgroundColor: 'rgba(255,255,255,0.045)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.08)' },
+  tChipCode: { color: 'rgba(255,255,255,0.5)', fontFamily: FONT.medium, fontSize: 11 },
+  tChipAmount: { width: '100%' },
   tBottom: { paddingHorizontal: 18, gap: 12 },
   keypad: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 4 },
-  key: { width: '31.5%', height: 58, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  key: { width: '31.5%', height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   keyText: { color: '#fff', fontFamily: FONT.semibold, fontSize: 26 },
   tCta: { borderRadius: 999, paddingVertical: 17, alignItems: 'center', backgroundColor: '#5EEAD4', boxShadow: '0 8px 28px rgba(45,212,191,0.35)' },
   tCtaText: { color: '#04201C', fontFamily: FONT.bold, fontSize: 17 },
