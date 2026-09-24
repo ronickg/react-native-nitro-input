@@ -198,13 +198,12 @@ function Coin({ index, height, rain }: { index: number; height: number; rain: { 
  * A casino win: a gift box shakes and bursts open, light rays turn behind the
  * figure, NitroNumber counts it up tier by tier (BIG WIN, MEGA WIN, EPIC WIN,
  * each one punching in with a shake and heavier coin rain), and the total
- * lands with a pop and a confetti burst. The next round plays the reels.
+ * lands with a pop and a confetti burst, then the next gift arrives.
  */
 export function RewardShowcase({ onExit }: { onExit: () => void }) {
   const insets = useSafeAreaInsets()
   const { height } = useWindowDimensions()
   const later = useTimers()
-  const [style, setStyle] = useState<'count' | 'spin'>('count')
   const [amount, setAmount] = useState(50_000)
   const [reveal, setReveal] = useState(false)
   const [tier, setTier] = useState(-1)
@@ -237,7 +236,8 @@ export function RewardShowcase({ onExit }: { onExit: () => void }) {
     )
   }
 
-  const playRound = (next: 'count' | 'spin') => {
+  const playRound = () => {
+    setMultiplier(0)
     // The gift: it wiggles, then the lid flies off and the light comes out.
     setTier(-1)
     box.value = withTiming(1, { duration: 250 })
@@ -256,15 +256,13 @@ export function RewardShowcase({ onExit }: { onExit: () => void }) {
       box.value = withDelay(220, withTiming(0, { duration: 320 }))
       rays.value = withTiming(1, { duration: 500 })
       rain.value = withTiming(0.35, { duration: 400 })
-      setStyle(next)
-      setAmount(next === 'count' ? 50_000 : 25_750)
-      setMultiplier(0)
+      setAmount(50_000)
       later(350, () => setReveal(true))
     })
   }
 
   useEffect(() => {
-    later(500, () => playRound('count'))
+    later(500, () => playRound())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -281,11 +279,10 @@ export function RewardShowcase({ onExit }: { onExit: () => void }) {
     // The win lands in the balance a beat later.
     later(700, () => setBalance((b) => Math.round((b + amount) * 100) / 100))
     punch()
-    if (style === 'spin') setTier(2)
     rain.value = withTiming(1, { duration: 200 })
     later(2600, () => {
       setReveal(false)
-      later(500, () => playRound(style === 'count' ? 'spin' : 'count'))
+      later(500, () => playRound())
     })
   }
 
@@ -376,10 +373,10 @@ export function RewardShowcase({ onExit }: { onExit: () => void }) {
             <NitroNumber
               value={amount}
               reveal={reveal}
-              revealStyle={style}
+              revealStyle="count"
               revealMilestones={[1000, 10000, 25000]}
               revealMilestoneHold={420}
-              revealDuration={style === 'count' ? 5200 : 2600}
+              revealDuration={5200}
               revealBounce={0.16}
               onRevealMilestone={onRevealMilestone}
               onRevealEnd={onRevealEnd}
