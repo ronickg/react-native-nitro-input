@@ -158,6 +158,7 @@ with the new architecture, plus two floors:
 | AnimateableText (shared value) | `react-native-animateable-text` 0.19.3 | a native text view whose string is a Reanimated shared value | shared value, no render |
 | **Nitro `value` prop** | this library | Core Animation layer wheels / Canvas, one C++ engine | React render, then one JSI call |
 | **Nitro `jumpTo`** | this library | same | one JSI call, no render |
+| **Nitro numeric transition** | this library | the `value` prop with `transition="numeric"`: each changed digit swaps in place, scaled, faded and blurred (pre-blurred glyph images cross-faded), after SwiftUI | React render, then one JSI call |
 | number-animation (native) | `react-native-number-animation` 0.1.5 | a Fabric view with Core Animation / Canvas wheels; React formats and sends the string | React render |
 | animated-rolling-numbers | `react-native-animated-rolling-numbers` 2.0.0 | Reanimated, an `Animated.View` per digit | React render |
 | NumberFlow View | `number-flow-react-native` 0.5.1 | Reanimated-driven digit views | React render |
@@ -1112,11 +1113,12 @@ node scripts/bench/run.mjs --ios <CoreDevice id> --android <adb serial> --build
 # a subset, or a quick look
 node scripts/bench/run.mjs --android <serial> --plan quick --impls text,nitro-prop,nitro-jump
 
-# the tables, from whatever is in scripts/bench/results/; --json is the same groups as data,
-# which the docs' charts read (docs/src/data/benchmarks.json), and chart.mjs draws the README's SVG from it
+# the tables, from whatever is in scripts/bench/results/; --json is the same groups as data
 node scripts/bench/report.mjs
-node scripts/bench/report.mjs --json > docs/src/data/benchmarks.json
-node scripts/bench/chart.mjs
+
+# everything derived from the results at once: the docs' chart data (docs/src/data/benchmarks.json),
+# the README's SVG, every table in this file and the README's two tables (the prose is by hand)
+node scripts/bench/assemble.mjs
 
 # the other plans: the fields, mount and unmount, the scrolling list, memory, what one copy costs, or everything
 node scripts/bench/run.mjs --ios <CoreDevice id> --android <adb serial> --plan inputs   # mount | list | leak | footprint | all

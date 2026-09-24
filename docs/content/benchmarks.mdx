@@ -11,6 +11,8 @@ Measured on three phones: an **iPhone 13 Pro Max** (120 Hz), an **iPhone 11 Pro*
 
 ## NitroNumber
 
+NitroNumber is measured with both of its transitions: the roll (the `value` prop, and `jumpTo`, which positions the wheels continuously) and the numeric transition, which swaps each changed digit in place and draws more per frame. The **Roll / Numeric** switch on each chart picks which one the chart compares with the other libraries.
+
 **24 numbers, a new value every frame.** UI is the main thread's frame rate and the frames it missed; JS is the frame rate the JS thread still managed. Only paths whose per-update work is one call (Nitro `jumpTo`, AnimateableText) or a plain render (Text, the Nitro `value` prop) hold the display's rate on every phone. The others drop frames, starve the JS thread, or both: a UI thread at 117 fps next to a JS thread at 13 fps animates but does not respond.
 
 <BenchChart group="stream|24|frame" metrics={['ui.fps', 'ui.dropped', 'js.fps']} />

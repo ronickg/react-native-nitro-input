@@ -344,7 +344,7 @@ export function summarizeRun(run) {
         .sort((a, b) => (ORDER.get(a[0]) ?? 99) - (ORDER.get(b[0]) ?? 99))
         .map(([impl, rs]) => {
           const ok = rs.filter((r) => !r.error)
-          const row = { impl, label: LABEL.get(impl) ?? impl, ours: OURS.has(impl), runs: ok.length, throttled: ok.filter((r) => THROTTLED.has(thermalBefore(r))).length, error: ok.length ? null : rs[0].error ?? 'failed' }
+          const row = { impl, label: LABEL.get(impl) ?? impl, order: ORDER.get(impl) ?? 99, ours: OURS.has(impl), runs: ok.length, throttled: ok.filter((r) => THROTTLED.has(thermalBefore(r))).length, error: ok.length ? null : rs[0].error ?? 'failed' }
           for (const p of METRIC_PATHS) {
             const v = median(ok.map((r) => dig(r, p)))
             if (v != null) row[p] = Math.round(v * 100) / 100
