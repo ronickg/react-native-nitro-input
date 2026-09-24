@@ -36,6 +36,9 @@ export default function Phones({
   );
 }
 
+/** The bezel's width, `.screen`'s border in Phones.module.css. */
+const BEZEL = 9;
+
 function Phone({src, label, radius}: {src: string; label: string; radius: number}) {
   const holder = useRef<HTMLDivElement>(null);
   const [near, setNear] = useState(false);
@@ -64,7 +67,15 @@ function Phone({src, label, radius}: {src: string; label: string; radius: number
     <div className={styles.phone}>
       <div ref={holder} className={styles.screen} style={{borderRadius: radius}}>
         {near ? (
-          <video src={src} autoPlay loop muted playsInline preload="auto" />
+          <video
+            src={src}
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            style={{borderRadius: radius - BEZEL}}
+          />
         ) : null}
       </div>
       <span className={styles.label}>{label}</span>

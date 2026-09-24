@@ -149,16 +149,13 @@ pre code {
 
 /* One frame, one radius: the container defaulted to the inline-code radius
    (5px) around a pre with the block radius (12px), and the corners showed a
-   notch between the two. The pre is clipped to the container's corners. */
+   notch between the two. Both now share the block radius, and the hairline
+   is a spread shadow rather than a border, so nothing has to be clipped:
+   Safari clips the scrolling pre to a rounded overflow: hidden with its own
+   mask, and drew a second, paler ring just inside the border. */
 .theme-code-block {
-  box-shadow: var(--nitro-shadow) !important;
-  border: 1px solid var(--nitro-border);
+  box-shadow: 0 0 0 1px var(--nitro-border), var(--nitro-shadow) !important;
   border-radius: var(--ifm-pre-border-radius);
-  overflow: hidden;
-}
-
-.theme-code-block pre {
-  border-radius: 0;
 }
 
 /* Measure. Prose stops being readable somewhere past 80 characters. */
