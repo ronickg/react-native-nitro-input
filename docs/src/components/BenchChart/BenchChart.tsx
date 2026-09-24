@@ -85,6 +85,15 @@ const TRANSITIONS = {
 } as const;
 type Transition = keyof typeof TRANSITIONS;
 
+/**
+ * A mount that hit the harness's five-second limit is recorded as the limit;
+ * the tables print "timed out" for it (`report.mjs`), and so does a chart,
+ * rather than a bar that reads as a measurement.
+ */
+function timedOut(metric: string, v: number) {
+  return metric.startsWith('mountMs') && v >= 4990;
+}
+
 const REVEAL_MS = 800;
 const STAGGER_MS = 40;
 
@@ -248,7 +257,7 @@ export default function BenchChart({
   const value = (p: {group: Group}, impl: string) => {
     const r = p.group.rows.find((x) => x.impl === impl);
     const v = r?.[metric];
-    return typeof v === 'number' ? v : null;
+    return typeof v === 'number' && !timedOut(metric, v) ? v : null;
   };
 
   // One scale for every column, except frame rates, where the column is its phone's panel.
@@ -340,9 +349,10 @@ export default function BenchChart({
                 const zero = ((0 - lo) / span) * 100;
                 const delay = instant ? 0 : i * STAGGER_MS;
                 if (v == null) {
+                  const raw = r?.[metric];
                   return (
                     <div key={p.key} className={styles.cell}>
-                      <span className={styles.missing}>{r?.error ? 'did not finish' : r ? 'n/a' : 'not run'}</span>
+                      <span className={styles.missing}>{r?.error ? 'did not finish' : typeof raw === 'number' && timedOut(metric, raw) ? 'timed out' : r ? 'n/a' : 'not run'}</span>
                     </div>
                   );
                 }
