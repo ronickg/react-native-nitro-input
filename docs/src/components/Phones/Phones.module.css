@@ -25,6 +25,9 @@
   aspect-ratio: 9 / 19.5;
   overflow: hidden;
   background: #000;
+  /* The bezel. Phones.tsx also rounds the video to the radius inside it,
+     rather than trusting overflow: hidden alone: Safari can leave a playing
+     video's corners unclipped by a rounded parent. */
   border: 9px solid #0d0d0f;
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.14),
