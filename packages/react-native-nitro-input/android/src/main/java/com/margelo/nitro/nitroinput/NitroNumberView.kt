@@ -29,6 +29,7 @@ import android.view.Choreographer
 import android.view.View
 import android.view.accessibility.AccessibilityEvent
 import com.facebook.react.common.assets.ReactFontManager
+import java.util.concurrent.atomic.AtomicReferenceArray
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -291,6 +292,13 @@ class NitroNumberView(context: Context) : View(context) {
     private val stripKey: String =
       "${t.fontFamily}|${t.fontWeight}|${digit.textSize}|${digit.color}|${digit.typeface?.hashCode()}"
 
+    /**
+     * This font set's digit masks by digit and level, filled from the shared
+     * cache: a swapping glyph looks two up every frame, and a lookup there
+     * built a key string each time. Written by the warm-up thread too.
+     */
+    private val digitMasks = AtomicReferenceArray<Bitmap>(10 * (NUMERIC_BLUR_LEVELS + 1))
+
     fun strip(blankZero: Boolean): Strip? {
       if (digitWidth <= 0f || lineHeight <= 0f) return null
       val strip = StripCache.get("$stripKey|$blankZero") {
@@ -331,8 +339,10 @@ class NitroNumberView(context: Context) : View(context) {
       // same way at the same sub-pixel position. Hardware text snaps to whole
       // pixels as it moves and a bitmap does not, and cross-faded they slid in
       // and out of register as the spring settled, a bold/pale flicker.
+      val slot = digitIndex * (NUMERIC_BLUR_LEVELS + 1) + level.coerceIn(0, NUMERIC_BLUR_LEVELS)
+      digitMasks.get(slot)?.let { return it }
       val radius = if (level <= 0 || numericBlur <= 0f) 0 else Math.round(lineHeight * numericBlur * level / NUMERIC_BLUR_LEVELS).coerceAtLeast(1)
-      return BlurredGlyphCache.get("$stripKey|$digitIndex|$radius|$blurPad") {
+      val mask = BlurredGlyphCache.get("$stripKey|$digitIndex|$radius|$blurPad") {
         val text = DIGITS[digitIndex]
         val pad = blurPad
         val w = ceil(digitWidth).toInt() + 2 * pad
@@ -357,6 +367,8 @@ class NitroNumberView(context: Context) : View(context) {
         done.prepareToDraw()
         done
       }
+      digitMasks.set(slot, mask)
+      return mask
     }
 
     /**
@@ -1612,15 +1624,34 @@ class NitroNumberView(context: Context) : View(context) {
   class Strip(val bitmap: Bitmap, val node: RenderNode?)
 
   /** The blurred digit bitmaps of the numeric transition, shared like the strips and bounded the same way. */
+  /**
+   * The blurred glyph masks every rolling number shares, least recently used
+   * dropped first once they pass [BUDGET] bytes. Bounded by size, not count:
+   * a numeric screen in a few fonts and colours uses hundreds of masks (ten
+   * digits at seven levels each), and a count of 256 dropped masks another
+   * figure was about to ask for again. Alpha masks are small, so the budget
+   * holds thousands.
+   */
   private object BlurredGlyphCache {
-    private const val CAPACITY = 256
-    private val entries =
-      object : LinkedHashMap<String, Bitmap>(16, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Bitmap>): Boolean = size > CAPACITY
-      }
+    private const val BUDGET = 16L shl 20
+    private val entries = LinkedHashMap<String, Bitmap>(64, 0.75f, true)
+    private var bytes = 0L
 
     @Synchronized
-    fun get(key: String, make: () -> Bitmap): Bitmap = entries.getOrPut(key, make)
+    fun get(key: String, make: () -> Bitmap): Bitmap {
+      entries[key]?.let { return it }
+      val bitmap = make()
+      entries[key] = bitmap
+      bytes += bitmap.allocationByteCount
+      val eldest = entries.entries.iterator()
+      while (bytes > BUDGET && eldest.hasNext()) {
+        val entry = eldest.next()
+        if (entry.value === bitmap) break
+        bytes -= entry.value.allocationByteCount
+        eldest.remove()
+      }
+      return bitmap
+    }
   }
 
   /** The digit strips every rolling number shares, most recently used last; the ones that fall off the end drop their layer. */
