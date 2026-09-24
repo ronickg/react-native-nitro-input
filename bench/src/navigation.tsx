@@ -38,14 +38,22 @@ function HomeScreen() {
 
 /**
  * Launched with a benchmark plan (scripts/bench/run.mjs passes one through the
- * probe), the app goes straight to the benchmark screen and runs it. Android
+ * probe), the app goes straight to the benchmark screen and runs it; launched
+ * with `{"compare": lib}`, to that market comparison. Android
  * reports the activity's intent a beat after the bundle loads, hence the retries.
  */
 function useLaunchPlan(navRef: ReturnType<typeof useNavigationContainerRef<RootStackParamList>>) {
   return React.useCallback(() => {
     let tries = 0
     const check = () => {
-      const plan = parsePlan(launchPlan())
+      const json = launchPlan()
+      // `{"compare":"nitro-roll"}` opens a market comparison, for profiling it.
+      const compare = json ? (JSON.parse(json) as { compare?: MarketCompareParams['lib'] }).compare : undefined
+      if (compare) {
+        navRef.navigate('MarketCompare', { lib: compare })
+        return
+      }
+      const plan = parsePlan(json)
       if (plan) {
         navRef.navigate('RollingBench', { plan })
         return
