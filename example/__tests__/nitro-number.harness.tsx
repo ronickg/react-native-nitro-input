@@ -5,9 +5,9 @@
  */
 import React, { createRef } from 'react'
 import { View, type LayoutRectangle } from 'react-native'
-import { describe, expect, it, render, waitFor } from 'react-native-harness'
+import { describe, expect, it, waitFor } from 'react-native-harness'
 import { NitroNumber, type NitroNumberHandle } from 'react-native-nitro-input'
-import { deferred, sleep, withTimeout } from './test-utils'
+import { deferred, expectSameLength, render, sleep, withTimeout } from './test-utils'
 import { forceGc, trackNativeViews, trackedLiveCount } from 'bench-probe'
 
 /**
@@ -248,9 +248,11 @@ describe('NitroNumber', () => {
     )
     await waitFor(() => expect(rtl.state.current?.width ?? 0).toBeGreaterThan(0))
     await waitFor(() => expect(ltr.state.current?.width ?? 0).toBeGreaterThan(0))
-    // The run is laid out block by block in mirror order: same blocks, same width.
-    expect(rtl.state.current!.width).toBeCloseTo(ltr.state.current!.width, 0)
-    expect(rtl.state.current!.height).toBeCloseTo(ltr.state.current!.height, 0)
+    // The run is laid out block by block in mirror order: same blocks, same
+    // width. The two sit at different heights, so their snapped sizes may be a
+    // pixel apart.
+    expectSameLength(rtl.state.current!.width, ltr.state.current!.width)
+    expectSameLength(rtl.state.current!.height, ltr.state.current!.height)
   })
 
   it('keeps a fixed box while shrinking the figure to fit', async () => {

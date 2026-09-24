@@ -38,6 +38,7 @@ export function renderChart(summary, { group = 'stream|24|frame', metric = 'ui.f
     })
   const impls = []
   for (const p of devices) for (const r of p.group.rows) if (!impls.some((x) => x.impl === r.impl)) impls.push(r)
+  impls.sort((a, b) => (a.order ?? 99) - (b.order ?? 99))
   const LABEL_W = 176
   const COL_W = 178
   const VALUE_W = 40

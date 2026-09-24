@@ -62,7 +62,7 @@ Both land with a pop, and all of it runs in the native engine; the JS thread is 
   <RevealDemo milestones />
 </Example>
 
-<Phones ios="/video/ios-reveal.mp4" android="/video/android-reveal.mp4" caption="The count with tiers, on an iPhone 13 Pro Max and a Pixel 10, next to a progressive jackpot and live wins that never stop ticking." />
+<Phones videos={[{ src: "/video/reveal.mp4" }]} caption="The count with tiers on a Galaxy A22, a budget Android phone, next to a progressive jackpot and live wins that never stop ticking." />
 
 `reveal` has three states. Leave it `undefined` for a normal NitroNumber. `false` shows the opening frame of `value`, its final layout with every digit blank except the mandatory ones (`$0.00`), so the box is already the right size. `true` plays the reveal; flip it back to `false` to re-arm. Mounted with `true`, it plays on mount.
 

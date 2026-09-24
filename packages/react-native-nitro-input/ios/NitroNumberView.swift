@@ -252,6 +252,62 @@ final class NitroNumberView: UIView {
     let role: GlyphRole
   }
 
+  /// Images every NitroNumber shares, kept while they are in use. A numeric
+  /// transition cycles each digit through every blur level, so a screen of
+  /// figures in a few fonts and colours uses hundreds of blurred glyphs a
+  /// second; a cache that started over when it reached a fixed count dropped
+  /// ones about to be drawn again and re-blurred them (thousands of vImage
+  /// passes a second on a trading screen). Past `budget` bytes, what has gone
+  /// unused for `idle` seconds is dropped, oldest first; what is still in use
+  /// stays unless the cache passes `limit`. A memory warning empties it.
+  private final class RecentImageCache<Key: Hashable> {
+    private struct Entry {
+      let image: UIImage
+      let bytes: Int
+      var used: CFTimeInterval
+    }
+    private var entries: [Key: Entry] = [:]
+    private(set) var bytes = 0
+    private let budget: Int
+    private let limit: Int
+    private let idle: CFTimeInterval
+    private var observer: NSObjectProtocol?
+
+    init(budget: Int = 8 << 20, limit: Int = 64 << 20, idle: CFTimeInterval = 2) {
+      self.budget = budget
+      self.limit = limit
+      self.idle = idle
+      observer = NotificationCenter.default.addObserver(
+        forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: .main
+      ) { [weak self] _ in
+        self?.entries.removeAll()
+        self?.bytes = 0
+      }
+    }
+
+    var count: Int { entries.count }
+
+    subscript(key: Key) -> UIImage? {
+      guard var entry = entries[key] else { return nil }
+      entry.used = CACurrentMediaTime()
+      entries[key] = entry
+      return entry.image
+    }
+
+    func insert(_ image: UIImage, for key: Key) {
+      let cost = image.cgImage.map { $0.bytesPerRow * $0.height } ?? 0
+      let now = CACurrentMediaTime()
+      if let old = entries.updateValue(Entry(image: image, bytes: cost, used: now), forKey: key) { bytes -= old.bytes }
+      bytes += cost
+      guard bytes > budget else { return }
+      for (key, entry) in entries.sorted(by: { $0.value.used < $1.value.used }) {
+        guard bytes > budget, now - entry.used > idle || bytes > limit else { break }
+        entries.removeValue(forKey: key)
+        bytes -= entry.bytes
+      }
+    }
+  }
+
   /// Digit / prefix / suffix fonts with per-glyph caches.
   private final class FontSet {
     let digit: UIFont
@@ -294,7 +350,8 @@ final class NitroNumberView: UIView {
       let blankZero: Bool
     }
     private static var sharedImages: [ImageKey: UIImage] = [:]
-    private static var sharedBlurred: [TintKey: UIImage] = [:]
+    /// Blurred glyphs, the digit's own colour (tint 0) and the flash's alike.
+    private static let sharedBlurred = RecentImageCache<TintKey>()
     /// Glyphs in the change flash's colours, keyed like the sharp ones plus
     /// the tint (0: the digit colour), and blurred ones plus their level.
     private struct TintKey: Hashable {
@@ -305,7 +362,6 @@ final class NitroNumberView: UIView {
       var blur = 0
     }
     private static var sharedTinted: [TintKey: UIImage] = [:]
-    private static var sharedTintedBlurred: [TintKey: UIImage] = [:]
     private static var sharedStrips: [StripKey: UIImage] = [:]
     private static let sharedCapacity = 512
     private let colorKey: UInt32
@@ -398,8 +454,7 @@ final class NitroNumberView: UIView {
       let key = TintKey(image: ImageKey(font: fontTag(role), color: colorKey, scale: renderScale, text: text, role: role), tint: 0, level: level, blur: blurKey)
       if let cached = Self.sharedBlurred[key] { return cached }
       guard let sharp = image(text, role: role), let image = blurred(sharp, level: level) else { return nil }
-      if Self.sharedBlurred.count >= 256 { Self.sharedBlurred.removeAll(keepingCapacity: true) }
-      Self.sharedBlurred[key] = image
+      Self.sharedBlurred.insert(image, for: key)
       return image
     }
 
@@ -408,10 +463,9 @@ final class NitroNumberView: UIView {
     func tintedBlurredImage(_ text: String, tint: UIColor, level: Int) -> UIImage? {
       if level <= 0 || numericBlur <= 0 { return tintedImage(text, tint: tint) }
       let key = TintKey(image: ImageKey(font: fontTag(.digit), color: colorKey, scale: renderScale, text: text, role: .digit), tint: Self.key(of: tint), level: level, blur: blurKey)
-      if let cached = Self.sharedTintedBlurred[key] { return cached }
+      if let cached = Self.sharedBlurred[key] { return cached }
       guard let sharp = tintedImage(text, tint: tint), let image = blurred(sharp, level: level) else { return nil }
-      if Self.sharedTintedBlurred.count >= 256 { Self.sharedTintedBlurred.removeAll(keepingCapacity: true) }
-      Self.sharedTintedBlurred[key] = image
+      Self.sharedBlurred.insert(image, for: key)
       return image
     }
 
@@ -604,7 +658,7 @@ final class NitroNumberView: UIView {
   private var lastReportedSize: CGSize = .zero
 
   /// Scaled and aligned container for the element layers.
-  private let contentLayer = CALayer()
+  private let contentLayer = QuietLayer()
   /// One entry per laid-out element, in drawing order.
   private var slots: [ElementLayer] = []
   /// True while the loading glint is visible and frames go through `draw(_:)`.
@@ -617,7 +671,7 @@ final class NitroNumberView: UIView {
 
   /// One layer of a swapping glyph and what it holds: a digit at a blur level, in a tint.
   private final class GlyphLayer {
-    let layer = CALayer()
+    let layer = QuietLayer()
     var glyph = -2
     var level = -1
     var tint: UInt32 = 0
@@ -670,9 +724,13 @@ final class NitroNumberView: UIView {
     }
   }
 
-  private struct ElementLayer {
-    var kind: LayerKind
+  /// A class, not a struct: the frame loop reads every slot, and a struct
+  /// copy retained and released each of its layers every frame.
+  private final class ElementLayer {
+    let kind: LayerKind
     var layer: CALayer
+    /// The strip (wheels) or the glyph's image (glyphs), inside `layer`.
+    var inner: CALayer
     /// Wheels only: which strip variant the layer currently shows.
     var blankZero: Bool
     /// Wheels only: the numeric transition's layers, once the wheel has swapped,
@@ -695,6 +753,14 @@ final class NitroNumberView: UIView {
     var frame = CGRect.null
     var innerFrame = CGRect.null
     var opacity: Float = -1
+
+    init(kind: LayerKind, layer: CALayer, inner: CALayer, blankZero: Bool, glyphTop: CGFloat) {
+      self.kind = kind
+      self.layer = layer
+      self.inner = inner
+      self.blankZero = blankZero
+      self.glyphTop = glyphTop
+    }
   }
 
   private struct AffixBlocks {
@@ -1339,10 +1405,6 @@ final class NitroNumberView: UIView {
     updateFontScale(contentWidth: total)
     let placement = contentPlacement(total: total, lineHeight: fonts.lineHeight)
 
-    CATransaction.begin()
-    CATransaction.setDisableActions(true)
-    defer { CATransaction.commit() }
-
     let contentBounds = CGRect(x: 0, y: 0, width: max(total, 1), height: fonts.lineHeight)
     if contentLayer.bounds != contentBounds { contentLayer.bounds = contentBounds }
     if contentLayer.position != placement.origin { contentLayer.position = placement.origin }
@@ -1374,7 +1436,7 @@ final class NitroNumberView: UIView {
           slot.overlay?.opacity = Float(wheel.width)
           slots[i].opacity = opacity
         }
-        let strip = slot.layer.sublayers?.first
+        let strip = slot.inner
         let swapping = wheel.blend < 1 || wheel.focus < 1 || wheel.grow < 1
         let tint = wheel.flash > 0.002 ? (wheel.flashUp ? flash.upColor : flash.downColor) : nil
         // While the glyphs swap, the strip stays put underneath, hidden.
@@ -1385,7 +1447,7 @@ final class NitroNumberView: UIView {
           } else {
             swap = SwapLayers(scale: fonts.renderScale)
             // Above every container, unclipped, so the blur's haze stays whole.
-            let overlay = CALayer()
+            let overlay = QuietLayer()
             overlay.frame = frame
             overlay.opacity = Float(wheel.width)
             for layer in swap.all { overlay.addSublayer(layer) }
@@ -1398,25 +1460,22 @@ final class NitroNumberView: UIView {
           for layer in swap.all { layer.isHidden = true }
           swap.hidden = true
         }
-        if let strip, strip.isHidden != swapping { strip.isHidden = swapping }
-        var stripFrame = CGRect.null
-        if let strip {
-          if slot.blankZero != wheel.blankZero {
-            strip.contents = fonts.strip(blankZero: wheel.blankZero)?.cgImage
-            slots[i].blankZero = wheel.blankZero
-          }
-          // Linear strips run from -1 (blank) to 9; a roll can be any real, so wrap it onto 0..<10.
-          let position = wheel.linear ? wheel.position : Self.wrap10(wheel.position)
-          stripFrame = CGRect(
-            x: element.fullWidth - fonts.digitWidth,
-            y: -(position + 1) * fonts.lineHeight,
-            width: strip.bounds.width,
-            height: strip.bounds.height
-          )
-          if slot.innerFrame != stripFrame {
-            strip.frame = stripFrame
-            slots[i].innerFrame = stripFrame
-          }
+        if strip.isHidden != swapping { strip.isHidden = swapping }
+        if slot.blankZero != wheel.blankZero {
+          strip.contents = fonts.strip(blankZero: wheel.blankZero)?.cgImage
+          slots[i].blankZero = wheel.blankZero
+        }
+        // Linear strips run from -1 (blank) to 9; a roll can be any real, so wrap it onto 0..<10.
+        let position = wheel.linear ? wheel.position : Self.wrap10(wheel.position)
+        let stripFrame = CGRect(
+          x: element.fullWidth - fonts.digitWidth,
+          y: -(position + 1) * fonts.lineHeight,
+          width: strip.bounds.width,
+          height: strip.bounds.height
+        )
+        if slot.innerFrame != stripFrame {
+          strip.frame = stripFrame
+          slots[i].innerFrame = stripFrame
         }
         layoutFlash(slotIndex: i, wheel: wheel, tint: swapping ? nil : tint, fonts: fonts, stripFrame: stripFrame)
       case .glyph(let text, let role):
@@ -1428,7 +1487,7 @@ final class NitroNumberView: UIView {
             swap = existing
           } else {
             swap = TextSwapLayers(scale: fonts.renderScale)
-            let overlay = CALayer()
+            let overlay = QuietLayer()
             overlay.frame = frame
             for layer in swap.all { overlay.addSublayer(layer) }
             contentLayer.addSublayer(overlay)
@@ -1449,17 +1508,16 @@ final class NitroNumberView: UIView {
           slot.layer.opacity = opacity
           slots[i].opacity = opacity
         }
-        if let image = slot.layer.sublayers?.first {
-          let imageFrame = CGRect(
-            x: 0,
-            y: slot.glyphTop,
-            width: image.bounds.width,
-            height: image.bounds.height
-          )
-          if slot.innerFrame != imageFrame {
-            image.frame = imageFrame
-            slots[i].innerFrame = imageFrame
-          }
+        let image = slot.inner
+        let imageFrame = CGRect(
+          x: 0,
+          y: slot.glyphTop,
+          width: image.bounds.width,
+          height: image.bounds.height
+        )
+        if slot.innerFrame != imageFrame {
+          image.frame = imageFrame
+          slots[i].innerFrame = imageFrame
         }
       }
       x += element.width
@@ -1552,11 +1610,12 @@ final class NitroNumberView: UIView {
     let loAlpha = hiAlpha >= 0.999 ? 0 : alpha * (1 - w) / (1 - hiAlpha)
     // Blurred images are padded evenly, so each shares the sharp one's centre.
     let center = CGPoint(x: left + sharp.size.width / 2, y: fonts.top(for: role, text: text, lineTop: 0) + sharp.size.height / 2)
-    for (slot, level, layerAlpha) in [(pair.0, lo, loAlpha), (pair.1, hi, hiAlpha)] {
+    // A local function, not a loop over an array literal: that allocated an array per call.
+    func place(_ slot: GlyphLayer, _ level: Int, _ layerAlpha: CGFloat) {
       let layer = slot.layer
       let hidden = layerAlpha <= 0.002
       if layer.isHidden != hidden { layer.isHidden = hidden }
-      if hidden { continue }
+      if hidden { return }
       if slot.text != text || slot.level != level {
         if let image = fonts.blurredImage(text, role: role, level: level) {
           layer.contents = image.cgImage
@@ -1568,6 +1627,8 @@ final class NitroNumberView: UIView {
       layer.position = center
       layer.opacity = Float(layerAlpha)
     }
+    place(pair.0, lo, loAlpha)
+    place(pair.1, hi, hiAlpha)
   }
 
   /// Places one glyph of a swap: the two blur levels nearest `amount` (of
@@ -1595,11 +1656,12 @@ final class NitroNumberView: UIView {
     let tintKey = tint.map { FontSet.key(of: $0) } ?? 0
     let text = Self.digitStrings[glyph % 10]
     let transform = CATransform3DMakeScale(scale, scale, 1)
-    for (slot, level, layerAlpha) in [(pair.0, lo, loAlpha), (pair.1, hi, hiAlpha)] {
+    // A local function, not a loop over an array literal: that allocated an array per call.
+    func place(_ slot: GlyphLayer, _ level: Int, _ layerAlpha: CGFloat) {
       let layer = slot.layer
       let hidden = layerAlpha <= 0.002
       if layer.isHidden != hidden { layer.isHidden = hidden }
-      if hidden { continue }
+      if hidden { return }
       if slot.glyph != glyph || slot.level != level || slot.tint != tintKey {
         if let image = fonts.swapImage(text, level: level, tint: tint) {
           layer.contents = image.cgImage
@@ -1613,6 +1675,8 @@ final class NitroNumberView: UIView {
       layer.transform = transform
       layer.opacity = Float(layerAlpha)
     }
+    place(pair.0, lo, loAlpha)
+    place(pair.1, hi, hiAlpha)
   }
 
   /// The change flash of a wheel that is not swapping (at rest, or rolling):
@@ -1629,7 +1693,7 @@ final class NitroNumberView: UIView {
     if let existing = slots[i].flashLayer {
       layer = existing
     } else {
-      layer = CALayer()
+      layer = QuietLayer()
       layer.contentsScale = fonts.renderScale
       slots[i].layer.addSublayer(layer)
       slots[i].flashLayer = layer
@@ -1655,9 +1719,9 @@ final class NitroNumberView: UIView {
     clearSlots()
     slots.reserveCapacity(elements.count)
     for element in elements {
-      let container = CALayer()
+      let container = QuietLayer()
       container.masksToBounds = true
-      let inner = CALayer()
+      let inner = QuietLayer()
       inner.contentsScale = fonts.renderScale
       switch element.kind {
       case .wheel(let index):
@@ -1668,7 +1732,7 @@ final class NitroNumberView: UIView {
         }
         container.addSublayer(inner)
         contentLayer.addSublayer(container)
-        slots.append(ElementLayer(kind: .wheel, layer: container, blankZero: blankZero, swap: nil, flashLayer: nil, glyphTop: 0))
+        slots.append(ElementLayer(kind: .wheel, layer: container, inner: inner, blankZero: blankZero, glyphTop: 0))
       case .glyph(let text, let role):
         if let image = fonts.image(text, role: role) {
           inner.contents = image.cgImage
@@ -1676,7 +1740,7 @@ final class NitroNumberView: UIView {
         }
         container.addSublayer(inner)
         contentLayer.addSublayer(container)
-        slots.append(ElementLayer(kind: .glyph(text, role), layer: container, blankZero: false, swap: nil, flashLayer: nil, glyphTop: fonts.top(for: role, text: text, lineTop: 0)))
+        slots.append(ElementLayer(kind: .glyph(text, role), layer: container, inner: inner, blankZero: false, glyphTop: fonts.top(for: role, text: text, lineTop: 0)))
       }
     }
   }
@@ -1851,4 +1915,20 @@ final class NitroNumberView: UIView {
     if wheel.blankZero && index == 0 { return nil }
     return Self.digitStrings[((index % 10) + 10) % 10]
   }
+}
+
+/// A layer that never animates a change implicitly: every layer of a
+/// NitroNumber, and of a reflowing NitroInput, is placed frame by frame, by
+/// the engine. Switching the actions off with an explicit `CATransaction` did
+/// the same, but a display link's callback runs outside any transaction, so
+/// each view's frame was a commit of its own to the render server, dozens per
+/// frame on a busy screen; these changes join the run loop's one implicit
+/// transaction instead.
+final class QuietLayer: CALayer {
+  override func action(forKey event: String) -> CAAction? { nil }
+}
+
+/// `QuietLayer`'s gradient: NitroInput's edge fade is re-laid out with the text.
+final class QuietGradientLayer: CAGradientLayer {
+  override func action(forKey event: String) -> CAAction? { nil }
 }

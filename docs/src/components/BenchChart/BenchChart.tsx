@@ -19,7 +19,7 @@ import styles from './BenchChart.module.css';
  * their value, unless the reader asked for reduced motion.
  */
 
-type Row = {impl: string; label: string; ours: boolean; runs: number; error: string | null} & Record<string, unknown>;
+type Row = {impl: string; label: string; order?: number; ours: boolean; runs: number; error: string | null} & Record<string, unknown>;
 type Group = {key: string; kind: string; title: string; rows: Row[]};
 type Device = {key: string; name: string; model: string | null; platform: string | null; hz: number | null; groups: Group[]};
 
@@ -72,6 +72,27 @@ const DEVICES: Device[] = [...(data.devices as Device[])].sort((a, b) => {
   if (a.platform !== b.platform) return a.platform === 'ios' ? -1 : 1;
   return (b.hz ?? 0) - (a.hz ?? 0);
 });
+
+/**
+ * NitroNumber's rows by transition: the roll (the `value` prop, and `jumpTo`,
+ * which positions the wheels and has no numeric counterpart) or the numeric
+ * transition, which draws more per frame. A chart that has both shows one set
+ * at a time, picked with a switch, so each compares like with like.
+ */
+const TRANSITIONS = {
+  roll: {short: 'Roll', impls: ['nitro-prop', 'nitro-jump']},
+  numeric: {short: 'Numeric', impls: ['nitro-numeric']},
+} as const;
+type Transition = keyof typeof TRANSITIONS;
+
+/**
+ * A mount that hit the harness's five-second limit is recorded as the limit;
+ * the tables print "timed out" for it (`report.mjs`), and so does a chart,
+ * rather than a bar that reads as a measurement.
+ */
+function timedOut(metric: string, v: number) {
+  return metric.startsWith('mountMs') && v >= 4990;
+}
 
 const REVEAL_MS = 800;
 const STAGGER_MS = 40;
@@ -167,6 +188,7 @@ export default function BenchChart({
   caption?: string;
 }) {
   const [metric, setMetric] = useState<MetricKey>(metrics[0]);
+  const [transition, setTransition] = useState<Transition>('roll');
   const spec: Spec = METRICS[metric];
   const reduced = usePrefersReducedMotion();
   const root = useRef<HTMLDivElement>(null);
@@ -217,16 +239,25 @@ export default function BenchChart({
   const byScenario = Boolean(device);
 
   // Every implementation any phone ran, in the tables' order.
-  const impls = useMemo(() => {
+  const ran = useMemo(() => {
     const seen = new Map<string, Row>();
     for (const p of panels) for (const r of p.group.rows) if (!seen.has(r.impl)) seen.set(r.impl, r);
-    return [...seen.values()];
+    // By the tables' order, not by the first phone that ran it: a row one phone
+    // lacks would otherwise land after everything the first phone had.
+    return [...seen.values()].sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
   }, [panels]);
+  // With both transitions measured, only the chosen one's rows.
+  const both = (Object.keys(TRANSITIONS) as Transition[]).every((t) => ran.some((r) => (TRANSITIONS[t].impls as readonly string[]).includes(r.impl)));
+  const impls = useMemo(() => {
+    if (!both) return ran;
+    const hidden = (Object.keys(TRANSITIONS) as Transition[]).filter((t) => t !== transition).flatMap((t) => TRANSITIONS[t].impls as readonly string[]);
+    return ran.filter((r) => !hidden.includes(r.impl));
+  }, [ran, both, transition]);
 
   const value = (p: {group: Group}, impl: string) => {
     const r = p.group.rows.find((x) => x.impl === impl);
     const v = r?.[metric];
-    return typeof v === 'number' ? v : null;
+    return typeof v === 'number' && !timedOut(metric, v) ? v : null;
   };
 
   // One scale for every column, except frame rates, where the column is its phone's panel.
@@ -272,6 +303,21 @@ export default function BenchChart({
             ))}
           </div>
         ) : null}
+        {both ? (
+          <div className={styles.segments} role="tablist" aria-label="NitroNumber transition">
+            {(Object.keys(TRANSITIONS) as Transition[]).map((t) => (
+              <button
+                key={t}
+                type="button"
+                role="tab"
+                aria-selected={t === transition}
+                className={clsx(styles.segment, t === transition && styles.segmentOn)}
+                onClick={() => setTransition(t)}>
+                {TRANSITIONS[t].short}
+              </button>
+            ))}
+          </div>
+        ) : null}
         <div className={styles.legend} aria-hidden="true">
           <span className={styles.swatchOurs} /> this library
           <span className={styles.swatchOther} /> other libraries
@@ -303,9 +349,10 @@ export default function BenchChart({
                 const zero = ((0 - lo) / span) * 100;
                 const delay = instant ? 0 : i * STAGGER_MS;
                 if (v == null) {
+                  const raw = r?.[metric];
                   return (
                     <div key={p.key} className={styles.cell}>
-                      <span className={styles.missing}>{r?.error ? 'did not finish' : r ? 'n/a' : 'not run'}</span>
+                      <span className={styles.missing}>{r?.error ? 'did not finish' : typeof raw === 'number' && timedOut(metric, raw) ? 'timed out' : r ? 'n/a' : 'not run'}</span>
                     </div>
                   );
                 }

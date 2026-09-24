@@ -15,7 +15,7 @@
   <tr>
     <td align="center" valign="top" width="50%">
       <h3><code>NitroNumber</code></h3>
-      <img src="docs/static/img/readme/market.webp" width="400" alt="A trading dashboard with about 60 NitroNumbers updating at once, on an iPhone and a Pixel" />
+      <img src="docs/static/img/readme/market.webp" width="260" alt="A trading dashboard with 48 NitroNumbers updating at once, on a Samsung Galaxy A22" />
       <p>A number that animates its changes. Every digit is a wheel, or swaps like SwiftUI's numeric text, driven by one C++ engine, with currency layouts, shrink-to-fit, a loading shimmer and the jackpot reveal.</p>
       <p>
         <a href="#nitronumber">Below</a> ·
@@ -27,7 +27,7 @@
     </td>
     <td align="center" valign="top" width="50%">
       <h3><code>NitroInput</code></h3>
-      <img src="docs/static/img/readme/input.webp" width="400" alt="A transfer screen: an amount typed into a native field that reflows as it is formatted, the payout switching currency, on an iPhone and a Pixel" />
+      <img src="docs/static/img/readme/transfer.webp" width="260" alt="A transfer screen: an amount typed into a native field that reflows as it is formatted, the payout switching currency, on a Samsung Galaxy A22" />
       <p>A native text input. The system keyboard and accessibility stay; amounts are formatted and masks applied in C++ before a frame is drawn, the floating label is native, and the reflow is there when you turn it on.</p>
       <p>
         <a href="#nitroinput">Below</a> ·
@@ -41,7 +41,7 @@
   </tr>
 </table>
 
-<p align="center"><sub>The example app on an iPhone 13 Pro Max (left) and a Pixel 10 (right). Left: the market showcase, about 60 NitroNumbers (a portfolio, a heatmap, an order book and a trade tape) driven by one loop, about 280 updates a second with no re-render. Right: a transfer, the amount typed into a reflowing <code>NitroInput</code> while what they receive, the fee and three other currencies follow every keystroke. Every number is native.</sub></p>
+<p align="center"><sub>The example app on a Samsung Galaxy A22, a budget phone (MediaTek Helio G80, 90 Hz), recorded with its own screen recorder. Left: the market showcase, 48 NitroNumbers (a portfolio, a heatmap, an order book and a trade tape) driven by one loop, about 210 updates a second with no re-render. Right: a transfer, the amount typed into a reflowing <code>NitroInput</code> while what they receive, the fee and three other currencies follow every keystroke. Every number is native.</sub></p>
 
 Both components share the same formatting model (prefix and suffix at their own size, pinned to the top, bottom, baseline or centre of the digits; grouping and decimal separators of your choice) and ship in one package. React Native 0.78+ with the new architecture, Nitro Modules 0.37+; see the [Android note](#known-issue-view-props-on-android) before you ship.
 
@@ -89,7 +89,7 @@ Change `value` and the digits roll. `ref.current.jumpTo(v)` positions the wheels
 ### Jackpot reveal
 
 <p align="center">
-  <img src="docs/static/img/readme/reveal.webp" width="536" alt="A jackpot counted up tier by tier, BIG, MEGA and EPIC WIN, on iOS and Android" />
+  <img src="docs/static/img/readme/reveal.webp" width="260" alt="A jackpot counted up tier by tier, BIG, MEGA and EPIC WIN, on a Samsung Galaxy A22" />
 </p>
 
 ```tsx
@@ -114,20 +114,21 @@ Release builds on real phones, 24 copies fed a new value on every frame, frames 
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/static/img/bench/glance-dark.svg">
-  <img alt="Frames per second the main thread delivered with 24 animated numbers updating every frame, on an iPhone 13 Pro Max, an iPhone 11 Pro and a Galaxy A22: both Nitro paths hold the panel's rate on every phone" src="docs/static/img/bench/glance-light.svg" width="754">
+  <img alt="Frames per second the main thread delivered with 24 animated numbers updating every frame, on an iPhone 11 Pro and a Galaxy A22: every Nitro path holds 60 fps on the iPhone, and on the Galaxy A22 jumpTo matches plain text while the other libraries drop to 11–53 fps" src="docs/static/img/bench/glance-light.svg" width="562">
 </picture>
 
-| | iPhone 13 Pro Max (120 Hz) | iPhone 11 Pro (60 Hz) | Galaxy A22 (90 Hz, low-end) |
-| --- | --- | --- | --- |
-| **NitroNumber** (`value` prop) | 120 fps (0 dropped) | 59.9 fps (0 dropped) | 90.4 fps (0 dropped) |
-| **NitroNumber** (`jumpTo`) | 120 fps (0 dropped) | 59.9 fps (0 dropped) | 89.8 fps (3 dropped) |
-| react-native-number-animation (native) | 117 fps (13 dropped) | 59.1 fps (4 dropped) | 56.2 fps (170 dropped) |
-| react-native-animated-rolling-numbers | 117 fps (17 dropped) | 58.7 fps (5 dropped) | 18.8 fps (370 dropped) |
-| NumberFlow (View) | 76.1 fps (222 dropped) | 49.1 fps (56 dropped) | 24.9 fps (352 dropped) |
-| NumberFlow (Skia) | 86.7 fps (182 dropped) | 53.1 fps (37 dropped) | 28.2 fps (309 dropped) |
-| react-native-number-bloom | 64.8 fps (281 dropped) | 48.3 fps (60 dropped) | 49.5 fps (207 dropped) |
-| react-native-animated-numbers | 116 fps (21 dropped) | 56.7 fps (16 dropped) | 51.2 fps (199 dropped) |
-| react-native-ticker | 11.8 fps (544 dropped) | 7.6 fps (258 dropped) | 12.6 fps (379 dropped) |
+| | iPhone 11 Pro (60 Hz) | Galaxy A22 (90 Hz, low-end) |
+| --- | --- | --- |
+| **NitroNumber** (`value` prop) | 59.9 fps (0 dropped) | 72.5 fps (89 dropped) |
+| **NitroNumber** (`jumpTo`) | 59.9 fps (0 dropped) | 81.4 fps (45 dropped) |
+| **NitroNumber** (numeric transition) | 59.9 fps (0 dropped) | 73.6 fps (84 dropped) |
+| react-native-number-animation (native) | 58.9 fps (5 dropped) | 49.7 fps (203 dropped) |
+| react-native-animated-rolling-numbers | 58.9 fps (5 dropped) | 18.6 fps (371 dropped) |
+| NumberFlow (View) | 46.1 fps (70 dropped) | 24.4 fps (354 dropped) |
+| NumberFlow (Skia) | 53.9 fps (35 dropped) | 30.3 fps (298 dropped) |
+| react-native-number-bloom | 47.8 fps (63 dropped) | 52.5 fps (189 dropped) |
+| react-native-animated-numbers | 57.3 fps (12 dropped) | 46.6 fps (226 dropped) |
+| react-native-ticker | 7.4 fps (256 dropped) | 11.4 fps (383 dropped) |
 
 Method, the JS-thread and CPU columns, the ten-a-second and one-copy cases, a scrolling list, mount cost and the Instruments cross-check: [BENCHMARKS.md](BENCHMARKS.md); the same tables as charts you can hover and switch between metrics: [the benchmark pages of the docs](https://ronickg.github.io/react-native-nitro-input/docs/benchmarks).
 
@@ -166,14 +167,14 @@ import { NitroInput } from 'react-native-nitro-input'
 
 Typed into at eight keys a second by the benchmark probe, the way a keyboard types: how many of 12 keys were rewritten a frame later (the flicker of formatting in JavaScript), how long a key took to settle at p95, and JavaScript per key:
 
-| | iPhone 13 Pro Max | iPhone 11 Pro | Galaxy A22 |
-| --- | --- | --- | --- |
-| **NitroInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 1 ms/key | 0 of 12 keys, 0 ms, JS 2 ms/key | 0 of 12 keys, 0 ms, JS 5 ms/key |
-| **NitroInput reflow** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 19 ms/key |
-| TextInput + formatting in `onChangeText` | 10 of 12 keys, 50 ms, JS 9 ms/key | 10 of 12 keys, 54 ms, JS 10 ms/key | 10 of 12 keys, 77 ms, JS 47 ms/key |
-| react-native-currency-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 55 ms, JS 11 ms/key | 10 of 12 keys, 67 ms, JS 48 ms/key |
-| react-native-mask-input | 10 of 12 keys, 67 ms, JS 10 ms/key | 10 of 12 keys, 66 ms, JS 11 ms/key | 10 of 12 keys, 66 ms, JS 41 ms/key |
-| TextInput (plain, no formatting) | 0 of 12 keys, 0 ms, JS 6 ms/key | 0 of 12 keys, 0 ms, JS 8 ms/key | 0 of 12 keys, 0 ms, JS 22 ms/key |
+| | iPhone 11 Pro | Galaxy A22 |
+| --- | --- | --- |
+| **NitroInput** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 1 ms/key | 0 of 12 keys, 0 ms, JS 3 ms/key |
+| **NitroInput reflow** (`mode="number"`) | 0 of 12 keys, 0 ms, JS 11 ms/key | 0 of 12 keys, 0 ms, JS 17 ms/key |
+| TextInput + formatting in `onChangeText` | 10 of 12 keys, 54 ms, JS 13 ms/key | 10 of 12 keys, 66 ms, JS 40 ms/key |
+| react-native-currency-input | 10 of 12 keys, 52 ms, JS 13 ms/key | 10 of 12 keys, 77 ms, JS 43 ms/key |
+| react-native-mask-input | 10 of 12 keys, 52 ms, JS 11 ms/key | 10 of 12 keys, 55 ms, JS 33 ms/key |
+| TextInput (plain, no formatting) | 0 of 12 keys, 0 ms, JS 9 ms/key | 0 of 12 keys, 0 ms, JS 27 ms/key |
 
 Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inputs); as charts: [the input benchmarks page](https://ronickg.github.io/react-native-nitro-input/docs/benchmarks).
 

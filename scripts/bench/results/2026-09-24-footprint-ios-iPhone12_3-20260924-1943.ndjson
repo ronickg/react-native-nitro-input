@@ -1,0 +1,12 @@
+{"event":"plan","label":"2026-09-24-footprint","scenarios":5,"seconds":5,"warmup":1.5,"settle":1,"device":{"debug":false,"os":"26.6.1","lowPowerMode":false,"platform":"ios","model":"iPhone12,3","refreshRate":60,"cpuCores":6,"name":"iPhone","thermal":"nominal"},"at":1790278988159}
+{"event":"start","index":0,"kind":"footprint","impl":"text","count":100,"thermal":"nominal","cooled":0,"at":1790278989211}
+{"event":"result","index":0,"kind":"footprint","impl":"text","count":100,"perViewFootprintKb":127.040390625,"perViewNativeKb":25.55421875,"perViewJavaKb":null,"leftFootprintKb":30.560390625,"leftNativeKb":25.34234375,"seconds":5.073879333019256,"thermal":"nominal","at":1790278994303}
+{"event":"start","index":1,"kind":"footprint","impl":"nitro-prop","count":100,"thermal":"nominal","cooled":13,"at":1790278995336}
+{"event":"result","index":1,"kind":"footprint","impl":"nitro-prop","count":100,"perViewFootprintKb":76.96,"perViewNativeKb":68.776875,"perViewJavaKb":null,"leftFootprintKb":67.68,"leftNativeKb":57.60546875,"seconds":5.058243084013462,"thermal":"nominal","at":1790279000413}
+{"event":"start","index":2,"kind":"footprint","impl":"rn-text","count":50,"thermal":"nominal","cooled":12,"at":1790279001445}
+{"event":"result","index":2,"kind":"footprint","impl":"rn-text","count":50,"perViewFootprintKb":95.36,"perViewNativeKb":118.743125,"perViewJavaKb":null,"leftFootprintKb":74.56,"leftNativeKb":106.105625,"seconds":5.140315457999706,"thermal":"nominal","at":1790279006607}
+{"event":"start","index":3,"kind":"footprint","impl":"nitro-text","count":50,"thermal":"nominal","cooled":1,"at":1790279007629}
+{"event":"result","index":3,"kind":"footprint","impl":"nitro-text","count":50,"perViewFootprintKb":141.12,"perViewNativeKb":126.0565625,"perViewJavaKb":null,"leftFootprintKb":141.44,"leftNativeKb":112.693125,"seconds":5.147115083992481,"thermal":"nominal","at":1790279012795}
+{"event":"start","index":4,"kind":"footprint","impl":"morph-text","count":50,"thermal":"nominal","cooled":1,"at":1790279013815}
+{"event":"result","index":4,"kind":"footprint","impl":"morph-text","count":50,"perViewFootprintKb":90.88078125,"perViewNativeKb":60.315625,"perViewJavaKb":null,"leftFootprintKb":91.52078125,"leftNativeKb":46.6640625,"seconds":5.125749833017587,"thermal":"nominal","at":1790279018959}
+{"event":"done","results":5,"at":1790279018959}

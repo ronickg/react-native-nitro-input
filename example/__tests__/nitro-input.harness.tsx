@@ -7,14 +7,14 @@
  */
 import React, { createRef, useEffect, useRef } from 'react'
 import { View, type LayoutRectangle } from 'react-native'
-import { describe, expect, it, render, waitFor } from 'react-native-harness'
+import { describe, expect, it, waitFor } from 'react-native-harness'
 import {
   NitroInput,
   type NitroInputHandle,
   type NitroInputFocusEvent,
   type NitroInputSelectionEvent,
 } from 'react-native-nitro-input'
-import { deferred, sleep, withTimeout } from './test-utils'
+import { deferred, render, sleep, withTimeout } from './test-utils'
 import { forceGc, trackNativeViews, trackedLiveCount } from 'bench-probe'
 
 function layoutOf() {

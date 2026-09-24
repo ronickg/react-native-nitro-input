@@ -22,7 +22,8 @@
 
 .screen {
   width: 320px;
-  aspect-ratio: 9 / 19.5;
+  /* The A22's screen above its navigation bar, as the clips are cropped. */
+  aspect-ratio: 720 / 1510;
   overflow: hidden;
   background: #000;
   /* The bezel. Phones.tsx also rounds the video to the radius inside it,

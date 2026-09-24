@@ -627,7 +627,22 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val baselineNudge: Float = (lineHeight - fontLineHeight) / 2f
     private val widthCaches = Array(3) { HashMap<Int, Float>() }
     private val capHeightCache = HashMap<Role, Float>()
-    private val inkDescentCache = HashMap<String, Float>()
+    // By role, then text: a key built from both was a string allocated for
+    // every affix glyph on every frame of a reflow.
+    private val inkDescentCaches = Array(3) { HashMap<String, Float>() }
+    // Each role's metrics, read once: `Paint.fontMetrics` allocates, and the
+    // affixes' baselines are asked for on every frame of a reflow.
+    private val metrics = arrayOf(prefix.fontMetrics, bodyMetrics, suffix.fontMetrics)
+    private val shapedCaches = Array(3) { HashMap<Int, ShapedText>() }
+
+    /**
+     * One character of [role] shaped once, for [Canvas.drawGlyphs]: `drawText`
+     * runs the text shaper on every call, and a reflow draws every glyph on
+     * every frame of its animation (see NitroNumberView's `shaped`).
+     */
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
+    fun shaped(codePoint: Int, role: Role): ShapedText =
+      shapedCaches[role.ordinal].getOrPut(codePoint) { ShapedText.of(charString(codePoint), paint(role)) }
 
     fun paint(role: Role): TextPaint = when (role) {
       Role.BODY -> body
@@ -659,8 +674,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       // centres in the line box itself, which is already the new height.
       val bodyBaseline = lineTop + baselineNudge - bodyMetrics.ascent
       if (role == Role.BODY) return bodyBaseline
-      val p = paint(role)
-      val m = p.fontMetrics
+      val m = metrics[role.ordinal]
       return when (if (role == Role.PREFIX) prefixAlign else suffixAlign) {
         AffixAlign.BASELINE -> bodyBaseline
         AffixAlign.CENTER -> lineTop + (lineHeight - (m.descent - m.ascent)) / 2f - m.ascent
@@ -673,7 +687,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     }
 
     /** How far `text`'s ink hangs below the baseline (0 for digits and capitals). */
-    private fun inkDescent(text: String, role: Role): Float = inkDescentCache.getOrPut(role.name + "|" + text) {
+    private fun inkDescent(text: String, role: Role): Float = inkDescentCaches[role.ordinal].getOrPut(text) {
       val bounds = Rect()
       paint(role).getTextBounds(text, 0, text.length, bounds)
       max(0, bounds.bottom).toFloat()
@@ -1749,6 +1763,9 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     return out
   }
 
+  /** Scratch for [ShapedText.draw], grown on demand. */
+  private var glyphPositions = FloatArray(8)
+
   private fun drawContent(canvas: Canvas, view: View) {
     syncFromEngine()
     val f = fonts
@@ -1793,7 +1810,12 @@ class NitroInputView(context: Context) : FrameLayout(context) {
         canvas.clipRect(-1e5f, -band, 1e5f, lineHeight + band)
       }
       if (g.scale != 1f) canvas.scale(g.scale, g.scale, g.x + g.width / 2f, lineHeight / 2f)
-      canvas.drawText(str, g.x, f.baseline(role, str, 0f) + g.y * lineHeight, paint)
+      val baseline = f.baseline(role, str, 0f) + g.y * lineHeight
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        glyphPositions = f.shaped(g.character, role).draw(canvas, g.x, baseline, paint, glyphPositions)
+      } else {
+        canvas.drawText(str, g.x, baseline, paint)
+      }
       canvas.restore()
     }
 

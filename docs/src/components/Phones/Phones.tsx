@@ -3,33 +3,27 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 import styles from './Phones.module.css';
 
 /**
- * Side-by-side screen recordings of the example app, captured on an
- * iPhone 13 Pro Max and a Pixel 10. Same code, same engine, both platforms.
+ * Screen recordings of the example app, captured on a Samsung Galaxy A22, a
+ * budget phone, with its own screen recorder: what the library does on the
+ * kind of hardware most people have, not on a flagship.
  *
- * The recordings are a few megabytes each and there are three pairs on the
- * landing page, so a phone only fetches its video once it is close to the
- * viewport. Until then the frame holds its shape and shows nothing.
+ * The recordings are a few megabytes each, so a phone only fetches its video
+ * once it is close to the viewport. Until then the frame holds its shape and
+ * shows nothing.
  */
 export default function Phones({
-  ios,
-  android,
-  iosLabel = 'iOS',
-  androidLabel = 'Android',
+  videos,
   caption,
 }: {
-  ios: string;
-  android: string;
-  iosLabel?: string;
-  androidLabel?: string;
+  videos: {src: string; label?: string}[];
   caption?: string;
 }) {
-  const iosSrc = useBaseUrl(ios);
-  const androidSrc = useBaseUrl(android);
   return (
     <figure className={styles.figure}>
       <div className={styles.row}>
-        <Phone src={iosSrc} label={iosLabel} radius={44} />
-        <Phone src={androidSrc} label={androidLabel} radius={36} />
+        {videos.map((video) => (
+          <Phone key={video.src} src={video.src} label={video.label} radius={36} />
+        ))}
       </div>
       {caption ? <figcaption className={styles.caption}>{caption}</figcaption> : null}
     </figure>
@@ -39,7 +33,8 @@ export default function Phones({
 /** The bezel's width, `.screen`'s border in Phones.module.css. */
 const BEZEL = 9;
 
-function Phone({src, label, radius}: {src: string; label: string; radius: number}) {
+function Phone({src: path, label, radius}: {src: string; label?: string; radius: number}) {
+  const src = useBaseUrl(path);
   const holder = useRef<HTMLDivElement>(null);
   const [near, setNear] = useState(false);
 
@@ -78,7 +73,7 @@ function Phone({src, label, radius}: {src: string; label: string; radius: number
           />
         ) : null}
       </div>
-      <span className={styles.label}>{label}</span>
+      {label ? <span className={styles.label}>{label}</span> : null}
     </div>
   );
 }

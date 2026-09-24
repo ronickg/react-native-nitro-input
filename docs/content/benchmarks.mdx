@@ -1,42 +1,44 @@
 ---
 title: Benchmarks
-description: Release-build measurements of both components against the other libraries on npm, on an iPhone 13 Pro Max, an iPhone 11 Pro and a Samsung Galaxy A22.
+description: Release-build measurements of both components against the other libraries on npm, on an iPhone 11 Pro and a Samsung Galaxy A22.
 ---
 
 import BenchChart from '@site/src/components/BenchChart';
 
 # Benchmarks
 
-Measured on three phones: an **iPhone 13 Pro Max** (120 Hz), an **iPhone 11 Pro** (60 Hz) and a **Samsung Galaxy A22** (90 Hz, a low-end MediaTek phone). Release builds, React Native 0.87.1. The bench app in the repository (`bench/`) is launched with a plan by `scripts/bench/run.mjs` and measures every frame on both threads with a native probe. Hover a bar for every figure of its row. The full tables, the method and the memory measurements are in [BENCHMARKS.md](https://github.com/ronickg/react-native-nitro-input/blob/main/BENCHMARKS.md), and every number comes from a result file in `scripts/bench/results/`.
+Measured on two slower phones, on purpose: an **iPhone 11 Pro** (60 Hz) and a **Samsung Galaxy A22** (90 Hz, a low-end MediaTek phone). Release builds, React Native 0.87.1. The bench app in the repository (`bench/`) is launched with a plan by `scripts/bench/run.mjs` and measures every frame on both threads with a native probe. Hover a bar for every figure of its row. The full tables, the method and the memory measurements are in [BENCHMARKS.md](https://github.com/ronickg/react-native-nitro-input/blob/main/BENCHMARKS.md), and every number comes from a result file in `scripts/bench/results/`.
 
 ## NitroNumber
 
-**24 numbers, a new value every frame.** UI is the main thread's frame rate and the frames it missed; JS is the frame rate the JS thread still managed. Only paths whose per-update work is one call (Nitro `jumpTo`, AnimateableText) or a plain render (Text, the Nitro `value` prop) hold the display's rate on every phone. The others drop frames, starve the JS thread, or both: a UI thread at 117 fps next to a JS thread at 13 fps animates but does not respond.
+NitroNumber is measured with both of its transitions: the roll (the `value` prop, and `jumpTo`, which positions the wheels continuously) and the numeric transition, which swaps each changed digit in place and draws more per frame. The **Roll / Numeric** switch on each chart picks which one the chart compares with the other libraries.
+
+**24 numbers, a new value every frame.** UI is the main thread's frame rate and the frames it missed; JS is the frame rate the JS thread still managed. On the iPhone 11 Pro every Nitro path, the roll and the numeric transition alike, holds 60 fps with nothing dropped, `jumpTo` on under a quarter of one core. On the Galaxy A22, where even plain `<Text>` manages 81 of 90, `jumpTo` matches it and keeps the JS thread at 76 fps; the `value` prop and the numeric transition, which re-render 24 components a frame, hold 72–74. The other libraries drop frames, starve the JS thread, or both: on the 11 Pro animated-rolling-numbers keeps the UI at 59 fps with the JS thread at 11, which animates but does not respond.
 
 <BenchChart group="stream|24|frame" metrics={['ui.fps', 'ui.dropped', 'js.fps']} />
 
-**A list.** 200 rows in a `FlatList`, scrolled back and forth while ten values a second arrive in every row, rows mounting as they scroll in. Both Nitro paths keep the list at the panel's rate on the iPhones and lead on the Galaxy A22 (74–81 fps against plain text's 56, because a re-rendered `<Text>` is re-measured on every update). The digit-tree libraries fall to a few frames a second.
+**A list.** 200 rows in a `FlatList`, scrolled back and forth while ten values a second arrive in every row, rows mounting as they scroll in. The roll keeps the list at 60 fps with nothing dropped on the 11 Pro; the numeric transition, which draws more for every changed digit, drops to 56. On the A22 `jumpTo` holds 79 fps and the `value` prop 67 against plain text's 59, because a re-rendered `<Text>` is re-measured on every update. NumberBloom holds 84 there with its JS thread at 1 fps; the other libraries fall below, NumberFlow View to under one frame a second on the 11 Pro.
 
 <BenchChart group="list|200|10" metrics={['ui.fps', 'ui.dropped', 'js.fps']} />
 
-**Mounting 24.** This is where a native view pays for being native: 52–65 ms on the iPhones against 18–22 ms for plain text, about 1.5 ms of main-thread time per view, once. That is the order of the other native library and a quarter to a fifth of the Reanimated digit trees.
+**Mounting 24.** This is where a native view pays for being native: 28–34 ms on the 11 Pro against 17 ms for plain text, 14–15 ms of it on the main thread, once; 158–172 ms against 99 on the A22. That is below the other native library and a fraction of the Reanimated digit trees, which take 0.2–0.4 s on the 11 Pro and up to 2 s on the A22.
 
 <BenchChart group="mount|24" metrics={['mountMs.p50']} />
 
-**Memory.** 24 copies mounted and unmounted 40 times, the footprint read as a floor after a forced collection, growth per cycle. The Nitro number ends where it started on all three phones, within the few megabytes plain text moves by, and on the Galaxy A22 the live `View` count stays flat. The digit-tree libraries grow by 1–12 MB a cycle.
+**Memory.** 24 copies mounted and unmounted 40 times in a fresh process, the footprint read as a floor after a forced collection, growth per cycle. The Nitro number ends where it started on both phones, roll and numeric alike, within the few megabytes plain text moves by, and on the Galaxy A22 the live `View` count stays flat. The digit-tree libraries grow by 1–23 MB a cycle.
 
 <BenchChart group="leak|24|40" metrics={['growthKbPerCycle']} />
 
 ## NitroInput
 
-**Typing at eight keys a second.** The figure to read first is *rewritten keys*: a field that formats in JavaScript (`TextInput` with `onChangeText` → `Intl.NumberFormat` → `value`, and the libraries built on that pattern) shows the raw keystroke first and the formatted text a frame or two later, 10 keys in 12. NitroInput formats inside the native edit, plain or reflowing, and never rewrites a key; it costs 2–6 ms of JavaScript per key where the JS-formatted fields cost 40–50. The reflow adds its animation frames and about 20 ms of JavaScript per key, with nothing dropped.
+**Typing at eight keys a second.** The figure to read first is *rewritten keys*: a field that formats in JavaScript (`TextInput` with `onChangeText` → `Intl.NumberFormat` → `value`, and the libraries built on that pattern) shows the raw keystroke first and the formatted text a frame or two later, 10 keys in 12. NitroInput formats inside the native edit, plain or reflowing, and never rewrites a key; it costs 1–5 ms of JavaScript per key where the JS-formatted fields cost 11–43. The reflow adds its animation frames and about 10 ms (11 Pro) to 17 ms (A22) of JavaScript per key: the field grows with its text, and React Native lays the new width out.
 
 <BenchChart group="type|8" metrics={['rewrites.keysWithRewrites', 'jsMsPerKey', 'settledMs.p95']} />
 
-**Focus.** `focus()` to `onFocus`: 7–11 ms where `TextInput` takes 18–21 ms, because the call goes straight into the native view instead of through a Fabric view command and the batched event emitter.
+**Focus.** `focus()` to `onFocus`: 6–10 ms on the 11 Pro and under 2 ms on the A22, where `TextInput` takes 51 and 21 ms, because the call goes straight into the native view instead of through a Fabric view command and the batched event emitter.
 
 <BenchChart group="focus" metrics={['ms.p50']} />
 
-**Mounting 20 fields.** A Nitro view costs more to create than a `TextInput` on both platforms; unmounting costs about the same for every field.
+**Mounting 20 fields.** A Nitro view costs more to create than a `TextInput`: 35–73 ms against 26 on the 11 Pro, 213–296 against 144 on the A22. Unmounting costs about the same for every field.
 
 <BenchChart group="mount|20" metrics={['mountMs.p50']} />

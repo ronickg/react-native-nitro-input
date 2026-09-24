@@ -5,8 +5,10 @@ come from the example app's three showcase screens (`Showcase: Market`,
 `Showcase: Reward` and `Showcase: Transfer` under Open demo — they are
 button-free and auto-playing, built for exactly this).
 
-Record on **real hardware**, not a simulator or emulator. The reasons are in
-"Why not a simulator" below.
+They are recorded on a **Samsung Galaxy A22** (MediaTek Helio G80, 90 Hz), a
+budget phone, on purpose: what the library does on the hardware most people
+have. Record on the phone itself, not an emulator; the reasons are in "Why not
+a simulator" below.
 
 ## 1. Build and install the example app
 
@@ -14,75 +16,45 @@ The showcase screens only exist in a current build, and a release build embeds
 the JS bundle so no Metro is needed while recording.
 
 ```bash
-# Android
 ANDROID_HOME="$HOME/Library/Android/sdk" ./example/android/gradlew \
   -p example/android assembleRelease
 adb -s <serial> install -r -d example/android/app/build/outputs/apk/release/app-release.apk
-
-# iOS
-(cd example/ios && pod install)
-xcodebuild -workspace example/ios/RollingNumberExample.xcworkspace \
-  -scheme RollingNumberExample -configuration Release \
-  -destination "id=<device-udid>" -derivedDataPath example/ios/build-device \
-  -allowProvisioningUpdates DEVELOPMENT_TEAM=<team> CODE_SIGN_STYLE=Automatic build
-xcrun devicectl device install app --device <device-udid> \
-  example/ios/build-device/Build/Products/Release-iphoneos/RollingNumberExample.app
 ```
 
 ## 2. Record
 
-**Android** — `adb shell screenrecord` is a true display recorder: it encodes on
-vsync at the panel's refresh rate and never pads with duplicate frames. Put the
-panel in its 120 Hz mode first, or it records the app at 60.
+`adb shell screenrecord` is a true display recorder: it encodes on vsync at the
+panel's refresh rate and never pads with duplicate frames. Pin the panel at its
+90 Hz first, or it may record the app at 60. The recorder takes a share of the
+A22's GPU while it runs (the market screen draws about 45 fps recorded); its
+bit rate and size make no difference to that.
 
 ```bash
-adb -s <serial> shell settings put system min_refresh_rate 120
-adb -s <serial> shell settings put system peak_refresh_rate 120
+adb -s <serial> shell settings put system min_refresh_rate 90
+adb -s <serial> shell settings put system peak_refresh_rate 90
 # open the showcase screen, then:
 adb -s <serial> shell screenrecord --bit-rate 32M --time-limit 20 /sdcard/out.mp4
-adb -s <serial> pull /sdcard/out.mp4 raw/android-rolling.mp4
+adb -s <serial> pull /sdcard/out.mp4 raw/android-market.mp4
 # put the display preference back
 adb -s <serial> shell settings delete system min_refresh_rate
 adb -s <serial> shell settings delete system peak_refresh_rate
 ```
 
-**iOS** — a cabled iPhone publishes its screen as a CoreMediaIO capture device,
-which is what QuickTime's "Movie Recording" records. `scripts/iosrec/` is a
-small AVFoundation recorder that does the same thing from the command line, at
-the device's 60 Hz capture rate. Two things it has to do that are easy to miss:
-it flips `kCMIOHardwarePropertyAllowScreenCaptureDevices` (without it the phone's
-*screen* never appears in the device list, only its camera), and it holds a
-`beginActivity` assertion (without it App Nap throttles the process and capture
-silently stops after about five seconds).
-
-```bash
-swiftc -O -o scripts/iosrec/IosRec.app/Contents/MacOS/iosrec scripts/iosrec/iosrec.swift
-codesign --force -s - scripts/iosrec/IosRec.app
-# open the showcase screen, then (must go through LaunchServices so the
-# camera permission prompt can appear the first time):
-open -W scripts/iosrec/IosRec.app --args "Ronald’s iPhone" 20 "$PWD/raw/ios-rolling.mov"
-```
-
-Record 20 s or so for the market screen, 28 s for the reward (one round is
-10-12 s; the window starts as a gift appears) and 24 s for the transfer (a
-10.6 s loop). Match the phone's name exactly, or at least so that it does not
-also match a paired phone's Continuity Camera.
-
-If the phone's screen is listed but no frames arrive (`IOSREC_PROBE=1` counts
-them), the system's `iOSScreenCaptureAssistant` is usually wedged — its log
-says `invalid valeria state`. `sudo killall iOSScreenCaptureAssistant` and
-re-plug the phone; it restarts on demand. Stop any XCUITest runner on the
-phone (argent's) while recording: it costs capture frames. Turn on a Focus so
-notification banners stay out of the clips.
+Record 20 s or so for the market screen (`raw/android-market.mp4`), 30 s for
+the reward (`raw/android-reveal.mp4`; one round is 12 s and the window starts
+as a gift appears) and 26 s for the transfer (`raw/android-transfer.mp4`, a
+10.6 s loop).
 
 ## 3. Encode
 
-`scripts/encode-demos.sh` produces every shipped asset. Its `TRIM_*` and
-`README_*` variables pick the window out of each raw capture; re-derive them
-after re-recording by finding where a count reveal starts, e.g.
+`scripts/encode-demos.sh` produces every shipped asset, and crops off the
+navigation bar the recorder captures. Its `TRIM_*` and `README_*` variables
+pick the window out of each raw capture; re-derive them after re-recording by
+finding where a loop starts: where the reward's gift appears, and where the
+transfer's field is cleared. A frame-difference trace shows the cuts:
 
 ```bash
-ffmpeg -v error -i raw/ios-reveal.mov \
+ffmpeg -v error -i raw/android-reveal.mp4 \
   -vf "scale=160:-2,tblend=all_mode=difference,signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-" \
   -f null -
 ```
@@ -93,8 +65,11 @@ then:
 RAW=raw bash scripts/encode-demos.sh
 ```
 
-The docs videos keep the Pixel's 120 fps and the iPhone's 60 (its capture
-ceiling); the README animations are 50 fps animated WebP.
+The docs videos keep the panel's 90 fps; the README animations are 50 fps
+animated WebP.
+
+`scripts/iosrec/` records a cabled iPhone's screen the same way QuickTime does,
+for when an iPhone clip is wanted; the shipped demos do not use it.
 
 ## Why not a simulator
 
@@ -107,5 +82,5 @@ as lag.
 The platform recorders avoid this entirely, but neither runs well headless:
 `xcrun simctl io <udid> recordVideo` needs Simulator.app attached to the render
 server and fails with `SimRenderServer error 2` without it, and a simulator caps
-at 60 Hz anyway. A cabled phone has none of those problems and is what the
-benchmarks already use.
+at 60 Hz anyway. A phone has none of those problems and is what the benchmarks
+already use.

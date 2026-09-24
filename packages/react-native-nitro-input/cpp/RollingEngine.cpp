@@ -96,6 +96,11 @@ int RollingEngine::Target::digit(int power) const {
 }
 
 RollingEngine::RollingEngine() = default;
+RollingEngine::~RollingEngine() = default;
+RollingEngine::RollingEngine(const RollingEngine&) = default;
+RollingEngine& RollingEngine::operator=(const RollingEngine&) = default;
+RollingEngine::RollingEngine(RollingEngine&&) noexcept = default;
+RollingEngine& RollingEngine::operator=(RollingEngine&&) noexcept = default;
 
 int RollingEngine::digitCount(uint64_t n) {
   int count = 1;

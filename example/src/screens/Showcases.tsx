@@ -342,7 +342,7 @@ export function RewardShowcase({ onExit }: { onExit: () => void }) {
         <Text style={s.kicker}>Jackpot</Text>
         <View style={s.bannerSlot}>
           {t && (
-            <Animated.Text style={[s.banner, { color: t.color, textShadowColor: t.glow }, bannerStyle]}>
+            <Animated.Text numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1} style={[s.banner, { color: t.color, textShadowColor: t.glow }, bannerStyle]}>
               {t.name}
             </Animated.Text>
           )}
@@ -694,10 +694,16 @@ const s = StyleSheet.create({
 
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   kicker: { color: '#FCD34D', fontFamily: FONT.bold, fontSize: 15, letterSpacing: 4, textTransform: 'uppercase' },
-  bannerSlot: { height: 64, justifyContent: 'center', alignItems: 'center', marginTop: 6 },
-  // Out of the slot's flow so it keeps its full height: the padding leaves
-  // room for the glow, which Android clips to the text's box.
-  banner: { position: 'absolute', flexShrink: 0, fontFamily: FONT.bold, fontSize: 44, letterSpacing: 1.5, paddingHorizontal: 36, paddingVertical: 18, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 16 },
+  // Stretched: a slot holding only an absolute child has no width of its own,
+  // and the banner was measured against that, so a wide tier ("MEGA WIN" at
+  // a larger font scale) wrapped onto two lines, left-aligned.
+  bannerSlot: { alignSelf: 'stretch', height: 64, justifyContent: 'center', marginTop: 6 },
+  // Out of the slot's flow so it keeps its full height, and across the whole
+  // screen (the centre's padding undone): the padding leaves room for the
+  // glow, which Android clips to the text's box. Not scaled with the system
+  // text size (maxFontSizeMultiplier): at 1.1 the widest tier filled the
+  // screen and its 1.22 pop ran past both edges.
+  banner: { position: 'absolute', left: -24, right: -24, textAlign: 'center', fontFamily: FONT.bold, fontSize: 44, letterSpacing: 1.5, paddingHorizontal: 36, paddingVertical: 18, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 16 },
   stage: { width: '100%', alignItems: 'center', justifyContent: 'center', height: 230 },
   rays: { position: 'absolute', width: 0, height: 0, alignItems: 'center', justifyContent: 'center' },
   ray: { position: 'absolute', width: 34, height: 260, borderRadius: 17, backgroundImage: 'linear-gradient(0deg, transparent, rgba(253,224,71,0.30) 55%, transparent)' },
