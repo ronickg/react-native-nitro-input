@@ -152,6 +152,36 @@
   Both are engine state (`Wheel::flash`, `revealScale()`), so every
   renderer reads them the same way.
 
+
+### Performance
+
+- iOS: Swift called every read-only method of a C++ engine on a copy of
+  it, vectors and all, dozens of times a frame per figure. `RollingEngine`,
+  `ReflowEngine` and `AmountFormatter` are `SWIFT_NONCOPYABLE` now and Swift
+  reads them in place. On an iPhone 11 Pro with 52 figures updating, a
+  frame's layout work went from ~45 to ~14 ms a second.
+- iOS: every figure wrapped its frame in an explicit `CATransaction` to turn
+  implicit animations off, which outside UIKit's own transaction is a
+  commit to the render server per figure per frame. The layers never
+  animate implicitly now (`QuietLayer`), so a frame's changes join the run
+  loop's one transaction; a reflowing `NitroInput`'s layers too. Roll
+  render ~235 → ~68 ms a second, main thread ~265 → ~190.
+- The numeric transition's blurred glyphs are kept while they are in use.
+  A cache that started over at a fixed count dropped glyphs about to be
+  drawn again on a screen with a few fonts and colours: on iOS ~2,900
+  vImage blurs a second (render ~750 → ~140 ms a second, 52 → 60 fps on
+  the 11 Pro); on Android the masks are bounded by size and each font set
+  keeps its own (numeric draw 6.9 → 4.4 ms a frame on a Galaxy A22).
+  A screen of many styles keeps more memory for them (~14 MB for a
+  52-figure dashboard in nine font/colour pairs on iOS), released on a
+  memory warning.
+- Android: prefixes, suffixes and separators are shaped once and drawn as
+  glyphs (`TextRunShaper` + `Canvas.drawGlyphs`, API 31+) instead of
+  re-shaped by `drawText` every frame: ~45 → ~5 µs a draw on a Galaxy A22,
+  a frame's draw for 52 figures 5.9 → 4.4 ms. A resting wheel is one bitmap
+  copy. A reflowing `NitroInput` draws its glyphs the same way: its draw
+  per animation frame halved (2.0–2.2 → 1.0–1.1 ms).
+
 ## 0.1.0
 
 ### NitroInput
