@@ -83,4 +83,19 @@ ref.current?.getValue()        // the value shown or being animated towards
 
 `jumpTo` positions every wheel from a continuous number, the way a mechanical odometer does: `41.75` shows the units wheel three quarters of the way from `1` to `2`, and a wheel only turns while every lower wheel is on its way from `9` to `0`. That is what a scroll, drag or gesture wants. It also skips a running [reveal](/docs/loading-and-reveal#jackpot-reveal).
 
-`jumpTo` and `animateTo` are safe to call from any thread and coalesce: only the newest value per main-thread turn is applied, so pushing a value every frame into many views never builds a backlog. From a Reanimated worklet, call them on the Nitro object (`onNativeRef`) directly.
+`jumpTo` and `animateTo` are safe to call from any thread and coalesce: only the newest value per main-thread turn is applied, so pushing a value every frame into many views never builds a backlog.
+
+From a Reanimated worklet, call them on the Nitro object (`onNativeRef`) directly: a Nitro object can be captured by a worklet as it is. A feed that runs on the UI thread keeps the figure moving while the JS thread is busy:
+
+```tsx
+const [price, setPrice] = useState<NitroNumberRef>()
+
+useFrameCallback((frame) => {
+  'worklet'
+  if (price && tickDue(frame)) price.animateTo(nextPrice())
+}, true)
+
+<NitroNumber value={initial} onNativeRef={setPrice} />
+```
+
+Hand the final value back to React once the feed stops (with `scheduleOnRN`) so the `value` prop matches what is on screen; posting every tick instead queues them up while JS is busy and replays them afterwards.

@@ -345,7 +345,7 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
       val value = changed ?: rollingView.targetValue
       val reveal = this.reveal
       if (reveal == null) {
-        // Normal rolling number (also when leaving reveal mode).
+        // A normal NitroNumber (also when leaving reveal mode).
         appliedReveal = null
         if (changed != null) rollingView.animateTo(changed)
         return@onMain

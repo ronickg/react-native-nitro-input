@@ -31,7 +31,7 @@ Under Reduce Motion the glint freezes, and the element is announced as loading.
 
 ## Jackpot reveal
 
-A rolling number is for values that change; a reveal is for the one value the user has been waiting for: the credit they were granted, the cashback, the jackpot. Casinos have tuned that moment for decades, and two presentations came out of it:
+NitroNumber's transitions are for values that change; a reveal is for the one value the user has been waiting for: the credit they were granted, the cashback, the jackpot. Casinos have tuned that moment for decades, and two presentations came out of it:
 
 - **The win-meter rollup** (`revealStyle="count"`, the default). The figure opens at `$0`, smaller, and tallies up to the total the way a slot's win counter does: it takes off at once, runs at a constant rate, grows as it climbs and crawls into the total. Leading digits appear as the count reaches their place, so nothing reflows.
 - **The reels** (`revealStyle="spin"`). Every digit spins like a slot reel, then the reels lock one at a time from the left.
@@ -64,7 +64,7 @@ Both land with a pop, and all of it runs in the native engine; the JS thread is 
 
 <Phones ios="/video/ios-reveal.mp4" android="/video/android-reveal.mp4" caption="The count with tiers, then the reels, on an iPhone 13 Pro Max and a Pixel 10." />
 
-`reveal` has three states. Leave it `undefined` for a normal rolling number. `false` shows the opening frame of `value`, its final layout with every digit blank except the mandatory ones (`$0.00`), so the box is already the right size. `true` plays the reveal; flip it back to `false` to re-arm. Mounted with `true`, it plays on mount.
+`reveal` has three states. Leave it `undefined` for a normal NitroNumber. `false` shows the opening frame of `value`, its final layout with every digit blank except the mandatory ones (`$0.00`), so the box is already the right size. `true` plays the reveal; flip it back to `false` to re-arm. Mounted with `true`, it plays on mount.
 
 **Tiers.** `revealMilestones` are the thresholds a casino rollup escalates through ("big win → mega win"), in the figure's units; those at or above `value` are ignored, so you can pass one fixed table. Every tier gets an equal share of `revealDuration` and is one run of its own: the count ramps up out of a milestone and brakes into the next. On each milestone the figure punches, pauses for `revealMilestoneHold` and `onRevealMilestone(index, value)` fires: the moment for your banner, haptic and sound. Budget about a second per tier; the 2.2 s default suits a count without them.
 

@@ -126,7 +126,7 @@ export interface NitroNumberProps extends HybridViewProps {
    */
   rollDirection?: NitroNumberDirection
   /**
-   * Jackpot reveal state. `0` (default): a normal rolling number, `value`
+   * Jackpot reveal state. `0` (default): a normal NitroNumber, `value`
    * changes roll. `1`: the view shows the opening frame of `value`, its layout
    * with every digit blank except the mandatory ones ("$0.00"). `2`: the
    * figure plays its `revealStyle` (counts up from 0, or spins its reels) to
