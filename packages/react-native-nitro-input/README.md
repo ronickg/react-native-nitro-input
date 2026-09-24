@@ -517,9 +517,9 @@ that grows or shrinks stays one shape. All of it is Reduce Motion aware.
 
 ## NitroNumber
 
-A native **rolling number** (odometer / ticker) view. Every digit is a wheel that rolls to
-its new glyph, like SwiftUI's `.contentTransition(.numericText())`, with the
-same look on iOS **and** Android.
+A number that animates its changes natively, with the same look on iOS
+**and** Android: every digit a wheel that rolls to its new glyph (an odometer /
+ticker), or SwiftUI's `.contentTransition(.numericText())`, or a scramble.
 
 - Change the `value` prop and the digits roll natively: per digit, direction
   aware, with easing or spring curves and an optional cascading `stagger`.
@@ -531,6 +531,9 @@ same look on iOS **and** Android.
 - `loading` shows a text-shaped shimmer skeleton that cross-fades to the value.
 - `reveal` plays the casino "you won" presentation natively: the win-meter
   rollup (with tiers that punch and hold) or slot reels that lock from the left.
+- A currency switch plays as one change: prefix, suffix and separators blur
+  across, decimal columns open and close, the digits swap or roll.
+- `animateTo` / `jumpTo` on the Nitro object work from a Reanimated worklet.
 
 Guide: **https://ronickg.github.io/react-native-nitro-input/docs/nitro-number**
 
@@ -616,6 +619,29 @@ a fraction of the size, rung out like the reveal's landing pop.
 />
 ```
 
+A view that sizes itself grows and shrinks from whichever edge its parent
+holds it by (`textAlign="auto"`): at the end of a row it grows to the left, in
+a centred column from its middle.
+
+Switching currency is a change like any other: set the new `prefix`, `suffix`,
+separators and `fractionDigits` with the new `value` and it plays as one
+transition. The old mark blurs out as the new one comes into focus, the
+digits keep their place value, decimal columns that go close and new ones open
+(swapping in, or rolling up from blank), and the decimal separator fades with
+them.
+
+```tsx
+<NitroNumber
+  value={round(usd * c.rate, c.digits)}
+  prefix={c.prefix}              // "$" → "" → "¥" → "CHF "
+  suffix={c.suffix}              // ""  → " €" …
+  groupingSeparator={c.grouping}
+  decimalSeparator={c.decimal}
+  fractionDigits={c.digits}      // 2 → 2 → 0 → 2
+  transition="numeric"
+/>
+```
+
 ### Loading skeleton
 
 ```tsx
@@ -675,6 +701,24 @@ ref.current?.getValue()         // value shown or being rolled towards
 wheel three quarters of the way from `1` to `2`), which is what you want when a
 scroll or drag handler drives the number.
 
+The Nitro object (`onNativeRef`) can be captured by a Reanimated worklet as it
+is, so the UI thread can drive the figure while JS is busy:
+
+```tsx
+const [price, setPrice] = useState<NitroNumberRef>()
+
+useFrameCallback((frame) => {
+  'worklet'
+  if (price && tickDue(frame)) price.animateTo(nextPrice())
+}, true)
+
+<NitroNumber value={initial} onNativeRef={setPrice} />
+```
+
+Hand the final value back to React when the feed stops (`scheduleOnRN`) so the
+`value` prop matches the screen; posting every tick queues them up while JS is
+busy and replays them afterwards.
+
 ## NitroNumber props
 
 | Prop | Type | Default | Description |
@@ -694,7 +738,7 @@ scroll or drag handler drives the number.
 | `flashDuration` | `number` | `600` | ms a change flash takes to fade, once the digit has landed. |
 | `popOnChange` | `number` | `0` | A punch of the whole figure on every change, peak overshoot 0–1, rung out like the reveal's landing pop. |
 | `direction` | `'auto' \| 'up' \| 'down'` | `'auto'` | Roll direction; `auto` follows the sign of the change. |
-| `reveal` | `boolean` | – | `false` holds the opening frame (`$0.00` in the final layout); `true` plays the reveal to `value`. Unset = a normal rolling number. |
+| `reveal` | `boolean` | – | `false` holds the opening frame (`$0.00` in the final layout); `true` plays the reveal to `value`. Unset = a normal NitroNumber. |
 | `revealStyle` | `'count' \| 'spin'` | `'count'` | The win-meter rollup, or slot reels locking from the left. |
 | `revealDuration` | `number` | `2200` | ms of the count, or until the last reel locks (holds and the pop come on top). |
 | `revealBounce` | `number` | `0.12` | Peak overshoot of the landing pop and the milestone punches; `0` = none. |
@@ -718,7 +762,7 @@ scroll or drag handler drives the number.
 | `fontWeight` | `TextStyle['fontWeight']` | `'normal'` | Font weight. |
 | `fontFamily` | `string` | system | Font family, resolved like `Text` (bundled / expo-font fonts work). |
 | `color` | `ColorValue` | label color | Text color. |
-| `textAlign` | `'auto' \| 'left' \| 'center' \| 'right'` | `'auto'` | Alignment inside a wider frame. `'auto'` is the start edge of the layout direction; `'left'` and `'right'` are absolute. In a right-to-left app the prefix sits at the right edge and the suffix at the left, and the digits keep reading left to right. |
+| `textAlign` | `'auto' \| 'left' \| 'center' \| 'right'` | `'auto'` | Alignment inside a wider frame. `'auto'` is the start edge of the layout direction, except in a view that hugs the number: there it is the edge the parent keeps the view to, so a figure at the end of a row grows and shrinks from its right edge. `'left'` and `'right'` are absolute. In a right-to-left app the prefix sits at the right edge and the suffix at the left, and the digits keep reading left to right. |
 | `onNativeRef` | `(ref) => void` | – | Receives the Nitro object on mount. |
 | `style`, `testID`, … | `ViewProps` | – | Regular view props. |
 
@@ -778,14 +822,15 @@ to reflow while digits appear (e.g. a counter that grows past `999`).
   reported when the roll has finished, so the box never squeezes digits that
   are still on their way out.
 
-## How the rolling number works
+## How NitroNumber works
 
 - All behaviour lives in one shared C++ engine (`cpp/RollingEngine.hpp`): each
   digit is a wheel with a continuous position on a `0–9` strip; the engine
   computes rolls (shortest path in the roll direction, blank↔digit for
   appearing/disappearing wheels), stagger, easing/spring curves, the odometer
-  carry rule for `jumpTo`, the loading fade, the shimmer phase and the jackpot
-  reveals (count curve, tiers, reels, landing pop).
+  carry rule for `jumpTo`, the loading fade, the shimmer phase, the jackpot
+  reveals (count curve, tiers, reels, landing pop), the numeric transition's
+  springs and the clocks of a prefix, suffix, separator or decimal change.
 - The Swift view calls the engine directly through Swift/C++ interop; the
   Kotlin view through a 60-line fbjni handle (the only hand-written JNI). Each
   platform only owns fonts, layout, fit-to-width and text drawing, and drives

@@ -119,7 +119,7 @@ export interface NitroNumberProps extends Omit<ViewProps, 'children'> {
    * except the mandatory ones); when it turns `true` the figure plays its
    * `revealStyle` to `value` and lands with a pop. Pair it with
    * `textAlign="center"` for a centred hero figure. Leave it `undefined` for
-   * a normal rolling number. To let the user skip the reveal, call `jumpTo(value)`.
+   * a normal NitroNumber. To let the user skip the reveal, call `jumpTo(value)`.
    */
   reveal?: boolean
   /**
@@ -249,7 +249,8 @@ const TRANSITION_DEFAULTS: Record<NitroNumberTransition, { duration: number; eas
 }
 
 /**
- * A natively animated rolling number (odometer / ticker).
+ * A number that animates its changes natively: an odometer roll, SwiftUI's
+ * numeric transition or a scramble.
  *
  * Change `value` and every digit rolls to its new glyph on the native side.
  * Use the ref's `animateTo` / `jumpTo` for imperative updates.

@@ -2,7 +2,7 @@
 //  NitroNumberView.swift
 //  NitroInput
 //
-//  Draws the rolling number. All behaviour (wheel positions, rolls, stagger,
+//  Draws a NitroNumber. All behaviour (wheel positions, rolls, stagger,
 //  easing, loading fade, shimmer phase) lives in the shared C++ `RollingEngine`
 //  (cpp/RollingEngine.hpp); this view owns fonts, layout, fit-to-width and
 //  rendering, and drives the engine from a display link.

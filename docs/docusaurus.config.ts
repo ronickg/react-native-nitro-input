@@ -11,7 +11,7 @@ const EDIT_URL = `${GITHUB}/tree/main/docs/`;
 const config: Config = {
   title: 'react-native-nitro-input',
   tagline:
-    'A native text input and a rolling number for React Native, built with Nitro Modules. C++ engines shared by iOS and Android.',
+    'A native text input and an animated number for React Native, built with Nitro Modules. C++ engines shared by iOS and Android.',
   favicon: 'img/favicon.svg',
 
   future: {
