@@ -120,13 +120,12 @@ public:
   /// Digits after the decimal separator (0…9) and zero-padding of the integer
   /// part (1…15). Snaps to the current target when they change.
   void setFormat(int fractionDigits, int minimumIntegerDigits);
-  /// `setFormat` with the change played: in a glyph-swap transition
-  /// (numeric, scramble) the digits keep their place value, the decimal
-  /// columns that go close and the ones that come open blank and swap their
-  /// digit in, the decimal separator fading with them (a currency switch:
-  /// "£9,587.05" to "¥1,856,853"). Snaps as `setFormat` does in a roll, during
-  /// a reveal, before a value has been shown, with a zero duration or under
-  /// Reduce Motion.
+  /// `setFormat` with the change played: the digits keep their place value,
+  /// the decimal columns that go close and the ones that come open blank
+  /// (swapping or rolling their digit in), the decimal separator fading with
+  /// them (a currency switch: "£9,587.05" to "¥1,856,853"). Snaps as
+  /// `setFormat` does during a reveal, before a value has been shown, with a
+  /// zero duration or under Reduce Motion.
   void changeFormat(int fractionDigits, int minimumIntegerDigits, double now);
   /// The decimal columns laid out now: `fractionDigits` plus the ones still
   /// closing after `changeFormat` took some away.
@@ -442,6 +441,10 @@ private:
   TextChange textChanges_[kTextSlots];
   bool textActive_ = false;
   void applyText(double now);
+  /// Drops the running transition's layout state, for a path that rebuilds
+  /// the wheels itself (a snap, a jump, a reveal): the decimal columns that
+  /// were closing go with it.
+  void endTransition();
   /// The clock of the last `tick`, for `needsFrames` on the effects.
   double lastNow_ = 0;
   bool effectsActive_ = false;

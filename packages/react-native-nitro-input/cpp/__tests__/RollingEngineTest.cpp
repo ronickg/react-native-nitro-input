@@ -3,6 +3,9 @@
 
 #include <cmath>
 #include <cstdio>
+#include <string>
+#include <cmath>
+#include <cstdint>
 #include <cstdlib>
 
 using margelo::nitro::nitroinput::RollingEngine;
@@ -900,6 +903,25 @@ static void textChangesSwapLikeTheDigits() {
   CHECK(!e.textChange(RollingEngine::PrefixText).active);
 }
 
+// The digits a settled engine shows, most significant first ("-" for a sign).
+static std::string shown(const RollingEngine& e) {
+  std::string out = e.signFactor() > 0.5 ? "-" : "";
+  for (int i = e.wheelCount() - 1; i >= 0; i--) {
+    const RollingEngine::Wheel w = e.wheelAt(i);
+    const long d = std::lround(w.position);
+    out += static_cast<char>('0' + ((d % 10) + 10) % 10);
+  }
+  return out;
+}
+
+// What `value` should read in a format: the digits of |value| · 10^fd, padded.
+static std::string expected(double value, int fd, int minInt) {
+  double scaled = std::round(std::fabs(value) * std::pow(10.0, fd));
+  std::string digits = std::to_string(static_cast<long long>(scaled));
+  while (static_cast<int>(digits.size()) < fd + minInt) digits = "0" + digits;
+  return (value < 0 && scaled > 0 ? "-" : "") + digits;
+}
+
 static void numericFormatChangesPlay() {
   RollingEngine e;
   e.setFormat(2, 1);
@@ -952,12 +974,213 @@ static void numericFormatChangesPlay() {
   CHECK(near(e.wheelAt(0).width, 1));
   CHECK(near(e.decimalFactor(), 1));
 
-  // The roll still snaps.
+  // The roll plays it too: the dropped columns roll down to blank and close.
   e.setTransition(0);
   e.changeFormat(0, 1, 5);
+  CHECK(e.needsFrames());
+  CHECK(e.displayFractionDigits() == 2);
+  CHECK(e.wheelAt(0).linear);
+  e.tick(10);
   CHECK(!e.needsFrames());
   CHECK(e.wheelCount() == 7);
   CHECK(e.displayFractionDigits() == 0);
+  // And opens new ones rolling up from blank.
+  e.changeFormat(2, 1, 11);
+  CHECK(e.wheelCount() == 9);
+  CHECK(near(e.wheelAt(0).width, 0));
+  e.tick(11.25);
+  CHECK(e.wheelAt(0).width > 0 && e.wheelAt(0).width < 1);
+  e.tick(20);
+  CHECK(shown(e) == expected(1856853, 2, 1));
+}
+
+static void formatAndTextEdges() {
+  RollingEngine e;
+  e.setTiming(0.5, 0, 0.15, 0.15, 0);
+  e.setTransition(1);
+  e.setFormat(2, 1);
+  e.animateTo(9587.05, 0);
+
+  // Flipped back mid-close: 2 → 0 → 2 before the columns have gone. The
+  // closing columns go and the second change plays; nothing is left over,
+  // and the figure never shows the old amount in the new format.
+  e.changeFormat(0, 1, 1);
+  e.tick(1.1);
+  e.changeFormat(2, 1, 1.1);
+  CHECK(e.displayFractionDigits() == 2);
+  CHECK(e.needsFrames());
+  CHECK(near(e.wheelAt(2).fromGlyph, 7) || near(e.wheelAt(2).position, 7));   // 9,587: still its own units
+  e.tick(5);
+  CHECK(!e.needsFrames());
+  CHECK(shown(e) == expected(9587.05, 2, 1));
+  CHECK(near(e.decimalFactor(), 1));
+
+  // A jump while decimal columns close: snaps to the new format.
+  e.changeFormat(0, 1, 6);
+  e.setValue(42);
+  CHECK(!e.needsFrames() || e.displayFractionDigits() == 0);
+  e.tick(10);
+  CHECK(e.displayFractionDigits() == 0);
+  CHECK(shown(e) == expected(42, 0, 1));
+
+  // Negative values keep their sign across a format change.
+  e.animateTo(-1234.5, 11);
+  e.tick(15);
+  e.changeFormat(1, 1, 15);
+  e.tick(20);
+  CHECK(shown(e) == expected(-1234.5, 1, 1));
+
+  // minimumIntegerDigits changes with the decimals: snaps, and reads right.
+  e.changeFormat(3, 4, 21);
+  e.tick(25);
+  CHECK(shown(e) == expected(-1234.5, 3, 4));
+
+  // With the change flash on, the flashes follow the re-indexed columns.
+  e.setFlash(0.6);
+  e.animateTo(77.125, 26);
+  e.changeFormat(0, 1, 26.05);
+  for (double t = 26.05; t < 30; t += 1.0 / 120) e.tick(t);
+  CHECK(!e.needsFrames());
+  CHECK(shown(e) == expected(77.125, 0, 1));
+  e.changeFormat(2, 1, 30);
+  for (double t = 30; t < 34; t += 1.0 / 120) e.tick(t);
+  CHECK(shown(e) == expected(77.125, 2, 1));
+
+  // The scramble plays a format change too; the roll snaps it.
+  e.setTransition(2);
+  e.changeFormat(0, 1, 35);
+  CHECK(e.needsFrames());
+  e.tick(40);
+  CHECK(shown(e) == expected(77.125, 0, 1));
+  e.setTransition(0);
+  e.changeFormat(2, 1, 41);
+  CHECK(e.needsFrames());
+  e.tick(45);
+  CHECK(shown(e) == expected(77.125, 2, 1));
+
+  // During a reveal the format snaps (the reveal owns the figure).
+  e.setTransition(1);
+  e.holdReveal(500);
+  e.changeFormat(0, 1, 42);
+  CHECK(e.displayFractionDigits() == 0);
+  e.reveal(500, 43);
+  e.changeFormat(2, 1, 43.2);
+  CHECK(e.displayFractionDigits() == 2);
+  e.tick(60);
+  CHECK(!e.needsFrames());
+
+  // Text changes: a reset mid-swap clears them; a slot changed on every frame
+  // never gets stuck.
+  e.changeText(RollingEngine::PrefixText, 61);
+  e.reset();
+  CHECK(!e.textChange(RollingEngine::PrefixText).active);
+  CHECK(!e.needsFrames());
+  e.setTiming(0.5, 0, 0.15, 0, 0);
+  e.setTransition(1);
+  e.animateTo(1, 62);
+  for (double t = 62; t < 63; t += 1.0 / 120) {
+    e.changeText(RollingEngine::SuffixText, t);
+    e.tick(t);
+  }
+  CHECK(e.textChange(RollingEngine::SuffixText).active);
+  e.tick(70);
+  CHECK(!e.textChange(RollingEngine::SuffixText).active);
+  CHECK(!e.needsFrames());
+
+  // The largest figure plus closing columns stays in range.
+  e.setFormat(2, 1);
+  e.animateTo(9999999999999999.0, 71);
+  e.tick(75);
+  e.changeFormat(0, 1, 75);
+  CHECK(e.wheelCount() <= 20);
+  e.tick(80);
+  CHECK(!e.needsFrames());
+}
+
+// Random sequences of everything a view can do, checked on every frame and
+// once settled. Run under -fsanitize=address,undefined as well.
+static void fuzzFormatTextAndValues() {
+  uint64_t seed = 0x9E3779B97F4A7C15ULL;
+  auto next = [&seed]() {
+    seed ^= seed << 13;
+    seed ^= seed >> 7;
+    seed ^= seed << 17;
+    return seed;
+  };
+  auto uniform = [&next]() { return static_cast<double>(next() % 1000000) / 1000000.0; };
+  int badFrames = 0;
+  int badSettles = 0;
+  for (int run = 0; run < 400; run++) {
+    RollingEngine e;
+    e.setTiming(0.1 + uniform() * 0.6, static_cast<int>(next() % 5), 0.15, uniform() * 0.15, 0);
+    e.setTransition(static_cast<int>(next() % 3));
+    int fd = static_cast<int>(next() % 4);
+    int minInt = 1 + static_cast<int>(next() % 3);
+    e.setFormat(fd, minInt);
+    double value = std::round((uniform() - 0.3) * 1e6) / 100;
+    double now = 0;
+    e.animateTo(value, now);
+    for (int step = 0; step < 60; step++) {
+      now += uniform() * 0.25;
+      switch (next() % 10) {
+        case 0: case 1: case 2:
+          value = std::round((uniform() - 0.3) * std::pow(10, 1 + next() % 9)) / 100;
+          e.animateTo(value, now);
+          break;
+        case 3:
+          fd = static_cast<int>(next() % 4);
+          if (next() % 4 == 0) minInt = 1 + static_cast<int>(next() % 3);
+          e.changeFormat(fd, minInt, now);
+          break;
+        case 4:
+          e.changeText(static_cast<int>(next() % 4), now);
+          break;
+        case 5:
+          if (next() % 3 == 0) {
+            value = std::round(uniform() * 1e5) / 10;
+            e.setValue(value);
+          }
+          break;
+        case 6:
+          e.setTransition(static_cast<int>(next() % 3));
+          break;
+        case 7:
+          e.setFlash(next() % 2 ? 0.6 : 0);
+          break;
+        default:
+          break;
+      }
+      // Frames until the next event, each checked.
+      const double until = now + uniform() * 0.3;
+      for (double t = now; t < until; t += 1.0 / 120) {
+        e.tick(t);
+        bool ok = std::isfinite(e.decimalFactor()) && e.decimalFactor() >= 0 && e.decimalFactor() <= 1 &&
+                  e.displayFractionDigits() >= fd && e.wheelCount() >= 1 && e.wheelCount() <= 24;
+        for (int i = 0; i < e.wheelCount(); i++) {
+          const RollingEngine::Wheel w = e.wheelAt(i);
+          ok = ok && std::isfinite(w.position) && w.width >= 0 && w.width <= 1 && std::isfinite(w.blend) &&
+               w.grow >= 0 && w.grow <= 1.0001 && w.blurOut >= 0 && w.blurOut <= 1.0001;
+        }
+        for (int slot = 0; slot < RollingEngine::kTextSlots; slot++) {
+          const RollingEngine::TextChange c = e.textChange(slot);
+          ok = ok && c.grow >= 0 && c.grow <= 1.0001 && c.focus >= 0 && c.focus <= 1.0001;
+        }
+        if (!ok) badFrames++;
+      }
+      now = until;
+    }
+    e.tick(now + 30);
+    const bool settled = !e.needsFrames() && e.displayFractionDigits() == fd && shown(e) == expected(value, fd, minInt);
+    if (!settled) {
+      if (badSettles < 5) {
+        std::printf("  run %d: shows %s, expected %s (fd %d, display %d, frames %d)\n", run, shown(e).c_str(),
+                    expected(value, fd, minInt).c_str(), fd, e.displayFractionDigits(), e.needsFrames() ? 1 : 0);
+      }
+      badSettles++;
+    }
+  }
+  CHECK(badFrames == 0);
+  CHECK(badSettles == 0);
 }
 
 int main() {
@@ -981,6 +1204,8 @@ int main() {
   numericTransitionCarriesASwapAcrossARetarget();
   textChangesSwapLikeTheDigits();
   numericFormatChangesPlay();
+  formatAndTextEdges();
+  fuzzFormatTextAndValues();
   scrambleShowsRandomDigitsUntilItLocks();
   changeFlashAndPop();
   if (failures == 0) {

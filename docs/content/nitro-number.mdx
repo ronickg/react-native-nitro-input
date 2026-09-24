@@ -34,7 +34,7 @@ The only thing the view needs is a number. Every change to `value` is one native
 - **`numeric`** is SwiftUI's `.contentTransition(.numericText())`: the old glyph softens, shrinks and slides out while the new one slides in from the other side, small and out of focus, and resolves. The pacing is SwiftUI's, measured frame by frame and scaled to `duration`; `easing` and `bounce` are not consulted. The blur is a blurred copy of each glyph rendered once per font and cross-faded with the sharp one, so a frame costs what a frame of a roll does.
 - **`scramble`**: each changed digit shows a random digit every few frames and locks on its target, from the left.
 
-The text around the digits changes the same way. A new `prefix`, `suffix` or separator softens out while the new one comes into focus, and its width eases between the two. In `numeric` and `scramble`, a change of `fractionDigits` plays too: the digits keep their place value, decimal columns that go close and new ones open blank, and the decimal separator fades with them. A currency switch ("11.459,69 €" to "£9,587.05" to "¥1,856,853") is one transition. In a roll, `fractionDigits` snaps.
+The text around the digits changes the same way. A new `prefix`, `suffix` or separator softens out while the new one comes into focus, and its width eases between the two. A change of `fractionDigits` plays too: the digits keep their place value, decimal columns that go close and new ones open blank (swapping in, or rolling up from blank in a roll), and the decimal separator fades with them. A currency switch ("11.459,69 €" to "£9,587.05" to "¥1,856,853") is one transition, however fast the switches come.
 
 <Example
   code={`<NitroNumber

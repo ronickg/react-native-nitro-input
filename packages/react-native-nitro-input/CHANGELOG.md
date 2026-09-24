@@ -26,12 +26,14 @@
 - A change of `prefix`, `suffix`, `groupingSeparator` or `decimalSeparator`
   plays instead of snapping: the old text softens and fades out while the
   new one comes into focus, on the numeric transition's springs, and its
-  width eases from one to the other (`RollingEngine::changeText`). In
-  `numeric` and `scramble` a change of `fractionDigits` plays too
+  width eases from one to the other (`RollingEngine::changeText`). A change
+  of `fractionDigits` plays too, in every transition
   (`RollingEngine::changeFormat`): the digits keep their place value, the
-  decimal columns that go close, new ones open blank and swap their digit
-  in, and the decimal separator fades with them. A currency switch is one
-  transition, as SwiftUI's numeric text makes it.
+  decimal columns that go close, new ones open blank and swap or roll their
+  digit in, and the decimal separator fades with them. A currency switch is
+  one transition, as SwiftUI's numeric text makes it, even when the next one
+  comes before it has finished (it used to show the old amount in the new
+  format for a frame, "¥838,712.00").
 - `transition="numeric"`: a column opens on the arriving glyph's spring and
   closes on the leaving glyph's blur, instead of the transition's easing,
   which lagged the glyph and left a gap where a digit had just left.
