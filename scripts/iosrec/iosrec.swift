@@ -35,9 +35,20 @@ final class Recorder: NSObject, AVCaptureFileOutputRecordingDelegate {
     }
 
     func start(match: String, to url: URL) throws {
-        let all = devices()
+        // The screen source can take several seconds to be published after
+        // allowScreenCaptureDevices(), and a paired iPhone's Continuity Camera
+        // ("…'s iPhone Camera") is listed too: it matches "iPhone" first and
+        // records black at 1080p. Wait for a matching device that is not a camera.
+        var all = devices()
+        var dev: AVCaptureDevice?
+        let until = Date().addingTimeInterval(10)
+        while dev == nil && Date() < until {
+            all = devices()
+            dev = all.first(where: { $0.localizedName.contains(match) && !$0.localizedName.hasSuffix("Camera") })
+            if dev == nil { RunLoop.current.run(until: Date().addingTimeInterval(0.25)) }
+        }
         log("devices: \(all.map { $0.localizedName })")
-        guard let dev = all.first(where: { $0.localizedName.contains(match) }) else {
+        guard let dev else {
             throw NSError(domain: "iosrec", code: 1,
                           userInfo: [NSLocalizedDescriptionKey: "no capture device matching \(match)"])
         }
