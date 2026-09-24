@@ -25,10 +25,10 @@ Money is usually set with the currency mark at a different size from the amount.
 
 <Example
   code={`// "$" smaller than the amount, aligned to the top of the digits
-<RollingNumber value={total} prefix="$" prefixFontSize={24} affixAlign="top" fontSize={52} />
+<NitroNumber value={total} prefix="$" prefixFontSize={24} affixAlign="top" fontSize={52} />
 
 // a currency code after the amount, smaller, on the digits' baseline
-<RollingNumber value={total} suffix=" USD" suffixFontSize={18} suffixAlign="bottom" fractionDigits={2} />`}>
+<NitroNumber value={total} suffix=" USD" suffixFontSize={18} suffixAlign="bottom" fractionDigits={2} />`}>
   <CurrencyDemo />
 </Example>
 
@@ -52,7 +52,7 @@ The view sizes itself to its content. When a column appears the box grows at onc
 `adjustsFontSizeToFit` scales the whole number down when the view is narrower than its content, down to `minimumFontScale` (default `0.5`), and back up when it fits again. The box keeps its height; only the amount scales. The scale follows the content as it is drawn, half-appeared columns included, so it changes continuously with the animation, and it is a layer or canvas transform, so no font is rebuilt while fitting.
 
 <Example
-  code={`<RollingNumber
+  code={`<NitroNumber
   value={total}
   prefix="$"
   fractionDigits={2}

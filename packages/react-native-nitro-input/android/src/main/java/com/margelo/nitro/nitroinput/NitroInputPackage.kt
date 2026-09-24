@@ -6,7 +6,7 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.module.model.ReactModuleInfoProvider
 import com.facebook.react.uimanager.ViewManager
 import com.margelo.nitro.nitroinput.views.HybridNitroInputViewManager
-import com.margelo.nitro.nitroinput.views.HybridRollingNumberViewManager
+import com.margelo.nitro.nitroinput.views.HybridNitroNumberViewManager
 
 class NitroInputPackage : BaseReactPackage() {
   override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? = null
@@ -14,7 +14,7 @@ class NitroInputPackage : BaseReactPackage() {
   override fun getReactModuleInfoProvider(): ReactModuleInfoProvider = ReactModuleInfoProvider { HashMap() }
 
   override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
-    return listOf(HybridNitroInputViewManager(), HybridRollingNumberViewManager())
+    return listOf(HybridNitroInputViewManager(), HybridNitroNumberViewManager())
   }
 
   companion object {

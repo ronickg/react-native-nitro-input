@@ -20,6 +20,8 @@ void JRollingEngine::registerNatives() {
       makeNativeMethod("setFlash", JRollingEngine::setFlash),
       makeNativeMethod("setPopOnChange", JRollingEngine::setPopOnChange),
       makeNativeMethod("setReduceMotion", JRollingEngine::setReduceMotion),
+      makeNativeMethod("changeText", JRollingEngine::changeText),
+      makeNativeMethod("changeFormat", JRollingEngine::changeFormat),
       makeNativeMethod("setValue", JRollingEngine::setValue),
       makeNativeMethod("animateTo", JRollingEngine::animateTo),
       makeNativeMethod("setLoading", JRollingEngine::setLoading),
@@ -69,6 +71,14 @@ void JRollingEngine::setPopOnChange(double overshoot) {
 
 void JRollingEngine::setReduceMotion(bool reduceMotion) {
   engine_.setReduceMotion(reduceMotion);
+}
+
+void JRollingEngine::changeText(int slot, double now) {
+  engine_.changeText(slot, now);
+}
+
+void JRollingEngine::changeFormat(int fractionDigits, int minimumIntegerDigits, double now) {
+  engine_.changeFormat(fractionDigits, minimumIntegerDigits, now);
 }
 
 void JRollingEngine::setValue(double value) {
@@ -143,8 +153,12 @@ int JRollingEngine::frameInto(jni::alias_ref<jni::JArrayDouble> out) {
   const auto& wheels = engine_.wheels();
   const size_t count = wheels.size();
   constexpr size_t kMaxWheels = 32;
-  double data[4 + kMaxWheels * 13];
-  const size_t needed = 4 + count * 13;
+  // Then each text slot's swap (`RollingEngine::changeText`): grow, focus,
+  // blurOut, active.
+  // Then the decimal columns laid out and the decimal separator's factor.
+  constexpr size_t kText = RollingEngine::kTextSlots * 4 + 2;
+  double data[4 + kMaxWheels * 13 + kText];
+  const size_t needed = 4 + count * 13 + kText;
   if (count > kMaxWheels || static_cast<size_t>(out->size()) < needed) {
     return -1;
   }
@@ -168,6 +182,15 @@ int JRollingEngine::frameInto(jni::alias_ref<jni::JArrayDouble> out) {
     data[i++] = w.grow;
     data[i++] = w.blurOut;
   }
+  for (int slot = 0; slot < RollingEngine::kTextSlots; slot++) {
+    const RollingEngine::TextChange t = engine_.textChange(slot);
+    data[i++] = t.grow;
+    data[i++] = t.focus;
+    data[i++] = t.blurOut;
+    data[i++] = t.active ? 1.0 : 0.0;
+  }
+  data[i++] = static_cast<double>(engine_.displayFractionDigits());
+  data[i++] = engine_.decimalFactor();
   out->setRegion(0, needed, data);
   return static_cast<int>(needed);
 }

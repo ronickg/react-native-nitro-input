@@ -25,7 +25,7 @@ android`, or the `xcodebuild` / `gradlew` commands in the root README), then:
 ```sh
 bun run test:harness:ios        # from the repo root, or in example/
 bun run test:harness:android
-bun --cwd example test:harness:ios -- --testPathPatterns=rolling-number   # one file
+bun --cwd example test:harness:ios -- --testPathPatterns=nitro-number   # one file
 ```
 
 Harness starts its own Metro (moving to a free port if 8081 is taken), launches

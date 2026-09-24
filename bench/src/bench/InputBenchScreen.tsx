@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react'
 import { ScrollView, Text, TextInput, View } from 'react-native'
-import { RollingNumber } from 'react-native-nitro-input'
+import { NitroNumber } from 'react-native-nitro-input'
 import { ExpoField, type ExpoFieldRef } from '../expoField'
 import { NitroInput, type NitroInputHandle } from 'react-native-nitro-input'
 import { Btn, Card, Row, styles } from '../harness'
@@ -154,7 +154,7 @@ export function InputBenchScreen() {
         </Row>
         <Row>
           <Btn testID="bench-mount-view" title={`mount ${BATCH} View`} onPress={() => runMount('view')} />
-          <Btn testID="bench-mount-roll" title={`mount ${BATCH} RollingNumber`} onPress={() => runMount('roll')} />
+          <Btn testID="bench-mount-roll" title={`mount ${BATCH} NitroNumber`} onPress={() => runMount('roll')} />
           <Btn testID="bench-mount-expo" title={`mount ${BATCH} Expo UI`} onPress={() => runMount('expo')} />
         </Row>
         <Text testID="bench-mount-plain-result" style={styles.cardHint}>{`plain: ${mountResult.plain}`}</Text>
@@ -242,7 +242,7 @@ export function InputBenchScreen() {
                 ))
             : mounted === 'roll'
               ? Array.from({ length: BATCH }, (_, i) => (
-                  <RollingNumber key={i} value={i} fontSize={18} style={styles.field} onLayout={onItemLayout} />
+                  <NitroNumber key={i} value={i} fontSize={18} style={styles.field} onLayout={onItemLayout} />
                 ))
             : mounted === 'expo'
               ? // `Host` has no onLayout, so each item carries a wrapper View.

@@ -4,11 +4,11 @@ import CodeBlock from '@theme/CodeBlock';
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import {
-  RollingNumberCanvas,
+  NitroNumberCanvas,
   type Easing,
-  type RollingNumberCanvasHandle,
-  type RollingNumberCanvasProps,
-} from '../RollingNumber/RollingNumberCanvas';
+  type NitroNumberCanvasHandle,
+  type NitroNumberCanvasProps,
+} from '../NitroNumber/NitroNumberCanvas';
 
 /**
  * The docs' live examples: a stage with the real engine (WebAssembly) on the
@@ -92,12 +92,12 @@ export function Example({code, children, caption}: {code: string; children: Reac
 // Ready-made demos used by the guides.
 // ---------------------------------------------------------------------------
 
-export function BasicDemo(props: Partial<RollingNumberCanvasProps>) {
+export function BasicDemo(props: Partial<NitroNumberCanvasProps>) {
   const [value, setValue] = useState(1234.5);
   return (
     <>
       <Stage>
-        <RollingNumberCanvas value={value} fractionDigits={2} groupingSeparator="," prefix="$" fontSize={56} fontWeight={800} {...props} />
+        <NitroNumberCanvas value={value} fractionDigits={2} groupingSeparator="," prefix="$" fontSize={56} fontWeight={800} {...props} />
       </Stage>
       <Controls>
         <Btn onClick={() => setValue((v) => v + 1)}>+1</Btn>
@@ -125,7 +125,7 @@ export function TimingDemo() {
   return (
     <>
       <Stage>
-        <RollingNumberCanvas value={value} groupingSeparator="," fontSize={56} fontWeight={800} easing={easing} duration={duration} stagger={stagger} bounce={bounce} />
+        <NitroNumberCanvas value={value} groupingSeparator="," fontSize={56} fontWeight={800} easing={easing} duration={duration} stagger={stagger} bounce={bounce} />
       </Stage>
       <Controls>
         <Btn primary onClick={bump}>
@@ -169,17 +169,41 @@ const TRANSITION_DEFAULTS: Record<Transition, {duration: number; easing: Easing;
   scramble: {duration: 500, easing: 'linear', stagger: 60},
 };
 
+/** One amount in four currencies: the affixes, separators and decimals change with it. */
+const CURRENCIES = [
+  {rate: 1, prefix: '$', suffix: '', grouping: ',', decimal: '.', digits: 2},
+  {rate: 0.9218, prefix: '', suffix: ' €', grouping: '.', decimal: ',', digits: 2},
+  {rate: 149.31, prefix: '¥', suffix: '', grouping: ',', decimal: '.', digits: 0},
+  {rate: 0.8634, prefix: 'CHF ', suffix: '', grouping: '’', decimal: '.', digits: 2},
+];
+
 export function TransitionsDemo() {
   const [value, setValue] = useState(4280);
   const [transition, setTransition] = useState<Transition>('numeric');
   const [duration, setDuration] = useState<number | null>(null);
   const [stagger, setStagger] = useState<number | null>(null);
+  const [currency, setCurrency] = useState(0);
   const defaults = TRANSITION_DEFAULTS[transition];
   const bump = () => setValue((v) => v + 1 + Math.round(Math.random() * 9));
+  const c = CURRENCIES[currency];
+  const shown = Math.round(value * c.rate * 10 ** c.digits) / 10 ** c.digits;
   return (
     <>
       <Stage>
-        <RollingNumberCanvas value={value} groupingSeparator="," fontSize={56} fontWeight={800} transition={transition} easing={defaults.easing} duration={duration ?? defaults.duration} stagger={stagger ?? defaults.stagger} />
+        <NitroNumberCanvas
+          value={shown}
+          prefix={c.prefix}
+          suffix={c.suffix}
+          groupingSeparator={c.grouping}
+          decimalSeparator={c.decimal}
+          fractionDigits={c.digits}
+          fontSize={56}
+          fontWeight={800}
+          transition={transition}
+          easing={defaults.easing}
+          duration={duration ?? defaults.duration}
+          stagger={stagger ?? defaults.stagger}
+        />
       </Stage>
       <Controls>
         <Btn primary onClick={bump}>
@@ -187,6 +211,7 @@ export function TransitionsDemo() {
         </Btn>
         <Btn onClick={() => setValue((v) => v + 1000 + Math.round(Math.random() * 9000))}>Big change</Btn>
         <Btn onClick={() => setValue((v) => Math.max(0, v - 1 - Math.round(Math.random() * 9)))}>Down</Btn>
+        <Btn onClick={() => setCurrency((i) => (i + 1) % CURRENCIES.length)}>Switch currency</Btn>
         {(['numeric', 'scramble', 'roll'] as const).map((t) => (
           <Btn key={t} selected={transition === t} onClick={() => setTransition(t)}>
             {t}
@@ -214,7 +239,7 @@ export function ChangeEffectsDemo() {
   return (
     <>
       <Stage>
-        <RollingNumberCanvas
+        <NitroNumberCanvas
           value={value}
           fractionDigits={2}
           groupingSeparator=","
@@ -260,9 +285,9 @@ export function CurrencyDemo() {
     <>
       <Stage height={120}>
         <div style={{display: 'flex', flexDirection: 'column', gap: 18, alignItems: 'flex-start'}}>
-          <RollingNumberCanvas value={value} fractionDigits={2} groupingSeparator="," prefix="$" prefixFontSize={24} affixAlign="top" fontSize={52} fontWeight={800} />
-          <RollingNumberCanvas value={value} fractionDigits={2} groupingSeparator="," suffix=" USD" suffixFontSize={18} suffixAlign="bottom" fontSize={52} fontWeight={800} color="#5b5bd6" />
-          <RollingNumberCanvas value={value} fractionDigits={2} groupingSeparator="," prefix="€" suffix=" EUR" prefixFontSize={24} suffixFontSize={16} prefixAlign="top" suffixAlign="bottom" fontSize={52} fontWeight={800} color="#0ea5e9" />
+          <NitroNumberCanvas value={value} fractionDigits={2} groupingSeparator="," prefix="$" prefixFontSize={24} affixAlign="top" fontSize={52} fontWeight={800} />
+          <NitroNumberCanvas value={value} fractionDigits={2} groupingSeparator="," suffix=" USD" suffixFontSize={18} suffixAlign="bottom" fontSize={52} fontWeight={800} color="#5b5bd6" />
+          <NitroNumberCanvas value={value} fractionDigits={2} groupingSeparator="," prefix="€" suffix=" EUR" prefixFontSize={24} suffixFontSize={16} prefixAlign="top" suffixAlign="bottom" fontSize={52} fontWeight={800} color="#0ea5e9" />
         </div>
       </Stage>
       <Controls>
@@ -281,7 +306,7 @@ export function FitDemo() {
     <>
       <Stage height={96}>
         <div style={{width: 240, height: 76, border: '1px dashed var(--rn-card-border)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-          <RollingNumberCanvas value={value} fractionDigits={2} groupingSeparator="," prefix="$" fontSize={56} fontWeight={800} adjustsFontSizeToFit minimumFontScale={0.4} textAlign="center" width={220} />
+          <NitroNumberCanvas value={value} fractionDigits={2} groupingSeparator="," prefix="$" fontSize={56} fontWeight={800} adjustsFontSizeToFit minimumFontScale={0.4} textAlign="center" width={220} />
         </div>
       </Stage>
       <Controls>
@@ -308,7 +333,7 @@ export function LoadingDemo() {
   return (
     <>
       <Stage>
-        <RollingNumberCanvas value={value} loading={loading} fractionDigits={2} groupingSeparator="," prefix="$" fontSize={56} fontWeight={800} textAlign="center" width={300} />
+        <NitroNumberCanvas value={value} loading={loading} fractionDigits={2} groupingSeparator="," prefix="$" fontSize={56} fontWeight={800} textAlign="center" width={300} />
       </Stage>
       <Controls>
         <Btn primary onClick={load}>
@@ -321,12 +346,12 @@ export function LoadingDemo() {
 }
 
 export function ImperativeDemo() {
-  const ref = useRef<RollingNumberCanvasHandle>(null);
+  const ref = useRef<NitroNumberCanvasHandle>(null);
   const [scrub, setScrub] = useState(1234.5);
   return (
     <>
       <Stage>
-        <RollingNumberCanvas ref={ref} value={42} fractionDigits={1} minimumIntegerDigits={4} fontSize={56} fontWeight={800} fontFamily="ui-monospace, Menlo, monospace" color="#22c55e" easing="easeOut" duration={400} />
+        <NitroNumberCanvas ref={ref} value={42} fractionDigits={1} minimumIntegerDigits={4} fontSize={56} fontWeight={800} fontFamily="ui-monospace, Menlo, monospace" color="#22c55e" easing="easeOut" duration={400} />
       </Stage>
       <Controls>
         <Btn onClick={() => ref.current?.animateTo(7)}>animateTo(7)</Btn>
@@ -354,7 +379,7 @@ export function ImperativeDemo() {
 }
 
 export function RevealDemo({initialStyle = 'count', milestones = false}: {initialStyle?: 'count' | 'spin'; milestones?: boolean}) {
-  const ref = useRef<RollingNumberCanvasHandle>(null);
+  const ref = useRef<NitroNumberCanvasHandle>(null);
   const [amount, setAmount] = useState(50000);
   const [reveal, setReveal] = useState(false);
   const [style, setStyle] = useState<'count' | 'spin'>(initialStyle);
@@ -386,7 +411,7 @@ export function RevealDemo({initialStyle = 'count', milestones = false}: {initia
             color: '#fff',
           }}>
           <div style={{fontWeight: 700, fontSize: 16}}>Congrats!</div>
-          <RollingNumberCanvas
+          <NitroNumberCanvas
             ref={ref}
             value={amount}
             reveal={reveal}

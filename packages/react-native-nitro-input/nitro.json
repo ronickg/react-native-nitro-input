@@ -29,14 +29,14 @@
         "implementationClassName": "HybridNitroInputWorklets"
       }
     },
-    "RollingNumberView": {
+    "NitroNumberView": {
       "ios": {
         "language": "swift",
-        "implementationClassName": "HybridRollingNumberView"
+        "implementationClassName": "HybridNitroNumberView"
       },
       "android": {
         "language": "kotlin",
-        "implementationClassName": "HybridRollingNumberView"
+        "implementationClassName": "HybridNitroNumberView"
       }
     }
   },

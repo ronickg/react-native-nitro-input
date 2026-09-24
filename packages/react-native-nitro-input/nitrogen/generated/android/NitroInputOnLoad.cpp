@@ -23,9 +23,9 @@
 #include "JFunc_void_std__string.hpp"
 #include "JFunc_void_double_double.hpp"
 #include "views/JHybridNitroInputViewStateUpdater.hpp"
-#include "JHybridRollingNumberViewSpec.hpp"
+#include "JHybridNitroNumberViewSpec.hpp"
 #include "JFunc_void.hpp"
-#include "views/JHybridRollingNumberViewStateUpdater.hpp"
+#include "views/JHybridNitroNumberViewStateUpdater.hpp"
 #include <NitroModules/DefaultConstructableObject.hpp>
 #include "HybridNitroInputWorklets.hpp"
 
@@ -45,12 +45,12 @@ struct JHybridNitroInputViewSpecImpl: public jni::JavaClass<JHybridNitroInputVie
     return javaPart->getJHybridNitroInputViewSpec();
   }
 };
-struct JHybridRollingNumberViewSpecImpl: public jni::JavaClass<JHybridRollingNumberViewSpecImpl, JHybridRollingNumberViewSpec::JavaPart> {
-  static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/nitroinput/HybridRollingNumberView;";
-  static std::shared_ptr<JHybridRollingNumberViewSpec> create() {
-    static const auto constructorFn = javaClassStatic()->getConstructor<JHybridRollingNumberViewSpecImpl::javaobject()>();
-    jni::local_ref<JHybridRollingNumberViewSpec::JavaPart> javaPart = javaClassStatic()->newObject(constructorFn);
-    return javaPart->getJHybridRollingNumberViewSpec();
+struct JHybridNitroNumberViewSpecImpl: public jni::JavaClass<JHybridNitroNumberViewSpecImpl, JHybridNitroNumberViewSpec::JavaPart> {
+  static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/nitroinput/HybridNitroNumberView;";
+  static std::shared_ptr<JHybridNitroNumberViewSpec> create() {
+    static const auto constructorFn = javaClassStatic()->getConstructor<JHybridNitroNumberViewSpecImpl::javaobject()>();
+    jni::local_ref<JHybridNitroNumberViewSpec::JavaPart> javaPart = javaClassStatic()->newObject(constructorFn);
+    return javaPart->getJHybridNitroNumberViewSpec();
   }
 };
 
@@ -67,9 +67,9 @@ void registerAllNatives() {
   margelo::nitro::nitroinput::JFunc_void_std__string_cxx::registerNatives();
   margelo::nitro::nitroinput::JFunc_void_double_double_cxx::registerNatives();
   margelo::nitro::nitroinput::views::JHybridNitroInputViewStateUpdater::registerNatives();
-  margelo::nitro::nitroinput::JHybridRollingNumberViewSpec::CxxPart::registerNatives();
+  margelo::nitro::nitroinput::JHybridNitroNumberViewSpec::CxxPart::registerNatives();
   margelo::nitro::nitroinput::JFunc_void_cxx::registerNatives();
-  margelo::nitro::nitroinput::views::JHybridRollingNumberViewStateUpdater::registerNatives();
+  margelo::nitro::nitroinput::views::JHybridNitroNumberViewStateUpdater::registerNatives();
 
   // Register Nitro Hybrid Objects
   HybridObjectRegistry::registerHybridObjectConstructor(
@@ -88,9 +88,9 @@ void registerAllNatives() {
     }
   );
   HybridObjectRegistry::registerHybridObjectConstructor(
-    "RollingNumberView",
+    "NitroNumberView",
     []() -> std::shared_ptr<HybridObject> {
-      return JHybridRollingNumberViewSpecImpl::create();
+      return JHybridNitroNumberViewSpecImpl::create();
     }
   );
 }

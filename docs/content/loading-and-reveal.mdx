@@ -15,7 +15,7 @@ While a balance is being fetched, show the number's shape instead of a grey bloc
 <Example
   code={`const { data: balance } = useBalance()
 
-<RollingNumber
+<NitroNumber
   value={balance ?? 0}
   loading={balance === undefined}
   prefix="$"
@@ -42,7 +42,7 @@ Both land with a pop, and all of it runs in the native engine; the JS thread is 
   caption="Click the number while it plays to skip to the total, the way a player taps to slam the count."
   code={`const [reveal, setReveal] = useState(false)
 
-<RollingNumber
+<NitroNumber
   value={50000}
   reveal={reveal}                    // false: hold "$0.00"; true: play
   revealStyle="count"                // or "spin"

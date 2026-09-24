@@ -12,15 +12,15 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'RollingNumber',
+      label: 'NitroNumber',
       collapsed: false,
-      items: ['rolling-number', 'formatting', 'loading-and-reveal'],
+      items: ['nitro-number', 'formatting', 'loading-and-reveal'],
     },
     {
       type: 'category',
       label: 'Reference',
       collapsed: false,
-      items: ['nitro-input-props', 'rolling-number-props'],
+      items: ['nitro-input-props', 'nitro-number-props'],
     },
     'benchmarks',
   ],

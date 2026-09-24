@@ -12,7 +12,7 @@ import {NitroInputPlainDemo} from '@site/src/components/NitroInput/NitroInputDem
 `react-native-nitro-input` is native text for React Native, built with [Nitro Modules](https://nitro.margelo.com). It has two components:
 
 - **`NitroInput`**, a text input. A system text field (`UITextField` / `EditText`) owns the keyboard, editing, selection, paste and accessibility; amounts are formatted and masks applied in C++ before a frame is drawn, and the characters can [reflow](/docs/reflow) as they change.
-- **`RollingNumber`**, a number that animates its changes. Every digit is a wheel that rolls to its new glyph, or swaps in place the way SwiftUI's `.contentTransition(.numericText())` does.
+- **`NitroNumber`**, a number that animates its changes. Every digit is a wheel that rolls to its new glyph, or swaps in place the way SwiftUI's `.contentTransition(.numericText())` does.
 
 Both are driven by C++ engines shared by iOS and Android, and share one formatting model: prefix and suffix at their own size, pinned to the top, bottom, baseline or centre of the digits; grouping and decimal separators of your choice.
 
@@ -59,12 +59,12 @@ Nothing animates unless you ask: the field draws its text the instant you type i
 </Frame>
 
 ```tsx
-import { RollingNumber } from 'react-native-nitro-input'
+import { NitroNumber } from 'react-native-nitro-input'
 
-<RollingNumber value={balance} fractionDigits={2} groupingSeparator="," prefix="$" fontSize={48} fontWeight="700" />
+<NitroNumber value={balance} fractionDigits={2} groupingSeparator="," prefix="$" fontSize={48} fontWeight="700" />
 ```
 
-Whenever `value` changes, each digit rolls from its old glyph to its new one in the direction of the change; the first value is shown without an animation. The view sizes itself to its content. [RollingNumber](/docs/rolling-number) covers the transitions, formatting and the jackpot reveal.
+Whenever `value` changes, each digit rolls from its old glyph to its new one in the direction of the change; the first value is shown without an animation. The view sizes itself to its content. [NitroNumber](/docs/nitro-number) covers the transitions, formatting and the jackpot reveal.
 
 ## What runs where
 

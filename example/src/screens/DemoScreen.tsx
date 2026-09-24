@@ -1,16 +1,14 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import {
-  FlatList,
   Pressable,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   View,
   useColorScheme,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { RollingNumber, type RollingNumberHandle } from 'react-native-nitro-input'
+import { NitroNumber, type NitroNumberHandle } from 'react-native-nitro-input'
 import {
   NitroInput,
   type NitroInputHandle,
@@ -19,6 +17,9 @@ import {
 import { useNitroInputState } from 'react-native-nitro-input'
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated'
 import { AsYouType } from 'libphonenumber-js/min'
+import { MarketShowcase, RewardShowcase, TransferShowcase } from './Showcases'
+import { EdgeCasesScreen } from './EdgeCases'
+import { useNavigation } from '@react-navigation/native'
 
 type MaskReadout = { formatted: string; extracted: string; tail: string; complete: boolean }
 const EMPTY_MASK: MaskReadout = { formatted: '', extracted: '', tail: '', complete: false }
@@ -421,7 +422,7 @@ function ReactDrivenDemo() {
     <Section title="React prop" hint="Change `value`, the digits roll natively. Fits the card: full size until it would overflow, then it shrinks. The transition button cycles roll → numeric (SwiftUI's numericText) → scramble; effects adds the change flash and a pop.">
       <View style={styles.display}>
         {mounted ? (
-        <RollingNumber
+        <NitroNumber
           value={value}
           fractionDigits={2}
           groupingSeparator=","
@@ -466,7 +467,7 @@ function CurrencyDemo() {
   return (
     <Section title="Currency layouts" hint="Smaller prefix/suffix, shrink-to-fit inside a fixed width, loading shimmer.">
       <View style={styles.display}>
-        <RollingNumber
+        <NitroNumber
           value={value}
           fractionDigits={2}
           groupingSeparator=","
@@ -480,7 +481,7 @@ function CurrencyDemo() {
         />
       </View>
       <View style={styles.display}>
-        <RollingNumber
+        <NitroNumber
           value={value}
           fractionDigits={2}
           groupingSeparator=","
@@ -495,7 +496,7 @@ function CurrencyDemo() {
       </View>
       <Text style={styles.sectionHint}>Fixed 180×64pt box with adjustsFontSizeToFit (box never resizes):</Text>
       <View style={styles.fitBox}>
-        <RollingNumber
+        <NitroNumber
           value={value}
           fractionDigits={2}
           groupingSeparator=","
@@ -525,7 +526,7 @@ function CenteredDemo() {
   return (
     <Section title="Centered in a fixed box" hint={'OpenRunde-Bold (bundled font), textAlign="center", top-pinned prefix and bottom-pinned suffix; watch them slide as digits appear.'}>
       <View style={styles.centerBox}>
-        <RollingNumber
+        <NitroNumber
           value={value}
           fractionDigits={2}
           groupingSeparator=","
@@ -555,11 +556,11 @@ function CenteredDemo() {
 }
 
 function ImperativeDemo() {
-  const ref = useRef<RollingNumberHandle>(null)
+  const ref = useRef<NitroNumberHandle>(null)
   return (
     <Section title="Imperative handle" hint="`animateTo` rolls, `jumpTo` positions the wheels continuously.">
       <View style={styles.display}>
-        <RollingNumber
+        <NitroNumber
           ref={ref}
           value={42}
           fractionDigits={1}
@@ -608,7 +609,7 @@ function RevealDemo() {
   const [landed, setLanded] = useState(false)
   const [style, setStyle] = useState<'count' | 'spin'>('count')
   const [tiers, setTiers] = useState(true)
-  const ref = useRef<RollingNumberHandle>(null)
+  const ref = useRef<NitroNumberHandle>(null)
   const status = landed ? 'Credit unlocked' : spin ? (style === 'spin' ? 'Spinning…' : 'Counting…') : 'Ready when you are'
   const rearm = () => setLanded(false)
   return (
@@ -623,7 +624,7 @@ function RevealDemo() {
       </View>
       <Pressable style={styles.revealCard} onPress={() => spin && !landed && ref.current?.jumpTo(amount)}>
         <Text style={styles.revealTitle}>Congrats!</Text>
-        <RollingNumber
+        <NitroNumber
           ref={ref}
           value={amount}
           reveal={spin}
@@ -673,341 +674,29 @@ function RevealDemo() {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Showcase: button-free, auto-playing screens for the docs recordings. Tap the
-// invisible top-right corner to leave.
-// ---------------------------------------------------------------------------
-
-type Showcase = 'balance' | 'reveal' | 'morph' | null
-
-const round = (v: number, places: number) => Math.round(v * 10 ** places) / 10 ** places
-
-/** The market list of the balance showcase: fixed holdings, prices that tick like a live feed. */
-const COINS = [
-  { name: 'Bitcoin', ticker: 'BTC', tint: '#F7931A', price: 64_210.9, holding: 0.4821 },
-  { name: 'Ethereum', ticker: 'ETH', tint: '#627EEA', price: 3_412.75, holding: 3.2041 },
-  { name: 'Solana', ticker: 'SOL', tint: '#9945FF', price: 148.32, holding: 41.5 },
-  { name: 'XRP', ticker: 'XRP', tint: '#00AAE4', price: 0.6123, holding: 5_200 },
-  { name: 'Cardano', ticker: 'ADA', tint: '#0033AD', price: 0.4521, holding: 8_400 },
-  { name: 'Avalanche', ticker: 'AVAX', tint: '#E84142', price: 36.8, holding: 72 },
-  { name: 'Dogecoin', ticker: 'DOGE', tint: '#C2A633', price: 0.1587, holding: 21_000 },
-  { name: 'Polkadot', ticker: 'DOT', tint: '#E6007A', price: 7.12, holding: 310 },
-  { name: 'Chainlink', ticker: 'LINK', tint: '#2A5ADA', price: 14.55, holding: 180 },
-  { name: 'Polygon', ticker: 'MATIC', tint: '#8247E5', price: 0.7241, holding: 3_900 },
-  { name: 'Litecoin', ticker: 'LTC', tint: '#345D9D', price: 84.1, holding: 24 },
-  { name: 'Uniswap', ticker: 'UNI', tint: '#FF007A', price: 9.87, holding: 260 },
-  { name: 'Cosmos', ticker: 'ATOM', tint: '#5C6CFF', price: 8.34, holding: 300 },
-  { name: 'NEAR', ticker: 'NEAR', tint: '#00C08B', price: 5.42, holding: 450 },
-]
-type Coin = (typeof COINS)[number]
-type Quote = { price: number; change: number }
-
-const CoinRow = React.memo(function CoinRow({ coin, quote }: { coin: Coin; quote: Quote }) {
-  const up = quote.change >= 0
-  return (
-    <View style={showcase.card}>
-      <View style={[showcase.coin, { backgroundColor: coin.tint }]}>
-        <Text style={showcase.coinText}>{coin.ticker[0]}</Text>
-      </View>
-      <View>
-        <Text style={showcase.cardName}>{coin.name}</Text>
-        <Text style={showcase.cardSub}>{coin.ticker}</Text>
-      </View>
-      <View style={showcase.cardRight}>
-        <RollingNumber
-          value={quote.price}
-          prefix="$"
-          fractionDigits={quote.price < 1 ? 4 : 2}
-          groupingSeparator=","
-          fontSize={17}
-          fontWeight="700"
-          color="#fff"
-          textAlign="right"
-          duration={450}
-          easing="easeOut"
-          style={showcase.cardAmount}
-        />
-        <RollingNumber
-          value={Math.abs(quote.change)}
-          prefix={up ? '+' : '−'}
-          suffix="%"
-          fractionDigits={2}
-          fontSize={13}
-          fontWeight="600"
-          color={up ? '#34D399' : '#F87171'}
-          textAlign="right"
-          duration={450}
-          easing="easeOut"
-          style={showcase.cardAmount}
-        />
-      </View>
-    </View>
-  )
-})
-
-function BalanceShowcase({ onExit }: { onExit: () => void }) {
-  const [quotes, setQuotes] = useState<Record<string, Quote>>(() =>
-    Object.fromEntries(COINS.map((c, i) => [c.ticker, { price: c.price, change: round(((i * 7) % 11) - 4.3, 2) }]))
-  )
-  const opening = useRef(COINS.reduce((sum, c) => sum + c.price * c.holding, 0)).current
-  useEffect(() => {
-    // A live feed: a few coins tick every 200 ms, so at any moment about a
-    // third of the list, plus the balance derived from it, is rolling.
-    const feed = setInterval(() => {
-      setQuotes((previous) => {
-        const next = { ...previous }
-        for (let n = 0; n < 5; n++) {
-          const coin = COINS[Math.floor(Math.random() * COINS.length)]
-          const q = previous[coin.ticker]
-          const drift = (Math.random() - 0.5) * 0.006
-          next[coin.ticker] = {
-            price: round(q.price * (1 + drift), q.price < 1 ? 4 : 2),
-            change: round(q.change + drift * 60, 2),
-          }
-        }
-        return next
-      })
-    }, 200)
-    return () => clearInterval(feed)
-  }, [])
-  const balance = round(COINS.reduce((sum, c) => sum + quotes[c.ticker].price * c.holding, 0), 2)
-  const today = round(balance - opening, 2)
-  const up = today >= 0
-  return (
-    <View style={[showcase.root, showcase.rootTop]}>
-      <StatusBar hidden />
-      <View style={showcase.glowA} />
-      <View style={showcase.glowB} />
-      <Pressable style={showcase.exit} onPress={onExit} testID="showcase-exit" />
-      <Text style={showcase.eyebrow}>Total balance</Text>
-      <RollingNumber
-        value={balance}
-        prefix="$"
-        prefixFontSize={30}
-        affixAlign="top"
-        fractionDigits={2}
-        groupingSeparator=","
-        fontSize={58}
-        fontWeight="800"
-        color="#fff"
-        easing="spring"
-        bounce={0.12}
-        stagger={25}
-        duration={700}
-        textAlign="center"
-        style={showcase.hero}
-      />
-      <View style={showcase.pill}>
-        <RollingNumber
-          value={Math.abs(today)}
-          prefix={up ? '+$' : '−$'}
-          fractionDigits={2}
-          groupingSeparator=","
-          fontSize={16}
-          fontWeight="700"
-          color={up ? '#34D399' : '#F87171'}
-          duration={600}
-          easing="easeOut"
-        />
-        <Text style={showcase.pillText}>today</Text>
-      </View>
-      <Text style={[showcase.eyebrow, showcase.listLabel]}>Markets</Text>
-      <FlatList
-        data={COINS}
-        keyExtractor={(c) => c.ticker}
-        renderItem={({ item }) => <CoinRow coin={item} quote={quotes[item.ticker]} />}
-        style={showcase.list}
-        contentContainerStyle={showcase.listContent}
-        showsVerticalScrollIndicator={false}
-        initialNumToRender={COINS.length}
-      />
-    </View>
-  )
-}
-
-function RevealShowcase({ onExit }: { onExit: () => void }) {
-  const [style, setStyle] = useState<'count' | 'spin'>('count')
-  const [amount, setAmount] = useState(50_000)
-  const [reveal, setReveal] = useState(false)
-  const timers = useRef<ReturnType<typeof setTimeout>[]>([])
-  const later = (ms: number, fn: () => void) => {
-    timers.current.push(setTimeout(fn, ms))
-  }
-  useEffect(() => {
-    later(900, () => setReveal(true))
-    const pending = timers.current
-    return () => pending.forEach(clearTimeout)
-  }, [])
-  // Count with tiers → hold → reels → hold → again.
-  const onRevealEnd = () => {
-    later(1800, () => {
-      setReveal(false)
-      later(700, () => {
-        setStyle((s) => (s === 'count' ? 'spin' : 'count'))
-        setAmount((a) => (a === 50_000 ? 25_750 : 50_000))
-        later(400, () => setReveal(true))
-      })
-    })
-  }
-  return (
-    <View style={[showcase.root, showcase.rootBrand]}>
-      <StatusBar hidden />
-      <View style={[showcase.glowA, showcase.glowBrand]} />
-      <Pressable style={showcase.exit} onPress={onExit} testID="showcase-exit" />
-      <View style={showcase.badge}>
-        <Text style={showcase.badgeText}>🎉</Text>
-      </View>
-      <Text style={showcase.revealTitle}>Congratulations!</Text>
-      <Text style={showcase.revealSub}>You've unlocked</Text>
-      <RollingNumber
-        value={amount}
-        reveal={reveal}
-        revealStyle={style}
-        revealMilestones={[1000, 10000, 25000]}
-        revealMilestoneHold={400}
-        revealDuration={style === 'count' ? 4800 : 2400}
-        onRevealEnd={onRevealEnd}
-        prefix="$"
-        fractionDigits={2}
-        groupingSeparator=","
-        fontSize={62}
-        fontWeight="800"
-        color="#fff"
-        textAlign="center"
-        style={showcase.hero}
-      />
-      <Text style={showcase.revealSub}>in credit</Text>
-      <View style={showcase.cta}>
-        <Text style={showcase.ctaText}>Claim credit</Text>
-      </View>
-    </View>
-  )
-}
-
-/** The reflowing input, typed for you: digits arrive, commas reflow, the figure is swapped. */
-function MorphShowcase({ onExit }: { onExit: () => void }) {
-  const field = useRef<NitroInputHandle>(null)
-  const timers = useRef<ReturnType<typeof setTimeout>[]>([])
-  const [caption, setCaption] = useState('Type an amount')
-
-  useEffect(() => {
-    const at = (ms: number, fn: () => void) => {
-      timers.current.push(setTimeout(fn, ms))
-    }
-    const run = () => {
-      let t = 0
-      const type = (text: string, step = 230) => {
-        at(t, () => field.current?.setText(text))
-        t += step
-      }
-      // Digits arrive from above; every comma that has to move a group drops
-      // out and a new one rises, rather than sliding through the digits.
-      at(0, () => setCaption('Type an amount'))
-      for (const text of ['1', '12', '123', '1234', '12345', '123456', '1234567']) type(text)
-      t += 900
-      // ...and back down again.
-      at(t, () => setCaption('Backspace'))
-      for (const text of ['123456', '12345', '1234']) type(text)
-      t += 900
-      // A value set from code: the columns reshape.
-      at(t, () => { setCaption('Set from code'); field.current?.setValue(9876543) })
-      t += 1600
-      // Nothing survives a swap this size, so the whole run recedes as one shape.
-      at(t, () => { setCaption('Replaced'); field.current?.setValue(42) })
-      t += 1600
-      at(t, () => { setCaption('Cleared'); field.current?.clear() })
-      t += 1500
-      at(t, run)
-    }
-    run()
-    const pending = timers.current
-    return () => pending.forEach(clearTimeout)
-  }, [])
-
-  return (
-    <View style={[showcase.root, showcase.rootMorph]}>
-      <StatusBar hidden />
-      <View style={[showcase.glowA, showcase.glowMorphA]} />
-      <View style={[showcase.glowB, showcase.glowMorphB]} />
-      <Pressable style={showcase.exit} onPress={onExit} testID="showcase-exit" />
-      <Text style={showcase.eyebrow}>Send money</Text>
-      <NitroInput transition="reflow"
-        ref={field}
-        mode="number"
-        prefix="$"
-        prefixFontSize={30}
-        affixAlign="top"
-        placeholder="0"
-        fontSize={62}
-        fontWeight="800"
-        color="#fff"
-        placeholderTextColor="rgba(255,255,255,0.35)"
-        textAlign="center"
-        editable={false}
-        adjustsFontSizeToFit
-        minimumFontScale={0.4}
-        style={showcase.morphField}
-      />
-      <View style={showcase.pill}>
-        <Text style={showcase.pillText}>{caption}</Text>
-      </View>
-      <View style={[showcase.cta, showcase.ctaMorph]}>
-        <Text style={showcase.ctaTextMorph}>Continue</Text>
-      </View>
-    </View>
-  )
-}
-
-const showcase = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0B0F19', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, overflow: 'hidden' },
-  rootBrand: { backgroundColor: '#1D4ED8' },
-  rootMorph: { backgroundColor: '#140A24' },
-  glowMorphA: { backgroundColor: '#7C3AED', opacity: 0.38 },
-  glowMorphB: { backgroundColor: '#DB2777', opacity: 0.24 },
-  morphField: { width: '100%', marginTop: 6 },
-  ctaMorph: { backgroundColor: 'rgba(255,255,255,0.14)' },
-  ctaTextMorph: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  rootTop: { justifyContent: 'flex-start', paddingTop: 84, paddingHorizontal: 0 },
-  listLabel: { marginTop: 28, marginBottom: 8, alignSelf: 'flex-start', marginLeft: 28 },
-  list: { alignSelf: 'stretch' },
-  listContent: { paddingHorizontal: 20, paddingBottom: 40, gap: 10 },
-  glowA: { position: 'absolute', width: 460, height: 460, borderRadius: 230, backgroundColor: '#2563EB', opacity: 0.3, top: -160, left: -140 },
-  glowB: { position: 'absolute', width: 380, height: 380, borderRadius: 190, backgroundColor: '#0EA5E9', opacity: 0.18, bottom: -140, right: -120 },
-  glowBrand: { backgroundColor: '#60A5FA', opacity: 0.35 },
-  exit: { position: 'absolute', top: 0, right: 0, width: 72, height: 72 },
-  eyebrow: { color: 'rgba(255,255,255,0.65)', fontSize: 13, letterSpacing: 1.6, textTransform: 'uppercase', fontWeight: '600', marginBottom: 10 },
-  hero: { width: '100%' },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, marginTop: 14 },
-  pillText: { color: 'rgba(255,255,255,0.7)', fontSize: 14 },
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 18, padding: 16, gap: 14 },
-  coin: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  coinText: { color: '#fff', fontWeight: '800', fontSize: 16 },
-  cardName: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  cardSub: { color: 'rgba(255,255,255,0.55)', fontSize: 13, marginTop: 2 },
-  cardRight: { marginLeft: 'auto', alignItems: 'flex-end', gap: 2 },
-  cardAmount: { width: 150 },
-  badge: { width: 76, height: 76, borderRadius: 38, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
-  badgeText: { fontSize: 36 },
-  revealTitle: { color: '#fff', fontSize: 28, fontWeight: '800' },
-  revealSub: { color: 'rgba(255,255,255,0.8)', fontSize: 16, marginVertical: 10 },
-  cta: { position: 'absolute', bottom: 132, left: 24, right: 24, backgroundColor: '#fff', borderRadius: 999, paddingVertical: 16, alignItems: 'center' },
-  ctaText: { color: '#1D4ED8', fontWeight: '700', fontSize: 16 },
-})
+type Showcase = 'balance' | 'reveal' | 'morph' | 'edges' | null
 
 export function DemoScreen() {
   const dark = useColorScheme() === 'dark'
   const [showing, setShowing] = useState<Showcase>(null)
-  if (showing === 'balance') return <BalanceShowcase onExit={() => setShowing(null)} />
-  if (showing === 'reveal') return <RevealShowcase onExit={() => setShowing(null)} />
-  if (showing === 'morph') return <MorphShowcase onExit={() => setShowing(null)} />
+  // A showcase is recorded full screen: no navigation header over it.
+  const navigation = useNavigation()
+  useLayoutEffect(() => {
+    navigation.setOptions({ headerShown: showing == null })
+  }, [navigation, showing])
+  if (showing === 'balance') return <MarketShowcase onExit={() => setShowing(null)} />
+  if (showing === 'reveal') return <RewardShowcase onExit={() => setShowing(null)} />
+  if (showing === 'morph') return <TransferShowcase onExit={() => setShowing(null)} />
+  if (showing === 'edges') return <EdgeCasesScreen onExit={() => setShowing(null)} />
   return (
       <SafeAreaView style={[styles.root, dark && styles.rootDark]} edges={['bottom']}>
         <ScrollView contentContainerStyle={styles.content}>
-          <Text style={[styles.title, dark && styles.titleDark]}>Nitro Rolling Number</Text>
+          <Text style={[styles.title, dark && styles.titleDark]}>NitroNumber &amp; NitroInput</Text>
           <View style={styles.row}>
-            <Button title="Showcase: Balance" testID="showcase-balance" onPress={() => setShowing('balance')} />
-            <Button title="Showcase: Reveal" testID="showcase-reveal" onPress={() => setShowing('reveal')} />
-            <Button title="Showcase: Reflow" testID="showcase-morph" onPress={() => setShowing('morph')} />
+            <Button title="Showcase: Market" testID="showcase-balance" onPress={() => setShowing('balance')} />
+            <Button title="Showcase: Reward" testID="showcase-reveal" onPress={() => setShowing('reveal')} />
+            <Button title="Showcase: Transfer" testID="showcase-morph" onPress={() => setShowing('morph')} />
+            <Button title="Edge cases" testID="showcase-edges" onPress={() => setShowing('edges')} />
           </View>
           <ReflowInputDemo />
           <MorphWorkletDemo />

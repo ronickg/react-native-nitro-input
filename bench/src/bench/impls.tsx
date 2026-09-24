@@ -1,6 +1,6 @@
 import React from 'react'
 import { Text, type TextStyle } from 'react-native'
-import { RollingNumber, type RollingNumberHandle } from 'react-native-nitro-input'
+import { NitroNumber, type NitroNumberHandle } from 'react-native-nitro-input'
 import { NumberFlow } from 'number-flow-react-native'
 import { SkiaNumberFlow } from 'number-flow-react-native/skia'
 import { Canvas, type SkFont } from '@shopify/react-native-skia'
@@ -50,7 +50,7 @@ export const IMPLS: Impl[] = [
     label: 'Nitro value prop',
     short: 'Nitro prop',
     package: 'react-native-nitro-input',
-    how: 'RollingNumber driven by its value prop: a React render per update, then one JSI call.',
+    how: 'NitroNumber driven by its value prop: a React render per update, then one JSI call.',
   },
   {
     key: 'nitro-jump',
@@ -64,7 +64,7 @@ export const IMPLS: Impl[] = [
     label: 'Nitro numeric transition',
     short: 'Nitro numeric',
     package: 'react-native-nitro-input',
-    how: 'RollingNumber driven by its value prop with transition="numeric": each changed digit swaps in place, scaled, faded and blurred, after SwiftUI.',
+    how: 'NitroNumber driven by its value prop with transition="numeric": each changed digit swaps in place, scaled, faded and blurred, after SwiftUI.',
   },
   {
     key: 'rnna',
@@ -160,7 +160,7 @@ export function BenchItem({
   fmt: Intl.NumberFormat
   sv: SharedValue<string>
   font: SkFont | null
-  nitroRef: (h: RollingNumberHandle | null) => void
+  nitroRef: (h: NitroNumberHandle | null) => void
 }) {
   const textStyle: TextStyle = { fontSize, fontWeight: '700', color: '#111' }
   const canvasStyle = { width: '100%' as const, height: fontSize * 1.45 }
@@ -175,7 +175,7 @@ export function BenchItem({
       return <SharedText sv={sv} style={{ ...textStyle, ...TABULAR }} />
     case 'nitro-prop':
       return (
-        <RollingNumber
+        <NitroNumber
           value={value}
           fractionDigits={2}
           groupingSeparator=","
@@ -189,7 +189,7 @@ export function BenchItem({
       )
     case 'nitro-numeric':
       return (
-        <RollingNumber
+        <NitroNumber
           value={value}
           fractionDigits={2}
           groupingSeparator=","
@@ -202,7 +202,7 @@ export function BenchItem({
       )
     case 'nitro-jump':
       return (
-        <RollingNumber
+        <NitroNumber
           ref={nitroRef}
           value={BENCH_START}
           fractionDigits={2}

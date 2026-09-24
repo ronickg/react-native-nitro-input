@@ -109,7 +109,7 @@ being measured):
 | --- | --- | --- | --- |
 | bare React Native `View` | **4.1 ms** | 4.8 | 0.21 ms |
 | React Native `TextInput` | **9.7 ms** | 9.7 | 0.49 ms |
-| `RollingNumber` — a *different* Nitro view, no text input, 40 props | **12.2 ms** | 13.5 | 0.61 ms |
+| `NitroNumber` — a *different* Nitro view, no text input, 40 props | **12.2 ms** | 13.5 | 0.61 ms |
 | `NitroInput` (full overlay) | **12.6 ms** | 12.8 | 0.63 ms |
 | `NitroInput` (plain, no overlay) | **12.9 ms** | 14.0 | 0.65 ms |
 | `@expo/ui` SwiftUI `TextField` | **91.4 ms** | 101.8 | 4.6 ms |

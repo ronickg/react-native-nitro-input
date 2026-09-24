@@ -10,39 +10,39 @@
 // Forward declarations of C++ defined types
 // Forward declaration of `HybridNitroInputViewSpec` to properly resolve imports.
 namespace margelo::nitro::nitroinput { class HybridNitroInputViewSpec; }
-// Forward declaration of `HybridRollingNumberViewSpec` to properly resolve imports.
-namespace margelo::nitro::nitroinput { class HybridRollingNumberViewSpec; }
+// Forward declaration of `HybridNitroNumberViewSpec` to properly resolve imports.
+namespace margelo::nitro::nitroinput { class HybridNitroNumberViewSpec; }
 // Forward declaration of `NitroInputNotation` to properly resolve imports.
 namespace margelo::nitro::nitroinput { struct NitroInputNotation; }
-// Forward declaration of `RollingNumberAffixAlign` to properly resolve imports.
-namespace margelo::nitro::nitroinput { enum class RollingNumberAffixAlign; }
-// Forward declaration of `RollingNumberDirection` to properly resolve imports.
-namespace margelo::nitro::nitroinput { enum class RollingNumberDirection; }
-// Forward declaration of `RollingNumberEasing` to properly resolve imports.
-namespace margelo::nitro::nitroinput { enum class RollingNumberEasing; }
-// Forward declaration of `RollingNumberRevealStyle` to properly resolve imports.
-namespace margelo::nitro::nitroinput { enum class RollingNumberRevealStyle; }
-// Forward declaration of `RollingNumberTextAlign` to properly resolve imports.
-namespace margelo::nitro::nitroinput { enum class RollingNumberTextAlign; }
-// Forward declaration of `RollingNumberTransition` to properly resolve imports.
-namespace margelo::nitro::nitroinput { enum class RollingNumberTransition; }
+// Forward declaration of `NitroNumberAffixAlign` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberAffixAlign; }
+// Forward declaration of `NitroNumberDirection` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberDirection; }
+// Forward declaration of `NitroNumberEasing` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberEasing; }
+// Forward declaration of `NitroNumberRevealStyle` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberRevealStyle; }
+// Forward declaration of `NitroNumberTextAlign` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberTextAlign; }
+// Forward declaration of `NitroNumberTransition` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberTransition; }
 
 // Forward declarations of Swift defined types
 // Forward declaration of `HybridNitroInputViewSpec_cxx` to properly resolve imports.
 namespace NitroInput { class HybridNitroInputViewSpec_cxx; }
-// Forward declaration of `HybridRollingNumberViewSpec_cxx` to properly resolve imports.
-namespace NitroInput { class HybridRollingNumberViewSpec_cxx; }
+// Forward declaration of `HybridNitroNumberViewSpec_cxx` to properly resolve imports.
+namespace NitroInput { class HybridNitroNumberViewSpec_cxx; }
 
 // Include C++ defined types
 #include "HybridNitroInputViewSpec.hpp"
-#include "HybridRollingNumberViewSpec.hpp"
+#include "HybridNitroNumberViewSpec.hpp"
 #include "NitroInputNotation.hpp"
-#include "RollingNumberAffixAlign.hpp"
-#include "RollingNumberDirection.hpp"
-#include "RollingNumberEasing.hpp"
-#include "RollingNumberRevealStyle.hpp"
-#include "RollingNumberTextAlign.hpp"
-#include "RollingNumberTransition.hpp"
+#include "NitroNumberAffixAlign.hpp"
+#include "NitroNumberDirection.hpp"
+#include "NitroNumberEasing.hpp"
+#include "NitroNumberRevealStyle.hpp"
+#include "NitroNumberTextAlign.hpp"
+#include "NitroNumberTransition.hpp"
 #include <NitroModules/Result.hpp>
 #include <exception>
 #include <functional>
@@ -398,63 +398,63 @@ namespace margelo::nitro::nitroinput::bridge::swift {
     return optional.value();
   }
   
-  // pragma MARK: std::optional<RollingNumberEasing>
+  // pragma MARK: std::optional<NitroNumberEasing>
   /**
-   * Specialized version of `std::optional<RollingNumberEasing>`.
+   * Specialized version of `std::optional<NitroNumberEasing>`.
    */
-  using std__optional_RollingNumberEasing_ = std::optional<RollingNumberEasing>;
-  inline std::optional<RollingNumberEasing> create_std__optional_RollingNumberEasing_(const RollingNumberEasing& value) noexcept {
-    return std::optional<RollingNumberEasing>(value);
+  using std__optional_NitroNumberEasing_ = std::optional<NitroNumberEasing>;
+  inline std::optional<NitroNumberEasing> create_std__optional_NitroNumberEasing_(const NitroNumberEasing& value) noexcept {
+    return std::optional<NitroNumberEasing>(value);
   }
-  inline bool has_value_std__optional_RollingNumberEasing_(const std::optional<RollingNumberEasing>& optional) noexcept {
+  inline bool has_value_std__optional_NitroNumberEasing_(const std::optional<NitroNumberEasing>& optional) noexcept {
     return optional.has_value();
   }
-  inline RollingNumberEasing get_std__optional_RollingNumberEasing_(const std::optional<RollingNumberEasing>& optional) noexcept {
+  inline NitroNumberEasing get_std__optional_NitroNumberEasing_(const std::optional<NitroNumberEasing>& optional) noexcept {
     return optional.value();
   }
   
-  // pragma MARK: std::optional<RollingNumberTransition>
+  // pragma MARK: std::optional<NitroNumberTransition>
   /**
-   * Specialized version of `std::optional<RollingNumberTransition>`.
+   * Specialized version of `std::optional<NitroNumberTransition>`.
    */
-  using std__optional_RollingNumberTransition_ = std::optional<RollingNumberTransition>;
-  inline std::optional<RollingNumberTransition> create_std__optional_RollingNumberTransition_(const RollingNumberTransition& value) noexcept {
-    return std::optional<RollingNumberTransition>(value);
+  using std__optional_NitroNumberTransition_ = std::optional<NitroNumberTransition>;
+  inline std::optional<NitroNumberTransition> create_std__optional_NitroNumberTransition_(const NitroNumberTransition& value) noexcept {
+    return std::optional<NitroNumberTransition>(value);
   }
-  inline bool has_value_std__optional_RollingNumberTransition_(const std::optional<RollingNumberTransition>& optional) noexcept {
+  inline bool has_value_std__optional_NitroNumberTransition_(const std::optional<NitroNumberTransition>& optional) noexcept {
     return optional.has_value();
   }
-  inline RollingNumberTransition get_std__optional_RollingNumberTransition_(const std::optional<RollingNumberTransition>& optional) noexcept {
+  inline NitroNumberTransition get_std__optional_NitroNumberTransition_(const std::optional<NitroNumberTransition>& optional) noexcept {
     return optional.value();
   }
   
-  // pragma MARK: std::optional<RollingNumberDirection>
+  // pragma MARK: std::optional<NitroNumberDirection>
   /**
-   * Specialized version of `std::optional<RollingNumberDirection>`.
+   * Specialized version of `std::optional<NitroNumberDirection>`.
    */
-  using std__optional_RollingNumberDirection_ = std::optional<RollingNumberDirection>;
-  inline std::optional<RollingNumberDirection> create_std__optional_RollingNumberDirection_(const RollingNumberDirection& value) noexcept {
-    return std::optional<RollingNumberDirection>(value);
+  using std__optional_NitroNumberDirection_ = std::optional<NitroNumberDirection>;
+  inline std::optional<NitroNumberDirection> create_std__optional_NitroNumberDirection_(const NitroNumberDirection& value) noexcept {
+    return std::optional<NitroNumberDirection>(value);
   }
-  inline bool has_value_std__optional_RollingNumberDirection_(const std::optional<RollingNumberDirection>& optional) noexcept {
+  inline bool has_value_std__optional_NitroNumberDirection_(const std::optional<NitroNumberDirection>& optional) noexcept {
     return optional.has_value();
   }
-  inline RollingNumberDirection get_std__optional_RollingNumberDirection_(const std::optional<RollingNumberDirection>& optional) noexcept {
+  inline NitroNumberDirection get_std__optional_NitroNumberDirection_(const std::optional<NitroNumberDirection>& optional) noexcept {
     return optional.value();
   }
   
-  // pragma MARK: std::optional<RollingNumberRevealStyle>
+  // pragma MARK: std::optional<NitroNumberRevealStyle>
   /**
-   * Specialized version of `std::optional<RollingNumberRevealStyle>`.
+   * Specialized version of `std::optional<NitroNumberRevealStyle>`.
    */
-  using std__optional_RollingNumberRevealStyle_ = std::optional<RollingNumberRevealStyle>;
-  inline std::optional<RollingNumberRevealStyle> create_std__optional_RollingNumberRevealStyle_(const RollingNumberRevealStyle& value) noexcept {
-    return std::optional<RollingNumberRevealStyle>(value);
+  using std__optional_NitroNumberRevealStyle_ = std::optional<NitroNumberRevealStyle>;
+  inline std::optional<NitroNumberRevealStyle> create_std__optional_NitroNumberRevealStyle_(const NitroNumberRevealStyle& value) noexcept {
+    return std::optional<NitroNumberRevealStyle>(value);
   }
-  inline bool has_value_std__optional_RollingNumberRevealStyle_(const std::optional<RollingNumberRevealStyle>& optional) noexcept {
+  inline bool has_value_std__optional_NitroNumberRevealStyle_(const std::optional<NitroNumberRevealStyle>& optional) noexcept {
     return optional.has_value();
   }
-  inline RollingNumberRevealStyle get_std__optional_RollingNumberRevealStyle_(const std::optional<RollingNumberRevealStyle>& optional) noexcept {
+  inline NitroNumberRevealStyle get_std__optional_NitroNumberRevealStyle_(const std::optional<NitroNumberRevealStyle>& optional) noexcept {
     return optional.value();
   }
   
@@ -499,33 +499,33 @@ namespace margelo::nitro::nitroinput::bridge::swift {
     return optional.value();
   }
   
-  // pragma MARK: std::optional<RollingNumberAffixAlign>
+  // pragma MARK: std::optional<NitroNumberAffixAlign>
   /**
-   * Specialized version of `std::optional<RollingNumberAffixAlign>`.
+   * Specialized version of `std::optional<NitroNumberAffixAlign>`.
    */
-  using std__optional_RollingNumberAffixAlign_ = std::optional<RollingNumberAffixAlign>;
-  inline std::optional<RollingNumberAffixAlign> create_std__optional_RollingNumberAffixAlign_(const RollingNumberAffixAlign& value) noexcept {
-    return std::optional<RollingNumberAffixAlign>(value);
+  using std__optional_NitroNumberAffixAlign_ = std::optional<NitroNumberAffixAlign>;
+  inline std::optional<NitroNumberAffixAlign> create_std__optional_NitroNumberAffixAlign_(const NitroNumberAffixAlign& value) noexcept {
+    return std::optional<NitroNumberAffixAlign>(value);
   }
-  inline bool has_value_std__optional_RollingNumberAffixAlign_(const std::optional<RollingNumberAffixAlign>& optional) noexcept {
+  inline bool has_value_std__optional_NitroNumberAffixAlign_(const std::optional<NitroNumberAffixAlign>& optional) noexcept {
     return optional.has_value();
   }
-  inline RollingNumberAffixAlign get_std__optional_RollingNumberAffixAlign_(const std::optional<RollingNumberAffixAlign>& optional) noexcept {
+  inline NitroNumberAffixAlign get_std__optional_NitroNumberAffixAlign_(const std::optional<NitroNumberAffixAlign>& optional) noexcept {
     return optional.value();
   }
   
-  // pragma MARK: std::optional<RollingNumberTextAlign>
+  // pragma MARK: std::optional<NitroNumberTextAlign>
   /**
-   * Specialized version of `std::optional<RollingNumberTextAlign>`.
+   * Specialized version of `std::optional<NitroNumberTextAlign>`.
    */
-  using std__optional_RollingNumberTextAlign_ = std::optional<RollingNumberTextAlign>;
-  inline std::optional<RollingNumberTextAlign> create_std__optional_RollingNumberTextAlign_(const RollingNumberTextAlign& value) noexcept {
-    return std::optional<RollingNumberTextAlign>(value);
+  using std__optional_NitroNumberTextAlign_ = std::optional<NitroNumberTextAlign>;
+  inline std::optional<NitroNumberTextAlign> create_std__optional_NitroNumberTextAlign_(const NitroNumberTextAlign& value) noexcept {
+    return std::optional<NitroNumberTextAlign>(value);
   }
-  inline bool has_value_std__optional_RollingNumberTextAlign_(const std::optional<RollingNumberTextAlign>& optional) noexcept {
+  inline bool has_value_std__optional_NitroNumberTextAlign_(const std::optional<NitroNumberTextAlign>& optional) noexcept {
     return optional.has_value();
   }
-  inline RollingNumberTextAlign get_std__optional_RollingNumberTextAlign_(const std::optional<RollingNumberTextAlign>& optional) noexcept {
+  inline NitroNumberTextAlign get_std__optional_NitroNumberTextAlign_(const std::optional<NitroNumberTextAlign>& optional) noexcept {
     return optional.value();
   }
   
@@ -581,16 +581,16 @@ namespace margelo::nitro::nitroinput::bridge::swift {
     return optional.value();
   }
   
-  // pragma MARK: std::shared_ptr<HybridRollingNumberViewSpec>
+  // pragma MARK: std::shared_ptr<HybridNitroNumberViewSpec>
   /**
-   * Specialized version of `std::shared_ptr<HybridRollingNumberViewSpec>`.
+   * Specialized version of `std::shared_ptr<HybridNitroNumberViewSpec>`.
    */
-  using std__shared_ptr_HybridRollingNumberViewSpec_ = std::shared_ptr<HybridRollingNumberViewSpec>;
-  std::shared_ptr<HybridRollingNumberViewSpec> create_std__shared_ptr_HybridRollingNumberViewSpec_(void* NON_NULL swiftUnsafePointer) noexcept;
-  void* NON_NULL get_std__shared_ptr_HybridRollingNumberViewSpec_(std__shared_ptr_HybridRollingNumberViewSpec_ cppType);
+  using std__shared_ptr_HybridNitroNumberViewSpec_ = std::shared_ptr<HybridNitroNumberViewSpec>;
+  std::shared_ptr<HybridNitroNumberViewSpec> create_std__shared_ptr_HybridNitroNumberViewSpec_(void* NON_NULL swiftUnsafePointer) noexcept;
+  void* NON_NULL get_std__shared_ptr_HybridNitroNumberViewSpec_(std__shared_ptr_HybridNitroNumberViewSpec_ cppType);
   
-  // pragma MARK: std::weak_ptr<HybridRollingNumberViewSpec>
-  using std__weak_ptr_HybridRollingNumberViewSpec_ = std::weak_ptr<HybridRollingNumberViewSpec>;
-  inline std__weak_ptr_HybridRollingNumberViewSpec_ weakify_std__shared_ptr_HybridRollingNumberViewSpec_(const std::shared_ptr<HybridRollingNumberViewSpec>& strong) noexcept { return strong; }
+  // pragma MARK: std::weak_ptr<HybridNitroNumberViewSpec>
+  using std__weak_ptr_HybridNitroNumberViewSpec_ = std::weak_ptr<HybridNitroNumberViewSpec>;
+  inline std__weak_ptr_HybridNitroNumberViewSpec_ weakify_std__shared_ptr_HybridNitroNumberViewSpec_(const std::shared_ptr<HybridNitroNumberViewSpec>& strong) noexcept { return strong; }
 
 } // namespace margelo::nitro::nitroinput::bridge::swift

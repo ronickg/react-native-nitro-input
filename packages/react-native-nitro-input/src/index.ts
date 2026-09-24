@@ -50,20 +50,20 @@ export type {
 export type { NitroInputWorklets } from './specs/NitroInputWorklets.nitro'
 
 export {
-  RollingNumber,
-  NativeRollingNumberView,
-  type RollingNumberProps,
-  type RollingNumberHandle,
-  type RollingNumberRef,
-} from './RollingNumber'
+  NitroNumber,
+  NativeNitroNumberView,
+  type NitroNumberProps,
+  type NitroNumberHandle,
+  type NitroNumberRef,
+} from './NitroNumber'
 export type {
-  RollingNumberAffixAlign,
-  RollingNumberDirection,
-  RollingNumberTransition,
-  RollingNumberEasing,
-  RollingNumberRevealStyle,
-  RollingNumberTextAlign,
-  RollingNumberMethods,
-  RollingNumberProps as NativeRollingNumberProps,
-  RollingNumberView,
-} from './specs/RollingNumber.nitro'
+  NitroNumberAffixAlign,
+  NitroNumberDirection,
+  NitroNumberTransition,
+  NitroNumberEasing,
+  NitroNumberRevealStyle,
+  NitroNumberTextAlign,
+  NitroNumberMethods,
+  NitroNumberProps as NativeNitroNumberProps,
+  NitroNumberView,
+} from './specs/NitroNumber.nitro'

@@ -14,15 +14,15 @@
 <table align="center">
   <tr>
     <td align="center" valign="top" width="50%">
-      <h3><code>RollingNumber</code></h3>
+      <h3><code>NitroNumber</code></h3>
       <img src="docs/static/img/readme/market.webp" width="400" alt="A live market screen with about thirty rolling numbers, on an iPhone and a Pixel" />
       <p>An odometer for React Native. Every digit is a wheel driven by one C++ engine, with currency layouts, shrink-to-fit, a loading shimmer and the jackpot reveal.</p>
       <p>
-        <a href="#rollingnumber">Below</a> ·
-        <a href="https://ronickg.github.io/react-native-nitro-input/docs/rolling-number">Guide</a> ·
+        <a href="#nitronumber">Below</a> ·
+        <a href="https://ronickg.github.io/react-native-nitro-input/docs/nitro-number">Guide</a> ·
         <a href="https://ronickg.github.io/react-native-nitro-input/docs/loading-and-reveal#jackpot-reveal">Jackpot reveal</a> ·
         <a href="https://ronickg.github.io/react-native-nitro-input/docs/benchmarks">Benchmarks</a> ·
-        <a href="packages/react-native-nitro-input/README.md#rollingnumber">API reference</a>
+        <a href="packages/react-native-nitro-input/README.md#nitronumber">API reference</a>
       </p>
     </td>
     <td align="center" valign="top" width="50%">
@@ -52,9 +52,9 @@ bun add react-native-nitro-input react-native-nitro-modules
 cd ios && pod install
 ```
 
-`react-native-nitro-rolling-number` was the rolling number's own package until 0.1.0; `RollingNumber` now comes from `react-native-nitro-input`, with the same props.
+`react-native-nitro-rolling-number` was the rolling number's own package until 0.1.0, where the component was `RollingNumber`; it is `NitroNumber` in `react-native-nitro-input` now, with the same props.
 
-## RollingNumber
+## NitroNumber
 
 - **Native on both platforms.** A `value` change is one JSI call; the roll runs on a `CADisplayLink` (Core Animation layers) or a `Choreographer` (Canvas). A busy JS thread never delays an animation in flight.
 - **Every digit is a wheel.** Shortest path in the direction of the change, columns sliding in and out as the number grows, easing, spring or a cascading stagger.
@@ -67,9 +67,9 @@ cd ios && pod install
 ### Use
 
 ```tsx
-import { RollingNumber } from 'react-native-nitro-input'
+import { NitroNumber } from 'react-native-nitro-input'
 
-<RollingNumber
+<NitroNumber
   value={balance}
   fractionDigits={2}
   groupingSeparator=","
@@ -83,7 +83,7 @@ import { RollingNumber } from 'react-native-nitro-input'
 />
 ```
 
-Change `value` and the digits roll. `ref.current.jumpTo(v)` positions the wheels continuously for scrubbing, `animateTo(v)` rolls, `revealTo(v)` plays a jackpot reveal. [Guide →](https://ronickg.github.io/react-native-nitro-input/docs/rolling-number) · [Every prop →](https://ronickg.github.io/react-native-nitro-input/docs/rolling-number-props)
+Change `value` and the digits roll. `ref.current.jumpTo(v)` positions the wheels continuously for scrubbing, `animateTo(v)` rolls, `revealTo(v)` plays a jackpot reveal. [Guide →](https://ronickg.github.io/react-native-nitro-input/docs/nitro-number) · [Every prop →](https://ronickg.github.io/react-native-nitro-input/docs/nitro-number-props)
 
 ### Jackpot reveal
 
@@ -92,7 +92,7 @@ Change `value` and the digits roll. `ref.current.jumpTo(v)` positions the wheels
 </p>
 
 ```tsx
-<RollingNumber
+<NitroNumber
   value={50000}
   reveal={reveal}                        // false holds "$0.00", true plays
   revealStyle="count"                    // or "spin" for slot reels
@@ -118,8 +118,8 @@ Release builds on real phones, 24 copies fed a new value on every frame, frames 
 
 | | iPhone 13 Pro Max (120 Hz) | iPhone 11 Pro (60 Hz) | Galaxy A22 (90 Hz, low-end) |
 | --- | --- | --- | --- |
-| **RollingNumber** (`value` prop) | 120 fps (0 dropped) | 59.9 fps (0 dropped) | 90.4 fps (0 dropped) |
-| **RollingNumber** (`jumpTo`) | 120 fps (0 dropped) | 59.9 fps (0 dropped) | 89.8 fps (3 dropped) |
+| **NitroNumber** (`value` prop) | 120 fps (0 dropped) | 59.9 fps (0 dropped) | 90.4 fps (0 dropped) |
+| **NitroNumber** (`jumpTo`) | 120 fps (0 dropped) | 59.9 fps (0 dropped) | 89.8 fps (3 dropped) |
 | react-native-number-animation (native) | 117 fps (13 dropped) | 59.1 fps (4 dropped) | 56.2 fps (170 dropped) |
 | react-native-animated-rolling-numbers | 117 fps (17 dropped) | 58.7 fps (5 dropped) | 18.8 fps (370 dropped) |
 | NumberFlow (View) | 76.1 fps (222 dropped) | 49.1 fps (56 dropped) | 24.9 fps (352 dropped) |
@@ -205,7 +205,7 @@ The example's Android Gradle files point at the workspace root `node_modules`, a
 
 ## Known issue: view props on Android
 
-Nitro Modules 0.37 never fills a Hybrid View's raw props on Android from React Native 0.86 on, so `backgroundColor`, `border*`, `opacity`, `transform`, `testID` and the accessibility props you pass to `<RollingNumber>` or `<NitroInput>` are silently ignored there. iOS is unaffected. The fix is filed upstream as [margelo/nitro#1655](https://github.com/margelo/nitro/pull/1655) (issue [#1656](https://github.com/margelo/nitro/issues/1656)); until a Nitro release carries it, apply the patch this repo uses: copy [`patches/react-native-nitro-modules@0.37.1.patch`](patches/react-native-nitro-modules@0.37.1.patch) into your app and register it under `patchedDependencies` in `package.json` (Bun) or with [patch-package](https://github.com/ds300/patch-package) (npm / Yarn).
+Nitro Modules 0.37 never fills a Hybrid View's raw props on Android from React Native 0.86 on, so `backgroundColor`, `border*`, `opacity`, `transform`, `testID` and the accessibility props you pass to `<NitroNumber>` or `<NitroInput>` are silently ignored there. iOS is unaffected. The fix is filed upstream as [margelo/nitro#1655](https://github.com/margelo/nitro/pull/1655) (issue [#1656](https://github.com/margelo/nitro/issues/1656)); until a Nitro release carries it, apply the patch this repo uses: copy [`patches/react-native-nitro-modules@0.37.1.patch`](patches/react-native-nitro-modules@0.37.1.patch) into your app and register it under `patchedDependencies` in `package.json` (Bun) or with [patch-package](https://github.com/ds300/patch-package) (npm / Yarn).
 
 ## Credits
 

@@ -1,6 +1,6 @@
 import { processColor, type ColorValue, type TextStyle } from 'react-native'
 
-// Style resolution shared by `RollingNumber` and `NitroInput`.
+// Style resolution shared by `NitroNumber` and `NitroInput`.
 
 const FONT_WEIGHTS: Record<string, number> = {
   normal: 400,

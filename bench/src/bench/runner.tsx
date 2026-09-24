@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { matchFont } from '@shopify/react-native-skia'
 import { useSharedValue } from 'react-native-reanimated'
-import type { RollingNumberHandle } from 'react-native-nitro-input'
+import type { NitroNumberHandle } from 'react-native-nitro-input'
 import { BENCH_FORMAT, BENCH_START, BenchItem, ImplBoundary, benchValue, type ImplKey } from './impls'
 import {
   cpuBetween,
@@ -197,7 +197,7 @@ export function BenchRun({
   const { impl, rate, count } = scenario
   const fontSize = count === 1 ? BENCH_FONT_SIZE : BENCH_FONT_SIZE / 2
   const { value, setValue, fmt, sv, font } = useBenchValue(fontSize)
-  const nitroRefs = useRef<(RollingNumberHandle | null)[]>([])
+  const nitroRefs = useRef<(NitroNumberHandle | null)[]>([])
   const errorRef = useRef<string | null>(null)
 
   useMeasuredStream({

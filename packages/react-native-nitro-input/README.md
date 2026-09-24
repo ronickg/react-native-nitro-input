@@ -8,7 +8,7 @@ one native module.
   keyboard, editing, selection and accessibility; amounts are formatted and
   masks applied in C++ before a frame is drawn, and the characters can reflow
   as they change.
-- **[`RollingNumber`](#rollingnumber)**: a number that animates its changes.
+- **[`NitroNumber`](#nitronumber)**: a number that animates its changes.
   Every digit is a wheel that rolls to its new glyph, or swaps in place the way
   SwiftUI's `.contentTransition(.numericText())` does.
 
@@ -57,7 +57,7 @@ ordinary form field you do not want it.
   decimals, a currency `prefix` / `suffix`, the caret kept where you typed. No
   JS round trip, so none of the flicker, caret jumps or dropped keystrokes of a
   controlled `TextInput` that formats in `onChangeText`.
-- **Same formatting model as [`RollingNumber`](#rollingnumber)**:
+- **Same formatting model as [`NitroNumber`](#nitronumber)**:
   prefix/suffix at their own font sizes, pinned to the top, bottom, baseline or
   centre of the digits; grouping and decimal separators of your choice.
 - **One C++ engine per concern** drives both platforms — formatting, masking,
@@ -515,7 +515,7 @@ the first 45 %. Text characters fade and scale (0.95×) instead. Characters that
 enter or leave ride along with their nearest persisting neighbour, so a word
 that grows or shrinks stays one shape. All of it is Reduce Motion aware.
 
-## RollingNumber
+## NitroNumber
 
 A native **rolling number** (odometer / ticker) view. Every digit is a wheel that rolls to
 its new glyph, like SwiftUI's `.contentTransition(.numericText())`, with the
@@ -532,12 +532,12 @@ same look on iOS **and** Android.
 - `reveal` plays the casino "you won" presentation natively: the win-meter
   rollup (with tiers that punch and hold) or slot reels that lock from the left.
 
-Guide: **https://ronickg.github.io/react-native-nitro-input/docs/rolling-number**
+Guide: **https://ronickg.github.io/react-native-nitro-input/docs/nitro-number**
 
 ```tsx
-import { RollingNumber } from 'react-native-nitro-input'
+import { NitroNumber } from 'react-native-nitro-input'
 
-<RollingNumber
+<NitroNumber
   value={balance}
   fractionDigits={2}
   groupingSeparator=","
@@ -557,8 +557,8 @@ the direction of the change. The first value is shown without animation.
 ### The transitions
 
 ```tsx
-<RollingNumber value={count} transition="numeric" fontSize={48} fontWeight="700" />
-<RollingNumber value={count} transition="scramble" />
+<NitroNumber value={count} transition="numeric" fontSize={48} fontWeight="700" />
+<NitroNumber value={count} transition="scramble" />
 ```
 
 The roll is the default. The others swap each changed glyph in place, digits
@@ -580,7 +580,7 @@ each with its own defaults.
 Two more things happen on a change if you ask for them, with any transition:
 
 ```tsx
-<RollingNumber value={price} flashUpColor="#16a34a" flashDownColor="#dc2626" popOnChange={0.08} />
+<NitroNumber value={price} flashUpColor="#16a34a" flashDownColor="#dc2626" popOnChange={0.08} />
 ```
 
 `flashUpColor` / `flashDownColor` is the change flash of a trading screen:
@@ -594,19 +594,19 @@ a fraction of the size, rung out like the reveal's landing pop.
 
 ```tsx
 // "$" smaller than the amount, aligned to the top of the digits
-<RollingNumber value={total} prefix="$" prefixFontSize={22} affixAlign="top" fontSize={44} />
+<NitroNumber value={total} prefix="$" prefixFontSize={22} affixAlign="top" fontSize={44} />
 
 // currency code after the amount, smaller and pinned to the bottom
-<RollingNumber value={total} suffix=" USD" suffixFontSize={18} suffixAlign="bottom" fractionDigits={2} />
+<NitroNumber value={total} suffix=" USD" suffixFontSize={18} suffixAlign="bottom" fractionDigits={2} />
 
 // both at once: "$" pinned top, "USD" pinned bottom
-<RollingNumber value={total} prefix="$" prefixAlign="top" suffix=" USD" suffixAlign="bottom" prefixFontSize={22} suffixFontSize={16} />
+<NitroNumber value={total} prefix="$" prefixAlign="top" suffix=" USD" suffixAlign="bottom" prefixFontSize={22} suffixFontSize={16} />
 
 // fit the container without a fixed width: full size until it would overflow, then it shrinks
-<RollingNumber value={total} fontSize={52} adjustsFontSizeToFit style={{ maxWidth: '100%' }} />
+<NitroNumber value={total} fontSize={52} adjustsFontSizeToFit style={{ maxWidth: '100%' }} />
 
 // fixed box: the box never resizes, the amount shrinks (down to 50%) and grows back to fit
-<RollingNumber
+<NitroNumber
   value={total}
   fontSize={64}
   adjustsFontSizeToFit
@@ -619,7 +619,7 @@ a fraction of the size, rung out like the reveal's landing pop.
 ### Loading skeleton
 
 ```tsx
-<RollingNumber value={balance ?? 0} loading={balance === undefined} prefix="$" fractionDigits={2} />
+<NitroNumber value={balance ?? 0} loading={balance === undefined} prefix="$" fractionDigits={2} />
 ```
 
 While `loading` is true the glyphs keep their color and a slanted, text-wide
@@ -634,7 +634,7 @@ glint fades out while the digits roll to the amount.
 ```tsx
 const [reveal, setReveal] = useState(false)
 
-<RollingNumber
+<NitroNumber
   value={50000}
   reveal={reveal}                      // false: hold "$0.00" in the final layout; true: play
   revealStyle="count"                  // the win-meter rollup, or "spin" for slot reels
@@ -661,9 +661,9 @@ and sounds are the app's: the callbacks give you the beats.
 ### Imperative
 
 ```tsx
-const ref = useRef<RollingNumberHandle>(null)
+const ref = useRef<NitroNumberHandle>(null)
 
-<RollingNumber ref={ref} value={0} />
+<NitroNumber ref={ref} value={0} />
 
 ref.current?.animateTo(42)      // rolls, like changing the prop
 ref.current?.jumpTo(41.75)      // positions the wheels continuously, no roll (scrubbing)
@@ -675,7 +675,7 @@ ref.current?.getValue()         // value shown or being rolled towards
 wheel three quarters of the way from `1` to `2`), which is what you want when a
 scroll or drag handler drives the number.
 
-## RollingNumber props
+## NitroNumber props
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -741,7 +741,7 @@ to reflow while digits appear (e.g. a counter that grows past `999`).
   `mostRecentEventCount` (the user typed since) is ignored, like React
   Native's own `TextInput`.
 
-### RollingNumber
+### NitroNumber
 
 - VoiceOver / TalkBack read the formatted amount (prefix, sign, grouped digits,
   suffix, e.g. `$1,234.50 USD`), updated whenever the value changes; while

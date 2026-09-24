@@ -2,13 +2,16 @@
 
 ## Unreleased
 
-- `react-native-nitro-rolling-number` is part of this package now.
-  `RollingNumber` and its types are exported from `react-native-nitro-input`,
-  with the same props and handle; its engine, views and JNI handle build into
-  the `NitroInput` pod and `libNitroInput.so` next to the input's, and its
-  JS helpers (font weights, colours) are shared with `NitroInput` instead of
-  copied. Replace the import and drop the old package:
-  `import { RollingNumber } from 'react-native-nitro-input'`.
+- `react-native-nitro-rolling-number` is part of this package now, and its
+  `RollingNumber` is called **`NitroNumber`**, next to `NitroInput`: it plays
+  more than a roll (the numeric transition, the scramble, the reveal), and
+  the name says which package it comes from. The props and the handle are
+  the same; the types follow the name (`NitroNumberProps`,
+  `NitroNumberHandle`, `NitroNumberTransition`, …). Its engine, views and
+  JNI handle build into the `NitroInput` pod and `libNitroInput.so` next to
+  the input's, and its JS helpers (font weights, colours) are shared with
+  `NitroInput` instead of copied. Replace the import and drop the old
+  package: `import { NitroNumber } from 'react-native-nitro-input'`.
 - **Breaking:** the morph is called the reflow, which is what it does: the
   characters keep their shapes and move to where the new text puts them.
   `MorphInput` and the `morph` prop are gone; pass `transition="reflow"` to
@@ -18,8 +21,38 @@
   is `ReflowEngine` (was `MorphEngine`), and the docs page moved to
   `/input/reflow`, with a redirect from `/input/morph`.
 
-### RollingNumber
+### NitroNumber
 
+- A change of `prefix`, `suffix`, `groupingSeparator` or `decimalSeparator`
+  plays instead of snapping: the old text softens and fades out while the
+  new one comes into focus, on the numeric transition's springs, and its
+  width eases from one to the other (`RollingEngine::changeText`). A change
+  of `fractionDigits` plays too, in every transition
+  (`RollingEngine::changeFormat`): the digits keep their place value, the
+  decimal columns that go close, new ones open blank and swap or roll their
+  digit in, and the decimal separator fades with them. A currency switch is
+  one transition, as SwiftUI's numeric text makes it, even when the next one
+  comes before it has finished (it used to show the old amount in the new
+  format for a frame, "¥838,712.00").
+- `transition="numeric"`: a column opens on the arriving glyph's spring and
+  closes on the leaving glyph's blur, instead of the transition's easing,
+  which lagged the glyph and left a gap where a digit had just left.
+- Android: a glyph fading with its column (a separator, the sign) left the
+  shared paint faded, and the next frame's digits were drawn faint or not at
+  all; a translucent `color` also turned opaque after the first change.
+- A figure that hugs its content no longer jumps when it gains or loses a
+  digit at the end of a row. The view takes its new width at once, and with
+  the digits kept to its start edge a right-pinned figure (a fee at the end
+  of a `space-between` row) jumped a digit to the left and then opened a gap
+  after its prefix. `textAlign="auto"` now keeps the digits to whichever edge
+  the parent keeps the view to; a view with its own width is unchanged.
+- A column opening or closing (a new leading digit, a separator, the sign)
+  keeps its glyph whole instead of cutting it to the half-open column, where
+  it read as a sliver: the right edge of a "1", a ")" of a 0 rolling past.
+  The glyph overhangs the column's far side, faded with it.
+- `transition="numeric"`: a value re-targeted while a column was still
+  swapping to a glyph it keeps (typing, every keystroke) no longer cuts the
+  swap short; the column carries on from where it was, as SwiftUI's does.
 - `transition="numeric"`: a second way a value change can play, after
   SwiftUI's `.contentTransition(.numericText())`. Instead of rolling through
   the digits between, each changed glyph swaps in place: the old one softens,

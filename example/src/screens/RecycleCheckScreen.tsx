@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { FlatList, StyleSheet, Text, View } from 'react-native'
-import { RollingNumber } from 'react-native-nitro-input'
+import { NitroNumber } from 'react-native-nitro-input'
 import { NitroInput } from 'react-native-nitro-input'
 import { Btn, Row } from '../harness'
 
@@ -48,7 +48,7 @@ export function RecycleCheckScreen() {
               <View style={styles.row}>
                 <Text style={styles.label} testID={`row-${item}`}>{`expect ${expected}`}</Text>
                 {kind === 'number' ? (
-                  <RollingNumber value={expected} groupingSeparator="" fontSize={20} style={styles.number} />
+                  <NitroNumber value={expected} groupingSeparator="" fontSize={20} style={styles.number} />
                 ) : (
                   <NitroInput value={String(expected)} fontSize={16} style={styles.field} />
                 )}
