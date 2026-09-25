@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
 - **`NumberFormat`**: `Intl.NumberFormat`'s API, formatted natively.
   `new NumberFormat(locales, options)` learns the locale's format once from
@@ -27,14 +27,16 @@
 - **`tabularNums={false}`** on `NitroNumber`: each digit at its own width
   (the font's proportional figures) instead of the widest digit's. A
   changing column's width eases once from the old digit's to the new one's,
-  on the roll's own easing (not through every digit it passes, which made
-  the number pulse), and a reveal keeps its target's widths throughout. Tabular stays the default.
+  on the roll's own easing, and a reveal keeps its target's widths
+  throughout. Tabular stays the default.
 - **`direction="shortest"`** on `NitroNumber`: each digit rolls its own
   shorter way round (1 → 2 is one step up even when the value falls), which
   keeps a big jump calm; `auto` still follows the sign of the change.
 - An `accessibilityLabel` given to `NitroNumber` is what VoiceOver and
   TalkBack read; the figure was read instead.
-- The Android `minSdkVersion` default is 24, as React Native's.
+- **Breaking:** the Android `minSdkVersion` default is 24 (was 23), as
+  React Native's: `NumberFormat` reads the platform's formats through
+  `android.icu`.
 
 ## 0.2.0
 
