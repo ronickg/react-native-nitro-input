@@ -28,6 +28,9 @@
   (the font's proportional figures) instead of the widest digit's. A
   column's width eases between the digits it rolls or swaps through, and a
   reveal keeps its target's widths throughout. Tabular stays the default.
+- **`direction="shortest"`** on `NitroNumber`: each digit rolls its own
+  shorter way round (1 → 2 is one step up even when the value falls), which
+  keeps a big jump calm; `auto` still follows the sign of the change.
 - An `accessibilityLabel` given to `NitroNumber` is what VoiceOver and
   TalkBack read; the figure was read instead.
 - The Android `minSdkVersion` default is 24, as React Native's.

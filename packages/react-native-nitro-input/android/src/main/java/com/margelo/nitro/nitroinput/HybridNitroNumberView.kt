@@ -434,6 +434,7 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
       direction = when (rollDirection) {
         NitroNumberDirection.UP -> NitroNumberView.Direction.UP
         NitroNumberDirection.DOWN -> NitroNumberView.Direction.DOWN
+        NitroNumberDirection.SHORTEST -> NitroNumberView.Direction.SHORTEST
         NitroNumberDirection.AUTO, null -> NitroNumberView.Direction.AUTO
       },
       revealDurationMs = Math.max(0.0, revealDuration ?: 2200.0).toLong(),

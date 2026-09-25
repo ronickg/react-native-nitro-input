@@ -51,6 +51,9 @@ namespace margelo::nitro::nitroinput {
         case NitroNumberDirection::DOWN:
           static const auto fieldDOWN = clazz->getStaticField<JNitroNumberDirection>("DOWN");
           return clazz->getStaticFieldValue(fieldDOWN);
+        case NitroNumberDirection::SHORTEST:
+          static const auto fieldSHORTEST = clazz->getStaticField<JNitroNumberDirection>("SHORTEST");
+          return clazz->getStaticFieldValue(fieldSHORTEST);
         default:
           std::string stringValue = std::to_string(static_cast<int>(value));
           throw std::invalid_argument("Invalid enum value (" + stringValue + "!");

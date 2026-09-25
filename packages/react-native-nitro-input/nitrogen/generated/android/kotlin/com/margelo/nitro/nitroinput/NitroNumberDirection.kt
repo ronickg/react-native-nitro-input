@@ -18,7 +18,8 @@ import com.facebook.proguard.annotations.DoNotStrip
 enum class NitroNumberDirection(@DoNotStrip @Keep val value: Int) {
   AUTO(0),
   UP(1),
-  DOWN(2);
+  DOWN(2),
+  SHORTEST(3);
 
   companion object
 }

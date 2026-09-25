@@ -67,8 +67,8 @@ Milliseconds a change flash takes to fade, once the digit has landed.
 A punch of the whole figure on every value change, its peak overshoot as a fraction of the size, `0` (none) to `1`, rung out like the reveal's landing pop. `0.08` is a nudge, `0.2` a slam.
 </Prop>
 
-<Prop name="direction" type="'auto' | 'up' | 'down'" default="'auto'">
-Roll direction; `auto` follows the sign of the change.
+<Prop name="direction" type="'auto' | 'up' | 'down' | 'shortest'" default="'auto'">
+Roll direction; `auto` follows the sign of the change, `up` and `down` force one. `shortest` rolls each digit its own shorter way round: 1 → 2 is one step up even when the value falls, where `auto` rolls nine steps down, which keeps a big jump calm. The numeric transition and the reveal ignore it.
 </Prop>
 
 ## Jackpot reveal
