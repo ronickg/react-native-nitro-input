@@ -1183,8 +1183,47 @@ static void fuzzFormatTextAndValues() {
   CHECK(badSettles == 0);
 }
 
+// `shortest` (direction 3): each interior wheel takes its own shorter way round.
+static void shortestRollsEachWheelItsOwnWay() {
+  // 12 → 21, increasing: the units go 2 → 1, one step down, where `auto` rolls nine up.
+  RollingEngine e;
+  e.setFormat(0, 1);
+  e.setTiming(0.5, /* linear */ 0, 0.15, 0, /* shortest */ 3);
+  e.animateTo(12, 0);   // first show: snap
+  e.animateTo(21, 0);
+  e.tick(0.25);
+  CHECK(near(e.wheelAt(0).position, 1.5));
+  CHECK(near(e.wheelAt(1).position, 1.5));   // tens 1 → 2, one step up either way
+  e.tick(0.5);
+  CHECK(e.targetDigit(0) == 1 && e.targetDigit(1) == 2);
+
+  // 21 → 12, decreasing: the units go 1 → 2, one step up, where `auto` rolls nine down.
+  e.animateTo(12, 1);
+  e.tick(1.25);
+  CHECK(near(e.wheelAt(0).position, 1.5));
+
+  // A tie (five apart) goes with the change: 13 → 18 rolls the units up.
+  RollingEngine t;
+  t.setFormat(0, 1);
+  t.setTiming(0.5, 0, 0.15, 0, 3);
+  t.animateTo(13, 0);
+  t.animateTo(18, 0);
+  t.tick(0.25);
+  CHECK(near(t.wheelAt(0).position, 5.5));
+
+  // `auto` still follows the change: 12 → 21 rolls the units up through 9, 0.
+  RollingEngine a;
+  a.setFormat(0, 1);
+  a.setTiming(0.5, 0, 0.15, 0, 0);
+  a.animateTo(12, 0);
+  a.animateTo(21, 0);
+  a.tick(0.25);
+  CHECK(near(a.wheelAt(0).position, 6.5));
+}
+
 int main() {
   odometerPositions();
+  shortestRollsEachWheelItsOwnWay();
   tickerRollsShortestPathInDirection();
   wheelsAppearAndDisappear();
   staggerDoesNotStarveOnRetarget();

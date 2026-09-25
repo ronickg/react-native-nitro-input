@@ -23,6 +23,8 @@ public extension NitroNumberDirection {
         self = .up
       case "down":
         self = .down
+      case "shortest":
+        self = .shortest
       default:
         return nil
     }
@@ -39,6 +41,8 @@ public extension NitroNumberDirection {
         return "up"
       case .down:
         return "down"
+      case .shortest:
+        return "shortest"
     }
   }
 }

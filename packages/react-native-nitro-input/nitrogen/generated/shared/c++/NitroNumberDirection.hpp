@@ -32,6 +32,7 @@ namespace margelo::nitro::nitroinput {
     AUTO      SWIFT_NAME(auto) = 0,
     UP      SWIFT_NAME(up) = 1,
     DOWN      SWIFT_NAME(down) = 2,
+    SHORTEST      SWIFT_NAME(shortest) = 3,
   } CLOSED_ENUM;
 
 } // namespace margelo::nitro::nitroinput
@@ -47,6 +48,7 @@ namespace margelo::nitro {
         case hashString("auto"): return margelo::nitro::nitroinput::NitroNumberDirection::AUTO;
         case hashString("up"): return margelo::nitro::nitroinput::NitroNumberDirection::UP;
         case hashString("down"): return margelo::nitro::nitroinput::NitroNumberDirection::DOWN;
+        case hashString("shortest"): return margelo::nitro::nitroinput::NitroNumberDirection::SHORTEST;
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert \"" + unionValue + "\" to enum NitroNumberDirection - invalid value!");
       }
@@ -56,6 +58,7 @@ namespace margelo::nitro {
         case margelo::nitro::nitroinput::NitroNumberDirection::AUTO: return JSIConverter<std::string>::toJSI(runtime, "auto");
         case margelo::nitro::nitroinput::NitroNumberDirection::UP: return JSIConverter<std::string>::toJSI(runtime, "up");
         case margelo::nitro::nitroinput::NitroNumberDirection::DOWN: return JSIConverter<std::string>::toJSI(runtime, "down");
+        case margelo::nitro::nitroinput::NitroNumberDirection::SHORTEST: return JSIConverter<std::string>::toJSI(runtime, "shortest");
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert NitroNumberDirection to JS - invalid value: "
                                     + std::to_string(static_cast<int>(arg)) + "!");
@@ -70,6 +73,7 @@ namespace margelo::nitro {
         case hashString("auto"):
         case hashString("up"):
         case hashString("down"):
+        case hashString("shortest"):
           return true;
         default:
           return false;

@@ -430,11 +430,16 @@ void RollingEngine::planRoll(Transition& next, const Target& target, bool increa
         from.linear = true;
         to = Wheel{digit, 1.0, true, current.blankZero};
       } else {
-        // Interior wheel: shortest roll in the direction of the change.
+        // Interior wheel: shortest roll in the direction of the change, or
+        // with `shortest` the shorter way round for this wheel alone (8 → 2
+        // rolls back through 5), a tie (five apart) going with the change.
         const double base = wrap(from.position);
         from.position = base;
         from.linear = false;
-        const double delta = increasing ? wrap(digit - base) : -wrap(base - digit);
+        const double up = wrap(digit - base);
+        const double down = wrap(base - digit);
+        double delta = increasing ? up : -down;
+        if (direction_ == 3 && up != down) delta = up < down ? up : -down;
         to = Wheel{base + delta, 1.0, false, false};
       }
       next.finals.push_back(Wheel{digit, 1.0, false, false});
