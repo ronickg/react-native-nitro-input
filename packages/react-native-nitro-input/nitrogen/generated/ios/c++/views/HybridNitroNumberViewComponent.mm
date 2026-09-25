@@ -332,6 +332,12 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.suffixOffset.hasSameValue(oldViewProps->suffixOffset)) {
       swiftPart.setSuffixOffset(newViewProps.suffixOffset.get());
     }
+    // tabularNums: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.tabularNums.isProvided()
+          : !newViewProps.tabularNums.hasSameValue(oldViewProps->tabularNums)) {
+      swiftPart.setTabularNums(newViewProps.tabularNums.get());
+    }
     // adjustsFontSizeToFit: optional
     if (oldViewProps == nullptr
           ? newViewProps.adjustsFontSizeToFit.isProvided()

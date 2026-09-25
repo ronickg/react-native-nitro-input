@@ -49,6 +49,7 @@ public protocol HybridNitroNumberViewSpec_protocol: HybridObject, HybridView {
   var suffixSpacing: Double? { get set }
   var prefixOffset: Double? { get set }
   var suffixOffset: Double? { get set }
+  var tabularNums: Bool? { get set }
   var adjustsFontSizeToFit: Bool? { get set }
   var minimumFontScale: Double? { get set }
   var allowFontScaling: Bool? { get set }

@@ -43,6 +43,7 @@
     "suffixSpacing": true,
     "prefixOffset": true,
     "suffixOffset": true,
+    "tabularNums": true,
     "adjustsFontSizeToFit": true,
     "minimumFontScale": true,
     "allowFontScaling": true,

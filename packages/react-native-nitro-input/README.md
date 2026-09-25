@@ -766,6 +766,7 @@ busy and replays them afterwards.
 | `prefixSpacing` / `suffixSpacing` | number | the letter spacing | Points between the prefix and the digits, and between the digits and the suffix. |
 | `prefixOffset` / `suffixOffset` | number | `0` | Points an affix is moved down after its alignment (negative: up). |
 | `format` | `NumberFormat` | none | The number follows it: prefix and suffix, separators, fraction and minimum integer digits. The individual props override it. |
+| `tabularNums` | boolean | `true` | `false` lays each digit out at its own width (proportional figures); a column eases between the digits it rolls through. |
 | `adjustsFontSizeToFit` | `boolean` | `false` | Shrink the whole number to fit the view's fixed `width`; the view keeps its full height. |
 | `minimumFontScale` | `number` | `0.5` | Lower bound for `adjustsFontSizeToFit`. |
 | `allowFontScaling` | `boolean` | `false` | Follow the system text size like `Text` (off by default so amounts keep their design size). |

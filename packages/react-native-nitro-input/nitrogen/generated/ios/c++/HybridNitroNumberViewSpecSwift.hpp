@@ -354,6 +354,13 @@ namespace margelo::nitro::nitroinput {
     inline void setSuffixOffset(std::optional<double> suffixOffset) noexcept override {
       _swiftPart.setSuffixOffset(suffixOffset);
     }
+    inline std::optional<bool> getTabularNums() noexcept override {
+      auto __result = _swiftPart.getTabularNums();
+      return __result;
+    }
+    inline void setTabularNums(std::optional<bool> tabularNums) noexcept override {
+      _swiftPart.setTabularNums(tabularNums);
+    }
     inline std::optional<bool> getAdjustsFontSizeToFit() noexcept override {
       auto __result = _swiftPart.getAdjustsFontSizeToFit();
       return __result;

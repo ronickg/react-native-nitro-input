@@ -59,6 +59,7 @@ namespace margelo::nitro::nitroinput::views {
     suffixSpacing(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "suffixSpacing", rawProps, sourceProps.suffixSpacing)),
     prefixOffset(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "prefixOffset", rawProps, sourceProps.prefixOffset)),
     suffixOffset(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "suffixOffset", rawProps, sourceProps.suffixOffset)),
+    tabularNums(nitro::ReactProp<std::optional<bool>>::fromRawValue("NitroNumberView", "tabularNums", rawProps, sourceProps.tabularNums)),
     adjustsFontSizeToFit(nitro::ReactProp<std::optional<bool>>::fromRawValue("NitroNumberView", "adjustsFontSizeToFit", rawProps, sourceProps.adjustsFontSizeToFit)),
     minimumFontScale(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "minimumFontScale", rawProps, sourceProps.minimumFontScale)),
     allowFontScaling(nitro::ReactProp<std::optional<bool>>::fromRawValue("NitroNumberView", "allowFontScaling", rawProps, sourceProps.allowFontScaling)),
@@ -114,6 +115,7 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("suffixSpacing"): return true;
       case hashString("prefixOffset"): return true;
       case hashString("suffixOffset"): return true;
+      case hashString("tabularNums"): return true;
       case hashString("adjustsFontSizeToFit"): return true;
       case hashString("minimumFontScale"): return true;
       case hashString("allowFontScaling"): return true;

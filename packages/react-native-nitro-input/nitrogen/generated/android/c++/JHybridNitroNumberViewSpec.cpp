@@ -431,6 +431,15 @@ namespace margelo::nitro::nitroinput {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* suffixOffset */)>("setSuffixOffset");
     method(_javaPart, suffixOffset.has_value() ? jni::JDouble::valueOf(suffixOffset.value()) : nullptr);
   }
+  std::optional<bool> JHybridNitroNumberViewSpec::getTabularNums() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JBoolean>()>("getTabularNums");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(static_cast<bool>(__result->value())) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setTabularNums(std::optional<bool> tabularNums) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JBoolean> /* tabularNums */)>("setTabularNums");
+    method(_javaPart, tabularNums.has_value() ? jni::JBoolean::valueOf(tabularNums.value()) : nullptr);
+  }
   std::optional<bool> JHybridNitroNumberViewSpec::getAdjustsFontSizeToFit() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JBoolean>()>("getAdjustsFontSizeToFit");
     auto __result = method(_javaPart);

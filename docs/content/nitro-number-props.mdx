@@ -159,6 +159,10 @@ Points between the prefix and the digits, and between the digits and the suffix,
 Points an affix is moved down after its alignment places it (negative: up), for a symbol that sits a little off every preset.
 </Prop>
 
+<Prop name="tabularNums" type="boolean" default="true">
+Every digit as wide as the widest, so columns never move. `false` lays each digit out at its own width (the font's proportional figures), for a face whose "1" is narrow or that has no tabular figures; a column's width eases between the digits it rolls or swaps through, and a reveal keeps its target's widths throughout.
+</Prop>
+
 <Prop name="format" type="NumberFormat">
 A [`NumberFormat`](/docs/number-format) the number follows: its prefix and suffix (the currency where the locale puts it), grouping and decimal separators, fraction digits and minimum integer digits. The individual props override what it says. The number keeps its own model: digits grouped in threes, a leading minus, Latin digits.
 </Prop>
