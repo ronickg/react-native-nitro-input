@@ -35,6 +35,15 @@ final class NitroNumberView: UIView {
     var decimalSeparator: String = "."
     var prefix: String = ""
     var suffix: String = ""
+    /// ECMA-402's signDisplay (`Engine.setSignDisplay`), and the glyphs drawn for the two signs.
+    var signDisplay: Int32 = 0
+    var plusSign: String = "+"
+    var minusSign: String = "-"
+    /// Digit group sizes counted from the decimal point, the first then every
+    /// later one (empty: threes). [3, 2] is Indian grouping, [2] a clock's.
+    var groupingSizes: [Int] = []
+    /// Per integer position, the highest digit its wheel shows before it wraps (a clock's 5).
+    var digitMax: [Int] = []
   }
 
   enum AffixAlign {
@@ -60,6 +69,15 @@ final class NitroNumberView: UIView {
     var suffixOffset: CGFloat = 0
     /// Every digit as wide as the widest (tabular figures, the default), or each at its own width.
     var tabularNums: Bool = true
+    /// The prefix's, the suffix's and the fraction's colours (nil: `color`).
+    var prefixColor: UIColor? = nil
+    var suffixColor: UIColor? = nil
+    var fractionColor: UIColor? = nil
+    /// The fraction digits' and decimal separator's size (nil: `fontSize`) and how they line up.
+    var fractionFontSize: CGFloat? = nil
+    var fractionAlign: AffixAlign = .baseline
+    /// The glyphs drawn for 0…9 (empty: "0"…"9").
+    var digitGlyphs: [String] = []
     var adjustsFontSizeToFit: Bool = false
     var minimumFontScale: CGFloat = 0.5
     var allowFontScaling: Bool = false
@@ -97,6 +115,10 @@ final class NitroNumberView: UIView {
     var revealStagger: TimeInterval = 0.2
     /// Count style: how long the count pauses on each milestone.
     var revealMilestoneHold: TimeInterval = 0
+    /// Rolls turn the lower wheels a full turn too (`Engine.setContinuous`).
+    var continuous = false
+    /// Snap while the system's Reduce Motion is on.
+    var respectReduceMotion = true
   }
 
   enum RevealStyle: Int32 {
@@ -148,6 +170,15 @@ final class NitroNumberView: UIView {
         change(Self.suffixText, suffixInk(oldValue.suffix), suffixInk(format.suffix))
         change(Self.groupingText, oldValue.groupingSeparator, format.groupingSeparator)
         change(Self.decimalText, oldValue.decimalSeparator, format.decimalSeparator)
+        let positive = engine.signPositive()
+        change(Self.signText, positive ? oldValue.plusSign : oldValue.minusSign, positive ? format.plusSign : format.minusSign)
+      }
+      engine.setSignDisplay(format.signDisplay)
+      if format.digitMax != oldValue.digitMax {
+        engine.clearDigitMax()
+        for (power, max) in format.digitMax.enumerated() where (0...8).contains(max) {
+          engine.setDigitMax(Int32(power), Int32(max))
+        }
       }
       // Played in a glyph-swap transition; snaps otherwise (see the engine).
       engine.changeFormat(Int32(format.fractionDigits), Int32(format.minimumIntegerDigits), CACurrentMediaTime())
@@ -164,7 +195,8 @@ final class NitroNumberView: UIView {
   static let suffixText = 1
   static let groupingText = 2
   static let decimalText = 3
-  private var leavingText: [String?] = [nil, nil, nil, nil]
+  static let signText = 4
+  private var leavingText: [String?] = [nil, nil, nil, nil, nil]
 
   var typography = Typography() {
     didSet {
@@ -182,6 +214,7 @@ final class NitroNumberView: UIView {
       engine.setRevealTiming(timing.revealDuration, timing.revealBounce, timing.revealStyle.rawValue, timing.revealStagger)
       engine.setRevealGrow(timing.revealGrow)
       engine.setRevealMilestoneHold(timing.revealMilestoneHold)
+      engine.setContinuous(timing.continuous)
     }
   }
 
@@ -216,7 +249,7 @@ final class NitroNumberView: UIView {
   var loading = false {
     didSet {
       guard loading != oldValue else { return }
-      engine.setReduceMotion(UIAccessibility.isReduceMotionEnabled)
+      applyReduceMotion()
       engine.setLoading(loading, CACurrentMediaTime())
       updateDisplayLinkNeed()
       render()
@@ -233,6 +266,11 @@ final class NitroNumberView: UIView {
   var onRevealEnd: (() -> Void)?
   /// Called when a count-style reveal reaches a milestone (its index and value).
   var onRevealMilestone: ((Int, Double) -> Void)?
+  /// Called when the figure starts moving from rest, and when it comes to rest (with its value).
+  var onAnimationStart: (() -> Void)?
+  var onAnimationEnd: ((Double) -> Void)?
+  /// A roll or a reveal is under way (`onAnimationStart` has fired, `onAnimationEnd` not yet).
+  private var moving = false
 
   /// The value currently shown or being rolled towards.
   var targetValue: Double { engine.targetValue() }
@@ -254,7 +292,11 @@ final class NitroNumberView: UIView {
   // MARK: - Fonts
 
   private enum GlyphRole {
-    case digit, prefix, suffix
+    /// The integer digits, the sign and the grouping separators.
+    case digit
+    case prefix, suffix
+    /// The fraction digits and the decimal separator (`fractionFontSize`, `fractionColor`).
+    case fraction
   }
 
   private struct GlyphKey: Hashable {
@@ -323,15 +365,25 @@ final class NitroNumberView: UIView {
     let digit: UIFont
     let prefix: UIFont
     let suffix: UIFont
+    let fraction: UIFont
     /// The text color resolved for the view's traits: the glyph images bake it
     /// in, and `.label` is dynamic (see `traitCollectionDidChange`).
     let color: UIColor
+    /// The prefix's, the suffix's and the fraction's colours, resolved (`color` when unset).
+    let prefixColor: UIColor
+    let suffixColor: UIColor
+    let fractionColor: UIColor
     let prefixAlign: AffixAlign
     let suffixAlign: AffixAlign
+    let fractionAlign: AffixAlign
+    /// The glyphs drawn for 0…9.
+    let glyphs: [String]
+    private let glyphsKey: String
     /// Letter spacing after a digit / prefix / suffix glyph, and the spacing at the affix seams (nil: the letter spacing), scaled with the fonts.
     let digitSpacing: CGFloat
     let prefixLetterSpacing: CGFloat
     let suffixLetterSpacing: CGFloat
+    let fractionLetterSpacing: CGFloat
     let prefixSeam: CGFloat?
     let suffixSeam: CGFloat?
     let prefixOffset: CGFloat
@@ -346,6 +398,9 @@ final class NitroNumberView: UIView {
     let proportional: Bool
     /// The advance of each digit 0…9.
     private(set) var digitWidths: [CGFloat] = []
+    /// The same for the fraction digits, in their own font.
+    private(set) var fractionDigitWidth: CGFloat = 0
+    private(set) var fractionDigitWidths: [CGFloat] = []
     // Keyed by a value type rather than a concatenated string: a lookup on the
     // frame path must not allocate.
     private var glyphCache: [GlyphKey: NSAttributedString] = [:]
@@ -370,6 +425,11 @@ final class NitroNumberView: UIView {
       let color: UInt32
       let scale: CGFloat
       let blankZero: Bool
+      /// Places before the wheel wraps: 10, or fewer on a clock's wheel.
+      let modulus: Int
+      /// The glyphs' offset in their slot (a smaller fraction aligned to the digits).
+      let top: CGFloat
+      let glyphs: String
     }
     private static var sharedImages: [ImageKey: UIImage] = [:]
     /// Blurred glyphs, the digit's own colour (tint 0) and the flash's alike.
@@ -387,14 +447,31 @@ final class NitroNumberView: UIView {
     private static var sharedStrips: [StripKey: UIImage] = [:]
     private static let sharedCapacity = 512
     private let colorKey: UInt32
+    private let prefixColorKey: UInt32
+    private let suffixColorKey: UInt32
+    private let fractionColorKey: UInt32
+    private func colorKey(for role: GlyphRole) -> UInt32 {
+      switch role {
+      case .digit: return colorKey
+      case .prefix: return prefixColorKey
+      case .suffix: return suffixColorKey
+      case .fraction: return fractionColorKey
+      }
+    }
+    func color(for role: GlyphRole) -> UIColor {
+      switch role {
+      case .digit: return color
+      case .prefix: return prefixColor
+      case .suffix: return suffixColor
+      case .fraction: return fractionColor
+      }
+    }
     private func fontTag(_ role: GlyphRole) -> String {
       let font = self.font(for: role)
       return "\(font.fontName)|\(font.pointSize)\(proportional ? "|p" : "")"
     }
     /// Pixel density the glyph images are rendered at.
     let renderScale: CGFloat
-    /// Slots in a wheel strip: index -1 (blank) through 10 (the 0 after 9).
-    static let stripSlots = 12
 
     init(_ t: Typography, traits: UITraitCollection) {
       // The view's own display, not the main screen's (deprecated, and absent on visionOS).
@@ -404,22 +481,48 @@ final class NitroNumberView: UIView {
       digit = NitroNumberView.makeFont(size: t.fontSize * scale, weight: t.fontWeight, family: t.fontFamily, tabular: t.tabularNums)
       prefix = NitroNumberView.makeFont(size: (t.prefixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily, tabular: t.tabularNums)
       suffix = NitroNumberView.makeFont(size: (t.suffixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily, tabular: t.tabularNums)
+      fraction = NitroNumberView.makeFont(size: (t.fractionFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily, tabular: t.tabularNums)
       color = t.color.resolvedColor(with: traits)
-      var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-      color.getRed(&r, green: &g, blue: &b, alpha: &a)
-      colorKey = (UInt32(max(0, min(1, a)) * 255) << 24) | (UInt32(max(0, min(1, r)) * 255) << 16) | (UInt32(max(0, min(1, g)) * 255) << 8) | UInt32(max(0, min(1, b)) * 255)
+      prefixColor = (t.prefixColor ?? t.color).resolvedColor(with: traits)
+      suffixColor = (t.suffixColor ?? t.color).resolvedColor(with: traits)
+      fractionColor = (t.fractionColor ?? t.color).resolvedColor(with: traits)
+      colorKey = Self.key(of: color)
+      prefixColorKey = Self.key(of: prefixColor)
+      suffixColorKey = Self.key(of: suffixColor)
+      fractionColorKey = Self.key(of: fractionColor)
       prefixAlign = t.prefixAlign
       suffixAlign = t.suffixAlign
+      fractionAlign = t.fractionAlign
+      glyphs = t.digitGlyphs.count == 10 && !t.digitGlyphs.contains(where: \.isEmpty) ? t.digitGlyphs : (0...9).map { String($0) }
+      glyphsKey = glyphs.joined(separator: "|")
       digitSpacing = t.letterSpacing * scale
       prefixLetterSpacing = t.letterSpacing * scale * (prefix.pointSize / digit.pointSize)
       suffixLetterSpacing = t.letterSpacing * scale * (suffix.pointSize / digit.pointSize)
+      fractionLetterSpacing = t.letterSpacing * scale * (fraction.pointSize / digit.pointSize)
       prefixSeam = t.prefixSpacing.map { $0 * scale }
       suffixSeam = t.suffixSpacing.map { $0 * scale }
       prefixOffset = t.prefixOffset * scale
       suffixOffset = t.suffixOffset * scale
       lineHeight = ceil(digit.lineHeight)
-      digitWidths = (0...9).map { width(of: String($0), role: .digit) }
+      digitWidths = (0...9).map { width(of: glyphs[$0], role: .digit) }
       digitWidth = digitWidths.max() ?? 0
+      fractionDigitWidths = (0...9).map { width(of: glyphs[$0], role: .fraction) }
+      fractionDigitWidth = fractionDigitWidths.max() ?? 0
+    }
+
+    /// The widest digit of `role`'s font (the digits' or the fraction's).
+    func digitWidth(for role: GlyphRole) -> CGFloat {
+      role == .fraction ? fractionDigitWidth : digitWidth
+    }
+
+    func digitWidths(for role: GlyphRole) -> [CGFloat] {
+      role == .fraction ? fractionDigitWidths : digitWidths
+    }
+
+    /// The vertical centre of a `role` digit in the line box (a swapping glyph's).
+    func digitCenterY(for role: GlyphRole) -> CGFloat {
+      guard role == .fraction else { return lineHeight / 2 }
+      return top(for: .fraction, text: glyphs[0], lineTop: 0) + fraction.lineHeight / 2
     }
 
     func font(for role: GlyphRole) -> UIFont {
@@ -427,6 +530,7 @@ final class NitroNumberView: UIView {
       case .digit: return digit
       case .prefix: return prefix
       case .suffix: return suffix
+      case .fraction: return fraction
       }
     }
 
@@ -435,7 +539,7 @@ final class NitroNumberView: UIView {
       if let cached = glyphCache[key] { return cached }
       let string = NSAttributedString(string: text, attributes: [
         .font: font(for: role),
-        .foregroundColor: color,
+        .foregroundColor: color(for: role),
       ])
       glyphCache[key] = string
       return string
@@ -454,7 +558,7 @@ final class NitroNumberView: UIView {
     /// rasterization pass per glyph. Profiling 24 rolling views showed the
     /// per-glyph `NSAttributedString.draw` dominating the main thread.
     func image(_ text: String, role: GlyphRole) -> UIImage? {
-      let key = ImageKey(font: fontTag(role), color: colorKey, scale: renderScale, text: text, role: role)
+      let key = ImageKey(font: fontTag(role), color: colorKey(for: role), scale: renderScale, text: text, role: role)
       if let cached = Self.sharedImages[key] { return cached }
       let string = attributed(text, role: role)
       let size = string.size()
@@ -482,7 +586,7 @@ final class NitroNumberView: UIView {
     /// blur cross-faded, so it never shows a sharp core.
     func blurredImage(_ text: String, role: GlyphRole = .digit, level: Int) -> UIImage? {
       if level <= 0 || numericBlur <= 0 { return image(text, role: role) }
-      let key = TintKey(image: ImageKey(font: fontTag(role), color: colorKey, scale: renderScale, text: text, role: role), tint: 0, level: level, blur: blurKey)
+      let key = TintKey(image: ImageKey(font: fontTag(role), color: colorKey(for: role), scale: renderScale, text: text, role: role), tint: 0, level: level, blur: blurKey)
       if let cached = Self.sharedBlurred[key] { return cached }
       guard let sharp = image(text, role: role), let image = blurred(sharp, level: level) else { return nil }
       Self.sharedBlurred.insert(image, for: key)
@@ -491,19 +595,19 @@ final class NitroNumberView: UIView {
 
     /// `blurredImage`'s twin for `tintedImage`, so a swapping glyph's change
     /// flash blurs as the glyph does.
-    func tintedBlurredImage(_ text: String, tint: UIColor, level: Int) -> UIImage? {
-      if level <= 0 || numericBlur <= 0 { return tintedImage(text, tint: tint) }
-      let key = TintKey(image: ImageKey(font: fontTag(.digit), color: colorKey, scale: renderScale, text: text, role: .digit), tint: Self.key(of: tint), level: level, blur: blurKey)
+    func tintedBlurredImage(_ text: String, role: GlyphRole = .digit, tint: UIColor, level: Int) -> UIImage? {
+      if level <= 0 || numericBlur <= 0 { return tintedImage(text, role: role, tint: tint) }
+      let key = TintKey(image: ImageKey(font: fontTag(role), color: colorKey(for: role), scale: renderScale, text: text, role: role), tint: Self.key(of: tint), level: level, blur: blurKey)
       if let cached = Self.sharedBlurred[key] { return cached }
-      guard let sharp = tintedImage(text, tint: tint), let image = blurred(sharp, level: level) else { return nil }
+      guard let sharp = tintedImage(text, role: role, tint: tint), let image = blurred(sharp, level: level) else { return nil }
       Self.sharedBlurred.insert(image, for: key)
       return image
     }
 
     /// A swapping glyph's image at a blur level, in its own colour or the flash's.
-    func swapImage(_ text: String, level: Int, tint: UIColor?) -> UIImage? {
-      if let tint { return tintedBlurredImage(text, tint: tint, level: level) }
-      return blurredImage(text, level: level)
+    func swapImage(_ text: String, role: GlyphRole = .digit, level: Int, tint: UIColor?) -> UIImage? {
+      if let tint { return tintedBlurredImage(text, role: role, tint: tint, level: level) }
+      return blurredImage(text, role: role, level: level)
     }
 
     private var blurKey: Int { Int((numericBlur * 1000).rounded()) }
@@ -566,10 +670,10 @@ final class NitroNumberView: UIView {
     /// The glyph in another colour, for the change flash: the same raster as
     /// `image` with the tint baked in, composited over the glyph at the flash's
     /// opacity. Made once per font, density and tint.
-    func tintedImage(_ text: String, tint: UIColor) -> UIImage? {
-      let key = TintKey(image: ImageKey(font: fontTag(.digit), color: colorKey, scale: renderScale, text: text, role: .digit), tint: Self.key(of: tint))
+    func tintedImage(_ text: String, role: GlyphRole = .digit, tint: UIColor) -> UIImage? {
+      let key = TintKey(image: ImageKey(font: fontTag(role), color: colorKey(for: role), scale: renderScale, text: text, role: role), tint: Self.key(of: tint))
       if let cached = Self.sharedTinted[key] { return cached }
-      let string = NSAttributedString(string: text, attributes: [.font: digit, .foregroundColor: tint])
+      let string = NSAttributedString(string: text, attributes: [.font: font(for: role), .foregroundColor: tint])
       let size = string.size()
       guard size.width > 0, size.height > 0 else { return nil }
       let format = UIGraphicsImageRendererFormat()
@@ -591,53 +695,60 @@ final class NitroNumberView: UIView {
       let tint: UInt32
     }
     private static var sharedTintedStrips: [TintedStripKey: UIImage] = [:]
-    func tintedStrip(blankZero: Bool, tint: UIColor) -> UIImage? {
-      let key = TintedStripKey(strip: StripKey(font: fontTag(.digit), color: colorKey, scale: renderScale, blankZero: blankZero), tint: Self.key(of: tint))
+    func tintedStrip(role: GlyphRole = .digit, blankZero: Bool, modulus: Int = 10, tint: UIColor) -> UIImage? {
+      let key = TintedStripKey(strip: stripKey(role: role, blankZero: blankZero, modulus: modulus), tint: Self.key(of: tint))
       if let cached = Self.sharedTintedStrips[key] { return cached }
-      guard digitWidth > 0, lineHeight > 0 else { return nil }
-      let format = UIGraphicsImageRendererFormat()
-      format.scale = renderScale
-      format.opaque = false
-      let size = CGSize(width: ceil(digitWidth), height: lineHeight * CGFloat(Self.stripSlots))
-      let image = UIGraphicsImageRenderer(size: size, format: format).image { _ in
-        for slot in 0..<Self.stripSlots {
-          let index = slot - 1
-          if index < 0 || (blankZero && index == 0) { continue }
-          let text = String(index % 10)
-          let w = width(of: text, role: .digit)
-          NSAttributedString(string: text, attributes: [.font: digit, .foregroundColor: tint])
-            .draw(at: CGPoint(x: (digitWidth - w) / 2, y: CGFloat(slot) * lineHeight))
-        }
-      }
+      guard let image = drawStrip(role: role, blankZero: blankZero, modulus: modulus, color: tint) else { return nil }
       if Self.sharedTintedStrips.count >= 8 { Self.sharedTintedStrips.removeAll(keepingCapacity: true) }
       Self.sharedTintedStrips[key] = image
       return image
     }
 
     /// A wheel's whole digit strip as one image: slots for index -1 (blank) to
-    /// 10 (the 0 that follows 9 on a wrap), each `lineHeight` tall with the
-    /// digit centred in `digitWidth`. A wheel layer shows one slot-high window
-    /// of it and just moves the strip, so a roll is a position change.
-    func strip(blankZero: Bool) -> UIImage? {
-      let key = StripKey(font: fontTag(.digit), color: colorKey, scale: renderScale, blankZero: blankZero)
+    /// `modulus` (the 0 that follows the last digit on a wrap: 10 on a plain
+    /// wheel, 6 on a clock's tens), each `lineHeight` tall with the digit
+    /// centred in the role's widest digit. A wheel layer shows one slot-high
+    /// window of it and just moves the strip, so a roll is a position change.
+    /// A fraction digit set smaller is drawn at its aligned height in the slot.
+    func strip(role: GlyphRole = .digit, blankZero: Bool, modulus: Int = 10) -> UIImage? {
+      let key = stripKey(role: role, blankZero: blankZero, modulus: modulus)
       if let cached = Self.sharedStrips[key] { return cached }
-      guard digitWidth > 0, lineHeight > 0 else { return nil }
-      let format = UIGraphicsImageRendererFormat()
-      format.scale = renderScale
-      format.opaque = false
-      let size = CGSize(width: ceil(digitWidth), height: lineHeight * CGFloat(Self.stripSlots))
-      let image = UIGraphicsImageRenderer(size: size, format: format).image { _ in
-        for slot in 0..<Self.stripSlots {
-          let index = slot - 1
-          if index < 0 || (blankZero && index == 0) { continue }
-          let text = String(index % 10)
-          let w = width(of: text, role: .digit)
-          attributed(text, role: .digit).draw(at: CGPoint(x: (digitWidth - w) / 2, y: CGFloat(slot) * lineHeight))
-        }
-      }
+      guard let image = drawStrip(role: role, blankZero: blankZero, modulus: modulus, color: nil) else { return nil }
       if Self.sharedStrips.count >= 64 { Self.sharedStrips.removeAll(keepingCapacity: true) }
       Self.sharedStrips[key] = image
       return image
+    }
+
+    /// Slots in a strip for `modulus`: -1 (blank) through `modulus`.
+    static func stripSlots(modulus: Int) -> Int { modulus + 2 }
+
+    private func stripKey(role: GlyphRole, blankZero: Bool, modulus: Int) -> StripKey {
+      StripKey(font: fontTag(role), color: colorKey(for: role), scale: renderScale, blankZero: blankZero, modulus: modulus, top: stripTop(role), glyphs: glyphsKey)
+    }
+
+    private func stripTop(_ role: GlyphRole) -> CGFloat {
+      role == .fraction ? top(for: .fraction, text: glyphs[0], lineTop: 0) : 0
+    }
+
+    private func drawStrip(role: GlyphRole, blankZero: Bool, modulus: Int, color tint: UIColor?) -> UIImage? {
+      let cell = digitWidth(for: role)
+      guard cell > 0, lineHeight > 0 else { return nil }
+      let format = UIGraphicsImageRendererFormat()
+      format.scale = renderScale
+      format.opaque = false
+      let slots = Self.stripSlots(modulus: modulus)
+      let top = stripTop(role)
+      let size = CGSize(width: ceil(cell), height: lineHeight * CGFloat(slots))
+      return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+        for slot in 0..<slots {
+          let index = slot - 1
+          if index < 0 || (blankZero && index == 0) { continue }
+          let text = glyphs[index % modulus]
+          let w = width(of: text, role: role)
+          let string = tint.map { NSAttributedString(string: text, attributes: [.font: font(for: role), .foregroundColor: $0]) } ?? attributed(text, role: role)
+          string.draw(at: CGPoint(x: (cell - w) / 2, y: CGFloat(slot) * lineHeight + top))
+        }
+      }
     }
 
     /// How far `text`'s ink hangs below the baseline (0 for digits and capitals).
@@ -653,8 +764,12 @@ final class NitroNumberView: UIView {
 
     /// Top of the glyph's line box for `role` drawing `text`, given the top of the digit line box.
     func top(for role: GlyphRole, text: String, lineTop: CGFloat) -> CGFloat {
-      guard role != .digit else { return lineTop }
-      return alignedTop(for: role, text: text, lineTop: lineTop) + (role == .prefix ? prefixOffset : suffixOffset)
+      switch role {
+      case .digit: return lineTop
+      case .fraction: return alignedTop(for: role, text: text, lineTop: lineTop)
+      case .prefix: return alignedTop(for: role, text: text, lineTop: lineTop) + prefixOffset
+      case .suffix: return alignedTop(for: role, text: text, lineTop: lineTop) + suffixOffset
+      }
     }
 
     /// Letter spacing after a glyph of `role`.
@@ -663,12 +778,20 @@ final class NitroNumberView: UIView {
       case .digit: return digitSpacing
       case .prefix: return prefixLetterSpacing
       case .suffix: return suffixLetterSpacing
+      case .fraction: return fractionLetterSpacing
       }
     }
 
     private func alignedTop(for role: GlyphRole, text: String, lineTop: CGFloat) -> CGFloat {
       let f = font(for: role)
-      switch role == .prefix ? prefixAlign : suffixAlign {
+      let align: AffixAlign
+      switch role {
+      case .prefix: align = prefixAlign
+      case .suffix: align = suffixAlign
+      case .fraction: align = fractionAlign
+      case .digit: align = .baseline
+      }
+      switch align {
       case .baseline:
         return lineTop + (digit.ascender - f.ascender)
       case .center:
@@ -679,7 +802,7 @@ final class NitroNumberView: UIView {
         // Pin the bottom of the ink, not of the line boxes: the digits' ink ends
         // on the baseline, so "USD" sits on it too instead of hanging down to
         // where a comma's tail reaches.
-        let affixBaseline = lineTop + digit.ascender + inkDescent("0123456789", role: .digit) - inkDescent(text, role: role)
+        let affixBaseline = lineTop + digit.ascender + inkDescent(glyphs.joined(), role: .digit) - inkDescent(text, role: role)
         return affixBaseline - f.ascender
       }
     }
@@ -775,8 +898,8 @@ final class NitroNumberView: UIView {
     var layer: CALayer
     /// The strip (wheels) or the glyph's image (glyphs), inside `layer`.
     var inner: CALayer
-    /// Wheels only: which strip variant the layer currently shows.
-    var blankZero: Bool
+    /// Wheels only: which strip the layer currently shows (`stripVariant`).
+    var stripVariant: Int
     /// Wheels only: the numeric transition's layers, once the wheel has swapped,
     /// on an unclipped layer of their own over the containers.
     var swap: SwapLayers?
@@ -798,11 +921,11 @@ final class NitroNumberView: UIView {
     var innerFrame = CGRect.null
     var opacity: Float = -1
 
-    init(kind: LayerKind, layer: CALayer, inner: CALayer, blankZero: Bool, glyphTop: CGFloat) {
+    init(kind: LayerKind, layer: CALayer, inner: CALayer, stripVariant: Int, glyphTop: CGFloat) {
       self.kind = kind
       self.layer = layer
       self.inner = inner
-      self.blankZero = blankZero
+      self.stripVariant = stripVariant
       self.glyphTop = glyphTop
     }
   }
@@ -898,6 +1021,7 @@ final class NitroNumberView: UIView {
   func release() {
     stopDisplayLink()
     engine.reset()
+    moving = false
     clearSlots()
     wheelBuffer = []
     elementBuffer = []
@@ -926,7 +1050,8 @@ final class NitroNumberView: UIView {
     engine.reset()
     fontScale = 1
     lastReportedSize = .zero
-    leavingText = [nil, nil, nil, nil]
+    leavingText = [nil, nil, nil, nil, nil]
+    moving = false
     autoAnchor = nil
     awaitingLayout = false
     laidFrame = nil
@@ -952,18 +1077,24 @@ final class NitroNumberView: UIView {
   /// Shows `value` immediately with continuously positioned wheels (odometer
   /// style). Cancels any running roll. Intended to be called every frame.
   func setValue(_ value: Double) {
+    let sign = signBefore()
     engine.setValue(value)
+    swapSignIfChanged(sign)
     reportIntrinsicSize()
     updateDisplayLinkNeed()
     render()
+    updateMoving()
   }
 
   /// Rolls every wheel to `value` (snaps on first show, duration 0 or Reduce Motion).
   func animate(to value: Double) {
-    engine.setReduceMotion(UIAccessibility.isReduceMotionEnabled)
+    applyReduceMotion()
+    let sign = signBefore()
     engine.animateTo(value, CACurrentMediaTime())
+    swapSignIfChanged(sign)
     reportIntrinsicSize()
     updateDisplayLinkNeed()
+    updateMoving()
     // A roll is rendered by the display link's next tick, within a frame; a
     // value that snapped (duration 0, Reduce Motion, nothing shown yet) has
     // no tick coming and is rendered now. Rendering here as well doubled the
@@ -975,7 +1106,9 @@ final class NitroNumberView: UIView {
   /// Shows the opening frame of a jackpot reveal for `value` ("$0.00" in the
   /// target's layout), waiting for `reveal(to:)`.
   func holdReveal(_ value: Double) {
+    let sign = signBefore()
     engine.holdReveal(value)
+    swapSignIfChanged(sign)
     reportIntrinsicSize()
     updateDisplayLinkNeed()
     render()
@@ -983,15 +1116,52 @@ final class NitroNumberView: UIView {
 
   /// Counts up from 0 to `value` and lands with a pop (snaps under Reduce Motion).
   func reveal(to value: Double) {
-    engine.setReduceMotion(UIAccessibility.isReduceMotionEnabled)
+    applyReduceMotion()
+    let sign = signBefore()
     engine.reveal(value, CACurrentMediaTime())
+    swapSignIfChanged(sign)
     reportIntrinsicSize()
     updateDisplayLinkNeed()
     render()
+    updateMoving()
     reportMilestones(reachedBefore: 0)
     if !engine.isRevealing() {
       // Snapped (Reduce Motion / duration 0): the reveal is over before it began.
       onRevealEnd?()
+    }
+  }
+
+  /// Snaps under Reduce Motion unless told not to (`respectReduceMotion`).
+  private func applyReduceMotion() {
+    engine.setReduceMotion(timing.respectReduceMotion && UIAccessibility.isReduceMotionEnabled)
+  }
+
+  /// The sign glyph on screen before a change, if one is.
+  private func signBefore() -> String? {
+    guard engine.hasShownValue(), engine.signFactor() > 0 else { return nil }
+    return engine.signPositive() ? format.plusSign : format.minusSign
+  }
+
+  /// A plus that turns into a minus (or back) swaps like any text: the old
+  /// one softens away as the new one comes into focus.
+  private func swapSignIfChanged(_ before: String?) {
+    guard let before else { return }
+    let after = engine.signPositive() ? format.plusSign : format.minusSign
+    guard after != before else { return }
+    leavingText[Self.signText] = before
+    engine.changeText(Int32(Self.signText), CACurrentMediaTime())
+  }
+
+  /// Fires `onAnimationStart` when a roll or a reveal sets off from rest and
+  /// `onAnimationEnd` when the figure is still again, once for a run of changes.
+  private func updateMoving() {
+    let now = engine.isRolling() || engine.isRevealing()
+    guard now != moving else { return }
+    moving = now
+    if now {
+      onAnimationStart?()
+    } else {
+      onAnimationEnd?(engine.targetValue())
     }
   }
 
@@ -1027,6 +1197,7 @@ final class NitroNumberView: UIView {
         onRevealEnd?()
       }
     }
+    updateMoving()
   }
 
   /// Keeps the display link alive only while the engine says something moves.
@@ -1093,11 +1264,14 @@ final class NitroNumberView: UIView {
     DispatchQueue.main.async { [weak self] in
       guard let self, self.timing.transition == .numeric else { return }
       let tints = [self.flash.upColor, self.flash.downColor].compactMap { $0 }
-      for digit in Self.digitStrings {
-        for level in 0...Self.numericBlurLevels {
-          _ = self.fonts.blurredImage(digit, level: level)
-          for tint in tints {
-            _ = self.fonts.tintedBlurredImage(digit, tint: tint, level: level)
+      let roles: [GlyphRole] = self.format.fractionDigits > 0 ? [.digit, .fraction] : [.digit]
+      for role in roles {
+        for digit in self.fonts.glyphs {
+          for level in 0...Self.numericBlurLevels {
+            _ = self.fonts.blurredImage(digit, role: role, level: level)
+            for tint in tints {
+              _ = self.fonts.tintedBlurredImage(digit, role: role, tint: tint, level: level)
+            }
           }
         }
       }
@@ -1185,6 +1359,8 @@ final class NitroNumberView: UIView {
     var anchor = 1
     /// Space after the cell (letter spacing, or an affix seam), scaled with it; not part of the glyph's box.
     var gap: CGFloat = 0
+    /// Wheels: whose font draws it, the integer digits' or the fraction's.
+    var role: GlyphRole = .digit
     var advance: CGFloat { width + gap }
   }
 
@@ -1242,38 +1418,51 @@ final class NitroNumberView: UIView {
       affixBlocks = AffixBlocks(prefix: format.prefix, suffix: format.suffix, rtl: rtl)
     }
     let affixes = affixBlocks
+    let signGlyph = engine.signPositive() ? format.plusSign : format.minusSign
     // A swapping affix keeps to the digits' side; a separator is centred.
     if rtl {
       addGlyph(affixes.suffixInk, role: .suffix, factor: 1, slot: Self.suffixText, anchor: 1)
       addGlyph(affixes.suffixGap, role: .suffix, factor: 1)
     } else {
       // Sign first, then the currency prefix: "-$1,234.50".
-      addGlyph("-", role: .digit, factor: signFactor)
+      addGlyph(signGlyph, role: .digit, factor: signFactor, slot: Self.signText, anchor: 1)
       addGlyph(affixes.prefixInk, role: .prefix, factor: 1, slot: Self.prefixText, anchor: 1)
     }
     var power = wheels.count - 1
     while power >= 0 {
       let wheel = wheels[power]
       if wheel.width > 0 {
-        let advance = digitAdvance(wheel, power: power, fonts: fonts, settled: !animated)
-        elements.append(Element(kind: .wheel(power), width: advance * CGFloat(wheel.width), fullWidth: advance, factor: wheel.width))
+        let role: GlyphRole = power < fd ? .fraction : .digit
+        let advance = digitAdvance(wheel, power: power, role: role, fonts: fonts, settled: !animated)
+        elements.append(Element(kind: .wheel(power), width: advance * CGFloat(wheel.width), fullWidth: advance, factor: wheel.width, role: role))
       }
-      if power > fd, (power - fd) % 3 == 0 {
+      if power > fd, Self.isGroupBoundary(power - fd, sizes: format.groupingSizes) {
         addGlyph(format.groupingSeparator, role: .digit, factor: wheel.width, slot: Self.groupingText, anchor: 0)
       }
       if fd > 0, power == fd {
-        addGlyph(format.decimalSeparator, role: .digit, factor: decimal, slot: Self.decimalText, anchor: 0)
+        addGlyph(format.decimalSeparator, role: .fraction, factor: decimal, slot: Self.decimalText, anchor: 0)
       }
       power -= 1
     }
     if rtl {
       addGlyph(affixes.prefixGap, role: .prefix, factor: 1)
       addGlyph(affixes.prefixInk, role: .prefix, factor: 1, slot: Self.prefixText, anchor: -1)
-      addGlyph("-", role: .digit, factor: signFactor)
+      addGlyph(signGlyph, role: .digit, factor: signFactor, slot: Self.signText, anchor: -1)
     } else {
       addGlyph(affixes.suffixInk, role: .suffix, factor: 1, slot: Self.suffixText, anchor: -1)
     }
     applySpacing(to: &elements, fonts: fonts)
+  }
+
+  /// Whether a grouping separator follows the `k`th integer digit counted
+  /// from the decimal point: every three by default, or `sizes` (the first
+  /// group, then each later one: [3, 2] is 12,34,567). A size of 0 is none.
+  private static func isGroupBoundary(_ k: Int, sizes: [Int]) -> Bool {
+    let primary = sizes.first ?? 3
+    guard primary > 0, k >= primary else { return false }
+    let secondary = sizes.count > 1 ? sizes[1] : primary
+    guard secondary > 0 else { return k == primary }
+    return (k - primary) % secondary == 0
   }
 
   /// A wheel's cell width at full size: the widest digit's with tabular
@@ -1282,17 +1471,22 @@ final class NitroNumberView: UIView {
   /// rolled past made every column pulse as a narrow 1 went by. Settled, and
   /// throughout a reveal (whose layout is the target's from the first frame),
   /// it is the target digit's.
-  private func digitAdvance(_ wheel: Engine.Wheel, power: Int, fonts: FontSet, settled: Bool) -> CGFloat {
-    guard fonts.proportional else { return fonts.digitWidth }
-    let widths = fonts.digitWidths
+  private func digitAdvance(_ wheel: Engine.Wheel, power: Int, role: GlyphRole, fonts: FontSet, settled: Bool) -> CGFloat {
+    guard fonts.proportional else { return fonts.digitWidth(for: role) }
+    let widths = fonts.digitWidths(for: role)
     let digit = max(0, min(9, Int(engine.targetDigit(Int32(power)))))
     let goal = widths[digit]
     if settled || engine.isRevealing() { return goal }
     var cell = cellWidths[power] ?? CellWidth()
+    if cell.role != role {
+      // A column that became a fraction digit (or stopped being one) starts over in its new font.
+      cell = CellWidth()
+      cell.role = role
+    }
     if cell.digit != digit || wheel.progress < cell.progress {
       // Interrupted mid-change, it carries on from what it showed; from rest,
       // from the digit the wheel is leaving.
-      cell.from = cell.digit >= 0 && cell.progress < 1 ? cell.shown : restingWidth(wheel, widths: widths, goal: goal)
+      cell.from = cell.digit >= 0 && cell.progress < 1 ? cell.shown : restingWidth(wheel, modulus: Int(engine.wheelModulus(Int32(power))), widths: widths, goal: goal)
       cell.digit = digit
     }
     cell.progress = wheel.progress
@@ -1302,12 +1496,12 @@ final class NitroNumberView: UIView {
   }
 
   /// The width of the digit a wheel shows at the start of a change (blank takes the target's).
-  private func restingWidth(_ wheel: Engine.Wheel, widths: [CGFloat], goal: CGFloat) -> CGFloat {
+  private func restingWidth(_ wheel: Engine.Wheel, modulus: Int, widths: [CGFloat], goal: CGFloat) -> CGFloat {
     let glyph: Int
     if wheel.blend < 1 {
       glyph = Int(wheel.fromGlyph)
     } else {
-      glyph = Int((wheel.linear ? wheel.position : Self.wrap10(wheel.position)).rounded())
+      glyph = Int((wheel.linear ? wheel.position : Self.wrap(wheel.position, modulus)).rounded()) % modulus
     }
     return glyph >= 0 ? widths[glyph % 10] : goal
   }
@@ -1318,6 +1512,7 @@ final class NitroNumberView: UIView {
     var shown: CGFloat = 0
     var digit = -1
     var progress: Double = 1
+    var role: GlyphRole = .digit
   }
 
   private var cellWidths: [Int: CellWidth] = [:]
@@ -1438,7 +1633,7 @@ final class NitroNumberView: UIView {
     var power = Int(engine.settledPowerCount()) - 1
     while power >= 0 {
       digits += String(engine.targetDigit(Int32(power)))
-      if power > fd, (power - fd) % 3 == 0 {
+      if power > fd, Self.isGroupBoundary(power - fd, sizes: format.groupingSizes) {
         digits += format.groupingSeparator
       }
       if fd > 0, power == fd {
@@ -1446,7 +1641,9 @@ final class NitroNumberView: UIView {
       }
       power -= 1
     }
-    return (engine.settledNegative() ? "-" : "") + format.prefix + digits + format.suffix
+    // `settledNegative` is whether the settled figure carries a sign, a plus included.
+    let sign = engine.settledNegative() ? (engine.signPositive() ? format.plusSign : format.minusSign) : ""
+    return sign + format.prefix + digits + format.suffix
   }
 
   /// An `accessibilityLabel` the app set, which VoiceOver reads instead of the figure.
@@ -1559,7 +1756,8 @@ final class NitroNumberView: UIView {
       if case .wheel = element.kind {
         // A digit column is the widest digit wide, centred on the digit's own
         // cell (with tabular figures the two are the same, right-aligned).
-        mask = CGRect(x: x + element.width - (element.fullWidth + fonts.digitWidth) / 2, y: 0, width: fonts.digitWidth, height: fonts.lineHeight)
+        let column = fonts.digitWidth(for: element.role)
+        mask = CGRect(x: x + element.width - (element.fullWidth + column) / 2, y: 0, width: column, height: fonts.lineHeight)
       }
       if slot.frame != mask {
         slot.layer.frame = mask
@@ -1594,18 +1792,24 @@ final class NitroNumberView: UIView {
             slots[i].overlay = overlay
             slots[i].swap = swap
           }
-          layoutSwap(swap, wheel: wheel, fonts: fonts, cellWidth: element.width, advance: element.fullWidth, tint: tint, flash: CGFloat(wheel.flash))
+          layoutSwap(swap, wheel: wheel, role: element.role, fonts: fonts, cellWidth: element.width, advance: element.fullWidth, tint: tint, flash: CGFloat(wheel.flash))
         } else if let swap = slot.swap, !swap.hidden {
           for layer in swap.all { layer.isHidden = true }
           swap.hidden = true
         }
         if strip.isHidden != swapping { strip.isHidden = swapping }
-        if slot.blankZero != wheel.blankZero {
-          strip.contents = fonts.strip(blankZero: wheel.blankZero)?.cgImage
-          slots[i].blankZero = wheel.blankZero
+        let modulus = Int(engine.wheelModulus(Int32(index)))
+        let variant = Self.stripVariant(role: element.role, blankZero: wheel.blankZero, modulus: modulus)
+        if slot.stripVariant != variant {
+          if let image = fonts.strip(role: element.role, blankZero: wheel.blankZero, modulus: modulus) {
+            strip.contents = image.cgImage
+            strip.bounds = CGRect(origin: .zero, size: image.size)
+          }
+          slots[i].stripVariant = variant
+          slots[i].innerFrame = .null
         }
-        // Linear strips run from -1 (blank) to 9; a roll can be any real, so wrap it onto 0..<10.
-        let position = wheel.linear ? wheel.position : Self.wrap10(wheel.position)
+        // Linear strips run from -1 (blank) to 9; a roll can be any real, so wrap it onto the wheel's places.
+        let position = wheel.linear ? wheel.position : Self.wrap(wheel.position, modulus)
         let stripFrame = CGRect(
           x: 0,
           y: -(position + 1) * fonts.lineHeight,
@@ -1616,7 +1820,7 @@ final class NitroNumberView: UIView {
           strip.frame = stripFrame
           slots[i].innerFrame = stripFrame
         }
-        layoutFlash(slotIndex: i, wheel: wheel, tint: swapping ? nil : tint, fonts: fonts, stripFrame: stripFrame)
+        layoutFlash(slotIndex: i, wheel: wheel, role: element.role, modulus: modulus, tint: swapping ? nil : tint, fonts: fonts, stripFrame: stripFrame)
       case .glyph(let text, let role):
         if let from = element.fromText {
           // Swapping its text: the overlay's pair of pairs instead of the image.
@@ -1684,7 +1888,7 @@ final class NitroNumberView: UIView {
   /// cross-faded with its blurred image as it goes out of, or comes into,
   /// focus. With a change flash on (`tint`), the same two again in the tint
   /// at `flash` of their opacity, over them: the ink mixed towards the tint.
-  private func layoutSwap(_ swap: SwapLayers, wheel: Engine.Wheel, fonts: FontSet, cellWidth: CGFloat, advance: CGFloat, tint: UIColor?, flash: CGFloat) {
+  private func layoutSwap(_ swap: SwapLayers, wheel: Engine.Wheel, role: GlyphRole, fonts: FontSet, cellWidth: CGFloat, advance: CGFloat, tint: UIColor?, flash: CGFloat) {
     // The position clock overshoots 1 (a spring); only the offsets follow it there.
     let b = CGFloat(wheel.blend)
     let g = max(0, min(1, CGFloat(wheel.grow)))
@@ -1692,7 +1896,7 @@ final class NitroNumberView: UIView {
     let d: CGFloat = wheel.fromAbove ? 1 : -1
     let offset = fonts.lineHeight * Self.numericOffset
     // The digit sits right-aligned in its cell (the cell shrinks and grows from the left).
-    let center = CGPoint(x: cellWidth - advance / 2, y: fonts.lineHeight / 2)
+    let center = CGPoint(x: cellWidth - advance / 2, y: fonts.digitCenterY(for: role))
     let outGlyph = Int(wheel.fromGlyph)
     let outCenter = CGPoint(x: center.x, y: center.y + d * offset * b)
     let outScale = 1 - (1 - Self.numericScale) * g
@@ -1703,11 +1907,11 @@ final class NitroNumberView: UIView {
     let inScale = Self.numericScale + (1 - Self.numericScale) * g
     let inAlpha = g
     let inBlur = 1 - f
-    placeSwapGlyph(swap.leaving, glyph: outGlyph, fonts: fonts, tint: nil, center: outCenter, scale: outScale, alpha: outAlpha, blur: outBlur)
-    placeSwapGlyph(swap.arriving, glyph: inGlyph, fonts: fonts, tint: nil, center: inCenter, scale: inScale, alpha: inAlpha, blur: inBlur)
+    placeSwapGlyph(swap.leaving, glyph: outGlyph, role: role, fonts: fonts, tint: nil, center: outCenter, scale: outScale, alpha: outAlpha, blur: outBlur)
+    placeSwapGlyph(swap.arriving, glyph: inGlyph, role: role, fonts: fonts, tint: nil, center: inCenter, scale: inScale, alpha: inAlpha, blur: inBlur)
     let tintAlpha = tint == nil ? 0 : flash
-    placeSwapGlyph(swap.leavingTint, glyph: outGlyph, fonts: fonts, tint: tint, center: outCenter, scale: outScale, alpha: outAlpha * tintAlpha, blur: outBlur)
-    placeSwapGlyph(swap.arrivingTint, glyph: inGlyph, fonts: fonts, tint: tint, center: inCenter, scale: inScale, alpha: inAlpha * tintAlpha, blur: inBlur)
+    placeSwapGlyph(swap.leavingTint, glyph: outGlyph, role: role, fonts: fonts, tint: tint, center: outCenter, scale: outScale, alpha: outAlpha * tintAlpha, blur: outBlur)
+    placeSwapGlyph(swap.arrivingTint, glyph: inGlyph, role: role, fonts: fonts, tint: tint, center: inCenter, scale: inScale, alpha: inAlpha * tintAlpha, blur: inBlur)
     swap.hidden = false
   }
 
@@ -1774,7 +1978,7 @@ final class NitroNumberView: UIView {
   /// `numericBlurLevels`, level 0 sharp), cross-faded by where between them
   /// it falls, so a glyph half out of focus is half-blurred rather than a
   /// sharp glyph half-hidden in a fully blurred one.
-  private func placeSwapGlyph(_ pair: (GlyphLayer, GlyphLayer), glyph: Int, fonts: FontSet, tint: UIColor?, center: CGPoint, scale: CGFloat, alpha: CGFloat, blur amount: CGFloat) {
+  private func placeSwapGlyph(_ pair: (GlyphLayer, GlyphLayer), glyph: Int, role: GlyphRole, fonts: FontSet, tint: UIColor?, center: CGPoint, scale: CGFloat, alpha: CGFloat, blur amount: CGFloat) {
     guard glyph >= 0, alpha > 0.002 else {
       if !pair.0.layer.isHidden { pair.0.layer.isHidden = true }
       if !pair.1.layer.isHidden { pair.1.layer.isHidden = true }
@@ -1793,7 +1997,7 @@ final class NitroNumberView: UIView {
     let hiAlpha = alpha * w
     let loAlpha = hiAlpha >= 0.999 ? 0 : alpha * (1 - w) / (1 - hiAlpha)
     let tintKey = tint.map { FontSet.key(of: $0) } ?? 0
-    let text = Self.digitStrings[glyph % 10]
+    let text = fonts.glyphs[glyph % 10]
     let transform = CATransform3DMakeScale(scale, scale, 1)
     // A local function, not a loop over an array literal: that allocated an array per call.
     func place(_ slot: GlyphLayer, _ level: Int, _ layerAlpha: CGFloat) {
@@ -1802,7 +2006,7 @@ final class NitroNumberView: UIView {
       if layer.isHidden != hidden { layer.isHidden = hidden }
       if hidden { return }
       if slot.glyph != glyph || slot.level != level || slot.tint != tintKey {
-        if let image = fonts.swapImage(text, level: level, tint: tint) {
+        if let image = fonts.swapImage(text, role: role, level: level, tint: tint) {
           layer.contents = image.cgImage
           layer.bounds = CGRect(origin: .zero, size: image.size)
         }
@@ -1823,7 +2027,7 @@ final class NitroNumberView: UIView {
   /// down colour at the flash's opacity, so the tint rides the roll instead
   /// of hovering over it. A swapping wheel's flash is its swap layers' tinted
   /// twins (`layoutSwap`), so `tint` is nil for it.
-  private func layoutFlash(slotIndex i: Int, wheel: Engine.Wheel, tint: UIColor?, fonts: FontSet, stripFrame: CGRect) {
+  private func layoutFlash(slotIndex i: Int, wheel: Engine.Wheel, role: GlyphRole, modulus: Int, tint: UIColor?, fonts: FontSet, stripFrame: CGRect) {
     guard let tint, !stripFrame.isNull else {
       if let layer = slots[i].flashLayer, !layer.isHidden { layer.isHidden = true }
       return
@@ -1839,9 +2043,9 @@ final class NitroNumberView: UIView {
     }
     let tintKey = FontSet.key(of: tint)
     // The strip's own tinted twin, keyed as a glyph the digits can never be.
-    let stripGlyph = 100 + (wheel.blankZero ? 1 : 0)
+    let stripGlyph = 100 + Self.stripVariant(role: role, blankZero: wheel.blankZero, modulus: modulus)
     if slots[i].flashGlyph != stripGlyph || slots[i].flashTint != tintKey {
-      guard let image = fonts.tintedStrip(blankZero: wheel.blankZero, tint: tint) else { return }
+      guard let image = fonts.tintedStrip(role: role, blankZero: wheel.blankZero, modulus: modulus, tint: tint) else { return }
       layer.contents = image.cgImage
       slots[i].flashGlyph = stripGlyph
       slots[i].flashTint = tintKey
@@ -1865,13 +2069,14 @@ final class NitroNumberView: UIView {
       switch element.kind {
       case .wheel(let index):
         let blankZero = wheels[index].blankZero
-        if let strip = fonts.strip(blankZero: blankZero) {
+        let modulus = Int(engine.wheelModulus(Int32(index)))
+        if let strip = fonts.strip(role: element.role, blankZero: blankZero, modulus: modulus) {
           inner.contents = strip.cgImage
           inner.bounds = CGRect(origin: .zero, size: strip.size)
         }
         container.addSublayer(inner)
         contentLayer.addSublayer(container)
-        slots.append(ElementLayer(kind: .wheel, layer: container, inner: inner, blankZero: blankZero, glyphTop: 0))
+        slots.append(ElementLayer(kind: .wheel, layer: container, inner: inner, stripVariant: Self.stripVariant(role: element.role, blankZero: blankZero, modulus: modulus), glyphTop: 0))
       case .glyph(let text, let role):
         if let image = fonts.image(text, role: role) {
           inner.contents = image.cgImage
@@ -1879,7 +2084,7 @@ final class NitroNumberView: UIView {
         }
         container.addSublayer(inner)
         contentLayer.addSublayer(container)
-        slots.append(ElementLayer(kind: .glyph(text, role), layer: container, inner: inner, blankZero: false, glyphTop: fonts.top(for: role, text: text, lineTop: 0)))
+        slots.append(ElementLayer(kind: .glyph(text, role), layer: container, inner: inner, stripVariant: -1, glyphTop: fonts.top(for: role, text: text, lineTop: 0)))
       }
     }
   }
@@ -1901,9 +2106,20 @@ final class NitroNumberView: UIView {
     return true
   }
 
+  /// Which strip a wheel draws from, as one comparable number.
+  private static func stripVariant(role: GlyphRole, blankZero: Bool, modulus: Int) -> Int {
+    (blankZero ? 1 : 0) | (modulus << 1) | (role == .fraction ? 1 << 8 : 0)
+  }
+
   private static func wrap10(_ position: Double) -> Double {
-    let r = fmod(position, 10)
-    return r < 0 ? r + 10 : r
+    wrap(position, 10)
+  }
+
+  /// `position` wrapped onto 0..<`modulus` (a wheel's places, 10 or a clock's 6).
+  private static func wrap(_ position: Double, _ modulus: Int) -> Double {
+    let m = Double(modulus)
+    let r = fmod(position, m)
+    return r < 0 ? r + m : r
   }
 
   /// Where the content box (`total` × `lineHeight`, in font space) goes and how
@@ -1953,7 +2169,7 @@ final class NitroNumberView: UIView {
     for element in elements {
       switch element.kind {
       case .wheel(let index):
-        drawWheel(wheels[index], fonts: fonts, x: x, width: element.width, advance: element.fullWidth, ctx: ctx)
+        drawWheel(wheels[index], role: element.role, modulus: Int(engine.wheelModulus(Int32(index))), fonts: fonts, x: x, width: element.width, advance: element.fullWidth, ctx: ctx)
       case .glyph(let text, let role):
         drawGlyph(text, role: role, fonts: fonts, x: x, width: element.width, fullWidth: element.fullWidth, alpha: element.factor, ctx: ctx)
       }
@@ -2004,14 +2220,16 @@ final class NitroNumberView: UIView {
     ctx.restoreGState()
   }
 
-  private func drawWheel(_ wheel: Engine.Wheel, fonts: FontSet, x: CGFloat, width: CGFloat, advance: CGFloat, ctx: CGContext) {
+  private func drawWheel(_ wheel: Engine.Wheel, role: GlyphRole, modulus: Int, fonts: FontSet, x: CGFloat, width: CGFloat, advance: CGFloat, ctx: CGContext) {
     guard width > 0 else { return }
     let lineHeight = fonts.lineHeight
+    let column = fonts.digitWidth(for: role)
     // The digit column, the widest digit wide, centred on the digit's own cell.
-    let columnLeft = x + width - (advance + fonts.digitWidth) / 2
+    let columnLeft = x + width - (advance + column) / 2
+    let top = role == .fraction ? fonts.top(for: .fraction, text: fonts.glyphs[0], lineTop: 0) : 0
     ctx.saveGState()
     // The roll's window, the whole digit wide (see `renderLayers`).
-    ctx.clip(to: CGRect(x: columnLeft, y: 0, width: fonts.digitWidth, height: lineHeight))
+    ctx.clip(to: CGRect(x: columnLeft, y: 0, width: column, height: lineHeight))
     ctx.setAlpha(CGFloat(Self.openingOpacity(wheel.width)))
     if wheel.blend < 1 || wheel.focus < 1 || wheel.grow < 1 {
       // The numeric transition under the glint: the pair, without the blur.
@@ -2019,16 +2237,17 @@ final class NitroNumberView: UIView {
       let g = max(0, min(1, CGFloat(wheel.grow)))
       let d: CGFloat = wheel.fromAbove ? 1 : -1
       let offset = lineHeight * Self.numericOffset
-      let cx = columnLeft + fonts.digitWidth / 2
+      let cx = columnLeft + column / 2
+      let cy = fonts.digitCenterY(for: role)
       let pair: [(glyph: Int, dy: CGFloat, scale: CGFloat, alpha: CGFloat)] = [
         (Int(wheel.fromGlyph), d * offset * b, 1 - (1 - Self.numericScale) * g, 1 - g),
         (Int(wheel.toGlyph), -d * offset * (1 - b), Self.numericScale + (1 - Self.numericScale) * g, g),
       ]
       for item in pair where item.glyph >= 0 && item.alpha > 0.002 {
-        guard let image = fonts.image(Self.digitStrings[item.glyph % 10], role: .digit) else { continue }
+        guard let image = fonts.image(fonts.glyphs[item.glyph % 10], role: role) else { continue }
         ctx.saveGState()
         ctx.setAlpha(CGFloat(wheel.width) * item.alpha)
-        ctx.translateBy(x: cx, y: lineHeight / 2 + item.dy)
+        ctx.translateBy(x: cx, y: cy + item.dy)
         ctx.scaleBy(x: item.scale, y: item.scale)
         image.draw(at: CGPoint(x: -image.size.width / 2, y: -image.size.height / 2))
         ctx.restoreGState()
@@ -2036,24 +2255,23 @@ final class NitroNumberView: UIView {
       ctx.restoreGState()
       return
     }
-    let base = wheel.position.rounded(.down)
-    let fraction = CGFloat(wheel.position - base)
+    let position = wheel.linear ? wheel.position : Self.wrap(wheel.position, modulus)
+    let base = position.rounded(.down)
+    let fraction = CGFloat(position - base)
     let index = Int(base)
-    if let text = digitText(at: index, in: wheel), let image = fonts.image(text, role: .digit) {
-      image.draw(at: CGPoint(x: columnLeft + (fonts.digitWidth - fonts.width(of: text, role: .digit)) / 2, y: -fraction * lineHeight))
+    if let text = digitText(at: index, in: wheel, modulus: modulus, fonts: fonts), let image = fonts.image(text, role: role) {
+      image.draw(at: CGPoint(x: columnLeft + (column - fonts.width(of: text, role: role)) / 2, y: top - fraction * lineHeight))
     }
-    if fraction > 0.0001, let text = digitText(at: index + 1, in: wheel), let image = fonts.image(text, role: .digit) {
-      image.draw(at: CGPoint(x: columnLeft + (fonts.digitWidth - fonts.width(of: text, role: .digit)) / 2, y: (1 - fraction) * lineHeight))
+    if fraction > 0.0001, let text = digitText(at: index + 1, in: wheel, modulus: modulus, fonts: fonts), let image = fonts.image(text, role: role) {
+      image.draw(at: CGPoint(x: columnLeft + (column - fonts.width(of: text, role: role)) / 2, y: top + (1 - fraction) * lineHeight))
     }
     ctx.restoreGState()
   }
 
-  private static let digitStrings = (0...9).map { String($0) }
-
-  private func digitText(at index: Int, in wheel: Engine.Wheel) -> String? {
+  private func digitText(at index: Int, in wheel: Engine.Wheel, modulus: Int, fonts: FontSet) -> String? {
     if wheel.linear && index < 0 { return nil }
     if wheel.blankZero && index == 0 { return nil }
-    return Self.digitStrings[((index % 10) + 10) % 10]
+    return fonts.glyphs[((index % modulus) + modulus) % modulus]
   }
 }
 

@@ -28,6 +28,13 @@ public:
   void setFlash(double seconds);
   void setPopOnChange(double overshoot);
   void setReduceMotion(bool reduceMotion);
+  void setContinuous(bool continuous);
+  void setDigitMax(int power, int max);
+  void clearDigitMax();
+  int wheelModulus(int index);
+  void setSignDisplay(int mode);
+  bool signPositive();
+  double signFactor();
   void changeText(int slot, double now);
   void changeFormat(int fractionDigits, int minimumIntegerDigits, double now);
   void setValue(double value);
@@ -49,7 +56,8 @@ public:
   double revealMilestoneValue(int index);
   /// Writes the render state into `out` without allocating:
   /// `[signFactor, loadingProgress, revealScale, wheelCount, then (position,
-  /// width, linear, blankZero) per wheel]`. Returns the number of doubles
+  /// width, linear, blankZero, …, progress, modulus) per wheel]`, then the
+  /// text slots and the decimal columns. Returns the number of doubles
   /// written, or -1 if `out` is too small.
   int frameInto(jni::alias_ref<jni::JArrayDouble> out);
   double shimmerPhase(double now, double periodSeconds);

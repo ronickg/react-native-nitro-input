@@ -54,6 +54,8 @@ namespace margelo::nitro::nitroinput { enum class NitroNumberDirection; }
 namespace margelo::nitro::nitroinput { enum class NitroNumberEasing; }
 // Forward declaration of `NitroNumberRevealStyle` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberRevealStyle; }
+// Forward declaration of `NitroNumberSignDisplay` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberSignDisplay; }
 // Forward declaration of `NitroNumberTextAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberTextAlign; }
 // Forward declaration of `NitroNumberTransition` to properly resolve imports.
@@ -103,6 +105,7 @@ namespace margelo::nitro::nitroinput { enum class NumberFormatUnitDisplay; }
 #include "NitroNumberDirection.hpp"
 #include "NitroNumberEasing.hpp"
 #include "NitroNumberRevealStyle.hpp"
+#include "NitroNumberSignDisplay.hpp"
 #include "NitroNumberTextAlign.hpp"
 #include "NitroNumberTransition.hpp"
 #include "NumberFormatCompactDisplay.hpp"

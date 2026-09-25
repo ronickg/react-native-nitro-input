@@ -1260,10 +1260,106 @@ static void progressRunsOnceThroughAChange() {
   CHECK(near(n.wheelAt(1).progress, 1));
 }
 
+static void continuousTurnsTheLowerWheels() {
+  // 100 → 200: the hundreds change, so the tens and units turn a full turn up with them.
+  RollingEngine e;
+  e.setFormat(0, 1);
+  e.setTiming(0.5, /* linear */ 0, 0.15, 0, 0);
+  e.setContinuous(true);
+  e.animateTo(100, 0);
+  e.animateTo(200, 0);
+  e.tick(0.25);
+  CHECK(near(e.wheelAt(0).position, 5));   // half of 0 → 10
+  CHECK(near(e.wheelAt(1).position, 5));
+  CHECK(near(e.wheelAt(2).position, 1.5));
+  e.tick(0.5);
+  CHECK(e.targetDigit(0) == 0 && e.targetDigit(2) == 2);
+  // Down: they turn down. Wheels above the highest change stay put.
+  e.animateTo(210, 1);
+  e.tick(1.25);
+  CHECK(near(e.wheelAt(0).position, 5));   // tens change: the units turn
+  CHECK(near(e.wheelAt(2).position, 2));
+  e.tick(1.5);
+  e.animateTo(110, 2);
+  e.tick(2.25);
+  CHECK(near(e.wheelAt(1).position, -4));  // the tens, 1 → 1 a full turn down, halfway: 1 - 5 (drawn as 6)
+  // Off: an unchanged wheel stays.
+  RollingEngine f;
+  f.setFormat(0, 1);
+  f.setTiming(0.5, 0, 0.15, 0, 0);
+  f.animateTo(100, 0);
+  f.animateTo(200, 0);
+  f.tick(0.25);
+  CHECK(near(f.wheelAt(0).position, 0));
+}
+
+static void digitMaxWrapsAClock() {
+  // mm:ss as 5959: the tens of seconds and of minutes go 0…5.
+  RollingEngine e;
+  e.setFormat(0, 4);
+  e.setTiming(0.5, 0, 0.15, 0, 0);
+  e.setDigitMax(1, 5);
+  e.setDigitMax(3, 5);
+  CHECK(e.wheelModulus(1) == 6 && e.wheelModulus(0) == 10);
+  e.animateTo(959, 0);    // 09:59
+  e.animateTo(1000, 0);   // 10:00
+  e.tick(0.25);
+  // Seconds' tens 5 → 0 is one step up on a six-place wheel (5 → 6 ≡ 0), not five down.
+  CHECK(near(e.wheelAt(1).position, 5.5));
+  CHECK(near(e.wheelAt(0).position, 9.5));
+  e.tick(0.5);
+  CHECK(e.targetDigit(1) == 0 && e.targetDigit(2) == 0 && e.targetDigit(3) == 1);
+  e.clearDigitMax();
+  CHECK(e.wheelModulus(1) == 10);
+}
+
+static void signDisplayFollowsEcma402() {
+  RollingEngine e;
+  e.setFormat(2, 1);
+  e.setTiming(0, 0, 0, 0, 0);
+  // auto: negatives only, not one that rounds to zero.
+  e.animateTo(-1.5, 0);
+  CHECK(near(e.signFactor(), 1) && !e.signPositive());
+  e.animateTo(-0.001, 0);
+  CHECK(near(e.signFactor(), 0));
+  e.animateTo(2, 0);
+  CHECK(near(e.signFactor(), 0));
+  // always: a plus on positives and zero.
+  e.setSignDisplay(1);
+  e.animateTo(2, 0);
+  CHECK(near(e.signFactor(), 1) && e.signPositive());
+  e.animateTo(0, 0);
+  CHECK(near(e.signFactor(), 1) && e.signPositive());
+  e.animateTo(-2, 0);
+  CHECK(near(e.signFactor(), 1) && !e.signPositive());
+  // exceptZero: nothing on zero, and the glyph stays the one that leaves.
+  e.setSignDisplay(2);
+  e.animateTo(0, 0);
+  CHECK(near(e.signFactor(), 0) && !e.signPositive());
+  e.animateTo(3, 0);
+  CHECK(near(e.signFactor(), 1) && e.signPositive());
+  // never.
+  e.setSignDisplay(4);
+  e.animateTo(-3, 0);
+  CHECK(near(e.signFactor(), 0));
+  // A roll fades the plus in as the minus would.
+  RollingEngine r;
+  r.setFormat(0, 1);
+  r.setTiming(0.5, 0, 0.15, 0, 0);
+  r.setSignDisplay(2);
+  r.animateTo(0, 0);
+  r.animateTo(5, 0);
+  r.tick(0.25);
+  CHECK(near(r.signFactor(), 0.5) && r.signPositive());
+}
+
 int main() {
   odometerPositions();
   shortestRollsEachWheelItsOwnWay();
   progressRunsOnceThroughAChange();
+  continuousTurnsTheLowerWheels();
+  digitMaxWrapsAClock();
+  signDisplayFollowsEcma402();
   tickerRollsShortestPathInDirection();
   wheelsAppearAndDisappear();
   staggerDoesNotStarveOnRetarget();

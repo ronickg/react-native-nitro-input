@@ -22,7 +22,11 @@ Zero-pads the integer part (1–15).
 </Prop>
 
 <Prop name="groupingSeparator" type="string" default="''">
-Inserted every three integer digits.
+Inserted between digit groups (every three, unless `groupingSizes` says otherwise).
+</Prop>
+
+<Prop name="groupingSizes" type="number[]" default="[3]">
+Digit group sizes counted from the decimal point: the first group, then every later one. `[3, 2]` is Indian grouping (12,34,567), `[2, 0]` one separator two digits in. A `format` gives its locale's.
 </Prop>
 
 <Prop name="decimalSeparator" type="string" default="'.'">
@@ -33,7 +37,35 @@ Between integer and fraction digits.
 Static text around the number.
 </Prop>
 
+<Prop name="signDisplay" type="'auto' | 'always' | 'exceptZero' | 'negative' | 'never'" default="'auto'">
+Which values carry a sign, as `Intl.NumberFormat`'s: `'always'` and `'exceptZero'` put a plus on gains ("+$12.40"), and a plus that turns into a minus swaps like any other glyph. A value that rounds to zero at the shown fraction digits counts as zero, so `-0.001` shows no minus. A `format` gives its own.
+</Prop>
+
+<Prop name="plusSign, minusSign" type="string" default="'+', '-'">
+The glyphs drawn for the signs, e.g. `'−'` (U+2212, the typographic minus). A `format` gives its locale's minus.
+</Prop>
+
+<Prop name="digitGlyphs" type="string[]">
+The ten glyphs drawn for 0 to 9, for native digits: `['٠','١','٢','٣','٤','٥','٦','٧','٨','٩']`. A `format` with another numbering system (`ar-EG`, `hi-IN-u-nu-deva`) gives its own.
+</Prop>
+
+<Prop name="digits" type="Record<number, { max: number }>">
+The highest digit an integer position (0 the ones, 1 the tens…) shows before it wraps to 0, as NumberFlow's `digits`. `{ 1: { max: 5 } }` makes the tens of a clock's seconds wrap after 5, so 59 → 00 turns them one step instead of five back. [`NitroTime`](/docs/nitro-number#clocks-and-timers) sets it for you.
+</Prop>
+
 ## Roll timing
+
+<Prop name="animated" type="boolean" default="true">
+`false` shows every change at once, a reveal included; the flash and the pop still play.
+</Prop>
+
+<Prop name="respectReduceMotion" type="boolean" default="true">
+Snap while the system's Reduce Motion is on. `false` animates regardless, for a figure whose motion carries meaning.
+</Prop>
+
+<Prop name="continuous" type="boolean" default="false">
+Rolls turn the wheels below the highest one that changes a full turn too, in the direction of the change, so 100 → 200 seems to pass through every value between (NumberFlow's `continuous`). Rolls only.
+</Prop>
 
 <Prop name="duration" type="number" default="500">
 Roll duration in ms; `0` snaps.
@@ -159,12 +191,28 @@ Points between the prefix and the digits, and between the digits and the suffix,
 Points an affix is moved down after its alignment places it (negative: up), for a symbol that sits a little off every preset.
 </Prop>
 
+<Prop name="prefixColor, suffixColor" type="ColorValue" default="color">
+The affixes' colours: a muted currency symbol or unit.
+</Prop>
+
+<Prop name="fractionFontSize" type="number" default="fontSize">
+The fraction digits' and decimal separator's size: smaller cents.
+</Prop>
+
+<Prop name="fractionColor" type="ColorValue" default="color">
+The fraction digits' and decimal separator's colour: dimmer cents.
+</Prop>
+
+<Prop name="fractionAlign" type="'baseline' | 'center' | 'top' | 'bottom'" default="'baseline'">
+How smaller fraction digits line up with the integer ones; `'top'` sets superscript cents ("$12⁹⁹").
+</Prop>
+
 <Prop name="tabularNums" type="boolean" default="true">
 Every digit as wide as the widest, so columns never move. `false` lays each digit out at its own width (the font's proportional figures), for a face whose "1" is narrow or that has no tabular figures; a changing column's width eases once from the old digit's to the new one's, and a reveal keeps its target's widths throughout.
 </Prop>
 
 <Prop name="format" type="NumberFormat">
-A [`NumberFormat`](/docs/number-format) the number follows: its prefix and suffix (the currency where the locale puts it), grouping and decimal separators, fraction digits and minimum integer digits. The individual props override what it says. The number keeps its own model: digits grouped in threes, a leading minus, Latin digits.
+A [`NumberFormat`](/docs/number-format) the number follows: its prefix and suffix (the currency where the locale puts it), grouping separator and group sizes, decimal separator, fraction digits, minimum integer digits, sign display and minus sign, and its numbering system's digits. A compact format (`notation: 'compact'`) rolls the figure it shows and swaps its suffix as the value crosses a thousand, a million: "950" → "1.5K" → "2.3M". The individual props override what it says.
 </Prop>
 
 <Prop name="adjustsFontSizeToFit" type="boolean" default="false">
@@ -197,6 +245,14 @@ Text color.
 
 <Prop name="textAlign" type="'auto' | 'left' | 'center' | 'right'" default="'auto'">
 Alignment inside a wider frame. `'auto'` is the start edge of the layout direction, as `Text`, except in a view that hugs the number: there it is the edge the parent keeps the view to, so a figure at the end of a row (`justifyContent: 'space-between'`) grows and shrinks from its right edge instead of jumping. `'left'` and `'right'` are absolute. In a right-to-left app the prefix sits at the right edge and the suffix at the left, and the digits keep reading left to right; a single figure can be flipped with `style={{ direction: 'rtl' }}`.
+</Prop>
+
+<Prop name="onAnimationStart" type="() => void">
+Called when the figure starts moving from rest: a change, or a reveal.
+</Prop>
+
+<Prop name="onAnimationEnd" type="(value: number) => void">
+Called when the figure comes to rest, with the value it shows: once for a run of changes that arrived while it was moving. A snapped change (`animated={false}`, Reduce Motion, `duration={0}`) fires neither. With a compact `format` the value is the value, not the figure the digits show.
 </Prop>
 
 <Prop name="onNativeRef" type="(ref) => void">

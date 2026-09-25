@@ -17,6 +17,8 @@ namespace margelo::nitro::nitroinput { enum class NitroNumberDirection; }
 namespace margelo::nitro::nitroinput { enum class NitroNumberRevealStyle; }
 // Forward declaration of `NitroNumberAffixAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberAffixAlign; }
+// Forward declaration of `NitroNumberSignDisplay` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberSignDisplay; }
 // Forward declaration of `NitroNumberTextAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberTextAlign; }
 
@@ -33,12 +35,15 @@ namespace margelo::nitro::nitroinput { enum class NitroNumberTextAlign; }
 #include <vector>
 #include "NitroNumberAffixAlign.hpp"
 #include "JNitroNumberAffixAlign.hpp"
+#include "NitroNumberSignDisplay.hpp"
+#include "JNitroNumberSignDisplay.hpp"
 #include "NitroNumberTextAlign.hpp"
 #include "JNitroNumberTextAlign.hpp"
 #include <functional>
 #include "JFunc_void_double_double.hpp"
 #include <NitroModules/JNICallable.hpp>
 #include "JFunc_void.hpp"
+#include "JFunc_void_double.hpp"
 
 namespace margelo::nitro::nitroinput {
 
@@ -440,6 +445,161 @@ namespace margelo::nitro::nitroinput {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JBoolean> /* tabularNums */)>("setTabularNums");
     method(_javaPart, tabularNums.has_value() ? jni::JBoolean::valueOf(tabularNums.value()) : nullptr);
   }
+  std::optional<NitroNumberSignDisplay> JHybridNitroNumberViewSpec::getSignDisplay() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JNitroNumberSignDisplay>()>("getSignDisplay");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->toCpp()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setSignDisplay(std::optional<NitroNumberSignDisplay> signDisplay) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroNumberSignDisplay> /* signDisplay */)>("setSignDisplay");
+    method(_javaPart, signDisplay.has_value() ? JNitroNumberSignDisplay::fromCpp(signDisplay.value()) : nullptr);
+  }
+  std::optional<std::string> JHybridNitroNumberViewSpec::getPlusSign() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("getPlusSign");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->toStdString()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setPlusSign(const std::optional<std::string>& plusSign) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JString> /* plusSign */)>("setPlusSign");
+    method(_javaPart, plusSign.has_value() ? jni::make_jstring(plusSign.value()) : nullptr);
+  }
+  std::optional<std::string> JHybridNitroNumberViewSpec::getMinusSign() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("getMinusSign");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->toStdString()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setMinusSign(const std::optional<std::string>& minusSign) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JString> /* minusSign */)>("setMinusSign");
+    method(_javaPart, minusSign.has_value() ? jni::make_jstring(minusSign.value()) : nullptr);
+  }
+  std::optional<std::vector<std::string>> JHybridNitroNumberViewSpec::getDigitGlyphs() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JArrayClass<jni::JString>>()>("getDigitGlyphs");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional([&](auto&& __input) {
+      size_t __size = __input->size();
+      std::vector<std::string> __vector;
+      __vector.reserve(__size);
+      for (size_t __i = 0; __i < __size; __i++) {
+        auto __element = __input->getElement(__i);
+        __vector.push_back(__element->toStdString());
+      }
+      return __vector;
+    }(__result)) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setDigitGlyphs(const std::optional<std::vector<std::string>>& digitGlyphs) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JArrayClass<jni::JString>> /* digitGlyphs */)>("setDigitGlyphs");
+    method(_javaPart, digitGlyphs.has_value() ? [&](auto&& __input) {
+      size_t __size = __input.size();
+      jni::local_ref<jni::JArrayClass<jni::JString>> __array = jni::JArrayClass<jni::JString>::newArray(__size);
+      for (size_t __i = 0; __i < __size; __i++) {
+        const auto& __element = __input[__i];
+        auto __elementJni = jni::make_jstring(__element);
+        __array->setElement(__i, *__elementJni);
+      }
+      return __array;
+    }(digitGlyphs.value()) : nullptr);
+  }
+  std::optional<std::vector<double>> JHybridNitroNumberViewSpec::getGroupingSizes() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JArrayDouble>()>("getGroupingSizes");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional([&]() {
+      size_t __size = __result->size();
+      std::vector<double> __vector(__size);
+      __result->getRegion(0, __size, __vector.data());
+      return __vector;
+    }()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setGroupingSizes(const std::optional<std::vector<double>>& groupingSizes) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JArrayDouble> /* groupingSizes */)>("setGroupingSizes");
+    method(_javaPart, groupingSizes.has_value() ? [&]() {
+      size_t __size = groupingSizes.value().size();
+      jni::local_ref<jni::JArrayDouble> __array = jni::JArrayDouble::newArray(__size);
+      __array->setRegion(0, __size, groupingSizes.value().data());
+      return __array;
+    }() : nullptr);
+  }
+  std::optional<std::vector<double>> JHybridNitroNumberViewSpec::getDigitMax() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JArrayDouble>()>("getDigitMax");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional([&]() {
+      size_t __size = __result->size();
+      std::vector<double> __vector(__size);
+      __result->getRegion(0, __size, __vector.data());
+      return __vector;
+    }()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setDigitMax(const std::optional<std::vector<double>>& digitMax) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JArrayDouble> /* digitMax */)>("setDigitMax");
+    method(_javaPart, digitMax.has_value() ? [&]() {
+      size_t __size = digitMax.value().size();
+      jni::local_ref<jni::JArrayDouble> __array = jni::JArrayDouble::newArray(__size);
+      __array->setRegion(0, __size, digitMax.value().data());
+      return __array;
+    }() : nullptr);
+  }
+  std::optional<bool> JHybridNitroNumberViewSpec::getContinuous() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JBoolean>()>("getContinuous");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(static_cast<bool>(__result->value())) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setContinuous(std::optional<bool> continuous) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JBoolean> /* continuous */)>("setContinuous");
+    method(_javaPart, continuous.has_value() ? jni::JBoolean::valueOf(continuous.value()) : nullptr);
+  }
+  std::optional<double> JHybridNitroNumberViewSpec::getPrefixColor() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getPrefixColor");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setPrefixColor(std::optional<double> prefixColor) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* prefixColor */)>("setPrefixColor");
+    method(_javaPart, prefixColor.has_value() ? jni::JDouble::valueOf(prefixColor.value()) : nullptr);
+  }
+  std::optional<double> JHybridNitroNumberViewSpec::getSuffixColor() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getSuffixColor");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setSuffixColor(std::optional<double> suffixColor) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* suffixColor */)>("setSuffixColor");
+    method(_javaPart, suffixColor.has_value() ? jni::JDouble::valueOf(suffixColor.value()) : nullptr);
+  }
+  std::optional<double> JHybridNitroNumberViewSpec::getFractionColor() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getFractionColor");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setFractionColor(std::optional<double> fractionColor) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* fractionColor */)>("setFractionColor");
+    method(_javaPart, fractionColor.has_value() ? jni::JDouble::valueOf(fractionColor.value()) : nullptr);
+  }
+  std::optional<double> JHybridNitroNumberViewSpec::getFractionFontSize() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getFractionFontSize");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setFractionFontSize(std::optional<double> fractionFontSize) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* fractionFontSize */)>("setFractionFontSize");
+    method(_javaPart, fractionFontSize.has_value() ? jni::JDouble::valueOf(fractionFontSize.value()) : nullptr);
+  }
+  std::optional<NitroNumberAffixAlign> JHybridNitroNumberViewSpec::getFractionAlign() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JNitroNumberAffixAlign>()>("getFractionAlign");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->toCpp()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setFractionAlign(std::optional<NitroNumberAffixAlign> fractionAlign) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroNumberAffixAlign> /* fractionAlign */)>("setFractionAlign");
+    method(_javaPart, fractionAlign.has_value() ? JNitroNumberAffixAlign::fromCpp(fractionAlign.value()) : nullptr);
+  }
+  std::optional<bool> JHybridNitroNumberViewSpec::getRespectReduceMotion() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JBoolean>()>("getRespectReduceMotion");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(static_cast<bool>(__result->value())) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setRespectReduceMotion(std::optional<bool> respectReduceMotion) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JBoolean> /* respectReduceMotion */)>("setRespectReduceMotion");
+    method(_javaPart, respectReduceMotion.has_value() ? jni::JBoolean::valueOf(respectReduceMotion.value()) : nullptr);
+  }
   std::optional<bool> JHybridNitroNumberViewSpec::getAdjustsFontSizeToFit() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JBoolean>()>("getAdjustsFontSizeToFit");
     auto __result = method(_javaPart);
@@ -571,6 +731,40 @@ namespace margelo::nitro::nitroinput {
   void JHybridNitroNumberViewSpec::setOnRevealMilestone(const std::optional<std::function<void(double /* index */, double /* value */)>>& onRevealMilestone) {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JFunc_void_double_double::javaobject> /* onRevealMilestone */)>("setOnRevealMilestone_cxx");
     method(_javaPart, onRevealMilestone.has_value() ? JFunc_void_double_double_cxx::fromCpp(onRevealMilestone.value()) : nullptr);
+  }
+  std::optional<std::function<void()>> JHybridNitroNumberViewSpec::getOnAnimationStart() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JFunc_void::javaobject>()>("getOnAnimationStart_cxx");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional([&]() -> std::function<void()> {
+      if (__result->isInstanceOf(JFunc_void_cxx::javaClassStatic())) [[likely]] {
+        auto downcast = jni::static_ref_cast<JFunc_void_cxx::javaobject>(__result);
+        return downcast->cthis()->getFunction();
+      } else {
+        auto __resultRef = jni::make_global(__result);
+        return JNICallable<JFunc_void, void()>(std::move(__resultRef));
+      }
+    }()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setOnAnimationStart(const std::optional<std::function<void()>>& onAnimationStart) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JFunc_void::javaobject> /* onAnimationStart */)>("setOnAnimationStart_cxx");
+    method(_javaPart, onAnimationStart.has_value() ? JFunc_void_cxx::fromCpp(onAnimationStart.value()) : nullptr);
+  }
+  std::optional<std::function<void(double /* value */)>> JHybridNitroNumberViewSpec::getOnAnimationEnd() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JFunc_void_double::javaobject>()>("getOnAnimationEnd_cxx");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional([&]() -> std::function<void(double /* value */)> {
+      if (__result->isInstanceOf(JFunc_void_double_cxx::javaClassStatic())) [[likely]] {
+        auto downcast = jni::static_ref_cast<JFunc_void_double_cxx::javaobject>(__result);
+        return downcast->cthis()->getFunction();
+      } else {
+        auto __resultRef = jni::make_global(__result);
+        return JNICallable<JFunc_void_double, void(double)>(std::move(__resultRef));
+      }
+    }()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setOnAnimationEnd(const std::optional<std::function<void(double /* value */)>>& onAnimationEnd) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JFunc_void_double::javaobject> /* onAnimationEnd */)>("setOnAnimationEnd_cxx");
+    method(_javaPart, onAnimationEnd.has_value() ? JFunc_void_double_cxx::fromCpp(onAnimationEnd.value()) : nullptr);
   }
 
   // Methods

@@ -32,6 +32,12 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
     rollingView.onRevealMilestone = { [weak self] index, milestone in
       self?.onRevealMilestone?(Double(index), milestone)
     }
+    rollingView.onAnimationStart = { [weak self] in
+      self?.onAnimationStart?()
+    }
+    rollingView.onAnimationEnd = { [weak self] value in
+      self?.onAnimationEnd?(value)
+    }
   }
 
   // MARK: - Props
@@ -91,6 +97,21 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
   var prefixOffset: Double? { didSet { markConfigDirty() } }
   var suffixOffset: Double? { didSet { markConfigDirty() } }
   var tabularNums: Bool? { didSet { markConfigDirty() } }
+  var signDisplay: NitroNumberSignDisplay? { didSet { markConfigDirty() } }
+  var plusSign: String? { didSet { markConfigDirty() } }
+  var minusSign: String? { didSet { markConfigDirty() } }
+  var digitGlyphs: [String]? { didSet { markConfigDirty() } }
+  var groupingSizes: [Double]? { didSet { markConfigDirty() } }
+  var digitMax: [Double]? { didSet { markConfigDirty() } }
+  var continuous: Bool? { didSet { markConfigDirty() } }
+  var prefixColor: Double? { didSet { markConfigDirty() } }
+  var suffixColor: Double? { didSet { markConfigDirty() } }
+  var fractionColor: Double? { didSet { markConfigDirty() } }
+  var fractionFontSize: Double? { didSet { markConfigDirty() } }
+  var fractionAlign: NitroNumberAffixAlign? { didSet { markConfigDirty() } }
+  var respectReduceMotion: Bool? { didSet { markConfigDirty() } }
+  var onAnimationStart: (() -> Void)?
+  var onAnimationEnd: ((Double) -> Void)?
   var adjustsFontSizeToFit: Bool? { didSet { markConfigDirty() } }
   var minimumFontScale: Double? { didSet { markConfigDirty() } }
   var allowFontScaling: Bool? { didSet { markConfigDirty() } }
@@ -237,6 +258,21 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
     prefixOffset = nil
     suffixOffset = nil
     tabularNums = nil
+    signDisplay = nil
+    plusSign = nil
+    minusSign = nil
+    digitGlyphs = nil
+    groupingSizes = nil
+    digitMax = nil
+    continuous = nil
+    prefixColor = nil
+    suffixColor = nil
+    fractionColor = nil
+    fractionFontSize = nil
+    fractionAlign = nil
+    respectReduceMotion = nil
+    onAnimationStart = nil
+    onAnimationEnd = nil
     adjustsFontSizeToFit = nil
     minimumFontScale = nil
     allowFontScaling = nil
@@ -306,6 +342,11 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
     format.decimalSeparator = decimalSeparator ?? "."
     format.prefix = prefix ?? ""
     format.suffix = suffix ?? ""
+    format.signDisplay = Self.mapSignDisplay(signDisplay)
+    format.plusSign = (plusSign?.isEmpty ?? true) ? "+" : plusSign!
+    format.minusSign = (minusSign?.isEmpty ?? true) ? "-" : minusSign!
+    format.groupingSizes = (groupingSizes ?? []).map { $0.isFinite ? max(0, Int($0.rounded())) : 0 }
+    format.digitMax = (digitMax ?? []).map { $0.isFinite ? Int($0.rounded()) : 9 }
 
     var typography = NitroNumberView.Typography()
     typography.fontSize = CGFloat(fontSize ?? 32)
@@ -323,6 +364,12 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
     typography.prefixOffset = CGFloat((prefixOffset ?? 0).isFinite ? prefixOffset ?? 0 : 0)
     typography.suffixOffset = CGFloat((suffixOffset ?? 0).isFinite ? suffixOffset ?? 0 : 0)
     typography.tabularNums = tabularNums ?? true
+    typography.prefixColor = prefixColor.flatMap(Self.optionalColor(fromARGB:))
+    typography.suffixColor = suffixColor.flatMap(Self.optionalColor(fromARGB:))
+    typography.fractionColor = fractionColor.flatMap(Self.optionalColor(fromARGB:))
+    typography.fractionFontSize = fractionFontSize.flatMap { $0.isFinite && $0 > 0 ? CGFloat($0) : nil }
+    typography.fractionAlign = Self.mapAffixAlign(fractionAlign)
+    typography.digitGlyphs = digitGlyphs ?? []
     typography.adjustsFontSizeToFit = adjustsFontSizeToFit ?? false
     typography.minimumFontScale = CGFloat(min(1, max(0.05, minimumFontScale ?? 0.5)))
     typography.allowFontScaling = allowFontScaling ?? false
@@ -342,6 +389,8 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
     timing.revealStyle = revealStyle == .spin ? .spin : .count
     timing.revealStagger = max(0, (revealStagger ?? 200) / 1000)
     timing.revealMilestoneHold = max(0, (revealMilestoneHold ?? 0) / 1000)
+    timing.continuous = continuous ?? false
+    timing.respectReduceMotion = respectReduceMotion ?? true
 
     var shimmer = NitroNumberView.Shimmer()
     shimmer.color = shimmerColor.map(Self.color(fromARGB:))
@@ -431,6 +480,19 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
     case .down: return .down
     case .shortest: return .shortest
     default: return .auto
+    }
+  }
+
+  /// `Engine.setSignDisplay`'s modes.
+  private static func mapSignDisplay(_ mode: NitroNumberSignDisplay?) -> Int32 {
+    guard let mode else { return 0 }
+    switch mode {
+    case .auto: return 0
+    case .always: return 1
+    case .exceptzero: return 2
+    case .negative: return 3
+    case .never: return 4
+    default: return 0
     }
   }
 

@@ -52,6 +52,8 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
     }
     rollingView.onRevealEnd = { onRevealEnd?.invoke() }
     rollingView.onRevealMilestone = { index, milestone -> onRevealMilestone?.invoke(index.toDouble(), milestone) }
+    rollingView.onAnimationStart = { onAnimationStart?.invoke() }
+    rollingView.onAnimationEnd = { value -> onAnimationEnd?.invoke(value) }
   }
 
   // region Props
@@ -153,6 +155,34 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
     set(v) { field = v; markConfigDirty() }
   override var tabularNums: Boolean? = null
     set(v) { field = v; markConfigDirty() }
+  override var signDisplay: NitroNumberSignDisplay? = null
+    set(v) { field = v; markConfigDirty() }
+  override var plusSign: String? = null
+    set(v) { field = v; markConfigDirty() }
+  override var minusSign: String? = null
+    set(v) { field = v; markConfigDirty() }
+  override var digitGlyphs: Array<String>? = null
+    set(v) { field = v; markConfigDirty() }
+  override var groupingSizes: DoubleArray? = null
+    set(v) { field = v; markConfigDirty() }
+  override var digitMax: DoubleArray? = null
+    set(v) { field = v; markConfigDirty() }
+  override var continuous: Boolean? = null
+    set(v) { field = v; markConfigDirty() }
+  override var prefixColor: Double? = null
+    set(v) { field = v; markConfigDirty() }
+  override var suffixColor: Double? = null
+    set(v) { field = v; markConfigDirty() }
+  override var fractionColor: Double? = null
+    set(v) { field = v; markConfigDirty() }
+  override var fractionFontSize: Double? = null
+    set(v) { field = v; markConfigDirty() }
+  override var fractionAlign: NitroNumberAffixAlign? = null
+    set(v) { field = v; markConfigDirty() }
+  override var respectReduceMotion: Boolean? = null
+    set(v) { field = v; markConfigDirty() }
+  override var onAnimationStart: (() -> Unit)? = null
+  override var onAnimationEnd: ((value: Double) -> Unit)? = null
   override var adjustsFontSizeToFit: Boolean? = null
     set(v) { field = v; markConfigDirty() }
   override var minimumFontScale: Double? = null
@@ -327,6 +357,21 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
     prefixOffset = null
     suffixOffset = null
     tabularNums = null
+    signDisplay = null
+    plusSign = null
+    minusSign = null
+    digitGlyphs = null
+    groupingSizes = null
+    digitMax = null
+    continuous = null
+    prefixColor = null
+    suffixColor = null
+    fractionColor = null
+    fractionFontSize = null
+    fractionAlign = null
+    respectReduceMotion = null
+    onAnimationStart = null
+    onAnimationEnd = null
     adjustsFontSizeToFit = null
     minimumFontScale = null
     allowFontScaling = null
@@ -401,6 +446,12 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
       prefixOffset = (prefixOffset ?: 0.0).takeIf { it.isFinite() }?.toFloat() ?: 0f,
       suffixOffset = (suffixOffset ?: 0.0).takeIf { it.isFinite() }?.toFloat() ?: 0f,
       tabularNums = tabularNums ?: true,
+      prefixColor = prefixColor?.let { colorFromARGB(it) },
+      suffixColor = suffixColor?.let { colorFromARGB(it) },
+      fractionColor = fractionColor?.let { colorFromARGB(it) },
+      fractionFontSize = fractionFontSize?.takeIf { it.isFinite() && it > 0 }?.toFloat(),
+      fractionAlign = mapAffixAlign(fractionAlign),
+      digitGlyphs = digitGlyphs?.toList() ?: emptyList(),
       adjustsFontSizeToFit = adjustsFontSizeToFit ?: false,
       minimumFontScale = (minimumFontScale ?: 0.5).coerceIn(0.05, 1.0).toFloat(),
       allowFontScaling = allowFontScaling ?: false,
@@ -413,6 +464,17 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
       decimalSeparator = decimalSeparator ?: ".",
       prefix = prefix ?: "",
       suffix = suffix ?: "",
+      signDisplay = when (signDisplay) {
+        NitroNumberSignDisplay.ALWAYS -> 1
+        NitroNumberSignDisplay.EXCEPTZERO -> 2
+        NitroNumberSignDisplay.NEGATIVE -> 3
+        NitroNumberSignDisplay.NEVER -> 4
+        NitroNumberSignDisplay.AUTO, null -> 0
+      },
+      plusSign = plusSign?.takeIf { it.isNotEmpty() } ?: "+",
+      minusSign = minusSign?.takeIf { it.isNotEmpty() } ?: "-",
+      groupingSizes = groupingSizes?.map { if (it.isFinite()) Math.max(0, Math.rint(it).toInt()) else 0 } ?: emptyList(),
+      digitMax = digitMax?.map { if (it.isFinite()) Math.rint(it).toInt() else 9 } ?: emptyList(),
     )
     rollingView.timing = NitroNumberView.Timing(
       transition = when (transition) {
@@ -446,6 +508,8 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
       },
       revealStaggerMs = Math.max(0.0, revealStagger ?: 200.0).toLong(),
       revealMilestoneHoldMs = Math.max(0.0, revealMilestoneHold ?: 0.0).toLong(),
+      continuous = continuous ?: false,
+      respectReduceMotion = respectReduceMotion ?: true,
     )
     rollingView.revealMilestones = revealMilestones ?: DoubleArray(0)
     rollingView.shimmer = NitroNumberView.Shimmer(

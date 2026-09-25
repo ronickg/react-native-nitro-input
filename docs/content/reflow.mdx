@@ -31,6 +31,18 @@ In `mode="number"` the reflow and the formatting are the same event: the formatt
 
 In `mode="text"` characters fade and scale, and a run that persists keeps its shape: `Continue → Confirm` keeps `Con`.
 
+## Any text: NitroText
+
+`NitroText` is the reflow on a label, not a field: read-only, never focused, sized to its text. Give it a new string and the characters the two share glide to their new places while the rest fade, as Torph does on the web: "Sign in" → "Signing in…", "Total $1,204" → "Total $1,318".
+
+```tsx
+import { NitroText } from 'react-native-nitro-input'
+
+<NitroText fontSize={17} fontWeight="600">{busy ? 'Signing in…' : 'Sign in'}</NitroText>
+```
+
+It takes the reflow's timing (`duration`, `easing`, `bounce`, `effect`) and the typography props, and screen readers read the text.
+
 ## Tuning it
 
 | Prop | Default | |

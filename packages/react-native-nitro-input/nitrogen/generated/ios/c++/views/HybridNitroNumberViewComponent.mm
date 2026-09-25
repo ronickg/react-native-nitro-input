@@ -338,6 +338,84 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.tabularNums.hasSameValue(oldViewProps->tabularNums)) {
       swiftPart.setTabularNums(newViewProps.tabularNums.get());
     }
+    // signDisplay: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.signDisplay.isProvided()
+          : !newViewProps.signDisplay.hasSameValue(oldViewProps->signDisplay)) {
+      swiftPart.setSignDisplay(newViewProps.signDisplay.get());
+    }
+    // plusSign: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.plusSign.isProvided()
+          : !newViewProps.plusSign.hasSameValue(oldViewProps->plusSign)) {
+      swiftPart.setPlusSign(newViewProps.plusSign.get());
+    }
+    // minusSign: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.minusSign.isProvided()
+          : !newViewProps.minusSign.hasSameValue(oldViewProps->minusSign)) {
+      swiftPart.setMinusSign(newViewProps.minusSign.get());
+    }
+    // digitGlyphs: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.digitGlyphs.isProvided()
+          : !newViewProps.digitGlyphs.hasSameValue(oldViewProps->digitGlyphs)) {
+      swiftPart.setDigitGlyphs(newViewProps.digitGlyphs.get());
+    }
+    // groupingSizes: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.groupingSizes.isProvided()
+          : !newViewProps.groupingSizes.hasSameValue(oldViewProps->groupingSizes)) {
+      swiftPart.setGroupingSizes(newViewProps.groupingSizes.get());
+    }
+    // digitMax: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.digitMax.isProvided()
+          : !newViewProps.digitMax.hasSameValue(oldViewProps->digitMax)) {
+      swiftPart.setDigitMax(newViewProps.digitMax.get());
+    }
+    // continuous: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.continuous.isProvided()
+          : !newViewProps.continuous.hasSameValue(oldViewProps->continuous)) {
+      swiftPart.setContinuous(newViewProps.continuous.get());
+    }
+    // prefixColor: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.prefixColor.isProvided()
+          : !newViewProps.prefixColor.hasSameValue(oldViewProps->prefixColor)) {
+      swiftPart.setPrefixColor(newViewProps.prefixColor.get());
+    }
+    // suffixColor: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.suffixColor.isProvided()
+          : !newViewProps.suffixColor.hasSameValue(oldViewProps->suffixColor)) {
+      swiftPart.setSuffixColor(newViewProps.suffixColor.get());
+    }
+    // fractionColor: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.fractionColor.isProvided()
+          : !newViewProps.fractionColor.hasSameValue(oldViewProps->fractionColor)) {
+      swiftPart.setFractionColor(newViewProps.fractionColor.get());
+    }
+    // fractionFontSize: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.fractionFontSize.isProvided()
+          : !newViewProps.fractionFontSize.hasSameValue(oldViewProps->fractionFontSize)) {
+      swiftPart.setFractionFontSize(newViewProps.fractionFontSize.get());
+    }
+    // fractionAlign: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.fractionAlign.isProvided()
+          : !newViewProps.fractionAlign.hasSameValue(oldViewProps->fractionAlign)) {
+      swiftPart.setFractionAlign(newViewProps.fractionAlign.get());
+    }
+    // respectReduceMotion: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.respectReduceMotion.isProvided()
+          : !newViewProps.respectReduceMotion.hasSameValue(oldViewProps->respectReduceMotion)) {
+      swiftPart.setRespectReduceMotion(newViewProps.respectReduceMotion.get());
+    }
     // adjustsFontSizeToFit: optional
     if (oldViewProps == nullptr
           ? newViewProps.adjustsFontSizeToFit.isProvided()
@@ -409,6 +487,18 @@ using namespace margelo::nitro::nitroinput::views;
           ? newViewProps.onRevealMilestone.isProvided()
           : !newViewProps.onRevealMilestone.hasSameValue(oldViewProps->onRevealMilestone)) {
       swiftPart.setOnRevealMilestone(newViewProps.onRevealMilestone.get());
+    }
+    // onAnimationStart: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onAnimationStart.isProvided()
+          : !newViewProps.onAnimationStart.hasSameValue(oldViewProps->onAnimationStart)) {
+      swiftPart.setOnAnimationStart(newViewProps.onAnimationStart.get());
+    }
+    // onAnimationEnd: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onAnimationEnd.isProvided()
+          : !newViewProps.onAnimationEnd.hasSameValue(oldViewProps->onAnimationEnd)) {
+      swiftPart.setOnAnimationEnd(newViewProps.onAnimationEnd.get());
     }
 
     // Update hybridRef if it changed

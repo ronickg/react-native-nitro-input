@@ -271,6 +271,84 @@ abstract class HybridNitroNumberViewSpec: HybridView() {
   @get:Keep
   @set:DoNotStrip
   @set:Keep
+  abstract var signDisplay: NitroNumberSignDisplay?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var plusSign: String?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var minusSign: String?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var digitGlyphs: Array<String>?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var groupingSizes: DoubleArray?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var digitMax: DoubleArray?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var continuous: Boolean?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var prefixColor: Double?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var suffixColor: Double?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var fractionColor: Double?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var fractionFontSize: Double?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var fractionAlign: NitroNumberAffixAlign?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var respectReduceMotion: Boolean?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
   abstract var adjustsFontSizeToFit: Boolean?
   
   @get:DoNotStrip
@@ -361,6 +439,34 @@ abstract class HybridNitroNumberViewSpec: HybridView() {
     @DoNotStrip
     set(value) {
       onRevealMilestone = value?.let { it }
+    }
+  
+  abstract var onAnimationStart: (() -> Unit)?
+  
+  private var onAnimationStart_cxx: Func_void?
+    @Keep
+    @DoNotStrip
+    get() {
+      return onAnimationStart?.let { Func_void_java(it) }
+    }
+    @Keep
+    @DoNotStrip
+    set(value) {
+      onAnimationStart = value?.let { it }
+    }
+  
+  abstract var onAnimationEnd: ((value: Double) -> Unit)?
+  
+  private var onAnimationEnd_cxx: Func_void_double?
+    @Keep
+    @DoNotStrip
+    get() {
+      return onAnimationEnd?.let { Func_void_double_java(it) }
+    }
+    @Keep
+    @DoNotStrip
+    set(value) {
+      onAnimationEnd = value?.let { it }
     }
 
   // Methods

@@ -130,6 +130,32 @@ namespace margelo::nitro::nitroinput {
     void setSuffixOffset(std::optional<double> suffixOffset) override;
     std::optional<bool> getTabularNums() override;
     void setTabularNums(std::optional<bool> tabularNums) override;
+    std::optional<NitroNumberSignDisplay> getSignDisplay() override;
+    void setSignDisplay(std::optional<NitroNumberSignDisplay> signDisplay) override;
+    std::optional<std::string> getPlusSign() override;
+    void setPlusSign(const std::optional<std::string>& plusSign) override;
+    std::optional<std::string> getMinusSign() override;
+    void setMinusSign(const std::optional<std::string>& minusSign) override;
+    std::optional<std::vector<std::string>> getDigitGlyphs() override;
+    void setDigitGlyphs(const std::optional<std::vector<std::string>>& digitGlyphs) override;
+    std::optional<std::vector<double>> getGroupingSizes() override;
+    void setGroupingSizes(const std::optional<std::vector<double>>& groupingSizes) override;
+    std::optional<std::vector<double>> getDigitMax() override;
+    void setDigitMax(const std::optional<std::vector<double>>& digitMax) override;
+    std::optional<bool> getContinuous() override;
+    void setContinuous(std::optional<bool> continuous) override;
+    std::optional<double> getPrefixColor() override;
+    void setPrefixColor(std::optional<double> prefixColor) override;
+    std::optional<double> getSuffixColor() override;
+    void setSuffixColor(std::optional<double> suffixColor) override;
+    std::optional<double> getFractionColor() override;
+    void setFractionColor(std::optional<double> fractionColor) override;
+    std::optional<double> getFractionFontSize() override;
+    void setFractionFontSize(std::optional<double> fractionFontSize) override;
+    std::optional<NitroNumberAffixAlign> getFractionAlign() override;
+    void setFractionAlign(std::optional<NitroNumberAffixAlign> fractionAlign) override;
+    std::optional<bool> getRespectReduceMotion() override;
+    void setRespectReduceMotion(std::optional<bool> respectReduceMotion) override;
     std::optional<bool> getAdjustsFontSizeToFit() override;
     void setAdjustsFontSizeToFit(std::optional<bool> adjustsFontSizeToFit) override;
     std::optional<double> getMinimumFontScale() override;
@@ -154,6 +180,10 @@ namespace margelo::nitro::nitroinput {
     void setOnRevealEnd(const std::optional<std::function<void()>>& onRevealEnd) override;
     std::optional<std::function<void(double /* index */, double /* value */)>> getOnRevealMilestone() override;
     void setOnRevealMilestone(const std::optional<std::function<void(double /* index */, double /* value */)>>& onRevealMilestone) override;
+    std::optional<std::function<void()>> getOnAnimationStart() override;
+    void setOnAnimationStart(const std::optional<std::function<void()>>& onAnimationStart) override;
+    std::optional<std::function<void(double /* value */)>> getOnAnimationEnd() override;
+    void setOnAnimationEnd(const std::optional<std::function<void(double /* value */)>>& onAnimationEnd) override;
 
   public:
     // Methods

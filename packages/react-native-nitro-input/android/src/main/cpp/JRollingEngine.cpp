@@ -20,6 +20,13 @@ void JRollingEngine::registerNatives() {
       makeNativeMethod("setFlash", JRollingEngine::setFlash),
       makeNativeMethod("setPopOnChange", JRollingEngine::setPopOnChange),
       makeNativeMethod("setReduceMotion", JRollingEngine::setReduceMotion),
+      makeNativeMethod("setContinuous", JRollingEngine::setContinuous),
+      makeNativeMethod("setDigitMax", JRollingEngine::setDigitMax),
+      makeNativeMethod("clearDigitMax", JRollingEngine::clearDigitMax),
+      makeNativeMethod("wheelModulus", JRollingEngine::wheelModulus),
+      makeNativeMethod("setSignDisplay", JRollingEngine::setSignDisplay),
+      makeNativeMethod("signPositive", JRollingEngine::signPositive),
+      makeNativeMethod("signFactor", JRollingEngine::signFactor),
       makeNativeMethod("changeText", JRollingEngine::changeText),
       makeNativeMethod("changeFormat", JRollingEngine::changeFormat),
       makeNativeMethod("setValue", JRollingEngine::setValue),
@@ -71,6 +78,34 @@ void JRollingEngine::setPopOnChange(double overshoot) {
 
 void JRollingEngine::setReduceMotion(bool reduceMotion) {
   engine_.setReduceMotion(reduceMotion);
+}
+
+void JRollingEngine::setContinuous(bool continuous) {
+  engine_.setContinuous(continuous);
+}
+
+void JRollingEngine::setDigitMax(int power, int max) {
+  engine_.setDigitMax(power, max);
+}
+
+void JRollingEngine::clearDigitMax() {
+  engine_.clearDigitMax();
+}
+
+int JRollingEngine::wheelModulus(int index) {
+  return engine_.wheelModulus(index);
+}
+
+void JRollingEngine::setSignDisplay(int mode) {
+  engine_.setSignDisplay(mode);
+}
+
+bool JRollingEngine::signPositive() {
+  return engine_.signPositive();
+}
+
+double JRollingEngine::signFactor() {
+  return engine_.signFactor();
 }
 
 void JRollingEngine::changeText(int slot, double now) {
@@ -153,12 +188,15 @@ int JRollingEngine::frameInto(jni::alias_ref<jni::JArrayDouble> out) {
   const auto& wheels = engine_.wheels();
   const size_t count = wheels.size();
   constexpr size_t kMaxWheels = 32;
+  // Doubles per wheel: the engine's `Wheel`, then the places it wraps after
+  // (`wheelModulus`: 10, or fewer on a clock's wheel).
+  constexpr size_t kWheelFields = 15;
   // Then each text slot's swap (`RollingEngine::changeText`): grow, focus,
   // blurOut, active.
   // Then the decimal columns laid out and the decimal separator's factor.
   constexpr size_t kText = RollingEngine::kTextSlots * 4 + 2;
-  double data[4 + kMaxWheels * 14 + kText];
-  const size_t needed = 4 + count * 14 + kText;
+  double data[4 + kMaxWheels * kWheelFields + kText];
+  const size_t needed = 4 + count * kWheelFields + kText;
   if (count > kMaxWheels || static_cast<size_t>(out->size()) < needed) {
     return -1;
   }
@@ -167,6 +205,7 @@ int JRollingEngine::frameInto(jni::alias_ref<jni::JArrayDouble> out) {
   data[2] = engine_.revealScale();
   data[3] = static_cast<double>(count);
   size_t i = 4;
+  int index = 0;
   for (const auto& w : wheels) {
     data[i++] = w.position;
     data[i++] = w.width;
@@ -182,6 +221,7 @@ int JRollingEngine::frameInto(jni::alias_ref<jni::JArrayDouble> out) {
     data[i++] = w.grow;
     data[i++] = w.blurOut;
     data[i++] = w.progress;
+    data[i++] = static_cast<double>(engine_.wheelModulus(index++));
   }
   for (int slot = 0; slot < RollingEngine::kTextSlots; slot++) {
     const RollingEngine::TextChange t = engine_.textChange(slot);

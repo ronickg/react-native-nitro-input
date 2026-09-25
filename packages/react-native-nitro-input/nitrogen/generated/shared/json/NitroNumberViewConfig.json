@@ -44,6 +44,19 @@
     "prefixOffset": true,
     "suffixOffset": true,
     "tabularNums": true,
+    "signDisplay": true,
+    "plusSign": true,
+    "minusSign": true,
+    "digitGlyphs": true,
+    "groupingSizes": true,
+    "digitMax": true,
+    "continuous": true,
+    "prefixColor": true,
+    "suffixColor": true,
+    "fractionColor": true,
+    "fractionFontSize": true,
+    "fractionAlign": true,
+    "respectReduceMotion": true,
     "adjustsFontSizeToFit": true,
     "minimumFontScale": true,
     "allowFontScaling": true,
@@ -56,6 +69,8 @@
     "onSizeChange": true,
     "onRevealEnd": true,
     "onRevealMilestone": true,
+    "onAnimationStart": true,
+    "onAnimationEnd": true,
     "hybridRef": true
   }
 }

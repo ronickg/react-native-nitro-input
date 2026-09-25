@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { useNavigation } from '@react-navigation/native'
 import { Btn, Card, Row, styles } from './harness'
 import { DemoScreen } from './screens/DemoScreen'
+import { FeaturesScreen } from './screens/FeaturesScreen'
 import { ParityScreen } from './screens/ParityScreen'
 import { FormSheetScreen, NavAScreen, NavBScreen } from './screens/NavigationScreens'
 import { StateChangeScreen } from './screens/StateChangeScreen'
@@ -23,6 +24,7 @@ import {
 export type RootStackParamList = {
   Home: undefined
   Demo: undefined
+  Features: undefined
   Parity: undefined
   NavA: undefined
   NavB: { kind: 'morph' | 'rn' }
@@ -64,6 +66,9 @@ function HomeScreen() {
   const nav = useNavigation<any>()
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <Card title="New in 0.4" hint="Signs, styled cents, clocks, compact figures, continuous rolls, native digits, animation events and NitroText.">
+        <Row><Btn testID="home-features" tone="primary" title="Open the 0.4 features" onPress={() => nav.navigate('Features')} /></Row>
+      </Card>
       <Card title="Reflowing NitroInput vs TextInput" hint="Each screen puts the two components side by side under the same conditions.">
         <Row>
           <Btn testID="home-parity" tone="primary" title="Parity / all callbacks" onPress={() => nav.navigate('Parity')} />
@@ -135,6 +140,7 @@ export function RootNavigator() {
         <Stack.Screen name="FlowAmount" component={FlowAmountScreen} options={FLOW_STEP} />
         <Stack.Screen name="FlowForm" component={FlowFormScreen} options={FLOW_STEP} />
         <Stack.Screen name="Demo" component={DemoScreen} options={{ title: 'Demo' }} />
+        <Stack.Screen name="Features" component={FeaturesScreen} options={{ title: 'New in 0.4' }} />
         <Stack.Screen name="ViewPropsRepro" component={ViewPropsReproScreen} options={{ title: 'View props' }} />
         <Stack.Screen name="Rtl" component={RtlScreen} options={{ title: 'Right-to-left' }} />
         <Stack.Screen name="RecycleCheck" component={RecycleCheckScreen} options={{ title: 'Recycle check' }} />

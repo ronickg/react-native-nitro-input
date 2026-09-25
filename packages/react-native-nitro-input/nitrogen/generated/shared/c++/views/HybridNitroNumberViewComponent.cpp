@@ -60,6 +60,19 @@ namespace margelo::nitro::nitroinput::views {
     prefixOffset(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "prefixOffset", rawProps, sourceProps.prefixOffset)),
     suffixOffset(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "suffixOffset", rawProps, sourceProps.suffixOffset)),
     tabularNums(nitro::ReactProp<std::optional<bool>>::fromRawValue("NitroNumberView", "tabularNums", rawProps, sourceProps.tabularNums)),
+    signDisplay(nitro::ReactProp<std::optional<NitroNumberSignDisplay>>::fromRawValue("NitroNumberView", "signDisplay", rawProps, sourceProps.signDisplay)),
+    plusSign(nitro::ReactProp<std::optional<std::string>>::fromRawValue("NitroNumberView", "plusSign", rawProps, sourceProps.plusSign)),
+    minusSign(nitro::ReactProp<std::optional<std::string>>::fromRawValue("NitroNumberView", "minusSign", rawProps, sourceProps.minusSign)),
+    digitGlyphs(nitro::ReactProp<std::optional<std::vector<std::string>>>::fromRawValue("NitroNumberView", "digitGlyphs", rawProps, sourceProps.digitGlyphs)),
+    groupingSizes(nitro::ReactProp<std::optional<std::vector<double>>>::fromRawValue("NitroNumberView", "groupingSizes", rawProps, sourceProps.groupingSizes)),
+    digitMax(nitro::ReactProp<std::optional<std::vector<double>>>::fromRawValue("NitroNumberView", "digitMax", rawProps, sourceProps.digitMax)),
+    continuous(nitro::ReactProp<std::optional<bool>>::fromRawValue("NitroNumberView", "continuous", rawProps, sourceProps.continuous)),
+    prefixColor(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "prefixColor", rawProps, sourceProps.prefixColor)),
+    suffixColor(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "suffixColor", rawProps, sourceProps.suffixColor)),
+    fractionColor(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "fractionColor", rawProps, sourceProps.fractionColor)),
+    fractionFontSize(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "fractionFontSize", rawProps, sourceProps.fractionFontSize)),
+    fractionAlign(nitro::ReactProp<std::optional<NitroNumberAffixAlign>>::fromRawValue("NitroNumberView", "fractionAlign", rawProps, sourceProps.fractionAlign)),
+    respectReduceMotion(nitro::ReactProp<std::optional<bool>>::fromRawValue("NitroNumberView", "respectReduceMotion", rawProps, sourceProps.respectReduceMotion)),
     adjustsFontSizeToFit(nitro::ReactProp<std::optional<bool>>::fromRawValue("NitroNumberView", "adjustsFontSizeToFit", rawProps, sourceProps.adjustsFontSizeToFit)),
     minimumFontScale(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "minimumFontScale", rawProps, sourceProps.minimumFontScale)),
     allowFontScaling(nitro::ReactProp<std::optional<bool>>::fromRawValue("NitroNumberView", "allowFontScaling", rawProps, sourceProps.allowFontScaling)),
@@ -72,6 +85,8 @@ namespace margelo::nitro::nitroinput::views {
     onSizeChange(nitro::ReactProp<std::optional<std::function<void(double /* width */, double /* height */)>>>::fromRawValue("NitroNumberView", "onSizeChange", rawProps, sourceProps.onSizeChange)),
     onRevealEnd(nitro::ReactProp<std::optional<std::function<void()>>>::fromRawValue("NitroNumberView", "onRevealEnd", rawProps, sourceProps.onRevealEnd)),
     onRevealMilestone(nitro::ReactProp<std::optional<std::function<void(double /* index */, double /* value */)>>>::fromRawValue("NitroNumberView", "onRevealMilestone", rawProps, sourceProps.onRevealMilestone)),
+    onAnimationStart(nitro::ReactProp<std::optional<std::function<void()>>>::fromRawValue("NitroNumberView", "onAnimationStart", rawProps, sourceProps.onAnimationStart)),
+    onAnimationEnd(nitro::ReactProp<std::optional<std::function<void(double /* value */)>>>::fromRawValue("NitroNumberView", "onAnimationEnd", rawProps, sourceProps.onAnimationEnd)),
     hybridRef(nitro::ReactProp<std::optional<std::function<void(const std::shared_ptr<HybridNitroNumberViewSpec>& /* ref */)>>>::fromRawValue("NitroNumberView", "hybridRef", rawProps, sourceProps.hybridRef)) { }
 
   bool HybridNitroNumberViewProps::filterObjectKeys(const std::string& propName) {
@@ -116,6 +131,19 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("prefixOffset"): return true;
       case hashString("suffixOffset"): return true;
       case hashString("tabularNums"): return true;
+      case hashString("signDisplay"): return true;
+      case hashString("plusSign"): return true;
+      case hashString("minusSign"): return true;
+      case hashString("digitGlyphs"): return true;
+      case hashString("groupingSizes"): return true;
+      case hashString("digitMax"): return true;
+      case hashString("continuous"): return true;
+      case hashString("prefixColor"): return true;
+      case hashString("suffixColor"): return true;
+      case hashString("fractionColor"): return true;
+      case hashString("fractionFontSize"): return true;
+      case hashString("fractionAlign"): return true;
+      case hashString("respectReduceMotion"): return true;
       case hashString("adjustsFontSizeToFit"): return true;
       case hashString("minimumFontScale"): return true;
       case hashString("allowFontScaling"): return true;
@@ -128,6 +156,8 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("onSizeChange"): return true;
       case hashString("onRevealEnd"): return true;
       case hashString("onRevealMilestone"): return true;
+      case hashString("onAnimationStart"): return true;
+      case hashString("onAnimationEnd"): return true;
       case hashString("hybridRef"): return true;
       default: return false;
     }

@@ -167,6 +167,26 @@ public:
   void setPopOnChange(double overshoot);
   /// Reduce Motion / "remove animations": rolls snap and the shimmer freezes.
   void setReduceMotion(bool reduceMotion);
+  /// A roll turns the wheels below the highest one that changes a full turn
+  /// too, in the direction of the change, so the figure seems to pass
+  /// through every value between (NumberFlow's `continuous`). Rolls only.
+  void setContinuous(bool continuous);
+  /// The highest digit the wheel at `power` (0 = the least significant
+  /// integer digit) shows before it wraps to 0: 5 for the tens of minutes on
+  /// a clock, so 59 → 00 turns the tens one step, 5 → 0. 9 (the default)
+  /// clears it. A renderer draws that wheel from a strip 0…max then 0 and
+  /// wraps its position modulo `wheelModulus`.
+  void setDigitMax(int power, int max);
+  void clearDigitMax();
+  /// Places each wheel wraps after (10, or max + 1).
+  int wheelModulus(int index) const;
+  /// Which values carry a sign (ECMA-402's signDisplay): 0 auto (negatives,
+  /// -0 included), 1 always, 2 exceptZero (not on a value that rounds to
+  /// zero), 3 negative (negatives that do not round to zero), 4 never.
+  /// `signFactor` is the sign's presence; `signPositive` which sign it is.
+  void setSignDisplay(int mode);
+  /// True when the sign shown (or last shown) is a plus.
+  bool signPositive() const { return signPositive_; }
 
   // MARK: Commands
 
@@ -256,8 +276,8 @@ public:
   // engine runs each slot's clocks so every renderer agrees; a renderer keeps
   // the text that is leaving.
 
-  enum TextSlot : int { PrefixText = 0, SuffixText = 1, GroupingText = 2, DecimalText = 3 };
-  static constexpr int kTextSlots = 4;
+  enum TextSlot : int { PrefixText = 0, SuffixText = 1, GroupingText = 2, DecimalText = 3, SignText = 4 };
+  static constexpr int kTextSlots = 5;
   struct TextChange {
     /// Opacity of the arriving text and of the leaving one's complement, and
     /// how far the slot's width has gone from the old text's to the new one's.
@@ -306,9 +326,12 @@ public:
 private:
   struct Target {
     uint64_t magnitude; // |value| * 10^fractionDigits, rounded
+    /// Carries a sign (see `setSignDisplay`); named for the default, where only negatives do.
     bool negative;
     int powerCount;
     int digit(int power) const;
+    /// The sign it carries is a plus.
+    bool positive = false;
   };
   struct WheelTransition {
     Wheel from;
@@ -409,6 +432,7 @@ private:
   /// has settled (within 2 %) at t == `settle`; 0 at t <= 0.
   static double damped(double t, double zeta, double settle);
   static double wrap(double x);
+  static double wrapTo(double x, int modulus);
   static int digitCount(uint64_t n);
 
   // configuration
@@ -426,6 +450,16 @@ private:
   double flashSeconds_ = 0;
   double popOnChange_ = 0;
   bool reduceMotion_ = false;
+  bool continuous_ = false;
+  int signDisplay_ = 0;
+  bool signPositive_ = false;
+  /// Per integer power: the places its wheel wraps after (10 unless `setDigitMax`).
+  int modulus_[20] = {10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10};
+  int modulusAtPower(int power) const;
+  /// Whether `value` carries a sign under `signDisplay_`, and which.
+  bool signShown(double value, uint64_t magnitude) const;
+  /// Keeps the sign's glyph for a target that shows one (one that shows none keeps the last).
+  void noteSign(const Target& target);
   double revealDuration_ = 2.2;
   double revealBounce_ = 0.12;
   int revealStyle_ = 0;

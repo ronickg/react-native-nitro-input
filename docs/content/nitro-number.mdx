@@ -64,6 +64,66 @@ With any transition, `flashUpColor` and `flashDownColor` light every changed dig
   <ChangeEffectsDemo />
 </Example>
 
+## Signs, cents and affixes
+
+`signDisplay` puts a plus on gains, as `Intl.NumberFormat`'s does, and a plus that turns into a minus swaps like any other glyph; `fractionFontSize`, `fractionColor` and `fractionAlign` set the cents apart, and `prefixColor` and `suffixColor` mute a currency symbol or a unit.
+
+```tsx
+<NitroNumber
+  value={change}
+  format={new NumberFormat('en-US', { style: 'currency', currency: 'USD', signDisplay: 'exceptZero' })}
+  color={change >= 0 ? '#16a34a' : '#dc2626'}
+/>
+
+<NitroNumber
+  value={balance}
+  fractionDigits={2}
+  groupingSeparator=","
+  prefix="$"
+  prefixColor="#9ca3af"
+  fractionFontSize={24}
+  fractionColor="#9ca3af"
+  fractionAlign="top"
+/>
+```
+
+## Clocks and timers
+
+`NitroTime` shows a number of seconds as a clock, a timer or a countdown. The tens of seconds and of minutes wrap after 5, as a clock's wheels do, so 0:59 → 1:00 turns them one step instead of rolling back through 4, 3, 2, 1.
+
+```tsx
+import { NitroTime } from 'react-native-nitro-input'
+
+<NitroTime seconds={elapsed} />                          // 12:07
+<NitroTime seconds={remaining} timeFormat="h:mm:ss" />    // 1:00:05
+```
+
+It is a `NitroNumber` underneath, and takes its props. The same wheels are open to any figure through `digits` (a position's highest digit) and `groupingSizes`.
+
+## Compact figures
+
+A compact `format` rolls the figure it shows and swaps its suffix: "950" → "1.5K" → "2.3M".
+
+```tsx
+<NitroNumber value={followers} format={new NumberFormat('en-US', { notation: 'compact' })} />
+```
+
+## Native digits and grouping
+
+A `format` in a locale with its own digits or grouping brings them: `en-IN` groups 12,34,567 and `ar-EG` draws ٠١٢٣٤٥٦٧٨٩. Without a format, `groupingSizes` and `digitGlyphs` say the same.
+
+## Continuous rolls
+
+With `continuous`, the wheels below the highest one that changes turn a full turn too, so 100 → 200 seems to pass through every value between, as NumberFlow's `continuous` does.
+
+## Animation events
+
+`onAnimationStart` fires when the figure sets off from rest and `onAnimationEnd` when it comes to rest, once for a run of changes that arrived while it was moving: the moment for a haptic, or for what follows the figure.
+
+```tsx
+<NitroNumber value={total} onAnimationEnd={() => Haptics.selectionAsync()} />
+```
+
 ## Imperative
 
 <Example

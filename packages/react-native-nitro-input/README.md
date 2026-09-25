@@ -733,9 +733,18 @@ busy and replays them afterwards.
 | `value` | `number` | – | The number to display. Shown with at most 18 digits: `|value| × 10^fractionDigits` is clamped at 10^17, and a JS number carries exact integers only up to 2^53. |
 | `fractionDigits` | `number` | `0` | Digits after the decimal separator. |
 | `minimumIntegerDigits` | `number` | `1` | Zero-pads the integer part. |
-| `groupingSeparator` | `string` | `''` | Inserted every three integer digits. |
+| `groupingSeparator` | `string` | `''` | Inserted between digit groups. |
+| `groupingSizes` | `number[]` | `[3]` | Group sizes from the decimal point: `[3, 2]` is Indian grouping (12,34,567). |
 | `decimalSeparator` | `string` | `'.'` | Between integer and fraction digits. |
 | `prefix` / `suffix` | `string` | `''` | Static text around the number. |
+| `signDisplay` | `'auto' \| 'always' \| 'exceptZero' \| 'negative' \| 'never'` | `'auto'` | Which values carry a sign; `'exceptZero'` puts a plus on gains, and a plus that turns into a minus swaps. |
+| `plusSign` / `minusSign` | `string` | `'+'` / `'-'` | The sign glyphs (e.g. `'−'`, U+2212). |
+| `digitGlyphs` | `string[]` | `'0'`…`'9'` | Ten glyphs for native digits (Arabic-Indic, Devanagari…). |
+| `digits` | `Record<number, { max }>` | – | The highest digit a position shows before it wraps (a clock's tens: `{ 1: { max: 5 } }`). |
+| `continuous` | `boolean` | `false` | Rolls turn the lower wheels a full turn too, so the figure seems to pass through every value. |
+| `animated` | `boolean` | `true` | `false` shows every change at once. |
+| `respectReduceMotion` | `boolean` | `true` | Snap while the system's Reduce Motion is on. |
+| `onAnimationStart` / `onAnimationEnd` | `() => void` / `(value) => void` | – | The figure set off from rest / came to rest, once for a run of changes. |
 | `duration` | `number` | `500` | Roll duration in ms; `0` snaps. |
 | `easing` | `'linear' \| 'easeIn' \| 'easeOut' \| 'easeInOut' \| 'spring'` | `'easeInOut'` | Roll timing curve. A value that arrives while the wheels are still rolling continues with the ease-out half of the curve, so rapid updates never stall. |
 | `bounce` | `number` | `0.15` | Overshoot of the `spring` easing (0–1). |
@@ -765,7 +774,10 @@ busy and replays them afterwards.
 | `letterSpacing` | number | `0` | Points added after every glyph, like `Text`'s; a smaller affix gets it in proportion to its size. |
 | `prefixSpacing` / `suffixSpacing` | number | the letter spacing | Points between the prefix and the digits, and between the digits and the suffix. |
 | `prefixOffset` / `suffixOffset` | number | `0` | Points an affix is moved down after its alignment (negative: up). |
-| `format` | `NumberFormat` | none | The number follows it: prefix and suffix, separators, fraction and minimum integer digits. The individual props override it. |
+| `prefixColor` / `suffixColor` | `ColorValue` | `color` | The affixes' colours. |
+| `fractionFontSize` / `fractionColor` | `number` / `ColorValue` | `fontSize` / `color` | Smaller, dimmer cents (the decimal separator follows). |
+| `fractionAlign` | `'baseline' \| 'center' \| 'top' \| 'bottom'` | `'baseline'` | `'top'`: superscript cents. |
+| `format` | `NumberFormat` | none | The number follows it: prefix and suffix, separators and group sizes, fraction and minimum integer digits, sign display, native digits; a compact format rolls its figure and swaps its suffix ("950" → "1.5K"). The individual props override it. |
 | `tabularNums` | boolean | `true` | `false` lays each digit out at its own width (proportional figures); a changing column eases once from the old digit's width to the new one's. |
 | `adjustsFontSizeToFit` | `boolean` | `false` | Shrink the whole number to fit the view's fixed `width`; the view keeps its full height. |
 | `minimumFontScale` | `number` | `0.5` | Lower bound for `adjustsFontSizeToFit`. |
