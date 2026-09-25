@@ -16,6 +16,10 @@ namespace margelo::nitro::nitroinput { class HybridNitroNumberFormatPlatformSpec
 namespace margelo::nitro::nitroinput { class HybridNitroNumberViewSpec; }
 // Forward declaration of `HybridNitroPlatformNumberFormatterSpec` to properly resolve imports.
 namespace margelo::nitro::nitroinput { class HybridNitroPlatformNumberFormatterSpec; }
+// Forward declaration of `HybridNitroTextMeasureSpec` to properly resolve imports.
+namespace margelo::nitro::nitroinput { class HybridNitroTextMeasureSpec; }
+// Forward declaration of `HybridNitroTextViewSpec` to properly resolve imports.
+namespace margelo::nitro::nitroinput { class HybridNitroTextViewSpec; }
 // Forward declaration of `NitroInputAffixAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputAffixAlign; }
 // Forward declaration of `NitroInputAutoCapitalize` to properly resolve imports.
@@ -88,6 +92,8 @@ namespace margelo::nitro::nitroinput { enum class NumberFormatUnitDisplay; }
 #include "HybridNitroNumberFormatPlatformSpec.hpp"
 #include "HybridNitroNumberViewSpec.hpp"
 #include "HybridNitroPlatformNumberFormatterSpec.hpp"
+#include "HybridNitroTextMeasureSpec.hpp"
+#include "HybridNitroTextViewSpec.hpp"
 #include "NitroInputAffixAlign.hpp"
 #include "NitroInputAutoCapitalize.hpp"
 #include "NitroInputEasing.hpp"
@@ -147,6 +153,10 @@ namespace NitroInput { class HybridNitroNumberFormatPlatformSpec_cxx; }
 namespace NitroInput { class HybridNitroNumberViewSpec_cxx; }
 // Forward declaration of `HybridNitroPlatformNumberFormatterSpec_cxx` to properly resolve imports.
 namespace NitroInput { class HybridNitroPlatformNumberFormatterSpec_cxx; }
+// Forward declaration of `HybridNitroTextMeasureSpec_cxx` to properly resolve imports.
+namespace NitroInput { class HybridNitroTextMeasureSpec_cxx; }
+// Forward declaration of `HybridNitroTextViewSpec_cxx` to properly resolve imports.
+namespace NitroInput { class HybridNitroTextViewSpec_cxx; }
 
 // Include Swift defined types
 #if __has_include("NitroInput-Swift.h")

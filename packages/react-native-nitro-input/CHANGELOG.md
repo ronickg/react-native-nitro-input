@@ -26,9 +26,11 @@
   12,34,567).
 - **`animated={false}`** shows every change at once, and
   **`respectReduceMotion={false}`** animates under Reduce Motion.
-- **`NitroText`**: any text morphs natively, shared characters gliding to
-  their new places ("Sign in" → "Signing in…"), the reflow on a read-only
-  label.
+- **`NitroText`**: a single line of text that morphs natively, shared
+  characters gliding to their new places ("Sign in" → "Signing in…",
+  "$1,204" → "$1,318"), as Torph does on the web. Its own native view: one
+  draw at rest like a label, sized by a synchronous native measurement in
+  the render that mounts it, with the loading shimmer and its options.
 - **Shimmer options**: `shimmerAngle`, `shimmerWidth`, `shimmerBaseColor`
   (a skeleton), `shimmerDirection` (following the layout direction by
   default, so a right-to-left layout now sweeps right to left) and

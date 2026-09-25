@@ -241,4 +241,33 @@ describe('NitroText', () => {
     )
     await waitFor(() => expect(label.state.current!.width).toBeGreaterThan(before! + 20), WAIT)
   })
+
+  it('drops back to the default when a prop is removed', async () => {
+    const plain = layoutOf()
+    const spaced = layoutOf()
+    const { rerender } = await render(
+      <View style={content}>
+        <NitroText fontSize={24} onLayout={plain.onLayout}>
+          Balance
+        </NitroText>
+        <NitroText fontSize={24} letterSpacing={4} onLayout={spaced.onLayout}>
+          Balance
+        </NitroText>
+      </View>
+    )
+    const [p, s] = await widthsOf([plain, spaced])
+    expect(s!).toBeGreaterThan(p! + 20)
+    // Only set props cross to the view; a removed one crosses as null (the native default).
+    await rerender(
+      <View style={content}>
+        <NitroText fontSize={24} onLayout={plain.onLayout}>
+          Balance
+        </NitroText>
+        <NitroText fontSize={24} onLayout={spaced.onLayout}>
+          Balance
+        </NitroText>
+      </View>
+    )
+    await waitFor(() => expectSameLength(spaced.state.current!.width, p!), WAIT)
+  })
 })

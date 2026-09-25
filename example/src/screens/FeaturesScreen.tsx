@@ -167,17 +167,18 @@ const LABELS = ['Sign in', 'Signing in…', 'Signed in', 'Total $1,204', 'Total 
 
 function TextDemo() {
   const [index, setIndex] = useState(0)
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null)
-  useEffect(() => () => {
-    if (timer.current) clearInterval(timer.current)
-  }, [])
+  const [loading, setLoading] = useState(false)
   return (
-    <Card title="NitroText" hint="Any text morphs: shared characters keep their shapes and move, the rest fade (Torph's effect, natively).">
-      <NitroText testID="features-text" fontSize={30} fontWeight="700" color={INK}>
+    <Card title="NitroText" hint="Any text morphs: shared characters keep their shapes and move, the rest fade (Torph's effect, natively). One draw at rest, like a label; it shimmers while loading.">
+      <NitroText testID="features-text" fontSize={30} fontWeight="700" color={INK} loading={loading}>
         {LABELS[index]!}
+      </NitroText>
+      <NitroText fontSize={17} color={MUTED} loading={loading} shimmerBaseColor="#E5E7EB" shimmerColor="#9CA3AF">
+        {`Step ${index + 1} of ${LABELS.length}`}
       </NitroText>
       <Row>
         <Btn testID="features-text-next" title="Next" onPress={() => setIndex((i) => (i + 1) % LABELS.length)} />
+        <Btn testID="features-text-loading" title={loading ? 'Loaded' : 'Loading'} onPress={() => setLoading((l) => !l)} />
       </Row>
     </Card>
   )

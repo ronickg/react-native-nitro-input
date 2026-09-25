@@ -33,7 +33,7 @@ In `mode="text"` characters fade and scale, and a run that persists keeps its sh
 
 ## Any text: NitroText
 
-`NitroText` is the reflow on a label, not a field: read-only, never focused, sized to its text. Give it a new string and the characters the two share glide to their new places while the rest fade, as Torph does on the web: "Sign in" → "Signing in…", "Total $1,204" → "Total $1,318".
+`NitroText` is the reflow on a label: give it a new string and the characters the two share glide to their new places while the rest fade, as Torph does on the web: "Sign in" → "Signing in…", "Total $1,204" → "Total $1,318" (digits match by place, so the hundreds and tens roll).
 
 ```tsx
 import { NitroText } from 'react-native-nitro-input'
@@ -41,7 +41,7 @@ import { NitroText } from 'react-native-nitro-input'
 <NitroText fontSize={17} fontWeight="600">{busy ? 'Signing in…' : 'Sign in'}</NitroText>
 ```
 
-It takes the reflow's timing (`duration`, `easing`, `bounce`, `effect`) and the typography props, and screen readers read the text.
+It is its own native view, not a field: at rest it draws its line in one pass, like a label, and only a morph draws each character on its own. It measures its text natively while it renders, so it lays out in the commit that mounts it; mounting a thousand costs about what a thousand `Text`s do. It is one line (no wrapping), takes the reflow's timing (`duration`, `easing`, `bounce`, `effect`) and the typography props, screen readers read it as text, and `loading` runs the same shimmer as [`NitroNumber`'s](/docs/loading-and-reveal#loading), with every `shimmer*` option.
 
 ## Tuning it
 

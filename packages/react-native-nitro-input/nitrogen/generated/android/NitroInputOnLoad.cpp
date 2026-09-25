@@ -26,6 +26,9 @@
 #include "JHybridNitroNumberViewSpec.hpp"
 #include "JFunc_void.hpp"
 #include "views/JHybridNitroNumberViewStateUpdater.hpp"
+#include "JHybridNitroTextMeasureSpec.hpp"
+#include "JHybridNitroTextViewSpec.hpp"
+#include "views/JHybridNitroTextViewStateUpdater.hpp"
 #include "JHybridNitroPlatformNumberFormatterSpec.hpp"
 #include "JHybridNitroNumberFormatPlatformSpec.hpp"
 #include <NitroModules/DefaultConstructableObject.hpp>
@@ -64,6 +67,22 @@ struct JHybridNitroNumberFormatPlatformSpecImpl: public jni::JavaClass<JHybridNi
     return javaPart->getJHybridNitroNumberFormatPlatformSpec();
   }
 };
+struct JHybridNitroTextViewSpecImpl: public jni::JavaClass<JHybridNitroTextViewSpecImpl, JHybridNitroTextViewSpec::JavaPart> {
+  static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/nitroinput/HybridNitroTextView;";
+  static std::shared_ptr<JHybridNitroTextViewSpec> create() {
+    static const auto constructorFn = javaClassStatic()->getConstructor<JHybridNitroTextViewSpecImpl::javaobject()>();
+    jni::local_ref<JHybridNitroTextViewSpec::JavaPart> javaPart = javaClassStatic()->newObject(constructorFn);
+    return javaPart->getJHybridNitroTextViewSpec();
+  }
+};
+struct JHybridNitroTextMeasureSpecImpl: public jni::JavaClass<JHybridNitroTextMeasureSpecImpl, JHybridNitroTextMeasureSpec::JavaPart> {
+  static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/nitroinput/HybridNitroTextMeasure;";
+  static std::shared_ptr<JHybridNitroTextMeasureSpec> create() {
+    static const auto constructorFn = javaClassStatic()->getConstructor<JHybridNitroTextMeasureSpecImpl::javaobject()>();
+    jni::local_ref<JHybridNitroTextMeasureSpec::JavaPart> javaPart = javaClassStatic()->newObject(constructorFn);
+    return javaPart->getJHybridNitroTextMeasureSpec();
+  }
+};
 
 void registerAllNatives() {
   using namespace margelo::nitro;
@@ -81,6 +100,9 @@ void registerAllNatives() {
   margelo::nitro::nitroinput::JHybridNitroNumberViewSpec::CxxPart::registerNatives();
   margelo::nitro::nitroinput::JFunc_void_cxx::registerNatives();
   margelo::nitro::nitroinput::views::JHybridNitroNumberViewStateUpdater::registerNatives();
+  margelo::nitro::nitroinput::JHybridNitroTextMeasureSpec::CxxPart::registerNatives();
+  margelo::nitro::nitroinput::JHybridNitroTextViewSpec::CxxPart::registerNatives();
+  margelo::nitro::nitroinput::views::JHybridNitroTextViewStateUpdater::registerNatives();
   margelo::nitro::nitroinput::JHybridNitroPlatformNumberFormatterSpec::CxxPart::registerNatives();
   margelo::nitro::nitroinput::JHybridNitroNumberFormatPlatformSpec::CxxPart::registerNatives();
 
@@ -119,6 +141,18 @@ void registerAllNatives() {
     "NitroNumberFormatPlatform",
     []() -> std::shared_ptr<HybridObject> {
       return JHybridNitroNumberFormatPlatformSpecImpl::create();
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "NitroTextView",
+    []() -> std::shared_ptr<HybridObject> {
+      return JHybridNitroTextViewSpecImpl::create();
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "NitroTextMeasure",
+    []() -> std::shared_ptr<HybridObject> {
+      return JHybridNitroTextMeasureSpecImpl::create();
     }
   );
 }

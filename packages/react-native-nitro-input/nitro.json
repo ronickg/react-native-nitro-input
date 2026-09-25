@@ -54,6 +54,26 @@
         "language": "kotlin",
         "implementationClassName": "HybridNitroNumberFormatPlatform"
       }
+    },
+    "NitroTextView": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridNitroTextView"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridNitroTextView"
+      }
+    },
+    "NitroTextMeasure": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridNitroTextMeasure"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridNitroTextMeasure"
+      }
     }
   },
   "ignorePaths": [

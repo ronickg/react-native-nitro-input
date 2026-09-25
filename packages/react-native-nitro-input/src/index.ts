@@ -57,7 +57,8 @@ export {
   type NitroNumberRef,
 } from './NitroNumber'
 export { NitroTime, type NitroTimeProps, type NitroTimeFormat } from './NitroTime'
-export { NitroText, type NitroTextProps } from './NitroText'
+export { NitroText, NativeNitroTextView, type NitroTextProps } from './NitroText'
+export type { NitroTextMeasure, NitroTextView } from './specs/NitroText.nitro'
 export type {
   NitroNumberAffixAlign,
   NitroNumberDirection,

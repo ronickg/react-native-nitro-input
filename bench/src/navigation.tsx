@@ -7,6 +7,7 @@ import { Btn, Card, Row, styles } from './harness'
 import { InputBenchScreen } from './bench/InputBenchScreen'
 import { MarketCompareScreen, type MarketCompareParams } from './bench/MarketCompareScreen'
 import { RollingBenchScreen, type RollingBenchParams } from './bench/RollingBenchScreen'
+import { TextMountScreen } from './bench/TextMountScreen'
 import { parsePlan } from './bench/plan'
 
 export type RootStackParamList = {
@@ -14,6 +15,7 @@ export type RootStackParamList = {
   RollingBench: RollingBenchParams
   InputBench: undefined
   MarketCompare: MarketCompareParams
+  TextMount: undefined
 }
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
@@ -30,6 +32,7 @@ function HomeScreen() {
       </Card>
       <Card title="Text input" hint="Mount and focus cost of NitroInput against TextInput and Expo UI's TextField.">
         <Row><Btn testID="home-bench" tone="primary" title="Mount / focus benchmark" onPress={() => nav.navigate('InputBench')} /></Row>
+        <Row><Btn testID="home-text-mount" tone="primary" title="Text mount: Text / PlainText / NitroText" onPress={() => nav.navigate('TextMount')} /></Row>
       </Card>
       <Text style={styles.cardHint}>scripts/bench/run.mjs launches this app with a plan and drives it; see BENCHMARKS.md.</Text>
     </ScrollView>
@@ -74,6 +77,7 @@ export function RootNavigator() {
         <Stack.Screen name="RollingBench" component={RollingBenchScreen} options={{ title: 'Rolling number benchmark' }} />
         <Stack.Screen name="InputBench" component={InputBenchScreen} options={{ title: 'Input benchmark' }} />
         <Stack.Screen name="MarketCompare" component={MarketCompareScreen} options={{ title: 'Market comparison' }} />
+        <Stack.Screen name="TextMount" component={TextMountScreen} options={{ title: 'Text mount' }} />
       </Stack.Navigator>
     </NavigationContainer>
   )
