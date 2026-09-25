@@ -14,12 +14,21 @@
  *
  * Driven by real taps (a synthetic call has no `event` entry): Clear, then a
  * variant, and read the result line.
+ *
+ * Launched with `{"textMount":{"rounds":6}}` it runs by itself instead, with
+ * no touch and no UI-test runner attached (whose accessibility snapshots of a
+ * thousand labels load the main thread): each round mounts the three
+ * variants in turn and reports, per mount, the JS slice, the main thread's
+ * CPU over the next second (mount, layout of the views, drawing) and its
+ * longest frame, as BENCH lines.
  */
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { ScrollView, Text, View } from 'react-native'
 import { PlainText } from 'react-native-plain-text'
 import { NitroText } from 'react-native-nitro-input'
-import { forceGc, sample } from 'bench-probe'
+import { cpuBetween, forceGc, report, sample, startFrames, stopFrames, type Sample } from 'bench-probe'
+import type { RootStackParamList } from '../navigation'
 import { Btn, Row, styles } from '../harness'
 
 const COUNT = 1000
@@ -38,13 +47,68 @@ declare const PerformanceObserver: {
   }
 }
 
-export function TextMountScreen() {
+type Auto = { interaction: number; commit: number; mainMs: number; mainSysMs: number; faults: number; jsMs: number; maxFrame: number }
+const mainSys = (s: Sample) => s.threads.find((t) => t.main)?.sysMs ?? 0
+const wait = (ms: number) => new Promise<void>((r) => setTimeout(() => r(), ms))
+
+export function TextMountScreen({ route }: NativeStackScreenProps<RootStackParamList, 'TextMount'>) {
+  const rounds = route.params?.rounds
   const [variant, setVariant] = useState<Variant | null>(null)
   const [results, setResults] = useState<Record<Variant, Result[]>>({ text: [], plain: [], nitro: [] })
   const events = useRef<{ start: number; duration: number }[]>([])
   const press = useRef<{ variant: Variant; start: number } | null>(null)
   const baseline = useRef<number | null>(null)
   const firstMount = useRef<Set<Variant>>(new Set())
+  const [auto, setAuto] = useState<Record<Variant, Auto[]>>({ text: [], plain: [], nitro: [] })
+  const committed = useRef<(() => void) | null>(null)
+
+  // Launched with a plan: mount each variant in turn, `rounds` times, untouched.
+  useEffect(() => {
+    if (!rounds) return
+    let cancelled = false
+    const run = async () => {
+      await wait(1500)
+      for (let round = 0; round < rounds && !cancelled; round++) {
+        // Rotated per round: each variant follows each other one's clearing.
+        const order = (['nitro', 'text', 'plain'] as Variant[]).map((_, i, all) => all[(i + round) % all.length]!)
+        for (const v of order) {
+          setVariant(null)
+          await wait(1500)
+          forceGc()
+          await wait(200)
+          const before = sample()
+          startFrames()
+          const start = performance.now()
+          const layout = new Promise<void>((resolve) => (committed.current = () => resolve()))
+          setVariant(v)
+          await layout
+          const commit = performance.now() - start
+          await wait(1000)
+          const frames = stopFrames()
+          const after = sample()
+          const cpu = before && after ? cpuBetween(before, after) : null
+          const wall = before && after ? after.wallMs - before.wallMs : 0
+          const r: Auto = {
+            interaction: commit + (frames?.max ?? 0),
+            commit,
+            mainMs: cpu ? (cpu.main * wall) / 100 : 0,
+            mainSysMs: before && after ? mainSys(after) - mainSys(before) : 0,
+            faults: (after?.faults ?? 0) - (before?.faults ?? 0),
+            jsMs: cpu ? (cpu.js * wall) / 100 : 0,
+            maxFrame: frames?.max ?? 0,
+          }
+          report({ event: 'text-mount', variant: v, round, ...r })
+          setAuto((a) => ({ ...a, [v]: [...a[v], r] }))
+        }
+      }
+      setVariant(null)
+      report({ event: 'done' })
+    }
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [rounds])
 
   useEffect(() => {
     const observer = new PerformanceObserver((list) => {
@@ -56,6 +120,10 @@ export function TextMountScreen() {
 
   // After the commit that mounted the labels: the JS-thread slice, then the settled numbers.
   useLayoutEffect(() => {
+    if (variant && committed.current) {
+      committed.current()
+      committed.current = null
+    }
     const current = press.current
     if (!current || variant !== current.variant) return
     const commit = performance.now() - current.start
@@ -99,6 +167,19 @@ export function TextMountScreen() {
       `first ${runs[0]!.interaction.toFixed(1)} ms${memory != null ? ` · ${memory.toFixed(2)} KB/label` : ''} [${runs.map((r) => r.interaction.toFixed(0)).join(',')}]`
   }
 
+  const autoLine = (v: Variant) => {
+    // The first round creates the views; the rest reuse Fabric's pooled ones.
+    const warm = auto[v].slice(1)
+    if (warm.length === 0) return `${LABEL[v]}: ${auto[v].length ? 'cold only' : '–'}`
+    const median = (f: (r: Auto) => number) => {
+      const xs = warm.map(f).sort((a, b) => a - b)
+      return xs[Math.floor(xs.length / 2)]!
+    }
+    const first = auto[v][0]!
+    return `${LABEL[v]}: warm n=${warm.length} commit ${median((r) => r.commit).toFixed(1)} · main CPU ${median((r) => r.mainMs).toFixed(1)} · ` +
+      `longest frame ${median((r) => r.maxFrame).toFixed(1)} · JS CPU ${median((r) => r.jsMs).toFixed(1)} ms | cold commit ${first.commit.toFixed(0)} main ${first.mainMs.toFixed(0)}`
+  }
+
   return (
     <View style={styles.screen}>
       <View style={{ padding: 12, gap: 8 }}>
@@ -110,7 +191,7 @@ export function TextMountScreen() {
         </Row>
         {(['text', 'plain', 'nitro'] as Variant[]).map((v) => (
           <Text key={v} testID={`text-result-${v}`} style={styles.cardHint}>
-            {line(v)}
+            {rounds ? autoLine(v) : line(v)}
           </Text>
         ))}
       </View>

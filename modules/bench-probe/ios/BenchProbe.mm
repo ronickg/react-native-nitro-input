@@ -310,11 +310,19 @@ RCT_EXPORT_MODULE()
           @"name" : name,
           @"main" : @(isMain),
           @"cpuMs" : @(cpuMs),
+          @"sysMs" : @((double)ext.pth_system_time / 1e6),
         }];
       }
       mach_port_deallocate(mach_task_self(), list[i]);
     }
     vm_deallocate(mach_task_self(), (vm_address_t)list, count * sizeof(thread_t));
+  }
+  // Page faults so far (zero fills of new memory among them), for telling kernel time apart.
+  int32_t faults = 0;
+  task_events_info_data_t events;
+  mach_msg_type_number_t eventsCount = TASK_EVENTS_INFO_COUNT;
+  if (task_info(mach_task_self(), TASK_EVENTS_INFO, (task_info_t)&events, &eventsCount) == KERN_SUCCESS) {
+    faults = events.faults;
   }
   double rssMb = 0;
   task_vm_info_data_t vm;
@@ -330,6 +338,7 @@ RCT_EXPORT_MODULE()
   return BenchJSON(@{
     @"wallMs" : @(CACurrentMediaTime() * 1000.0),
     @"rssMb" : @(rssMb),
+    @"faults" : @(faults),
     @"nativeHeapMb" : @((double)stats.size_in_use / (1024.0 * 1024.0)),
     @"threads" : threads,
   });

@@ -15,7 +15,7 @@ export type RootStackParamList = {
   RollingBench: RollingBenchParams
   InputBench: undefined
   MarketCompare: MarketCompareParams
-  TextMount: undefined
+  TextMount: { rounds?: number } | undefined
 }
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
@@ -51,7 +51,13 @@ function useLaunchPlan(navRef: ReturnType<typeof useNavigationContainerRef<RootS
     const check = () => {
       const json = launchPlan()
       // `{"compare":"nitro-roll"}` opens a market comparison, for profiling it.
-      const compare = json ? (JSON.parse(json) as { compare?: MarketCompareParams['lib'] }).compare : undefined
+      const parsed = json ? (JSON.parse(json) as { compare?: MarketCompareParams['lib']; textMount?: { rounds?: number } }) : undefined
+      // `{"textMount":{"rounds":6}}` runs the text mount comparison on its own, with no touches.
+      if (parsed?.textMount) {
+        navRef.navigate('TextMount', { rounds: parsed.textMount.rounds ?? 6 })
+        return
+      }
+      const compare = parsed?.compare
       if (compare) {
         navRef.navigate('MarketCompare', { lib: compare })
         return
