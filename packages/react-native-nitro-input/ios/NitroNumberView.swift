@@ -937,6 +937,7 @@ final class NitroNumberView: UIView {
     shimmer = Shimmer()
     alignment = .auto
     revealMilestones = []
+    cellWidths.removeAll()
     // `onIntrinsicSizeChange`, `onRevealEnd` and `onRevealMilestone` are the
     // hybrid's wiring, not the element's props: they stay across recycling
     // (the hybrid clears its own callback props).
@@ -1070,6 +1071,7 @@ final class NitroNumberView: UIView {
 
   private func rebuildFonts() {
     fonts = FontSet(typography, traits: traitCollection)
+    cellWidths.removeAll()
     contentLayer.contentsScale = fonts.renderScale
     fontScale = 1
     // Every cached glyph image belongs to the old font set.
@@ -1275,38 +1277,50 @@ final class NitroNumberView: UIView {
   }
 
   /// A wheel's cell width at full size: the widest digit's with tabular
-  /// figures; otherwise its digit's own advance, blended between the two
-  /// digits it is passing through (a roll between them, or a swap). Settled,
-  /// and throughout a reveal (whose layout is the target's from the first
-  /// frame), it is the target digit's.
+  /// figures; otherwise its target digit's, eased there once from where the
+  /// column was on the wheel's own progress. Following the digits a wheel
+  /// rolled past made every column pulse as a narrow 1 went by. Settled, and
+  /// throughout a reveal (whose layout is the target's from the first frame),
+  /// it is the target digit's.
   private func digitAdvance(_ wheel: Engine.Wheel, power: Int, fonts: FontSet, settled: Bool) -> CGFloat {
     guard fonts.proportional else { return fonts.digitWidth }
     let widths = fonts.digitWidths
-    if settled || engine.isRevealing() {
-      return widths[max(0, min(9, Int(engine.targetDigit(Int32(power)))))]
+    let digit = max(0, min(9, Int(engine.targetDigit(Int32(power)))))
+    let goal = widths[digit]
+    if settled || engine.isRevealing() { return goal }
+    var cell = cellWidths[power] ?? CellWidth()
+    if cell.digit != digit || wheel.progress < cell.progress {
+      // Interrupted mid-change, it carries on from what it showed; from rest,
+      // from the digit the wheel is leaving.
+      cell.from = cell.digit >= 0 && cell.progress < 1 ? cell.shown : restingWidth(wheel, widths: widths, goal: goal)
+      cell.digit = digit
     }
-    // A blank slot (an emerging wheel) takes the width of the digit it turns into.
-    func width(_ glyph: Int, _ other: Int) -> CGFloat {
-      if glyph >= 0 { return widths[glyph % 10] }
-      return other >= 0 ? widths[other % 10] : widths[0]
-    }
-    let from: Int
-    let to: Int
-    let t: CGFloat
-    if wheel.blend < 1 {
-      from = Int(wheel.fromGlyph)
-      to = Int(wheel.toGlyph)
-      t = max(0, min(1, CGFloat(wheel.blend)))
-    } else {
-      let position = wheel.linear ? wheel.position : Self.wrap10(wheel.position)
-      let base = position.rounded(.down)
-      from = Int(base)
-      to = from + 1
-      t = CGFloat(position - base)
-    }
-    let a = width(from, to)
-    return a + (width(to, from) - a) * t
+    cell.progress = wheel.progress
+    cell.shown = cell.from + (goal - cell.from) * CGFloat(max(0, min(1, wheel.progress)))
+    cellWidths[power] = cell
+    return cell.shown
   }
+
+  /// The width of the digit a wheel shows at the start of a change (blank takes the target's).
+  private func restingWidth(_ wheel: Engine.Wheel, widths: [CGFloat], goal: CGFloat) -> CGFloat {
+    let glyph: Int
+    if wheel.blend < 1 {
+      glyph = Int(wheel.fromGlyph)
+    } else {
+      glyph = Int((wheel.linear ? wheel.position : Self.wrap10(wheel.position)).rounded())
+    }
+    return glyph >= 0 ? widths[glyph % 10] : goal
+  }
+
+  /// A proportional column's width through a change, by place value.
+  private struct CellWidth {
+    var from: CGFloat = 0
+    var shown: CGFloat = 0
+    var digit = -1
+    var progress: Double = 1
+  }
+
+  private var cellWidths: [Int: CellWidth] = [:]
 
   /// Letter spacing after every cell, and the affix seams: the space between
   /// the prefix and the digits and between the digits and the suffix.
@@ -1411,7 +1425,7 @@ final class NitroNumberView: UIView {
     let count = Int(engine.settledPowerCount())
     settledWheels.removeAll(keepingCapacity: true)
     for _ in 0..<count {
-      settledWheels.append(Engine.Wheel(position: 0, width: 1, linear: false, blankZero: false, fromGlyph: -1, toGlyph: -1, blend: 1, fromAbove: true, focus: 1, grow: 1, blurOut: 1, flash: 0, flashUp: true))
+      settledWheels.append(Engine.Wheel(position: 0, width: 1, linear: false, blankZero: false, fromGlyph: -1, toGlyph: -1, blend: 1, fromAbove: true, focus: 1, grow: 1, blurOut: 1, flash: 0, flashUp: true, progress: 1))
     }
     buildElements(into: &settledBuffer, wheels: settledWheels, signFactor: engine.settledNegative() ? 1 : 0, animated: false)
     return settledBuffer.reduce(CGFloat(0)) { $0 + $1.advance }

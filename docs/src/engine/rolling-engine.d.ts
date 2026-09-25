@@ -24,7 +24,8 @@ export type Wheel = {
   flashUp: boolean,
   focus: number,
   grow: number,
-  blurOut: number
+  blurOut: number,
+  progress: number
 };
 
 export type TextChange = {

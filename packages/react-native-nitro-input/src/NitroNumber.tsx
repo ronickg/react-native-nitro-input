@@ -210,8 +210,8 @@ export interface NitroNumberProps extends Omit<ViewProps, 'children'> {
    * `true` (the default): every digit as wide as the widest, so columns never
    * move, what a ticker or a price wants. `false`: each digit at its own
    * width, the font's proportional figures, for a face whose "1" is narrow
-   * (or that has no tabular figures at all); a column's width then eases
-   * between the digits it rolls through.
+   * (or that has no tabular figures at all); a changing column's width
+   * then eases once from the old digit's to the new one's.
    */
   tabularNums?: boolean
   /**

@@ -556,6 +556,38 @@ function CenteredDemo() {
   )
 }
 
+function ProportionalDemo() {
+  const [value, setValue] = useState(1111.11)
+  const number = (tabularNums: boolean) => (
+    <NitroNumber
+      value={value}
+      fractionDigits={2}
+      groupingSeparator=","
+      prefix="$"
+      fontSize={40}
+      fontWeight="700"
+      color="#111827"
+      tabularNums={tabularNums}
+      style={styles.proportionalNumber}
+      testID={tabularNums ? 'digits-tabular' : 'digits-proportional'}
+    />
+  )
+  return (
+    <Section title="Proportional digits" hint="The same value twice. Tabular (the default) gives every digit the widest digit's width, so nothing shifts as it rolls; tabularNums={false} sets each digit at its own width, as body text does, and a changing column eases once from the old digit's width to the new one's. Compare the 1s.">
+      <Text style={styles.sectionHint}>tabularNums (default)</Text>
+      {number(true)}
+      <Text style={styles.sectionHint}>tabularNums={'{false}'}</Text>
+      {number(false)}
+      <View style={styles.row}>
+        <Button title="1,111.11" onPress={() => setValue(1111.11)} />
+        <Button title="8,808.80" onPress={() => setValue(8808.8)} />
+        <Button title="+1" onPress={() => setValue((v) => v + 1)} />
+        <Button title="Random" onPress={() => setValue(Math.round(Math.random() * 1_000_000) / 100)} />
+      </View>
+    </Section>
+  )
+}
+
 function ImperativeDemo() {
   const ref = useRef<NitroNumberHandle>(null)
   return (
@@ -699,6 +731,7 @@ export function DemoScreen() {
             <Button title="Showcase: Transfer" testID="showcase-morph" onPress={() => setShowing('morph')} />
             <Button title="Edge cases" testID="showcase-edges" onPress={() => setShowing('edges')} />
           </View>
+          <ProportionalDemo />
           <ReflowInputDemo />
           <MorphWorkletDemo />
           <RevealDemo />
@@ -819,6 +852,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 10,
   },
+  proportionalNumber: { alignSelf: 'flex-start' },
   centerNumber: { width: '100%' },
   revealCard: {
     backgroundColor: '#1D4ED8',
