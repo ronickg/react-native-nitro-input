@@ -21,8 +21,12 @@ namespace margelo::nitro::nitroinput { enum class NitroNumberTransition; }
 namespace margelo::nitro::nitroinput { enum class NitroNumberDirection; }
 // Forward declaration of `NitroNumberRevealStyle` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberRevealStyle; }
+// Forward declaration of `NitroNumberShimmerDirection` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberShimmerDirection; }
 // Forward declaration of `NitroNumberAffixAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberAffixAlign; }
+// Forward declaration of `NitroNumberSignDisplay` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberSignDisplay; }
 // Forward declaration of `NitroNumberTextAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberTextAlign; }
 
@@ -33,7 +37,9 @@ namespace margelo::nitro::nitroinput { enum class NitroNumberTextAlign; }
 #include "NitroNumberDirection.hpp"
 #include "NitroNumberRevealStyle.hpp"
 #include <vector>
+#include "NitroNumberShimmerDirection.hpp"
 #include "NitroNumberAffixAlign.hpp"
+#include "NitroNumberSignDisplay.hpp"
 #include "NitroNumberTextAlign.hpp"
 #include <functional>
 
@@ -120,6 +126,16 @@ namespace margelo::nitro::nitroinput {
       virtual void setShimmerColor(std::optional<double> shimmerColor) = 0;
       virtual std::optional<double> getShimmerDuration() = 0;
       virtual void setShimmerDuration(std::optional<double> shimmerDuration) = 0;
+      virtual std::optional<double> getShimmerAngle() = 0;
+      virtual void setShimmerAngle(std::optional<double> shimmerAngle) = 0;
+      virtual std::optional<double> getShimmerWidth() = 0;
+      virtual void setShimmerWidth(std::optional<double> shimmerWidth) = 0;
+      virtual std::optional<double> getShimmerBaseColor() = 0;
+      virtual void setShimmerBaseColor(std::optional<double> shimmerBaseColor) = 0;
+      virtual std::optional<NitroNumberShimmerDirection> getShimmerDirection() = 0;
+      virtual void setShimmerDirection(std::optional<NitroNumberShimmerDirection> shimmerDirection) = 0;
+      virtual std::optional<double> getShimmerDelay() = 0;
+      virtual void setShimmerDelay(std::optional<double> shimmerDelay) = 0;
       virtual std::optional<double> getFontSize() = 0;
       virtual void setFontSize(std::optional<double> fontSize) = 0;
       virtual std::optional<double> getPrefixFontSize() = 0;
@@ -144,6 +160,32 @@ namespace margelo::nitro::nitroinput {
       virtual void setSuffixOffset(std::optional<double> suffixOffset) = 0;
       virtual std::optional<bool> getTabularNums() = 0;
       virtual void setTabularNums(std::optional<bool> tabularNums) = 0;
+      virtual std::optional<NitroNumberSignDisplay> getSignDisplay() = 0;
+      virtual void setSignDisplay(std::optional<NitroNumberSignDisplay> signDisplay) = 0;
+      virtual std::optional<std::string> getPlusSign() = 0;
+      virtual void setPlusSign(const std::optional<std::string>& plusSign) = 0;
+      virtual std::optional<std::string> getMinusSign() = 0;
+      virtual void setMinusSign(const std::optional<std::string>& minusSign) = 0;
+      virtual std::optional<std::vector<std::string>> getDigitGlyphs() = 0;
+      virtual void setDigitGlyphs(const std::optional<std::vector<std::string>>& digitGlyphs) = 0;
+      virtual std::optional<std::vector<double>> getGroupingSizes() = 0;
+      virtual void setGroupingSizes(const std::optional<std::vector<double>>& groupingSizes) = 0;
+      virtual std::optional<std::vector<double>> getDigitMax() = 0;
+      virtual void setDigitMax(const std::optional<std::vector<double>>& digitMax) = 0;
+      virtual std::optional<bool> getContinuous() = 0;
+      virtual void setContinuous(std::optional<bool> continuous) = 0;
+      virtual std::optional<double> getPrefixColor() = 0;
+      virtual void setPrefixColor(std::optional<double> prefixColor) = 0;
+      virtual std::optional<double> getSuffixColor() = 0;
+      virtual void setSuffixColor(std::optional<double> suffixColor) = 0;
+      virtual std::optional<double> getFractionColor() = 0;
+      virtual void setFractionColor(std::optional<double> fractionColor) = 0;
+      virtual std::optional<double> getFractionFontSize() = 0;
+      virtual void setFractionFontSize(std::optional<double> fractionFontSize) = 0;
+      virtual std::optional<NitroNumberAffixAlign> getFractionAlign() = 0;
+      virtual void setFractionAlign(std::optional<NitroNumberAffixAlign> fractionAlign) = 0;
+      virtual std::optional<bool> getRespectReduceMotion() = 0;
+      virtual void setRespectReduceMotion(std::optional<bool> respectReduceMotion) = 0;
       virtual std::optional<bool> getAdjustsFontSizeToFit() = 0;
       virtual void setAdjustsFontSizeToFit(std::optional<bool> adjustsFontSizeToFit) = 0;
       virtual std::optional<double> getMinimumFontScale() = 0;
@@ -168,6 +210,10 @@ namespace margelo::nitro::nitroinput {
       virtual void setOnRevealEnd(const std::optional<std::function<void()>>& onRevealEnd) = 0;
       virtual std::optional<std::function<void(double /* index */, double /* value */)>> getOnRevealMilestone() = 0;
       virtual void setOnRevealMilestone(const std::optional<std::function<void(double /* index */, double /* value */)>>& onRevealMilestone) = 0;
+      virtual std::optional<std::function<void()>> getOnAnimationStart() = 0;
+      virtual void setOnAnimationStart(const std::optional<std::function<void()>>& onAnimationStart) = 0;
+      virtual std::optional<std::function<void(double /* value */)>> getOnAnimationEnd() = 0;
+      virtual void setOnAnimationEnd(const std::optional<std::function<void(double /* value */)>>& onAnimationEnd) = 0;
 
     public:
       // Methods

@@ -194,6 +194,31 @@ void JHybridNitroNumberViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCl
     hybridView->setShimmerDuration(newProps->shimmerDuration.get());
   }
   if (oldProps == nullptr
+        ? newProps->shimmerAngle.isProvided()
+        : !newProps->shimmerAngle.hasSameValue(oldProps->shimmerAngle)) {
+    hybridView->setShimmerAngle(newProps->shimmerAngle.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->shimmerWidth.isProvided()
+        : !newProps->shimmerWidth.hasSameValue(oldProps->shimmerWidth)) {
+    hybridView->setShimmerWidth(newProps->shimmerWidth.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->shimmerBaseColor.isProvided()
+        : !newProps->shimmerBaseColor.hasSameValue(oldProps->shimmerBaseColor)) {
+    hybridView->setShimmerBaseColor(newProps->shimmerBaseColor.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->shimmerDirection.isProvided()
+        : !newProps->shimmerDirection.hasSameValue(oldProps->shimmerDirection)) {
+    hybridView->setShimmerDirection(newProps->shimmerDirection.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->shimmerDelay.isProvided()
+        : !newProps->shimmerDelay.hasSameValue(oldProps->shimmerDelay)) {
+    hybridView->setShimmerDelay(newProps->shimmerDelay.get());
+  }
+  if (oldProps == nullptr
         ? newProps->fontSize.isProvided()
         : !newProps->fontSize.hasSameValue(oldProps->fontSize)) {
     hybridView->setFontSize(newProps->fontSize.get());
@@ -254,6 +279,71 @@ void JHybridNitroNumberViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCl
     hybridView->setTabularNums(newProps->tabularNums.get());
   }
   if (oldProps == nullptr
+        ? newProps->signDisplay.isProvided()
+        : !newProps->signDisplay.hasSameValue(oldProps->signDisplay)) {
+    hybridView->setSignDisplay(newProps->signDisplay.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->plusSign.isProvided()
+        : !newProps->plusSign.hasSameValue(oldProps->plusSign)) {
+    hybridView->setPlusSign(newProps->plusSign.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->minusSign.isProvided()
+        : !newProps->minusSign.hasSameValue(oldProps->minusSign)) {
+    hybridView->setMinusSign(newProps->minusSign.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->digitGlyphs.isProvided()
+        : !newProps->digitGlyphs.hasSameValue(oldProps->digitGlyphs)) {
+    hybridView->setDigitGlyphs(newProps->digitGlyphs.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->groupingSizes.isProvided()
+        : !newProps->groupingSizes.hasSameValue(oldProps->groupingSizes)) {
+    hybridView->setGroupingSizes(newProps->groupingSizes.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->digitMax.isProvided()
+        : !newProps->digitMax.hasSameValue(oldProps->digitMax)) {
+    hybridView->setDigitMax(newProps->digitMax.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->continuous.isProvided()
+        : !newProps->continuous.hasSameValue(oldProps->continuous)) {
+    hybridView->setContinuous(newProps->continuous.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->prefixColor.isProvided()
+        : !newProps->prefixColor.hasSameValue(oldProps->prefixColor)) {
+    hybridView->setPrefixColor(newProps->prefixColor.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->suffixColor.isProvided()
+        : !newProps->suffixColor.hasSameValue(oldProps->suffixColor)) {
+    hybridView->setSuffixColor(newProps->suffixColor.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->fractionColor.isProvided()
+        : !newProps->fractionColor.hasSameValue(oldProps->fractionColor)) {
+    hybridView->setFractionColor(newProps->fractionColor.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->fractionFontSize.isProvided()
+        : !newProps->fractionFontSize.hasSameValue(oldProps->fractionFontSize)) {
+    hybridView->setFractionFontSize(newProps->fractionFontSize.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->fractionAlign.isProvided()
+        : !newProps->fractionAlign.hasSameValue(oldProps->fractionAlign)) {
+    hybridView->setFractionAlign(newProps->fractionAlign.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->respectReduceMotion.isProvided()
+        : !newProps->respectReduceMotion.hasSameValue(oldProps->respectReduceMotion)) {
+    hybridView->setRespectReduceMotion(newProps->respectReduceMotion.get());
+  }
+  if (oldProps == nullptr
         ? newProps->adjustsFontSizeToFit.isProvided()
         : !newProps->adjustsFontSizeToFit.hasSameValue(oldProps->adjustsFontSizeToFit)) {
     hybridView->setAdjustsFontSizeToFit(newProps->adjustsFontSizeToFit.get());
@@ -312,6 +402,16 @@ void JHybridNitroNumberViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCl
         ? newProps->onRevealMilestone.isProvided()
         : !newProps->onRevealMilestone.hasSameValue(oldProps->onRevealMilestone)) {
     hybridView->setOnRevealMilestone(newProps->onRevealMilestone.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->onAnimationStart.isProvided()
+        : !newProps->onAnimationStart.hasSameValue(oldProps->onAnimationStart)) {
+    hybridView->setOnAnimationStart(newProps->onAnimationStart.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->onAnimationEnd.isProvided()
+        : !newProps->onAnimationEnd.hasSameValue(oldProps->onAnimationEnd)) {
+    hybridView->setOnAnimationEnd(newProps->onAnimationEnd.get());
   }
 
   // Update hybridRef if it changed

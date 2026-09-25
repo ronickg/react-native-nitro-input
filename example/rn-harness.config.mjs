@@ -4,7 +4,7 @@
 // components the way an app does; Harness renders each test's tree as an
 // overlay in the running app and reports through a Metro bridge.
 import { androidEmulator, androidPlatform, physicalAndroidDevice } from '@react-native-harness/platform-android'
-import { applePlatform, appleSimulator } from '@react-native-harness/platform-apple'
+import { applePhysicalDevice, applePlatform, appleSimulator } from '@react-native-harness/platform-apple'
 
 const isCI = process.env.CI === 'true'
 
@@ -19,6 +19,10 @@ const iosSimulatorVersion = process.env.HARNESS_IOS_SIMULATOR_VERSION ?? '26.5'
 // over 25 s to start and was killed as not responding. A phone has its own.
 const androidDeviceManufacturer = process.env.HARNESS_ANDROID_DEVICE_MANUFACTURER ?? 'samsung'
 const androidDeviceModel = process.env.HARNESS_ANDROID_DEVICE_MODEL ?? 'SM-A225F'
+// A cabled iPhone (`bun run test:harness:ios-device`), by its name in Finder;
+// the debug app must be installed on it, signed with the team below.
+const iosDeviceName = process.env.HARNESS_IOS_DEVICE ?? 'Ronald’s iPhone 11 Pro'
+const iosTeamId = process.env.HARNESS_IOS_TEAM_ID ?? '5PSQ3NC8JP'
 
 const config = {
   entryPoint: './index.js',
@@ -27,6 +31,11 @@ const config = {
     applePlatform({
       name: 'ios',
       device: appleSimulator(iosSimulatorName, iosSimulatorVersion),
+      bundleId: 'com.nitroinput.example',
+    }),
+    applePlatform({
+      name: 'ios-device',
+      device: applePhysicalDevice(iosDeviceName, { codeSign: { teamId: iosTeamId } }),
       bundleId: 'com.nitroinput.example',
     }),
     androidPlatform({

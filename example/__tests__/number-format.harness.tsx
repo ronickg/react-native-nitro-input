@@ -145,6 +145,11 @@ describe('NumberFormat', () => {
       [{ style: 'currency', currency: 'USD' }, [[NaN, '$NaN'], [Infinity, '$∞'], [-Infinity, '-$∞']]],
       [{ style: 'percent' }, [[NaN, 'NaN%'], [Infinity, '∞%'], [-Infinity, '-∞%']]],
       [{ style: 'currency', currency: 'USD', currencySign: 'accounting' }, [[-Infinity, '($∞)']]],
+      // Compact notation keeps the currency, the percent sign and signDisplay's plus.
+      [{ style: 'currency', currency: 'USD', notation: 'compact' }, [[950, '$950'], [1500, '$1.5K'], [-1500, '-$1.5K'], [2_300_000, '$2.3M']]],
+      [{ style: 'currency', currency: 'USD', notation: 'compact', signDisplay: 'exceptZero' }, [[1500, '+$1.5K'], [0, '$0']]],
+      [{ style: 'percent', notation: 'compact' }, [[0.5, '50%'], [12345, '1.2M%']]],
+      [{ notation: 'compact', signDisplay: 'always' }, [[1500, '+1.5K']]],
     ]
     const mismatches: string[] = []
     const zh: [NumberFormatOptions, [number, string][]][] = [
@@ -152,6 +157,16 @@ describe('NumberFormat', () => {
       [{ style: 'currency', currency: 'JPY' }, [[1, 'JP¥1']]],
       [{ style: 'currency', currency: 'USD', currencyDisplay: 'narrowSymbol' }, [[1, '$1.00']]],
     ]
+    const de: [NumberFormatOptions, [number, string][]][] = [
+      [{ style: 'currency', currency: 'EUR', notation: 'compact' }, [[1_500_000, '1,5\u00a0Mio.\u00a0€']]],
+    ]
+    for (const [options, expected] of de) {
+      const f = new NumberFormat('de-DE', options)
+      for (const [value, text] of expected) {
+        const got = f.format(value)
+        if (got !== text) mismatches.push(`de-DE ${JSON.stringify(options)} ${value}: ${JSON.stringify(got)}, expected ${JSON.stringify(text)}`)
+      }
+    }
     for (const [options, expected] of zh) {
       const f = new NumberFormat('zh-CN', options)
       for (const [value, text] of expected) {

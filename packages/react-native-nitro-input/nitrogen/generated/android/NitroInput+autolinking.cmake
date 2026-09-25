@@ -38,6 +38,9 @@ target_sources(
   ../nitrogen/generated/shared/c++/HybridNitroInputWorkletsSpec.cpp
   ../nitrogen/generated/shared/c++/HybridNitroNumberViewSpec.cpp
   ../nitrogen/generated/shared/c++/views/HybridNitroNumberViewComponent.cpp
+  ../nitrogen/generated/shared/c++/HybridNitroTextMeasureSpec.cpp
+  ../nitrogen/generated/shared/c++/HybridNitroTextViewSpec.cpp
+  ../nitrogen/generated/shared/c++/views/HybridNitroTextViewComponent.cpp
   ../nitrogen/generated/shared/c++/HybridNitroNumberFormatSpec.cpp
   ../nitrogen/generated/shared/c++/HybridNitroNumberFormatFactorySpec.cpp
   ../nitrogen/generated/shared/c++/HybridNitroPlatformNumberFormatterSpec.cpp
@@ -47,6 +50,9 @@ target_sources(
   ../nitrogen/generated/android/c++/views/JHybridNitroInputViewStateUpdater.cpp
   ../nitrogen/generated/android/c++/JHybridNitroNumberViewSpec.cpp
   ../nitrogen/generated/android/c++/views/JHybridNitroNumberViewStateUpdater.cpp
+  ../nitrogen/generated/android/c++/JHybridNitroTextMeasureSpec.cpp
+  ../nitrogen/generated/android/c++/JHybridNitroTextViewSpec.cpp
+  ../nitrogen/generated/android/c++/views/JHybridNitroTextViewStateUpdater.cpp
   ../nitrogen/generated/android/c++/JHybridNitroPlatformNumberFormatterSpec.cpp
   ../nitrogen/generated/android/c++/JHybridNitroNumberFormatPlatformSpec.cpp
 )

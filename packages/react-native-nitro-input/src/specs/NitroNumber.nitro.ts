@@ -52,6 +52,18 @@ export type NitroNumberRevealStyle = 'count' | 'spin'
  */
 export type NitroNumberAffixAlign = 'baseline' | 'center' | 'top' | 'bottom'
 
+/**
+ * Which values carry a sign, as `Intl.NumberFormat`'s `signDisplay`:
+ * `'auto'` negatives, `'always'` a plus on positives and zero too,
+ * `'exceptZero'` a plus or minus on everything but zero, `'negative'`
+ * negatives, `'never'` none. A value that rounds to zero at the shown
+ * fraction digits counts as zero, so `-0.001` shows no minus.
+ */
+export type NitroNumberSignDisplay = 'auto' | 'always' | 'never' | 'exceptZero' | 'negative'
+
+/** Which way the loading shimmer sweeps: `'auto'` follows the layout direction. */
+export type NitroNumberShimmerDirection = 'auto' | 'ltr' | 'rtl'
+
 export interface NitroNumberProps extends HybridViewProps {
   /**
    * The number to display.
@@ -173,6 +185,16 @@ export interface NitroNumberProps extends HybridViewProps {
   shimmerColor?: number
   /** Duration of one sweep in ms (linear, repeating). Default: `950`. */
   shimmerDuration?: number
+  /** The band's slant in degrees: 0 upright, positive leans it like "/". Default: `31`. */
+  shimmerAngle?: number
+  /** The band's width as a fraction of the number's. Default: `1`. */
+  shimmerWidth?: number
+  /** The glyphs' colour while loading, outside the band (processed). Not finite: `color`. */
+  shimmerBaseColor?: number
+  /** Which way the band sweeps. Default: `'auto'`, the layout direction. */
+  shimmerDirection?: NitroNumberShimmerDirection
+  /** A pause after each sweep, in ms. Default: `0`. */
+  shimmerDelay?: number
   /** Font size of the digits in points. Default: `32`. */
   fontSize?: number
   /** Font size of `prefix` in points. Defaults to `fontSize`. */
@@ -197,6 +219,46 @@ export interface NitroNumberProps extends HybridViewProps {
   suffixOffset?: number
   /** Every digit as wide as the widest (`true`, the default), or each digit at its own width. */
   tabularNums?: boolean
+  /** Which values carry a sign. Default: `'auto'`. */
+  signDisplay?: NitroNumberSignDisplay
+  /** The glyph drawn for a plus sign. Default: `'+'`. */
+  plusSign?: string
+  /** The glyph drawn for a minus sign. Default: `'-'`. */
+  minusSign?: string
+  /**
+   * The ten glyphs drawn for 0 to 9: native digits (Arabic-Indic, Devanagari…).
+   * Empty: `'0'`…`'9'`.
+   */
+  digitGlyphs?: string[]
+  /**
+   * Digit group sizes counted from the decimal point: the first group, then
+   * every one after it. Empty: `[3]`. `[3, 2]` is Indian grouping
+   * (12,34,567), `[2]` a clock's (12:34:56 with `groupingSeparator=":"`).
+   */
+  groupingSizes?: number[]
+  /**
+   * Per integer position (0 the ones, 1 the tens…), the highest digit its
+   * wheel shows before it wraps to 0; missing or not 0–8 means 9. `[9, 5]`
+   * makes the tens wrap after 5, as on a clock: 59 → 00 turns them one step.
+   */
+  digitMax?: number[]
+  /**
+   * Rolls turn the wheels below the highest one that changes a full turn
+   * too, so the figure seems to pass through every value between. Default: `false`.
+   */
+  continuous?: boolean
+  /** The prefix's color (processed). Not finite: `color`. */
+  prefixColor?: number
+  /** The suffix's color (processed). Not finite: `color`. */
+  suffixColor?: number
+  /** The fraction digits' and decimal separator's color (processed). Not finite: `color`. */
+  fractionColor?: number
+  /** The fraction digits' and decimal separator's size. Not finite: `fontSize`. */
+  fractionFontSize?: number
+  /** How smaller fraction digits line up with the integer ones. Default: `'baseline'`. */
+  fractionAlign?: NitroNumberAffixAlign
+  /** Snap instead of animating while the system's Reduce Motion is on. Default: `true`. */
+  respectReduceMotion?: boolean
   /**
    * When the view is narrower than the number (e.g. it has a fixed `width` or
    * `maxWidth`), scale the whole number down so it fits. Default: `false`.
@@ -246,6 +308,13 @@ export interface NitroNumberProps extends HybridViewProps {
    * banner, fire the confetti and play the sting.
    */
   onRevealMilestone?: (index: number, value: number) => void
+  /** Called when the figure starts moving from rest (a change, or a reveal). */
+  onAnimationStart?: () => void
+  /**
+   * Called when the figure comes to rest again, with the value it shows:
+   * once, however many changes arrived while it was moving.
+   */
+  onAnimationEnd?: (value: number) => void
 }
 
 export interface NitroNumberMethods extends HybridViewMethods {

@@ -47,4 +47,28 @@ public final class NitroInputAutolinking {
   public static func isNitroNumberFormatPlatformRecyclable() -> Bool {
     return HybridNitroNumberFormatPlatform.self is any RecyclableView.Type
   }
+  
+  public static func createNitroTextView() -> bridge.std__shared_ptr_HybridNitroTextViewSpec_ {
+    let hybridObject = HybridNitroTextView()
+    return { () -> bridge.std__shared_ptr_HybridNitroTextViewSpec_ in
+      let __cxxWrapped = hybridObject.getCxxWrapper()
+      return __cxxWrapped.getCxxPart()
+    }()
+  }
+  
+  public static func isNitroTextViewRecyclable() -> Bool {
+    return HybridNitroTextView.self is any RecyclableView.Type
+  }
+  
+  public static func createNitroTextMeasure() -> bridge.std__shared_ptr_HybridNitroTextMeasureSpec_ {
+    let hybridObject = HybridNitroTextMeasure()
+    return { () -> bridge.std__shared_ptr_HybridNitroTextMeasureSpec_ in
+      let __cxxWrapped = hybridObject.getCxxWrapper()
+      return __cxxWrapped.getCxxPart()
+    }()
+  }
+  
+  public static func isNitroTextMeasureRecyclable() -> Bool {
+    return HybridNitroTextMeasure.self is any RecyclableView.Type
+  }
 }

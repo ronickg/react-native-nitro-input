@@ -59,9 +59,10 @@ private const val TEXT_PREFIX = 0
 private const val TEXT_SUFFIX = 1
 private const val TEXT_GROUPING = 2
 private const val TEXT_DECIMAL = 3
-private const val TEXT_SLOTS = 4
-/** Doubles per wheel in the engine's frame buffer (`RollingEngine.frameInto`). */
-private const val WHEEL_FIELDS = 14
+private const val TEXT_SIGN = 4
+private const val TEXT_SLOTS = 5
+/** Doubles per wheel in the engine's frame buffer (`RollingEngine.frameInto`): the engine's wheel, then its modulus. */
+private const val WHEEL_FIELDS = 15
 
 class NitroNumberView(context: Context) : View(context) {
 
@@ -74,6 +75,17 @@ class NitroNumberView(context: Context) : View(context) {
     val decimalSeparator: String = ".",
     val prefix: String = "",
     val suffix: String = "",
+    /** ECMA-402's signDisplay (`RollingEngine.setSignDisplay`), and the glyphs drawn for the two signs. */
+    val signDisplay: Int = 0,
+    val plusSign: String = "+",
+    val minusSign: String = "-",
+    /**
+     * Digit group sizes counted from the decimal point, the first then every
+     * later one (empty: threes). [3, 2] is Indian grouping, [2] a clock's.
+     */
+    val groupingSizes: List<Int> = emptyList(),
+    /** Per integer position, the highest digit its wheel shows before it wraps (a clock's 5). */
+    val digitMax: List<Int> = emptyList(),
   )
 
   enum class AffixAlign { BASELINE, CENTER, TOP, BOTTOM }
@@ -97,6 +109,15 @@ class NitroNumberView(context: Context) : View(context) {
     val suffixOffset: Float = 0f,
     /** Every digit as wide as the widest (tabular figures, the default), or each at its own width. */
     val tabularNums: Boolean = true,
+    /** The prefix's, the suffix's and the fraction's colours (null: [color]). */
+    val prefixColor: Int? = null,
+    val suffixColor: Int? = null,
+    val fractionColor: Int? = null,
+    /** The fraction digits' and decimal separator's size (null: [fontSize]) and how they line up. */
+    val fractionFontSize: Float? = null,
+    val fractionAlign: AffixAlign = AffixAlign.BASELINE,
+    /** The glyphs drawn for 0…9 (anything but ten non-empty strings: "0"…"9"). */
+    val digitGlyphs: List<String> = emptyList(),
     val adjustsFontSizeToFit: Boolean = false,
     val minimumFontScale: Float = 0.5f,
     val allowFontScaling: Boolean = false,
@@ -130,6 +151,10 @@ class NitroNumberView(context: Context) : View(context) {
     val revealStaggerMs: Long = 200,
     /** Count style: how long the count pauses on each milestone. */
     val revealMilestoneHoldMs: Long = 0,
+    /** Rolls turn the lower wheels a full turn too (`RollingEngine.setContinuous`). */
+    val continuous: Boolean = false,
+    /** Snap while the user has removed animations. */
+    val respectReduceMotion: Boolean = true,
   )
 
   enum class RevealStyle(val raw: Int) { COUNT(0), SPIN(1) }
@@ -148,6 +173,16 @@ class NitroNumberView(context: Context) : View(context) {
     val color: Int? = null,
     /** Duration of one sweep across the number. */
     val durationMs: Long = 950,
+    /** The band's slant in degrees (0 upright, positive leans like "/"). */
+    val angle: Float = 31f,
+    /** The band's width, a fraction of the number's. */
+    val width: Float = 1f,
+    /** The glyphs' colour outside the band while loading (null: the text colour). */
+    val baseColor: Int? = null,
+    /** Sweep direction: null follows the layout direction, true left to right. */
+    val leftToRight: Boolean? = null,
+    /** A pause after each sweep. */
+    val delayMs: Long = 0,
   )
 
   /** `AUTO` is the start edge of the layout direction, as `Text` with no `textAlign`; the rest are absolute. */
@@ -174,6 +209,13 @@ class NitroNumberView(context: Context) : View(context) {
         change(TEXT_SUFFIX, suffixInk(old.suffix), suffixInk(value.suffix))
         change(TEXT_GROUPING, old.groupingSeparator, value.groupingSeparator)
         change(TEXT_DECIMAL, old.decimalSeparator, value.decimalSeparator)
+        val positive = engine.signPositive()
+        change(TEXT_SIGN, if (positive) old.plusSign else old.minusSign, if (positive) value.plusSign else value.minusSign)
+      }
+      engine.setSignDisplay(value.signDisplay)
+      if (value.digitMax != old.digitMax) {
+        engine.clearDigitMax()
+        for ((power, max) in value.digitMax.withIndex()) if (max in 0..8) engine.setDigitMax(power, max)
       }
       affixBlocksDirty = true
       // Played in a glyph-swap transition; snaps otherwise (see the engine).
@@ -200,6 +242,7 @@ class NitroNumberView(context: Context) : View(context) {
       engine.setRevealTiming(value.revealDurationMs / 1000.0, value.revealBounce, value.revealStyle.raw, value.revealStaggerMs / 1000.0)
       engine.setRevealGrow(value.revealGrow)
       engine.setRevealMilestoneHold(value.revealMilestoneHoldMs / 1000.0)
+      engine.setContinuous(value.continuous)
     }
 
   /** Win tiers of a count-style reveal, in the figure's units. */
@@ -231,7 +274,7 @@ class NitroNumberView(context: Context) : View(context) {
     set(value) {
       if (field == value) return
       field = value
-      engine.setReduceMotion(animationsDisabled())
+      applyReduceMotion()
       engine.setLoading(value, now())
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) stateDescription = if (value) "Loading" else null
       scheduleFrameIfNeeded()
@@ -250,6 +293,11 @@ class NitroNumberView(context: Context) : View(context) {
   var onRevealEnd: (() -> Unit)? = null
   /** Called when a count-style reveal reaches a milestone (its index and value). */
   var onRevealMilestone: ((index: Int, value: Double) -> Unit)? = null
+  /** Called when the figure starts moving from rest, and when it comes to rest (with its value). */
+  var onAnimationStart: (() -> Unit)? = null
+  var onAnimationEnd: ((value: Double) -> Unit)? = null
+  /** A roll or a reveal is under way ([onAnimationStart] has fired, [onAnimationEnd] not yet). */
+  private var moving = false
 
   /** The value currently shown or being rolled towards. */
   val targetValue: Double
@@ -263,40 +311,65 @@ class NitroNumberView(context: Context) : View(context) {
 
   // region Fonts
 
-  private enum class GlyphRole { DIGIT, PREFIX, SUFFIX }
+  private enum class GlyphRole {
+    /** The integer digits, the sign and the grouping separators. */
+    DIGIT,
+    PREFIX,
+    SUFFIX,
+    /** The fraction digits and the decimal separator (`fractionFontSize`, `fractionColor`). */
+    FRACTION,
+  }
 
-  /** Digit / prefix / suffix paints with per-glyph width caches. */
+  /** Digit / prefix / suffix / fraction paints with per-glyph width caches. */
   private inner class FontSet(t: Typography) {
     private val scale = systemFontMultiplier(t)
-    val digit = makePaint(t, t.fontSize * scale)
-    val prefix = makePaint(t, (t.prefixFontSize ?: t.fontSize) * scale)
-    val suffix = makePaint(t, (t.suffixFontSize ?: t.fontSize) * scale)
+    private val ink = t.color ?: defaultTextColor()
+    val digit = makePaint(t, t.fontSize * scale, ink)
+    val prefix = makePaint(t, (t.prefixFontSize ?: t.fontSize) * scale, t.prefixColor ?: ink)
+    val suffix = makePaint(t, (t.suffixFontSize ?: t.fontSize) * scale, t.suffixColor ?: ink)
+    val fraction = makePaint(t, (t.fractionFontSize ?: t.fontSize) * scale, t.fractionColor ?: ink)
     private val prefixAlign = t.prefixAlign
     private val suffixAlign = t.suffixAlign
-    /** Letter spacing after a digit / prefix / suffix glyph, the seams (null: the letter spacing) and the affix offsets, in px. */
+    private val fractionAlign = t.fractionAlign
+    /** The glyphs drawn for 0…9. */
+    val glyphs: Array<String> =
+      if (t.digitGlyphs.size == 10 && t.digitGlyphs.none { it.isEmpty() }) t.digitGlyphs.toTypedArray() else DIGITS
+    private val glyphsKey = glyphs.joinToString("|")
+    /** Every glyph in a row, whose ink the bottom alignment pins to. */
+    private val allGlyphs = glyphs.joinToString("")
+    /** Letter spacing after a digit / prefix / suffix / fraction glyph, the seams (null: the letter spacing) and the affix offsets, in px. */
     val digitSpacing = t.letterSpacing * scale * density
     val prefixLetterSpacing = digitSpacing * ((t.prefixFontSize ?: t.fontSize) / t.fontSize)
     val suffixLetterSpacing = digitSpacing * ((t.suffixFontSize ?: t.fontSize) / t.fontSize)
+    val fractionLetterSpacing = digitSpacing * ((t.fractionFontSize ?: t.fontSize) / t.fontSize)
     val prefixSeam = t.prefixSpacing?.let { it * scale * density }
     val suffixSeam = t.suffixSpacing?.let { it * scale * density }
     private val prefixOffset = t.prefixOffset * scale * density
     private val suffixOffset = t.suffixOffset * scale * density
     private val digitMetrics: Paint.FontMetrics = digit.fontMetrics
+    /** Each role's metrics, read once: `Paint.getFontMetrics()` allocates, and the layout asks per glyph per frame. */
+    private val roleMetrics = Array(GlyphRole.entries.size) { paint(GlyphRole.entries[it]).fontMetrics }
     /** Height of the line box (the digit paint's line height), in px. */
     val lineHeight: Float = ceil(digitMetrics.descent - digitMetrics.ascent)
     /** The numeric transition's blur radius at full blur, in line heights. */
     val numericBlur: Float = NUMERIC_BLUR
     /** Width of the widest digit glyph, in px. */
     val digitWidth: Float
+    /** The same for the fraction digits, in their own font. */
+    val fractionDigitWidth: Float
     /** Each digit at its own advance instead of the widest's (`tabularNums={false}`). */
     val proportional = !t.tabularNums
     /** The advance of each digit 0…9, in px. */
     val digitWidths = FloatArray(10)
+    val fractionDigitWidths = FloatArray(10)
     private val widthCache = Array(GlyphRole.entries.size) { java.util.concurrent.ConcurrentHashMap<String, Float>() }
     /**
-     * A wheel's whole digit strip, per blank-zero variant: 12 slots for index
-     * -1 (blank) to 10 (the 0 that follows 9 on a wrap), each `lineHeight`
-     * tall with the digit centred in `digitWidth`. The digits are rasterized
+     * A wheel's whole digit strip, per role, blank-zero variant and modulus:
+     * `modulus + 2` slots for index -1 (blank) to `modulus` (the 0 that
+     * follows the last digit on a wrap: 10 on a plain wheel, 6 on a clock's
+     * tens), each `lineHeight` tall with the digit centred in the role's
+     * widest digit; a fraction digit set smaller sits at its aligned height in
+     * the slot. The digits are rasterized
      * once by the software text renderer into a bitmap, and the bitmap is the
      * whole content of a `RenderNode` layer; a wheel then draws one slot-high
      * window of that layer, one quad, and a frame costs no glyph work at all:
@@ -311,22 +384,29 @@ class NitroNumberView(context: Context) : View(context) {
      * RenderNode and the bitmap is drawn directly.
      *
      * The strips are shared by every rolling number drawn with the same
-     * typography (see [StripCache]).
+     * typography (see [StripCache]); this font set keeps the ones it has used
+     * by [stripVariant], so a frame looks them up without building a key.
      */
-    private val stripKey: String =
-      "${t.fontFamily}|${t.fontWeight}|${digit.textSize}|${digit.color}|${digit.typeface?.hashCode()}|${digit.fontFeatureSettings}"
+    private val strips = android.util.SparseArray<Strip>()
 
     /**
-     * This font set's digit masks by digit and level, filled from the shared
-     * cache: a swapping glyph looks two up every frame, and a lookup there
-     * built a key string each time. Written by the warm-up thread too.
+     * This font set's digit masks by role (digit, fraction), digit and level,
+     * filled from the shared cache: a swapping glyph looks two up every frame,
+     * and a lookup there built a key string each time. Written by the warm-up
+     * thread too.
      */
-    private val digitMasks = AtomicReferenceArray<Bitmap>(10 * (NUMERIC_BLUR_LEVELS + 1))
+    private val digitMasks = AtomicReferenceArray<Bitmap>(2 * 10 * (NUMERIC_BLUR_LEVELS + 1))
 
-    fun strip(blankZero: Boolean): Strip? {
-      if (digitWidth <= 0f || lineHeight <= 0f) return null
-      val strip = StripCache.get("$stripKey|$blankZero") {
-        Strip(renderStrip(blankZero), if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) RenderNode("rolling-number-strip") else null)
+    fun strip(role: GlyphRole, blankZero: Boolean, modulus: Int): Strip? {
+      val cell = digitWidth(role)
+      if (cell <= 0f || lineHeight <= 0f) return null
+      val variant = stripVariant(role, blankZero, modulus)
+      var strip = strips.get(variant)
+      if (strip == null) {
+        strip = StripCache.get("${key(role)}|$blankZero|$modulus") {
+          Strip(renderStrip(role, blankZero, modulus), if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) RenderNode("rolling-number-strip") else null)
+        }
+        strips.put(variant, strip)
       }
       val node = strip.node
       // HWUI deletes a node's display list once nothing in the view tree draws
@@ -353,23 +433,26 @@ class NitroNumberView(context: Context) : View(context) {
      * is a Gaussian to the eye; HWUI has no hardware mask filter), once per
      * font, colour and density and shared like the strips. A transitioning
      * glyph is its sharp text and this bitmap cross-faded, a fixed cost per
-     * frame instead of a blur pass. The bitmap is `digitWidth + 2 pad` wide
-     * and `lineHeight + 2 pad` tall with the glyph centred in the column.
+     * frame instead of a blur pass. The bitmap is `digitWidth(role) + 2 pad`
+     * wide and `lineHeight + 2 pad` tall with the glyph centred in the column
+     * at its role's height in the line box.
      */
-    fun blurred(digitIndex: Int, level: Int): Bitmap? {
-      if (digitWidth <= 0f || lineHeight <= 0f) return null
+    fun blurred(role: GlyphRole, digitIndex: Int, level: Int): Bitmap? {
+      val cell = digitWidth(role)
+      if (cell <= 0f || lineHeight <= 0f) return null
       // Level 0 (or no blur at all) is the glyph unblurred, still a mask: a
       // swapping glyph's two copies must be the same kind of thing, drawn the
       // same way at the same sub-pixel position. Hardware text snaps to whole
       // pixels as it moves and a bitmap does not, and cross-faded they slid in
       // and out of register as the spring settled, a bold/pale flicker.
-      val slot = digitIndex * (NUMERIC_BLUR_LEVELS + 1) + level.coerceIn(0, NUMERIC_BLUR_LEVELS)
+      val slot = (if (role == GlyphRole.FRACTION) 10 * (NUMERIC_BLUR_LEVELS + 1) else 0) +
+        digitIndex * (NUMERIC_BLUR_LEVELS + 1) + level.coerceIn(0, NUMERIC_BLUR_LEVELS)
       digitMasks.get(slot)?.let { return it }
       val radius = if (level <= 0 || numericBlur <= 0f) 0 else Math.round(lineHeight * numericBlur * level / NUMERIC_BLUR_LEVELS).coerceAtLeast(1)
-      val mask = BlurredGlyphCache.get("$stripKey|$digitIndex|$radius|$blurPad") {
-        val text = DIGITS[digitIndex]
+      val mask = BlurredGlyphCache.get("${key(role)}|$digitIndex|$radius|$blurPad") {
+        val text = glyphs[digitIndex]
         val pad = blurPad
-        val w = ceil(digitWidth).toInt() + 2 * pad
+        val w = ceil(cell).toInt() + 2 * pad
         val h = ceil(lineHeight).toInt() + 2 * pad
         // An alpha mask, not a coloured bitmap: the glyph's coverage, blurred,
         // that a draw fills with the digit paint's colour. A coloured
@@ -380,8 +463,8 @@ class NitroNumberView(context: Context) : View(context) {
         val canvas = Canvas(mask)
         // A paint of its own: the masks are warmed off the main thread, where
         // the digit paint's alpha is being changed by the draws.
-        val paint = TextPaint(digit).apply { alpha = 255 }
-        canvas.drawText(text, pad + (digitWidth - width(text, GlyphRole.DIGIT)) / 2f, pad + baseline(GlyphRole.DIGIT, text, 0f), paint)
+        val paint = TextPaint(paint(role)).apply { alpha = 255 }
+        canvas.drawText(text, pad + (cell - width(text, role)) / 2f, pad + digitBaseline(role), paint)
         if (radius > 0) boxBlurMask(mask, radius)
         // Immutable and uploaded ahead of its first draw: HWUI re-pins a mutable
         // bitmap at every sync, and the first frame that drew a fresh mask paid
@@ -404,7 +487,7 @@ class NitroNumberView(context: Context) : View(context) {
     fun blurredText(text: String, role: GlyphRole, level: Int): Bitmap? {
       if (text.isEmpty() || lineHeight <= 0f) return null
       val radius = if (level <= 0 || numericBlur <= 0f) 0 else Math.round(lineHeight * numericBlur * level / NUMERIC_BLUR_LEVELS).coerceAtLeast(1)
-      return BlurredGlyphCache.get("$stripKey|t|${role.ordinal}|$text|$radius|$blurPad") {
+      return BlurredGlyphCache.get("${key(role)}|t|$text|$radius|$blurPad") {
         val pad = blurPad
         val w = ceil(width(text, role)).toInt() + 2 * pad
         val h = ceil(lineHeight).toInt() + 2 * pad
@@ -423,20 +506,41 @@ class NitroNumberView(context: Context) : View(context) {
     /** Padding around a blurred glyph's bitmap, enough for the blur's tail. */
     val blurPad: Int get() = ceil(lineHeight * numericBlur * 3f).toInt().coerceAtLeast(2)
 
-    /** A digit paint in another colour, for the change flash; one per colour. */
-    private val tintedPaints = HashMap<Int, TextPaint>()
-    fun tinted(color: Int): TextPaint = tintedPaints.getOrPut(color) { TextPaint(digit).apply { this.color = color } }
+    /**
+     * A digit (or fraction) paint in another colour, for the change flash;
+     * one per colour, a few per role looked up without boxing the colour.
+     */
+    private val tintedColors = IntArray(2 * TINT_SLOTS)
+    private val tintedPaints = arrayOfNulls<TextPaint>(2 * TINT_SLOTS)
+    private val tintedNext = IntArray(2)
+    fun tinted(color: Int, role: GlyphRole): TextPaint {
+      val r = if (role == GlyphRole.FRACTION) 1 else 0
+      val base = r * TINT_SLOTS
+      for (i in base until base + TINT_SLOTS) {
+        val paint = tintedPaints[i] ?: break
+        if (tintedColors[i] == color) return paint
+      }
+      val i = base + tintedNext[r]
+      tintedNext[r] = (tintedNext[r] + 1) % TINT_SLOTS
+      val paint = TextPaint(paint(role)).apply { this.color = color }
+      tintedColors[i] = color
+      tintedPaints[i] = paint
+      return paint
+    }
 
-    private fun renderStrip(blankZero: Boolean): Bitmap {
-      val w = ceil(digitWidth).toInt()
-      val h = ceil(lineHeight * STRIP_SLOTS).toInt()
+    private fun renderStrip(role: GlyphRole, blankZero: Boolean, modulus: Int): Bitmap {
+      val cell = digitWidth(role)
+      val slots = modulus + 2
+      val w = ceil(cell).toInt()
+      val h = ceil(lineHeight * slots).toInt()
       val drawn = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
       val canvas = Canvas(drawn)
-      val baseline = baseline(GlyphRole.DIGIT, "0", 0f)
-      for (index in -1 until STRIP_SLOTS - 1) {
+      val baseline = digitBaseline(role)
+      val paint = paint(role)
+      for (index in -1 until slots - 1) {
         if (index < 0 || (blankZero && index == 0)) continue
-        val text = DIGITS[index % 10]
-        canvas.drawText(text, (digitWidth - width(text, GlyphRole.DIGIT)) / 2f, (index + 1) * lineHeight + baseline, digit)
+        val text = glyphs[index % modulus]
+        canvas.drawText(text, (cell - width(text, role)) / 2f, (index + 1) * lineHeight + baseline, paint)
       }
       // Immutable: the renderer uploads it once and keeps the texture.
       val strip = drawn.copy(Bitmap.Config.ARGB_8888, false)
@@ -446,16 +550,52 @@ class NitroNumberView(context: Context) : View(context) {
     private val capHeightCache = HashMap<GlyphRole, Float>()
     private val inkDescentCache = HashMap<String, Float>()
 
+    /** A fraction digit's baseline in the line box, at its alignment. */
+    private val fractionBaseline: Float
+    /** The vertical centre of a fraction digit in the line box (a swapping glyph's). */
+    private val fractionCenterY: Float
+    /**
+     * What a cached bitmap drawn in each role depends on: the font, its
+     * colour, where it sits in the line box and the digit glyphs. Shared
+     * strips and masks are keyed by it.
+     */
+    private val roleKeys: Array<String>
+
     init {
-      for (d in 0..9) digitWidths[d] = width(d.toString(), GlyphRole.DIGIT)
+      for (d in 0..9) digitWidths[d] = width(glyphs[d], GlyphRole.DIGIT)
       digitWidth = digitWidths.max()
+      for (d in 0..9) fractionDigitWidths[d] = width(glyphs[d], GlyphRole.FRACTION)
+      fractionDigitWidth = fractionDigitWidths.max()
+      fractionBaseline = baseline(GlyphRole.FRACTION, glyphs[0], 0f)
+      val m = roleMetrics[GlyphRole.FRACTION.ordinal]
+      fractionCenterY = fractionBaseline + (m.ascent + m.descent) / 2f
+      roleKeys = Array(GlyphRole.entries.size) {
+        val role = GlyphRole.entries[it]
+        val p = paint(role)
+        "${t.fontFamily}|${t.fontWeight}|${digit.textSize}|${p.textSize}|${p.color}|${p.typeface?.hashCode()}|${p.fontFeatureSettings}|" +
+          "${role.name}|${alignment(role)}|${if (role == GlyphRole.PREFIX) prefixOffset else if (role == GlyphRole.SUFFIX) suffixOffset else 0f}|$glyphsKey"
+      }
     }
+
+    private fun key(role: GlyphRole): String = roleKeys[role.ordinal]
 
     fun paint(role: GlyphRole): TextPaint = when (role) {
       GlyphRole.DIGIT -> digit
       GlyphRole.PREFIX -> prefix
       GlyphRole.SUFFIX -> suffix
+      GlyphRole.FRACTION -> fraction
     }
+
+    /** The widest digit of [role]'s font (the digits' or the fraction's). */
+    fun digitWidth(role: GlyphRole): Float = if (role == GlyphRole.FRACTION) fractionDigitWidth else digitWidth
+
+    fun digitWidths(role: GlyphRole): FloatArray = if (role == GlyphRole.FRACTION) fractionDigitWidths else digitWidths
+
+    /** A [role] digit's baseline, given the top of the digit line box at 0. */
+    fun digitBaseline(role: GlyphRole): Float = if (role == GlyphRole.FRACTION) fractionBaseline else -digitMetrics.ascent
+
+    /** The vertical centre of a [role] digit in the line box (a swapping glyph's). */
+    fun digitCenterY(role: GlyphRole): Float = if (role == GlyphRole.FRACTION) fractionCenterY else lineHeight / 2f
 
     // One map per role: a joined "role|text" key allocated a string on every
     // lookup, and the layout looks widths up for every glyph on every frame.
@@ -477,9 +617,11 @@ class NitroNumberView(context: Context) : View(context) {
       shapedCache[role.ordinal].getOrPut(text) { ShapedText.of(text, paint(role)) }
 
     /** Baseline y for `role` drawing `text`, given the top of the digit line box. */
-    fun baseline(role: GlyphRole, text: String, lineTop: Float): Float {
-      if (role == GlyphRole.DIGIT) return lineTop - digitMetrics.ascent
-      return alignedBaseline(role, text, lineTop) + if (role == GlyphRole.PREFIX) prefixOffset else suffixOffset
+    fun baseline(role: GlyphRole, text: String, lineTop: Float): Float = when (role) {
+      GlyphRole.DIGIT -> lineTop - digitMetrics.ascent
+      GlyphRole.FRACTION -> alignedBaseline(role, text, lineTop)
+      GlyphRole.PREFIX -> alignedBaseline(role, text, lineTop) + prefixOffset
+      GlyphRole.SUFFIX -> alignedBaseline(role, text, lineTop) + suffixOffset
     }
 
     /** Letter spacing after a glyph of [role], in px. */
@@ -487,20 +629,27 @@ class NitroNumberView(context: Context) : View(context) {
       GlyphRole.DIGIT -> digitSpacing
       GlyphRole.PREFIX -> prefixLetterSpacing
       GlyphRole.SUFFIX -> suffixLetterSpacing
+      GlyphRole.FRACTION -> fractionLetterSpacing
+    }
+
+    private fun alignment(role: GlyphRole): AffixAlign = when (role) {
+      GlyphRole.PREFIX -> prefixAlign
+      GlyphRole.SUFFIX -> suffixAlign
+      GlyphRole.FRACTION -> fractionAlign
+      GlyphRole.DIGIT -> AffixAlign.BASELINE
     }
 
     private fun alignedBaseline(role: GlyphRole, text: String, lineTop: Float): Float {
       val digitBaseline = lineTop - digitMetrics.ascent
-      val p = paint(role)
-      val m = p.fontMetrics
-      return when (if (role == GlyphRole.PREFIX) prefixAlign else suffixAlign) {
+      val m = roleMetrics[role.ordinal]
+      return when (alignment(role)) {
         AffixAlign.BASELINE -> digitBaseline
         AffixAlign.CENTER -> lineTop + (lineHeight - (m.descent - m.ascent)) / 2f - m.ascent
         AffixAlign.TOP -> lineTop + (-digitMetrics.ascent - capHeight(GlyphRole.DIGIT)) + capHeight(role)
         // Pin the bottom of the ink, not of the line boxes: the digits' ink ends
         // on the baseline, so "USD" sits on it too instead of hanging down to
         // where a comma's tail reaches.
-        AffixAlign.BOTTOM -> digitBaseline + inkDescent(ALL_DIGITS, GlyphRole.DIGIT) - inkDescent(text, role)
+        AffixAlign.BOTTOM -> digitBaseline + inkDescent(allGlyphs, GlyphRole.DIGIT) - inkDescent(text, role)
       }
     }
 
@@ -569,11 +718,11 @@ class NitroNumberView(context: Context) : View(context) {
     return if (t.maxFontSizeMultiplier > 0f) min(multiplier, t.maxFontSizeMultiplier) else multiplier
   }
 
-  private fun makePaint(t: Typography, sizeDp: Float): TextPaint {
+  private fun makePaint(t: Typography, sizeDp: Float, color: Int): TextPaint {
     val paint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG)
     paint.typeface = makeTypeface(t)
     paint.textSize = sizeDp * density
-    paint.color = t.color ?: defaultTextColor()
+    paint.color = color
     // Tabular figures unless each digit is laid out at its own width.
     paint.fontFeatureSettings = if (t.tabularNums) "tnum" else "pnum"
     return paint
@@ -629,6 +778,8 @@ class NitroNumberView(context: Context) : View(context) {
     var grow: Double = 1.0,
     var blurOut: Double = 1.0,
     var progress: Double = 1.0,
+    /** Places the wheel wraps after: 10, or fewer on a clock's wheel (`RollingEngine.wheelModulus`). */
+    var modulus: Int = 10,
   )
 
   private val engine = RollingEngine()
@@ -665,6 +816,7 @@ class NitroNumberView(context: Context) : View(context) {
       reportMilestones(reachedBefore)
       if (!engine.isRevealing()) onRevealEnd?.invoke()
     }
+    updateMoving()
   }
 
   /** Fires [onRevealMilestone] for every milestone reached since [reachedBefore]. */
@@ -694,6 +846,8 @@ class NitroNumberView(context: Context) : View(context) {
   private var shimmerGradientWidth = -1f
   private var shimmerGradientBase = 0
   private var shimmerGradientHighlight = 0
+  private var shimmerGradientLength = -1f
+  private var shimmerGradientSlant = Float.NaN
   private val shimmerMatrix = Matrix()
 
   init {
@@ -736,7 +890,9 @@ class NitroNumberView(context: Context) : View(context) {
     alignment = Alignment.AUTO
     revealMilestones = DoubleArray(0)
     cellWidths.clear()
-    // onIntrinsicSizeChange, onRevealEnd and onRevealMilestone are the hybrid's
+    leavingText.fill(null)
+    moving = false
+    // onIntrinsicSizeChange, onRevealEnd, onRevealMilestone and the animation events are the hybrid's
     // wiring, not the element's props: they stay across recycling (the hybrid
     // clears its own callback props).
     invalidate()
@@ -747,19 +903,25 @@ class NitroNumberView(context: Context) : View(context) {
    * style). Cancels any running roll. Intended to be called every frame.
    */
   fun setValue(value: Double) {
+    val sign = signBefore()
     engine.setValue(value)
+    swapSignIfChanged(sign)
     reportIntrinsicSize()
     scheduleFrameIfNeeded()
     invalidate()
+    updateMoving()
   }
 
   /** Rolls every wheel to [value] (snaps on first show, duration 0 or "remove animations"). */
   fun animateTo(value: Double) {
-    engine.setReduceMotion(animationsDisabled())
+    applyReduceMotion()
+    val sign = signBefore()
     engine.animateTo(value, now())
+    swapSignIfChanged(sign)
     reportIntrinsicSize()
     scheduleFrameIfNeeded()
     invalidate()
+    updateMoving()
   }
 
   /**
@@ -767,7 +929,9 @@ class NitroNumberView(context: Context) : View(context) {
    * target's layout), waiting for [reveal].
    */
   fun holdReveal(value: Double) {
+    val sign = signBefore()
     engine.holdReveal(value)
+    swapSignIfChanged(sign)
     reportIntrinsicSize()
     scheduleFrameIfNeeded()
     invalidate()
@@ -775,14 +939,51 @@ class NitroNumberView(context: Context) : View(context) {
 
   /** Counts up from 0 to [value] and lands with a pop (snaps when animations are off). */
   fun reveal(value: Double) {
-    engine.setReduceMotion(animationsDisabled())
+    applyReduceMotion()
+    val sign = signBefore()
     engine.reveal(value, now())
+    swapSignIfChanged(sign)
     reportIntrinsicSize()
     scheduleFrameIfNeeded()
     invalidate()
+    updateMoving()
     reportMilestones(0)
     // Snapped (animations off / duration 0): the reveal is over before it began.
     if (!engine.isRevealing()) onRevealEnd?.invoke()
+  }
+
+  /** Snaps while animations are removed, unless told not to (`respectReduceMotion`). */
+  private fun applyReduceMotion() {
+    engine.setReduceMotion(timing.respectReduceMotion && animationsDisabled())
+  }
+
+  /** The sign glyph on screen before a change, if one is. */
+  private fun signBefore(): String? {
+    if (!engine.hasShownValue() || engine.signFactor() <= 0.0) return null
+    return if (engine.signPositive()) format.plusSign else format.minusSign
+  }
+
+  /**
+   * A plus that turns into a minus (or back) swaps like any text: the old
+   * one softens away as the new one comes into focus.
+   */
+  private fun swapSignIfChanged(before: String?) {
+    if (before == null) return
+    val after = if (engine.signPositive()) format.plusSign else format.minusSign
+    if (after == before) return
+    leavingText[TEXT_SIGN] = before
+    engine.changeText(TEXT_SIGN, now())
+  }
+
+  /**
+   * Fires [onAnimationStart] when a roll or a reveal sets off from rest and
+   * [onAnimationEnd] when the figure is still again, once for a run of changes.
+   */
+  private fun updateMoving() {
+    val now = engine.isRolling() || engine.isRevealing()
+    if (now == moving) return
+    moving = now
+    if (now) onAnimationStart?.invoke() else onAnimationEnd?.invoke(engine.targetValue())
   }
 
   /** Re-sends the last reported intrinsic size (e.g. after a listener was attached). */
@@ -869,7 +1070,7 @@ class NitroNumberView(context: Context) : View(context) {
   private var displayFractionDigits = 0
   private var decimalFactor = 1.0
 
-  // Each text slot's swap (prefix, suffix, grouping, decimal): the text
+  // Each text slot's swap (prefix, suffix, grouping, decimal, sign): the text
   // leaving, and the engine's clocks for it.
   private val leavingText = arrayOfNulls<String>(TEXT_SLOTS)
   private val textGrow = DoubleArray(TEXT_SLOTS) { 1.0 }
@@ -904,6 +1105,7 @@ class NitroNumberView(context: Context) : View(context) {
       w.grow = f[base + 11]
       w.blurOut = f[base + 12]
       w.progress = f[base + 13]
+      w.modulus = f[base + 14].toInt()
     }
     val text = 4 + count * WHEEL_FIELDS
     for (slot in 0 until TEXT_SLOTS) {
@@ -939,8 +1141,10 @@ class NitroNumberView(context: Context) : View(context) {
   private fun warmSwapMasks() {
     if (timing.transition != Transition.NUMERIC) return
     val set = fonts
+    val fraction = format.fractionDigits > 0
     WarmExecutor.execute {
-      for (digit in 0..9) for (level in 0..NUMERIC_BLUR_LEVELS) set.blurred(digit, level)
+      for (digit in 0..9) for (level in 0..NUMERIC_BLUR_LEVELS) set.blurred(GlyphRole.DIGIT, digit, level)
+      if (fraction) for (digit in 0..9) for (level in 0..NUMERIC_BLUR_LEVELS) set.blurred(GlyphRole.FRACTION, digit, level)
     }
   }
 
@@ -1054,13 +1258,14 @@ class NitroNumberView(context: Context) : View(context) {
     // the number is "USD " before it.
     val rtl = isRtl
     if (affixBlocksDirty || affixRtl != rtl) updateAffixBlocks(rtl)
+    val signGlyph = if (engine.signPositive()) format.plusSign else format.minusSign
     // A swapping affix keeps to the digits' side; a separator is centred.
     if (rtl) {
       addGlyph(suffixInk, GlyphRole.SUFFIX, 1.0, TEXT_SUFFIX, anchor = 1)
       addGlyph(suffixGap, GlyphRole.SUFFIX, 1.0)
     } else {
       // Sign first, then the currency prefix: "-$1,234.50".
-      addGlyph("-", GlyphRole.DIGIT, signFactor)
+      addGlyph(signGlyph, GlyphRole.DIGIT, signFactor, TEXT_SIGN, anchor = 1)
       addGlyph(prefixInk, GlyphRole.PREFIX, 1.0, TEXT_PREFIX, anchor = 1)
     }
     // Settled, and throughout a reveal (whose layout is the target's from the
@@ -1070,27 +1275,42 @@ class NitroNumberView(context: Context) : View(context) {
       val wheel = wheels[power]
       if (wheel.width > 0.0) {
         val e = out.next()
-        val advance = digitAdvance(wheel, power, fonts, targetWidths)
+        // The fraction digits draw in their own font and colour.
+        val role = if (power < fd) GlyphRole.FRACTION else GlyphRole.DIGIT
+        val advance = digitAdvance(wheel, power, role, fonts, targetWidths)
         e.wheelIndex = power
         e.text = null
-        e.role = GlyphRole.DIGIT
+        e.role = role
         e.width = (advance * wheel.width).toFloat()
         e.fullWidth = advance
         e.factor = wheel.width
         e.slot = -1
         e.fromText = null
       }
-      if (power > fd && (power - fd) % 3 == 0) addGlyph(format.groupingSeparator, GlyphRole.DIGIT, wheel.width, TEXT_GROUPING, anchor = 0)
-      if (fd > 0 && power == fd) addGlyph(format.decimalSeparator, GlyphRole.DIGIT, decimal, TEXT_DECIMAL, anchor = 0)
+      if (power > fd && isGroupBoundary(power - fd, format.groupingSizes)) addGlyph(format.groupingSeparator, GlyphRole.DIGIT, wheel.width, TEXT_GROUPING, anchor = 0)
+      if (fd > 0 && power == fd) addGlyph(format.decimalSeparator, GlyphRole.FRACTION, decimal, TEXT_DECIMAL, anchor = 0)
     }
     if (rtl) {
       addGlyph(prefixGap, GlyphRole.PREFIX, 1.0)
       addGlyph(prefixInk, GlyphRole.PREFIX, 1.0, TEXT_PREFIX, anchor = -1)
-      addGlyph("-", GlyphRole.DIGIT, signFactor)
+      addGlyph(signGlyph, GlyphRole.DIGIT, signFactor, TEXT_SIGN, anchor = -1)
     } else {
       addGlyph(suffixInk, GlyphRole.SUFFIX, 1.0, TEXT_SUFFIX, anchor = -1)
     }
     applySpacing(fonts, out)
+  }
+
+  /**
+   * Whether a grouping separator follows the [k]th integer digit counted from
+   * the decimal point: every three by default, or [sizes] (the first group,
+   * then each later one: [3, 2] is 12,34,567). A size of 0 is none.
+   */
+  private fun isGroupBoundary(k: Int, sizes: List<Int>): Boolean {
+    val primary = if (sizes.isEmpty()) 3 else sizes[0]
+    if (primary <= 0 || k < primary) return false
+    val secondary = if (sizes.size > 1) sizes[1] else primary
+    if (secondary <= 0) return k == primary
+    return (k - primary) % secondary == 0
   }
 
   /**
@@ -1099,9 +1319,9 @@ class NitroNumberView(context: Context) : View(context) {
    * it is passing through (a roll between them, or a swap), or the target
    * digit's when [target] is set.
    */
-  private fun digitAdvance(wheel: Wheel, power: Int, fonts: FontSet, target: Boolean): Float {
-    if (!fonts.proportional) return fonts.digitWidth
-    val widths = fonts.digitWidths
+  private fun digitAdvance(wheel: Wheel, power: Int, role: GlyphRole, fonts: FontSet, target: Boolean): Float {
+    if (!fonts.proportional) return fonts.digitWidth(role)
+    val widths = fonts.digitWidths(role)
     val digit = engine.targetDigit(power).coerceIn(0, 9)
     val goal = widths[digit]
     if (target) return goal
@@ -1114,6 +1334,15 @@ class NitroNumberView(context: Context) : View(context) {
       cellWidths[power] = cell
       cell.progress = 1.0
       cell.digit = -1
+      cell.role = role
+    }
+    if (cell.role != role) {
+      // A column that became a fraction digit (or stopped being one) starts over in its new font.
+      cell.from = 0f
+      cell.shown = 0f
+      cell.digit = -1
+      cell.progress = 1.0
+      cell.role = role
     }
     if (cell.digit != digit || wheel.progress < cell.progress) {
       // Interrupted mid-change, it carries on from what it showed; from rest,
@@ -1131,14 +1360,14 @@ class NitroNumberView(context: Context) : View(context) {
     val glyph = if (wheel.blend < 1.0) {
       wheel.fromGlyph.toInt()
     } else {
-      val position = if (wheel.linear) wheel.position else wrap10(wheel.position)
-      Math.round(position).toInt()
+      val position = if (wheel.linear) wheel.position else wrap(wheel.position, wheel.modulus)
+      Math.round(position).toInt() % wheel.modulus
     }
     return if (glyph >= 0) widths[glyph % 10] else goal
   }
 
   /** A proportional column's width through a change, by place value. */
-  private class CellWidth(var from: Float = 0f, var shown: Float = 0f, var digit: Int = -1, var progress: Double = 1.0)
+  private class CellWidth(var from: Float = 0f, var shown: Float = 0f, var digit: Int = -1, var progress: Double = 1.0, var role: GlyphRole = GlyphRole.DIGIT)
 
   private val cellWidths = HashMap<Int, CellWidth>()
 
@@ -1149,18 +1378,18 @@ class NitroNumberView(context: Context) : View(context) {
   private fun applySpacing(fonts: FontSet, out: ElementList) {
     for (i in 0 until out.size) out[i].gap = 0f
     if (fonts.digitSpacing == 0f && fonts.prefixSeam == null && fonts.suffixSeam == null) return
-    fun roleOf(e: Element) = if (e.wheelIndex >= 0) GlyphRole.DIGIT else e.role
-    for (i in 0 until out.size) out[i].gap = fonts.spacing(roleOf(out[i])) * out[i].factor.toFloat()
+    // A wheel's role is its font's: a fraction digit is spaced like the fraction.
+    for (i in 0 until out.size) out[i].gap = fonts.spacing(out[i].role) * out[i].factor.toFloat()
     // The seam is the gap at the affix's edge that faces the digits (the far side in RTL).
     var firstPrefix = -1
     var lastPrefix = -1
     var firstSuffix = -1
     var lastSuffix = -1
     for (i in 0 until out.size) {
-      when (roleOf(out[i])) {
+      when (out[i].role) {
         GlyphRole.PREFIX -> { if (firstPrefix < 0) firstPrefix = i; lastPrefix = i }
         GlyphRole.SUFFIX -> { if (firstSuffix < 0) firstSuffix = i; lastSuffix = i }
-        GlyphRole.DIGIT -> Unit
+        GlyphRole.DIGIT, GlyphRole.FRACTION -> Unit
       }
     }
     val rtl = isRtl
@@ -1279,11 +1508,12 @@ class NitroNumberView(context: Context) : View(context) {
   private fun accessibleText(): String {
     val fd = format.fractionDigits
     val sb = StringBuilder()
-    if (engine.settledNegative()) sb.append('-')
+    // Any sign the settled figure carries, a plus included; Latin digits, whatever the glyphs.
+    if (engine.settledNegative()) sb.append(if (engine.signPositive()) format.plusSign else format.minusSign)
     sb.append(format.prefix)
     for (power in engine.settledPowerCount() - 1 downTo 0) {
       sb.append(engine.targetDigit(power))
-      if (power > fd && (power - fd) % 3 == 0) sb.append(format.groupingSeparator)
+      if (power > fd && isGroupBoundary(power - fd, format.groupingSizes)) sb.append(format.groupingSeparator)
       if (fd > 0 && power == fd) sb.append(format.decimalSeparator)
     }
     sb.append(format.suffix)
@@ -1378,7 +1608,7 @@ class NitroNumberView(context: Context) : View(context) {
       val element = elements[i]
       val text = element.text
       if (element.wheelIndex >= 0) {
-        drawWheel(canvas, fonts, wheels[element.wheelIndex], x, element.width, element.fullWidth, originX, originY, scale)
+        drawWheel(canvas, fonts, wheels[element.wheelIndex], element.role, x, element.width, element.fullWidth, originX, originY, scale)
       } else if (element.fromText != null) {
         drawTextSwap(canvas, fonts, element, x)
       } else if (text != null) {
@@ -1400,22 +1630,33 @@ class NitroNumberView(context: Context) : View(context) {
    */
   private fun drawShimmer(canvas: Canvas, fonts: FontSet, contentWidth: Float, dim: Float) {
     if (contentWidth <= 0f) return
-    val base = fonts.digit.color
+    val base = shimmer.baseColor ?: fonts.digit.color
     val highlight = shimmer.color ?: defaultShimmerColor()
-    val phase = engine.shimmerPhase(now(), shimmer.durationMs / 1000.0).toFloat()
-    val progress = SHIMMER_SEED + (1f - SHIMMER_SEED) * phase
-    // Core at width * (2p - 0.5): enters at the left edge, exits past the right.
-    val startX = contentWidth * (2f * progress - 1f)
+    // One sweep takes `durationMs`; the band then waits off the far edge for `delayMs`.
+    val cycleMs = shimmer.durationMs + shimmer.delayMs
+    val phase = (engine.shimmerPhase(now(), cycleMs / 1000.0).toFloat() * cycleMs / shimmer.durationMs).coerceAtMost(1f)
+    val seeded = SHIMMER_SEED + (1f - SHIMMER_SEED) * phase
+    val ltr = shimmer.leftToRight ?: !isRtl
+    val progress = if (ltr) seeded else 1f - seeded
+    // The gradient runs `length` along x (its slant on top): it enters at the
+    // left edge and leaves past the right, or the mirror image.
+    val length = contentWidth * shimmer.width.coerceAtLeast(0.05f)
+    val startX = (contentWidth + length) * progress - length
+    val slant = Math.tan(Math.toRadians(shimmer.angle.coerceIn(-75f, 75f).toDouble())).toFloat() * (if (ltr) 1f else -1f)
     var gradient = shimmerGradient
-    if (gradient == null || shimmerGradientWidth != contentWidth || shimmerGradientBase != base || shimmerGradientHighlight != highlight) {
+    if (gradient == null || shimmerGradientWidth != contentWidth || shimmerGradientBase != base || shimmerGradientHighlight != highlight ||
+      shimmerGradientLength != length || shimmerGradientSlant != slant
+    ) {
       gradient = LinearGradient(
-        0f, 0f, contentWidth, SHIMMER_SLANT * contentWidth,
+        0f, 0f, length, slant * length,
         intArrayOf(base, highlight, base), floatArrayOf(0.1f, 0.5f, 0.9f), Shader.TileMode.CLAMP,
       )
       shimmerGradient = gradient
       shimmerGradientWidth = contentWidth
       shimmerGradientBase = base
       shimmerGradientHighlight = highlight
+      shimmerGradientLength = length
+      shimmerGradientSlant = slant
       shimmerPaint.shader = gradient
     }
     shimmerMatrix.setTranslate(startX, 0f)
@@ -1466,14 +1707,16 @@ class NitroNumberView(context: Context) : View(context) {
    * [originX], [originY] and [scale] are the content transform already on the
    * canvas, so the strip window can be landed on whole device pixels.
    */
-  private fun drawWheel(canvas: Canvas, fonts: FontSet, wheel: Wheel, x: Float, width: Float, advance: Float, originX: Float, originY: Float, scale: Float) {
+  private fun drawWheel(canvas: Canvas, fonts: FontSet, wheel: Wheel, role: GlyphRole, x: Float, width: Float, advance: Float, originX: Float, originY: Float, scale: Float) {
     if (width <= 0f) return
     val lineHeight = fonts.lineHeight
+    val column = fonts.digitWidth(role)
+    val modulus = wheel.modulus
     // The digit column, the widest digit wide, centred on the digit's own cell
     // (with tabular figures the two are the same, right-aligned in the cell).
-    val columnLeft = x + width - (advance + fonts.digitWidth) / 2f
+    val columnLeft = x + width - (advance + column) / 2f
     if (wheel.blend < 1.0 || wheel.focus < 1.0 || wheel.grow < 1.0) {
-      drawSwap(canvas, fonts, wheel, columnLeft, originX, originY, scale)
+      drawSwap(canvas, fonts, wheel, role, columnLeft, originX, originY, scale)
       return
     }
     // A settled-width wheel is a window onto the shared strip (the strip has
@@ -1481,12 +1724,13 @@ class NitroNumberView(context: Context) : View(context) {
     // canvas without a GPU, which cannot draw a hardware bitmap, draws its
     // two glyphs the old way).
     if (wheel.width >= 1.0 && canvas.isHardwareAccelerated) {
-      val strip = fonts.strip(wheel.blankZero)
+      val strip = fonts.strip(role, wheel.blankZero, modulus)
       if (strip != null) {
-        // An interior wheel wraps modulo 10, negatives included (rolling down
-        // through 0 shows 9); a linear wheel never wraps and uses -1 for the
-        // blank slot. Either way the window lands inside the strip.
-        val position = if (wheel.linear) wheel.position.coerceIn(-1.0, 10.0) else wrap10(wheel.position)
+        // An interior wheel wraps modulo its places (10, a clock's 6),
+        // negatives included (rolling down through 0 shows 9); a linear wheel
+        // never wraps and uses -1 for the blank slot. Either way the window
+        // lands inside the strip.
+        val position = if (wheel.linear) wheel.position.coerceIn(-1.0, modulus.toDouble()) else wrap(wheel.position, modulus)
         var tx = columnLeft
         var ty = (-(position + 1) * lineHeight).toFloat()
         if (scale == 1f && position == floor(position)) {
@@ -1521,7 +1765,7 @@ class NitroNumberView(context: Context) : View(context) {
           return
         }
         canvas.save()
-        canvas.clipRect(columnLeft, 0f, columnLeft + fonts.digitWidth, lineHeight)
+        canvas.clipRect(columnLeft, 0f, columnLeft + column, lineHeight)
         canvas.translate(tx, ty)
         if (strip.node != null) canvas.drawRenderNode(strip.node) else canvas.drawBitmap(strip.bitmap, 0f, 0f, stripPaint)
         // The change flash rides the roll: the strip once more, in the tint, at the same offset.
@@ -1537,33 +1781,34 @@ class NitroNumberView(context: Context) : View(context) {
         return
       }
     }
-    val baseline = fonts.baseline(GlyphRole.DIGIT, "0", 0f)
+    val baseline = fonts.digitBaseline(role)
     canvas.save()
     // The roll's window, the whole digit wide: a column still opening or
     // closing is not cut to its width (the glyph read as a sliver of its right
     // edge, a ")" of a 0 rolling past), it overhangs the cell's far side, faded.
-    canvas.clipRect(columnLeft, 0f, columnLeft + fonts.digitWidth, lineHeight)
-    val base = floor(wheel.position)
-    val fraction = (wheel.position - base).toFloat()
+    canvas.clipRect(columnLeft, 0f, columnLeft + column, lineHeight)
+    val position = if (wheel.linear) wheel.position else wrap(wheel.position, modulus)
+    val base = floor(position)
+    val fraction = (position - base).toFloat()
     val index = base.toInt()
     fun glyphs(paint: TextPaint, alpha: Float) {
       // Scaled from the ink colour's alpha and put back (see [drawGlyph]).
       val ink = paint.alpha
       paint.alpha = (alpha * ink).toInt().coerceIn(0, 255)
-      glyphAt(index, wheel)?.let { glyph ->
-        canvas.drawText(glyph, columnLeft + (fonts.digitWidth - fonts.width(glyph, GlyphRole.DIGIT)) / 2f, baseline - fraction * lineHeight, paint)
+      glyphAt(index, wheel, fonts)?.let { glyph ->
+        canvas.drawText(glyph, columnLeft + (column - fonts.width(glyph, role)) / 2f, baseline - fraction * lineHeight, paint)
       }
       if (fraction > 0.0001f) {
-        glyphAt(index + 1, wheel)?.let { glyph ->
-          canvas.drawText(glyph, columnLeft + (fonts.digitWidth - fonts.width(glyph, GlyphRole.DIGIT)) / 2f, baseline + (1f - fraction) * lineHeight, paint)
+        glyphAt(index + 1, wheel, fonts)?.let { glyph ->
+          canvas.drawText(glyph, columnLeft + (column - fonts.width(glyph, role)) / 2f, baseline + (1f - fraction) * lineHeight, paint)
         }
       }
       paint.alpha = ink
     }
     val opening = openingAlpha(wheel.width).toFloat()
-    glyphs(fonts.digit, opening)
+    glyphs(fonts.paint(role), opening)
     // The change flash rides the roll: the same glyphs again, in the tint.
-    flashColor(wheel)?.let { color -> glyphs(fonts.tinted(color), wheel.flash.toFloat() * opening) }
+    flashColor(wheel)?.let { color -> glyphs(fonts.tinted(color, role), wheel.flash.toFloat() * opening) }
     canvas.restore()
   }
 
@@ -1576,9 +1821,9 @@ class NitroNumberView(context: Context) : View(context) {
    * around the digit. With a change flash on, the pair is drawn again in
    * the tint at the flash's opacity: the ink mixed towards the tint.
    */
-  private fun drawSwap(canvas: Canvas, fonts: FontSet, wheel: Wheel, columnLeft: Float, originX: Float, originY: Float, scale: Float) {
-    drawSwapPair(canvas, fonts, wheel, columnLeft, fonts.digit, 1f, originX, originY, scale)
-    flashColor(wheel)?.let { color -> drawSwapPair(canvas, fonts, wheel, columnLeft, fonts.tinted(color), wheel.flash.toFloat(), originX, originY, scale) }
+  private fun drawSwap(canvas: Canvas, fonts: FontSet, wheel: Wheel, role: GlyphRole, columnLeft: Float, originX: Float, originY: Float, scale: Float) {
+    drawSwapPair(canvas, fonts, wheel, role, columnLeft, fonts.paint(role), 1f, originX, originY, scale)
+    flashColor(wheel)?.let { color -> drawSwapPair(canvas, fonts, wheel, role, columnLeft, fonts.tinted(color, role), wheel.flash.toFloat(), originX, originY, scale) }
   }
 
   /**
@@ -1589,7 +1834,7 @@ class NitroNumberView(context: Context) : View(context) {
    * blurred copy hides and a lightly blurred one does not. Landed, the last
    * swap frame is pixel for pixel the strip that takes over from it.
    */
-  private fun drawSwapPair(canvas: Canvas, fonts: FontSet, wheel: Wheel, columnLeft: Float, paint: TextPaint, opacity: Float, originX: Float, originY: Float, scale: Float) {
+  private fun drawSwapPair(canvas: Canvas, fonts: FontSet, wheel: Wheel, role: GlyphRole, columnLeft: Float, paint: TextPaint, opacity: Float, originX: Float, originY: Float, scale: Float) {
     val lineHeight = fonts.lineHeight
     // The position clock overshoots 1 (a spring); only the offsets follow it there.
     val b = wheel.blend.toFloat()
@@ -1600,21 +1845,23 @@ class NitroNumberView(context: Context) : View(context) {
     val f = wheel.focus.toFloat().coerceIn(0f, 1f)
     val d = if (wheel.fromAbove) 1f else -1f
     val offset = lineHeight * NUMERIC_OFFSET
-    val cx = columnLeft + fonts.digitWidth / 2f
-    val cy = lineHeight / 2f
+    val cell = fonts.digitWidth(role)
+    val cx = columnLeft + cell / 2f
+    // A fraction digit scales about its own centre, not the line box's.
+    val cy = fonts.digitCenterY(role)
     val column = wheel.width.toFloat().coerceIn(0f, 1f) * opacity
     val from = wheel.fromGlyph.toInt()
     val to = wheel.toGlyph.toInt()
-    // The bitmap's top-left sits at (centre - digitWidth / 2 - pad); land that on a pixel.
-    val cornerX = fonts.digitWidth / 2f + fonts.blurPad
-    val cornerY = lineHeight / 2f + fonts.blurPad
+    // The bitmap's top-left sits at (centre - cell / 2 - pad, centre - centreY - pad); land that on a pixel.
+    val cornerX = cell / 2f + fonts.blurPad
+    val cornerY = cy + fonts.blurPad
     fun snapX(c: Float): Float = (Math.round(originX + (c - cornerX) * scale) - originX) / scale + cornerX
     fun snapY(c: Float): Float = (Math.round(originY + (c - cornerY) * scale) - originY) / scale + cornerY
     if (from >= 0) {
-      drawSwapGlyph(canvas, fonts, paint, from % 10, snapX(cx), snapY(cy + d * offset * b), 1f - (1f - NUMERIC_SCALE) * g, (1f - g) * column, wheel.blurOut.toFloat().coerceIn(0f, 1f))
+      drawSwapGlyph(canvas, fonts, paint, role, from % 10, snapX(cx), snapY(cy + d * offset * b), 1f - (1f - NUMERIC_SCALE) * g, (1f - g) * column, wheel.blurOut.toFloat().coerceIn(0f, 1f))
     }
     if (to >= 0) {
-      drawSwapGlyph(canvas, fonts, paint, to % 10, snapX(cx), snapY(cy - d * offset * (1f - b)), NUMERIC_SCALE + (1f - NUMERIC_SCALE) * g, g * column, 1f - f)
+      drawSwapGlyph(canvas, fonts, paint, role, to % 10, snapX(cx), snapY(cy - d * offset * (1f - b)), NUMERIC_SCALE + (1f - NUMERIC_SCALE) * g, g * column, 1f - f)
     }
   }
 
@@ -1625,10 +1872,11 @@ class NitroNumberView(context: Context) : View(context) {
    * rather than a sharp glyph half-hidden in a fully blurred one, which read
    * as a digit inside a glow.
    */
-  private fun drawSwapGlyph(canvas: Canvas, fonts: FontSet, paint: TextPaint, digitIndex: Int, cx: Float, cy: Float, scale: Float, alpha: Float, blur: Float) {
+  private fun drawSwapGlyph(canvas: Canvas, fonts: FontSet, paint: TextPaint, role: GlyphRole, digitIndex: Int, cx: Float, cy: Float, scale: Float, alpha: Float, blur: Float) {
     if (alpha <= 0.002f) return
-    val text = DIGITS[digitIndex]
-    val lineHeight = fonts.lineHeight
+    val text = fonts.glyphs[digitIndex]
+    // The mask is the whole line box; its origin is this far above the glyph's centre.
+    val centerY = fonts.digitCenterY(role)
     val x = blur.coerceIn(0f, 1f) * NUMERIC_BLUR_LEVELS
     val lo = min(NUMERIC_BLUR_LEVELS, floor(x).toInt())
     val hi = min(NUMERIC_BLUR_LEVELS, lo + 1)
@@ -1645,18 +1893,18 @@ class NitroNumberView(context: Context) : View(context) {
     canvas.scale(scale, scale)
     for ((level, levelAlpha) in arrayOf(lo to loAlpha, hi to hiAlpha)) {
       if (levelAlpha <= 0.002f) continue
-      val mask = fonts.blurred(digitIndex, level)
+      val mask = fonts.blurred(role, digitIndex, level)
       if (mask == null) {
         // No font metrics yet: the text itself.
         val ink = paint.alpha
         paint.alpha = (levelAlpha * ink).toInt().coerceIn(0, 255)
-        canvas.drawText(text, -fonts.width(text, GlyphRole.DIGIT) / 2f, fonts.baseline(GlyphRole.DIGIT, text, 0f) - lineHeight / 2f, paint)
+        canvas.drawText(text, -fonts.width(text, role) / 2f, fonts.digitBaseline(role) - centerY, paint)
         paint.alpha = ink
       } else {
         // An alpha mask draws in the paint's colour; the ink's own alpha scales with the level's.
         blurPaint.color = paint.color
         blurPaint.alpha = (levelAlpha * (paint.color ushr 24)).toInt().coerceIn(0, 255)
-        canvas.drawBitmap(mask, -fonts.digitWidth / 2f - fonts.blurPad, -lineHeight / 2f - fonts.blurPad, blurPaint)
+        canvas.drawBitmap(mask, -fonts.digitWidth(role) / 2f - fonts.blurPad, -centerY - fonts.blurPad, blurPaint)
       }
     }
     canvas.restore()
@@ -1717,11 +1965,11 @@ class NitroNumberView(context: Context) : View(context) {
     return w * w
   }
 
-  private fun glyphAt(index: Int, wheel: Wheel): String? {
+  private fun glyphAt(index: Int, wheel: Wheel, fonts: FontSet): String? {
     if (wheel.linear && index < 0) return null
     if (wheel.blankZero && index == 0) return null
-    val digit = ((index % 10) + 10) % 10
-    return DIGITS[digit]
+    val m = wheel.modulus
+    return fonts.glyphs[((index % m) + m) % m]
   }
 
   // endregion
@@ -1737,6 +1985,7 @@ class NitroNumberView(context: Context) : View(context) {
   fun release() {
     stopAnimation()
     engine.reset()
+    moving = false
     wheels.clear()
     frameElements.clear()
     settledElements.clear()
@@ -1754,10 +2003,11 @@ class NitroNumberView(context: Context) : View(context) {
    */
   fun memoryEstimateBytes(): Long = 64L * 1024
 
-  /** Interior wheels wrap modulo 10; a roll can be any real, so fold it onto 0 ≤ p < 10. */
-  private fun wrap10(position: Double): Double {
-    val r = position % 10.0
-    return if (r < 0) r + 10.0 else r
+  /** Interior wheels wrap modulo their places (10, a clock's 6); a roll can be any real, so fold it onto 0 ≤ p < [modulus]. */
+  private fun wrap(position: Double, modulus: Int): Double {
+    val m = modulus.toDouble()
+    val r = position % m
+    return if (r < 0) r + m else r
   }
 
   /** A digit strip: the software-rendered bitmap and, from Android 10, the layer that holds it. */
@@ -1813,14 +2063,16 @@ class NitroNumberView(context: Context) : View(context) {
   }
 
   companion object {
-    /** Strip slots: blank, 0–9, and the 0 that follows 9 when a wheel wraps. */
-    private const val STRIP_SLOTS = 12
+    /** The glyphs drawn for 0…9 unless `digitGlyphs` gives ten others. */
     private val DIGITS = Array(10) { it.toString() }
-    private const val ALL_DIGITS = "0123456789"
+    /** Flash paints a font set keeps per role (a change flash has an up and a down colour). */
+    private const val TINT_SLOTS = 4
+
+    /** Which strip a wheel draws from, as one comparable number. */
+    private fun stripVariant(role: GlyphRole, blankZero: Boolean, modulus: Int): Int =
+      (if (blankZero) 1 else 0) or (modulus shl 1) or (if (role == GlyphRole.FRACTION) 1 shl 8 else 0)
     /** The core starts at the glyphs' left edge instead of parked off-screen. */
     private const val SHIMMER_SEED = 0.25f
-    /** How far the top of the band leads the bottom, as a fraction of the height ("/" slant). */
-    private const val SHIMMER_SLANT = 0.6f
   }
 }
 

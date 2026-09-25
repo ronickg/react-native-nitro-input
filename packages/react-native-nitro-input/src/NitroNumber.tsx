@@ -26,10 +26,12 @@ import type {
   NitroNumberMethods,
   NitroNumberProps as NativeNitroNumberProps,
   NitroNumberRevealStyle,
+  NitroNumberShimmerDirection,
+  NitroNumberSignDisplay,
   NitroNumberTextAlign,
 } from './specs/NitroNumber.nitro'
 import { toNumericWeight, toProcessedColor } from './styleHelpers'
-import { formatProps } from './formatProps'
+import { compactParts, formatProps } from './formatProps'
 import type { NumberFormat } from './NumberFormat'
 
 /**
@@ -176,6 +178,19 @@ export interface NitroNumberProps extends Omit<ViewProps, 'children'> {
   shimmerColor?: ColorValue
   /** Duration of one sweep in ms (linear, repeating). Default: `950`. */
   shimmerDuration?: number
+  /** The band's slant in degrees: 0 upright, positive leans it like "/", negative the other way. Default: `31`. */
+  shimmerAngle?: number
+  /** The band's width as a fraction of the number's: `0.5` is a narrow glint. Default: `1`. */
+  shimmerWidth?: number
+  /**
+   * The glyphs' colour outside the band while loading: a light grey makes the
+   * figure a skeleton that the band lights up. Default: `color`.
+   */
+  shimmerBaseColor?: ColorValue
+  /** Which way the band sweeps. Default: `'auto'`, the layout direction. */
+  shimmerDirection?: NitroNumberShimmerDirection
+  /** A pause after each sweep, in ms. Default: `0`. */
+  shimmerDelay?: number
   /** Font size of the digits in points. Default: `32`. */
   fontSize?: number
   /** Font size of `prefix`, e.g. a smaller currency symbol. Defaults to `fontSize`. */
@@ -250,6 +265,69 @@ export interface NitroNumberProps extends Omit<ViewProps, 'children'> {
    * `'left'` and `'right'` are absolute.
    */
   textAlign?: NitroNumberTextAlign
+  /**
+   * Which values carry a sign, as `Intl.NumberFormat`'s `signDisplay`:
+   * `'always'` and `'exceptZero'` put a plus on gains ("+$12.40"), and a plus
+   * that turns into a minus swaps like any other glyph. A value that rounds to
+   * zero at the shown fraction digits counts as zero. Default: `'auto'`
+   * (negatives), or the `format`'s.
+   */
+  signDisplay?: NitroNumberSignDisplay
+  /** The glyph drawn for a plus sign. Default: `'+'`. */
+  plusSign?: string
+  /** The glyph drawn for a minus sign, e.g. `'−'` (U+2212). Default: `'-'`, or the `format` locale's. */
+  minusSign?: string
+  /** The prefix's color. Default: `color`. */
+  prefixColor?: ColorValue
+  /** The suffix's color. Default: `color`. */
+  suffixColor?: ColorValue
+  /** The fraction digits' and decimal separator's color: dimmer cents. Default: `color`. */
+  fractionColor?: ColorValue
+  /** The fraction digits' and decimal separator's size: smaller cents. Default: `fontSize`. */
+  fractionFontSize?: number
+  /**
+   * How smaller fraction digits line up with the integer ones: `'baseline'`,
+   * or `'top'` for superscript cents ("$12⁹⁹"). Default: `'baseline'`.
+   */
+  fractionAlign?: NitroNumberAffixAlign
+  /**
+   * The ten glyphs drawn for 0 to 9, for native digits (Arabic-Indic,
+   * Devanagari…). Default: `'0'`…`'9'`, or the `format`'s numbering system.
+   */
+  digitGlyphs?: string[]
+  /**
+   * Digit group sizes counted from the decimal point: the first group, then
+   * every later one. `[3, 2]` is Indian grouping (12,34,567), `[2]` a clock
+   * (12:34:56 with `groupingSeparator=":"`). Default: `[3]`, or the `format`'s.
+   */
+  groupingSizes?: number[]
+  /**
+   * The highest digit a position shows before it wraps to 0, keyed by integer
+   * position (0 the ones, 1 the tens…), as NumberFlow's `digits`:
+   * `{ 1: { max: 5 } }` makes the tens of a clock's seconds wrap after 5, so
+   * 59 → 00 turns them one step instead of five back.
+   */
+  digits?: Record<number, { max: number }>
+  /**
+   * Rolls turn the wheels below the highest one that changes a full turn too,
+   * so 100 → 200 seems to pass through every value between. Rolls only.
+   * Default: `false`.
+   */
+  continuous?: boolean
+  /**
+   * `false` shows every change at once, without a roll or a reveal (the flash
+   * and the pop still play). Default: `true`.
+   */
+  animated?: boolean
+  /** Snap instead of animating while the system's Reduce Motion is on. Default: `true`. */
+  respectReduceMotion?: boolean
+  /** Called when the figure starts moving from rest: a change, or a reveal. */
+  onAnimationStart?: () => void
+  /**
+   * Called when the figure comes to rest, with the value it shows: once for a
+   * run of changes that arrived while it was moving. Snapped changes fire neither.
+   */
+  onAnimationEnd?: (value: number) => void
   /** Receives the native Nitro object once the view is mounted. */
   onNativeRef?: (ref: NitroNumberRef) => void
 }
@@ -276,6 +354,9 @@ interface Size {
   width: number
   height: number
 }
+
+const EMPTY: number[] = []
+const EMPTY_STRINGS: string[] = []
 
 /** Each transition's own timing, used when the props leave it unsaid. */
 const TRANSITION_DEFAULTS: Record<NitroNumberTransition, { duration: number; easing: NitroNumberEasing; stagger: number }> = {
@@ -327,6 +408,11 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
       loading,
       shimmerColor,
       shimmerDuration,
+      shimmerAngle,
+      shimmerWidth,
+      shimmerBaseColor,
+      shimmerDirection,
+      shimmerDelay,
       fontSize,
       prefixFontSize,
       suffixFontSize,
@@ -348,6 +434,22 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
       fontFamily,
       color,
       textAlign,
+      signDisplay,
+      plusSign,
+      minusSign,
+      prefixColor,
+      suffixColor,
+      fractionColor,
+      fractionFontSize,
+      fractionAlign,
+      digitGlyphs,
+      groupingSizes,
+      digits,
+      continuous,
+      animated,
+      respectReduceMotion,
+      onAnimationStart,
+      onAnimationEnd,
       onNativeRef,
       style,
       ...viewProps
@@ -363,6 +465,10 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
     latestOnRevealMilestone.current = onRevealMilestone
     const latestValue = useRef(value)
     latestValue.current = value
+    const latestOnAnimationStart = useRef(onAnimationStart)
+    latestOnAnimationStart.current = onAnimationStart
+    const latestOnAnimationEnd = useRef(onAnimationEnd)
+    latestOnAnimationEnd.current = onAnimationEnd
 
     const [size, setSize] = useState<Size | null>(null)
 
@@ -406,6 +512,21 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
         }),
       []
     )
+    const onAnimationStartCallback = useMemo(
+      () =>
+        callback(() => {
+          latestOnAnimationStart.current?.()
+        }),
+      []
+    )
+    // The figure a compact format rolls is not the value (1.2 for 1,234): report the value.
+    const onAnimationEndCallback = useMemo(
+      () =>
+        callback((shown: number) => {
+          latestOnAnimationEnd.current?.(compactRef.current ? latestValue.current : shown)
+        }),
+      []
+    )
     // A new array literal each render must not re-set the native prop. Always an
     // array (empty = no tiers): removing the prop would reach native as `null`,
     // which Nitro's array parser rejects ("Value is null, expected an Object").
@@ -424,7 +545,7 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
         jumpTo: (next) => nativeRef.current?.jumpTo(next),
         animateTo: (next) => nativeRef.current?.animateTo(next),
         revealTo: (next) => nativeRef.current?.revealTo(next),
-        getValue: () => nativeRef.current?.value ?? latestValue.current,
+        getValue: () => (compactRef.current ? latestValue.current : nativeRef.current?.value ?? latestValue.current),
         get native() {
           return nativeRef.current
         },
@@ -444,12 +565,45 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
       () => toProcessedColor(shimmerColor) ?? Infinity,
       [shimmerColor]
     )
+    const processedShimmerBase = useMemo(() => toProcessedColor(shimmerBaseColor) ?? Infinity, [shimmerBaseColor])
     const processedFlashUp = useMemo(() => toProcessedColor(flashUpColor) ?? Infinity, [flashUpColor])
     const processedFlashDown = useMemo(() => toProcessedColor(flashDownColor) ?? Infinity, [flashDownColor])
     const numericWeight = toNumericWeight(fontWeight) ?? 400
     const resolvedFontSize = fontSize ?? 32
     const resolvedAffixAlign = affixAlign ?? 'baseline'
     const derived = format ? formatProps(format) : undefined
+    // Compact notation: "1.2K" rolls the figure 1.2 and swaps the suffix.
+    const compact = format && derived?.compact ? compactParts(format, value) : undefined
+    const compactRef = useRef(false)
+    compactRef.current = compact !== undefined
+    // Which way the value moved, for a compact figure that fell while the value grew (999 → 1K).
+    const previousValue = useRef(value)
+    const compactDirection = compact && direction === undefined ? (value >= previousValue.current ? 'up' : 'down') : undefined
+    previousValue.current = value
+    const processedPrefixColor = useMemo(() => toProcessedColor(prefixColor) ?? Infinity, [prefixColor])
+    const processedSuffixColor = useMemo(() => toProcessedColor(suffixColor) ?? Infinity, [suffixColor])
+    const processedFractionColor = useMemo(() => toProcessedColor(fractionColor) ?? Infinity, [fractionColor])
+    // Arrays reach native only when their contents change.
+    const digitMaxKey = digits ? JSON.stringify(digits) : ''
+    const digitMax = useMemo(() => {
+      if (!digits) return EMPTY
+      const out: number[] = []
+      for (const [position, spec] of Object.entries(digits)) {
+        const index = Number(position)
+        if (!Number.isInteger(index) || index < 0 || index >= 20) continue
+        while (out.length <= index) out.push(9)
+        out[index] = spec.max
+      }
+      return out
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [digitMaxKey])
+    const glyphs = digitGlyphs ?? derived?.digitGlyphs ?? EMPTY_STRINGS
+    const glyphsKey = glyphs.join('|')
+    const stableGlyphs = useMemo(() => glyphs, [glyphsKey]) // eslint-disable-line react-hooks/exhaustive-deps
+    const groups = groupingSizes ?? derived?.groupingSizes ?? EMPTY
+    const groupsKey = groups.join(',')
+    const stableGroups = useMemo(() => groups, [groupsKey]) // eslint-disable-line react-hooks/exhaustive-deps
+    const still = animated === false
 
     const autoSize = useMemo(
       () =>
@@ -473,26 +627,26 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
         {...viewProps}
         style={[autoSize, style]}
         hybridRef={hybridRef}
-        value={value}
-        fractionDigits={fractionDigits ?? derived?.fractionDigits ?? 0}
+        value={compact ? compact.value : value}
+        fractionDigits={fractionDigits ?? compact?.fractionDigits ?? derived?.fractionDigits ?? 0}
         minimumIntegerDigits={minimumIntegerDigits ?? derived?.minimumIntegerDigits ?? 1}
         groupingSeparator={groupingSeparator ?? derived?.groupingSeparator ?? ''}
         decimalSeparator={decimalSeparator ?? derived?.decimalSeparator ?? '.'}
-        prefix={prefix ?? derived?.prefix ?? ''}
-        suffix={suffix ?? derived?.suffix ?? ''}
+        prefix={prefix ?? compact?.prefix ?? derived?.prefix ?? ''}
+        suffix={suffix ?? compact?.suffix ?? derived?.suffix ?? ''}
         transition={transition ?? 'roll'}
         flashUpColor={processedFlashUp}
         flashDownColor={processedFlashDown}
         flashDuration={flashDuration ?? 600}
         popOnChange={popOnChange ?? 0}
-        duration={duration ?? TRANSITION_DEFAULTS[transition ?? 'roll'].duration}
+        duration={still ? 0 : duration ?? TRANSITION_DEFAULTS[transition ?? 'roll'].duration}
         easing={easing ?? TRANSITION_DEFAULTS[transition ?? 'roll'].easing}
         bounce={bounce ?? 0.15}
         stagger={stagger ?? TRANSITION_DEFAULTS[transition ?? 'roll'].stagger}
-        rollDirection={direction ?? 'auto'}
+        rollDirection={direction ?? compactDirection ?? 'auto'}
         revealState={reveal === undefined ? 0 : reveal ? 2 : 1}
         revealStyle={revealStyle ?? 'count'}
-        revealDuration={revealDuration ?? 2200}
+        revealDuration={still ? 0 : revealDuration ?? 2200}
         revealBounce={revealBounce ?? 0.12}
         revealGrow={revealGrow ?? 0.2}
         revealStagger={revealStagger ?? 200}
@@ -500,9 +654,16 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
         revealMilestoneHold={revealMilestoneHold ?? 0}
         onRevealEnd={onRevealEndCallback}
         onRevealMilestone={onRevealMilestoneCallback}
+        onAnimationStart={onAnimationStartCallback}
+        onAnimationEnd={onAnimationEndCallback}
         loading={loading ?? false}
         shimmerColor={processedShimmerColor}
         shimmerDuration={shimmerDuration ?? 950}
+        shimmerAngle={shimmerAngle ?? 31}
+        shimmerWidth={shimmerWidth ?? 1}
+        shimmerBaseColor={processedShimmerBase}
+        shimmerDirection={shimmerDirection ?? 'auto'}
+        shimmerDelay={shimmerDelay ?? 0}
         fontSize={resolvedFontSize}
         prefixFontSize={prefixFontSize ?? resolvedFontSize}
         suffixFontSize={suffixFontSize ?? resolvedFontSize}
@@ -515,6 +676,19 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
         prefixOffset={prefixOffset ?? 0}
         suffixOffset={suffixOffset ?? 0}
         tabularNums={tabularNums ?? true}
+        signDisplay={signDisplay ?? derived?.signDisplay ?? 'auto'}
+        plusSign={plusSign ?? derived?.plusSign ?? '+'}
+        minusSign={minusSign ?? derived?.minusSign ?? '-'}
+        digitGlyphs={stableGlyphs}
+        groupingSizes={stableGroups}
+        digitMax={digitMax}
+        continuous={continuous ?? false}
+        prefixColor={processedPrefixColor}
+        suffixColor={processedSuffixColor}
+        fractionColor={processedFractionColor}
+        fractionFontSize={fractionFontSize ?? Infinity}
+        fractionAlign={fractionAlign ?? 'baseline'}
+        respectReduceMotion={respectReduceMotion ?? true}
         adjustsFontSizeToFit={adjustsFontSizeToFit ?? false}
         minimumFontScale={minimumFontScale ?? 0.5}
         allowFontScaling={allowFontScaling ?? false}

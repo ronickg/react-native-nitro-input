@@ -1,5 +1,10 @@
 package com.margelo.nitro.nitroinput
 
+import android.icu.number.LocalizedNumberFormatter
+import android.icu.number.Notation
+import android.icu.number.NumberFormatter
+import android.icu.number.Precision
+import android.icu.number.Scale
 import android.icu.text.CompactDecimalFormat
 import android.icu.text.DecimalFormat
 import android.icu.text.DecimalFormatSymbols
@@ -71,6 +76,13 @@ class HybridNitroPlatformNumberFormatter(o: NumberFormatPlatformOptions) : Hybri
   private val measureFormat: MeasureFormat?
   /** `unit: 'percent'`, which MeasureFormat prints without its sign: a percent formatter that does not multiply. */
   private val percentUnit: NumberFormat?
+  /**
+   * Compact notation with a currency or a percent, or a signDisplay plus:
+   * CompactDecimalFormat prints bare numbers ("1.5K" for "$1.5K"). Android 11+
+   * has ICU's number formatter, which prints the locale's compact patterns;
+   * before it, the compact number goes inside the style's own affixes.
+   */
+  private val compact: ((BigDecimal) -> String)?
   override val symbols: NumberFormatPlatformSymbols
 
   init {
@@ -84,7 +96,7 @@ class HybridNitroPlatformNumberFormatter(o: NumberFormatPlatformOptions) : Hybri
       else -> if (o.currencySign == NumberFormatCurrencySign.ACCOUNTING) NumberFormat.ACCOUNTINGCURRENCYSTYLE else NumberFormat.CURRENCYSTYLE
     }
     format = when {
-      o.notation == NumberFormatNotation.COMPACT && o.style != NumberFormatStyle.CURRENCY -> CompactDecimalFormat.getInstance(
+      o.notation == NumberFormatNotation.COMPACT -> CompactDecimalFormat.getInstance(
         locale,
         if (o.compactDisplay == NumberFormatCompactDisplay.LONG) CompactDecimalFormat.CompactStyle.LONG else CompactDecimalFormat.CompactStyle.SHORT,
       )
@@ -141,6 +153,26 @@ class HybridNitroPlatformNumberFormatter(o: NumberFormatPlatformOptions) : Hybri
       }
     }
 
+    compact = if (o.notation != NumberFormatNotation.COMPACT) {
+      null
+    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      modernCompact(o, locale)
+    } else if (o.style == NumberFormatStyle.CURRENCY || o.style == NumberFormatStyle.PERCENT) {
+      // The style's own pattern around the compact number: "$" + "1.5K", "1.2M" + "%".
+      val pattern = NumberFormat.getInstance(locale, if (o.style == NumberFormatStyle.PERCENT) NumberFormat.PERCENTSTYLE else currencyStyle) as DecimalFormat
+      if (o.style == NumberFormatStyle.CURRENCY && code != null) pattern.currency = Currency.getInstance(code)
+      val plus = o.signDisplay == NumberFormatSignDisplay.ALWAYS || o.signDisplay == NumberFormatSignDisplay.EXCEPTZERO
+      val positivePrefix = (if (plus) pattern.decimalFormatSymbols.plusSign.toString() else "") + pattern.positivePrefix
+      val scale = if (o.style == NumberFormatStyle.PERCENT) 100 else 1
+      val number = format
+      { value ->
+        val body = number.format(value.abs().multiply(BigDecimal(scale)))
+        if (value.signum() < 0) pattern.negativePrefix + body + pattern.negativeSuffix else positivePrefix + body + pattern.positiveSuffix
+      }
+    } else {
+      null
+    }
+
     if (o.style == NumberFormatStyle.UNIT && o.unit == "percent") {
       percentUnit = (NumberFormat.getInstance(locale, NumberFormat.PERCENTSTYLE) as DecimalFormat).also { p ->
         p.multiplier = 1
@@ -192,6 +224,7 @@ class HybridNitroPlatformNumberFormatter(o: NumberFormatPlatformOptions) : Hybri
 
   @Synchronized
   override fun format(value: Double): String {
+    compact?.let { if (value.isFinite()) return it(BigDecimal(value)) }
     percentUnit?.let { return it.format(value) }
     val measure = measureFormat
     return if (measure != null) measure.format(Measure(value, unit)) else format.format(value)
@@ -202,8 +235,50 @@ class HybridNitroPlatformNumberFormatter(o: NumberFormatPlatformOptions) : Hybri
     if (value == "NaN") return format(Double.NaN)
     if (value.endsWith("Infinity")) return format(if (value.startsWith("-")) Double.NEGATIVE_INFINITY else Double.POSITIVE_INFINITY)
     val number = BigDecimal(value)
+    compact?.let { return it(number) }
     percentUnit?.let { return it.format(number) }
     val measure = measureFormat
     return if (measure != null) measure.format(Measure(number, unit)) else format.format(number)
+  }
+
+  private companion object {
+    /** ICU's number formatter (Android 11+): compact currency, percent and signs as CLDR writes them. */
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.R)
+    fun modernCompact(o: NumberFormatPlatformOptions, locale: ULocale): (BigDecimal) -> String {
+      var f: LocalizedNumberFormatter = NumberFormatter.withLocale(locale)
+        .notation(if (o.compactDisplay == NumberFormatCompactDisplay.LONG) Notation.compactLong() else Notation.compactShort())
+        // Compact numbers group from five digits ("9876", "12,345"): ECMA-402's
+        // default for compact notation is "min2", which is what this receives as true.
+        .grouping(if (o.useGrouping) NumberFormatter.GroupingStrategy.MIN2 else NumberFormatter.GroupingStrategy.OFF)
+      f = if (o.minimumSignificantDigits > 0) {
+        f.precision(Precision.minMaxSignificantDigits(o.minimumSignificantDigits.toInt(), o.maximumSignificantDigits.toInt()))
+      } else {
+        f.precision(Precision.minMaxFraction(o.minimumFractionDigits.toInt(), o.maximumFractionDigits.toInt()))
+      }
+      val code = o.currency
+      if (o.style == NumberFormatStyle.CURRENCY && code != null) {
+        f = f.unit(Currency.getInstance(code)).unitWidth(
+          when (o.currencyDisplay) {
+            NumberFormatCurrencyDisplay.CODE -> NumberFormatter.UnitWidth.ISO_CODE
+            NumberFormatCurrencyDisplay.NAME -> NumberFormatter.UnitWidth.FULL_NAME
+            NumberFormatCurrencyDisplay.NARROWSYMBOL -> NumberFormatter.UnitWidth.NARROW
+            else -> NumberFormatter.UnitWidth.SHORT
+          }
+        )
+      } else if (o.style == NumberFormatStyle.PERCENT) {
+        f = f.unit(MeasureUnit.PERCENT).scale(Scale.powerOfTen(2))
+      }
+      val accounting = o.currencySign == NumberFormatCurrencySign.ACCOUNTING
+      f = f.sign(
+        when (o.signDisplay) {
+          NumberFormatSignDisplay.ALWAYS -> if (accounting) NumberFormatter.SignDisplay.ACCOUNTING_ALWAYS else NumberFormatter.SignDisplay.ALWAYS
+          NumberFormatSignDisplay.EXCEPTZERO -> if (accounting) NumberFormatter.SignDisplay.ACCOUNTING_EXCEPT_ZERO else NumberFormatter.SignDisplay.EXCEPT_ZERO
+          NumberFormatSignDisplay.NEVER -> NumberFormatter.SignDisplay.NEVER
+          else -> if (accounting) NumberFormatter.SignDisplay.ACCOUNTING else NumberFormatter.SignDisplay.AUTO
+        }
+      )
+      val formatter = f
+      return { value -> formatter.format(value).toString() }
+    }
   }
 }

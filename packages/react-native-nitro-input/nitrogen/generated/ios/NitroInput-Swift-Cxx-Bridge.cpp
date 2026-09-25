@@ -12,6 +12,8 @@
 #include "HybridNitroNumberFormatPlatformSpecSwift.hpp"
 #include "HybridNitroNumberViewSpecSwift.hpp"
 #include "HybridNitroPlatformNumberFormatterSpecSwift.hpp"
+#include "HybridNitroTextMeasureSpecSwift.hpp"
+#include "HybridNitroTextViewSpecSwift.hpp"
 #include "NitroInput-Swift-Cxx-Umbrella.hpp"
 #include <NitroModules/NitroDefines.hpp>
 
@@ -102,6 +104,38 @@ namespace margelo::nitro::nitroinput::bridge::swift {
     }
     #endif
     NitroInput::HybridNitroNumberViewSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
+    return swiftPart.toUnsafe();
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridNitroTextMeasureSpec>
+  std::shared_ptr<HybridNitroTextMeasureSpec> create_std__shared_ptr_HybridNitroTextMeasureSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
+    NitroInput::HybridNitroTextMeasureSpec_cxx swiftPart = NitroInput::HybridNitroTextMeasureSpec_cxx::fromUnsafe(swiftUnsafePointer);
+    return std::make_shared<margelo::nitro::nitroinput::HybridNitroTextMeasureSpecSwift>(swiftPart);
+  }
+  void* NON_NULL get_std__shared_ptr_HybridNitroTextMeasureSpec_(std__shared_ptr_HybridNitroTextMeasureSpec_ cppType) {
+    std::shared_ptr<margelo::nitro::nitroinput::HybridNitroTextMeasureSpecSwift> swiftWrapper = std::dynamic_pointer_cast<margelo::nitro::nitroinput::HybridNitroTextMeasureSpecSwift>(cppType);
+    #ifdef NITRO_DEBUG
+    if (swiftWrapper == nullptr) [[unlikely]] {
+      throw std::runtime_error("Class \"HybridNitroTextMeasureSpec\" is not implemented in Swift!");
+    }
+    #endif
+    NitroInput::HybridNitroTextMeasureSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
+    return swiftPart.toUnsafe();
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridNitroTextViewSpec>
+  std::shared_ptr<HybridNitroTextViewSpec> create_std__shared_ptr_HybridNitroTextViewSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
+    NitroInput::HybridNitroTextViewSpec_cxx swiftPart = NitroInput::HybridNitroTextViewSpec_cxx::fromUnsafe(swiftUnsafePointer);
+    return std::make_shared<margelo::nitro::nitroinput::HybridNitroTextViewSpecSwift>(swiftPart);
+  }
+  void* NON_NULL get_std__shared_ptr_HybridNitroTextViewSpec_(std__shared_ptr_HybridNitroTextViewSpec_ cppType) {
+    std::shared_ptr<margelo::nitro::nitroinput::HybridNitroTextViewSpecSwift> swiftWrapper = std::dynamic_pointer_cast<margelo::nitro::nitroinput::HybridNitroTextViewSpecSwift>(cppType);
+    #ifdef NITRO_DEBUG
+    if (swiftWrapper == nullptr) [[unlikely]] {
+      throw std::runtime_error("Class \"HybridNitroTextViewSpec\" is not implemented in Swift!");
+    }
+    #endif
+    NitroInput::HybridNitroTextViewSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
     return swiftPart.toUnsafe();
   }
   

@@ -758,6 +758,119 @@ open class HybridNitroNumberViewSpec_cxx {
     }
   }
   
+  public final var shimmerAngle: bridge.std__optional_double_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_double_ in
+        if let __unwrappedValue = self.__implementation.shimmerAngle {
+          return bridge.create_std__optional_double_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.shimmerAngle = { () -> Double? in
+        if bridge.has_value_std__optional_double_(newValue) {
+          let __unwrapped = bridge.get_std__optional_double_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var shimmerWidth: bridge.std__optional_double_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_double_ in
+        if let __unwrappedValue = self.__implementation.shimmerWidth {
+          return bridge.create_std__optional_double_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.shimmerWidth = { () -> Double? in
+        if bridge.has_value_std__optional_double_(newValue) {
+          let __unwrapped = bridge.get_std__optional_double_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var shimmerBaseColor: bridge.std__optional_double_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_double_ in
+        if let __unwrappedValue = self.__implementation.shimmerBaseColor {
+          return bridge.create_std__optional_double_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.shimmerBaseColor = { () -> Double? in
+        if bridge.has_value_std__optional_double_(newValue) {
+          let __unwrapped = bridge.get_std__optional_double_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var shimmerDirection: bridge.std__optional_NitroNumberShimmerDirection_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_NitroNumberShimmerDirection_ in
+        if let __unwrappedValue = self.__implementation.shimmerDirection {
+          return bridge.create_std__optional_NitroNumberShimmerDirection_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.shimmerDirection = newValue.value
+    }
+  }
+  
+  public final var shimmerDelay: bridge.std__optional_double_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_double_ in
+        if let __unwrappedValue = self.__implementation.shimmerDelay {
+          return bridge.create_std__optional_double_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.shimmerDelay = { () -> Double? in
+        if bridge.has_value_std__optional_double_(newValue) {
+          let __unwrapped = bridge.get_std__optional_double_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
   public final var fontSize: bridge.std__optional_double_ {
     @inline(__always)
     get {
@@ -1015,6 +1128,322 @@ open class HybridNitroNumberViewSpec_cxx {
     @inline(__always)
     set {
       self.__implementation.tabularNums = { () -> Bool? in
+        if bridge.has_value_std__optional_bool_(newValue) {
+          let __unwrapped = bridge.get_std__optional_bool_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var signDisplay: bridge.std__optional_NitroNumberSignDisplay_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_NitroNumberSignDisplay_ in
+        if let __unwrappedValue = self.__implementation.signDisplay {
+          return bridge.create_std__optional_NitroNumberSignDisplay_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.signDisplay = newValue.value
+    }
+  }
+  
+  public final var plusSign: bridge.std__optional_std__string_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__string_ in
+        if let __unwrappedValue = self.__implementation.plusSign {
+          return bridge.create_std__optional_std__string_(std.string(__unwrappedValue))
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.plusSign = { () -> String? in
+        if bridge.has_value_std__optional_std__string_(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__string_(newValue)
+          return String(__unwrapped)
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var minusSign: bridge.std__optional_std__string_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__string_ in
+        if let __unwrappedValue = self.__implementation.minusSign {
+          return bridge.create_std__optional_std__string_(std.string(__unwrappedValue))
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.minusSign = { () -> String? in
+        if bridge.has_value_std__optional_std__string_(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__string_(newValue)
+          return String(__unwrapped)
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var digitGlyphs: bridge.std__optional_std__vector_std__string__ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__vector_std__string__ in
+        if let __unwrappedValue = self.__implementation.digitGlyphs {
+          return bridge.create_std__optional_std__vector_std__string__({ () -> bridge.std__vector_std__string_ in
+            var __vector = bridge.create_std__vector_std__string_(__unwrappedValue.count)
+            for __item in __unwrappedValue {
+              __vector.push_back(std.string(__item))
+            }
+            return __vector
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.digitGlyphs = { () -> [String]? in
+        if bridge.has_value_std__optional_std__vector_std__string__(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__vector_std__string__(newValue)
+          return __unwrapped.map({ __item in String(__item) })
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var groupingSizes: bridge.std__optional_std__vector_double__ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__vector_double__ in
+        if let __unwrappedValue = self.__implementation.groupingSizes {
+          return bridge.create_std__optional_std__vector_double__({ () -> bridge.std__vector_double_ in
+            var __vector = bridge.create_std__vector_double_(__unwrappedValue.count)
+            for __item in __unwrappedValue {
+              __vector.push_back(__item)
+            }
+            return __vector
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.groupingSizes = { () -> [Double]? in
+        if bridge.has_value_std__optional_std__vector_double__(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__vector_double__(newValue)
+          return __unwrapped.map({ __item in __item })
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var digitMax: bridge.std__optional_std__vector_double__ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__vector_double__ in
+        if let __unwrappedValue = self.__implementation.digitMax {
+          return bridge.create_std__optional_std__vector_double__({ () -> bridge.std__vector_double_ in
+            var __vector = bridge.create_std__vector_double_(__unwrappedValue.count)
+            for __item in __unwrappedValue {
+              __vector.push_back(__item)
+            }
+            return __vector
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.digitMax = { () -> [Double]? in
+        if bridge.has_value_std__optional_std__vector_double__(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__vector_double__(newValue)
+          return __unwrapped.map({ __item in __item })
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var continuous: bridge.std__optional_bool_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_bool_ in
+        if let __unwrappedValue = self.__implementation.continuous {
+          return bridge.create_std__optional_bool_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.continuous = { () -> Bool? in
+        if bridge.has_value_std__optional_bool_(newValue) {
+          let __unwrapped = bridge.get_std__optional_bool_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var prefixColor: bridge.std__optional_double_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_double_ in
+        if let __unwrappedValue = self.__implementation.prefixColor {
+          return bridge.create_std__optional_double_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.prefixColor = { () -> Double? in
+        if bridge.has_value_std__optional_double_(newValue) {
+          let __unwrapped = bridge.get_std__optional_double_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var suffixColor: bridge.std__optional_double_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_double_ in
+        if let __unwrappedValue = self.__implementation.suffixColor {
+          return bridge.create_std__optional_double_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.suffixColor = { () -> Double? in
+        if bridge.has_value_std__optional_double_(newValue) {
+          let __unwrapped = bridge.get_std__optional_double_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var fractionColor: bridge.std__optional_double_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_double_ in
+        if let __unwrappedValue = self.__implementation.fractionColor {
+          return bridge.create_std__optional_double_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.fractionColor = { () -> Double? in
+        if bridge.has_value_std__optional_double_(newValue) {
+          let __unwrapped = bridge.get_std__optional_double_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var fractionFontSize: bridge.std__optional_double_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_double_ in
+        if let __unwrappedValue = self.__implementation.fractionFontSize {
+          return bridge.create_std__optional_double_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.fractionFontSize = { () -> Double? in
+        if bridge.has_value_std__optional_double_(newValue) {
+          let __unwrapped = bridge.get_std__optional_double_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var fractionAlign: bridge.std__optional_NitroNumberAffixAlign_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_NitroNumberAffixAlign_ in
+        if let __unwrappedValue = self.__implementation.fractionAlign {
+          return bridge.create_std__optional_NitroNumberAffixAlign_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.fractionAlign = newValue.value
+    }
+  }
+  
+  public final var respectReduceMotion: bridge.std__optional_bool_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_bool_ in
+        if let __unwrappedValue = self.__implementation.respectReduceMotion {
+          return bridge.create_std__optional_bool_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.respectReduceMotion = { () -> Bool? in
         if bridge.has_value_std__optional_bool_(newValue) {
           let __unwrapped = bridge.get_std__optional_bool_(newValue)
           return __unwrapped
@@ -1321,6 +1750,70 @@ open class HybridNitroNumberViewSpec_cxx {
             let __wrappedFunction = bridge.wrap_Func_void_double_double(__unwrapped)
             return { (__index: Double, __value: Double) -> Void in
               __wrappedFunction.call(__index, __value)
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var onAnimationStart: bridge.std__optional_std__function_void____ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void____ in
+        if let __unwrappedValue = self.__implementation.onAnimationStart {
+          return bridge.create_std__optional_std__function_void____({ () -> bridge.Func_void in
+            let __closureWrapper = Func_void(__unwrappedValue)
+            return bridge.create_Func_void(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onAnimationStart = { () -> (() -> Void)? in
+        if bridge.has_value_std__optional_std__function_void____(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void____(newValue)
+          return { () -> () -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void(__unwrapped)
+            return { () -> Void in
+              __wrappedFunction.call()
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var onAnimationEnd: bridge.std__optional_std__function_void_double____value______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_double____value______ in
+        if let __unwrappedValue = self.__implementation.onAnimationEnd {
+          return bridge.create_std__optional_std__function_void_double____value______({ () -> bridge.Func_void_double in
+            let __closureWrapper = Func_void_double(__unwrappedValue)
+            return bridge.create_Func_void_double(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onAnimationEnd = { () -> ((_ value: Double) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_double____value______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_double____value______(newValue)
+          return { () -> (Double) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_double(__unwrapped)
+            return { (__value: Double) -> Void in
+              __wrappedFunction.call(__value)
             }
           }()
         } else {

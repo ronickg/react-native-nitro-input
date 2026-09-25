@@ -116,6 +116,41 @@ double RollingEngine::wrap(double x) {
   return r < 0 ? r + 10.0 : r;
 }
 
+double RollingEngine::wrapTo(double x, int modulus) {
+  const double m = static_cast<double>(modulus);
+  double r = std::fmod(x, m);
+  return r < 0 ? r + m : r;
+}
+
+int RollingEngine::modulusAtPower(int power) const {
+  const int integerPower = power - fractionDigits_;
+  return integerPower >= 0 && integerPower < 20 ? modulus_[integerPower] : 10;
+}
+
+int RollingEngine::wheelModulus(int index) const {
+  return modulusAtPower(index - trailingPad_);
+}
+
+bool RollingEngine::signShown(double value, uint64_t magnitude) const {
+  switch (signDisplay_) {
+    case 1:
+      return true;
+    case 2:
+      return magnitude > 0;
+    case 4:
+      return false;
+    default:
+      // auto and negative: a negative that does not round to zero.
+      return value < 0 && magnitude > 0;
+  }
+}
+
+void RollingEngine::noteSign(const Target& target) {
+  if (target.negative) {
+    signPositive_ = target.positive;
+  }
+}
+
 RollingEngine::Target RollingEngine::makeTarget(double value) const {
   double scaled = std::round(std::fabs(value) * static_cast<double>(kPow10[fractionDigits_]));
   if (!std::isfinite(scaled)) {
@@ -124,7 +159,9 @@ RollingEngine::Target RollingEngine::makeTarget(double value) const {
   uint64_t magnitude = static_cast<uint64_t>(std::min(scaled, kMaxMagnitude));
   uint64_t integerPart = magnitude / kPow10[fractionDigits_];
   int intDigits = std::max(minimumIntegerDigits_, digitCount(integerPart));
-  return Target{magnitude, value < 0 && magnitude > 0, std::min(kMaxPowerCount, intDigits + fractionDigits_)};
+  Target target{magnitude, signShown(value, magnitude), std::min(kMaxPowerCount, intDigits + fractionDigits_)};
+  target.positive = !(value < 0 && magnitude > 0);
+  return target;
 }
 
 void RollingEngine::settle(const Target& target) {
@@ -149,7 +186,9 @@ void RollingEngine::setFormat(int fractionDigits, int minimumIntegerDigits) {
     if (reveal_.holding) {
       holdReveal(targetValue_);
     } else {
-      snap(makeTarget(targetValue_));
+      const Target target = makeTarget(targetValue_);
+      noteSign(target);
+      snap(target);
     }
   }
 }
@@ -222,6 +261,27 @@ void RollingEngine::setReduceMotion(bool reduceMotion) {
   reduceMotion_ = reduceMotion;
 }
 
+void RollingEngine::setContinuous(bool continuous) {
+  continuous_ = continuous;
+}
+
+void RollingEngine::setDigitMax(int power, int max) {
+  if (power < 0 || power >= 20) {
+    return;
+  }
+  modulus_[power] = std::max(1, std::min(9, max)) + 1;
+}
+
+void RollingEngine::clearDigitMax() {
+  for (int& m : modulus_) {
+    m = 10;
+  }
+}
+
+void RollingEngine::setSignDisplay(int mode) {
+  signDisplay_ = std::max(0, std::min(4, mode));
+}
+
 // MARK: - Commands
 
 void RollingEngine::endTransition() {
@@ -268,10 +328,12 @@ void RollingEngine::setValue(double value) {
       wheels_.push_back(Wheel{digit + carry, 1.0, false, false});
     }
   }
-  signFactor_ = value < 0 ? std::min(1.0, scaled) : 0.0;
   Target target = makeTarget(value);
   target.powerCount = static_cast<int>(wheels_.size());
-  target.negative = value < 0;
+  // Between two values the sign fades in with the first hundredth of a negative.
+  target.negative = signDisplay_ == 0 || signDisplay_ == 3 ? value < 0 : signShown(value, static_cast<uint64_t>(std::round(scaled)));
+  signFactor_ = target.negative ? (value < 0 && (signDisplay_ == 0 || signDisplay_ == 3) ? std::min(1.0, scaled) : 1.0) : 0.0;
+  noteSign(target);
   settle(target);
 }
 
@@ -280,6 +342,7 @@ void RollingEngine::animateTo(double value, double now) {
   const double previous = targetValue_;
   targetValue_ = value;
   const Target target = makeTarget(value);
+  noteSign(target);
   bool increasing;
   switch (direction_) {
     case 1:
@@ -406,6 +469,19 @@ void RollingEngine::planRoll(Transition& next, const Target& target, bool increa
   const int currentCount = static_cast<int>(wheels_.size());
   // Below `pad`: decimal columns the format dropped (`changeFormat`).
   const int pad = trailingPad_;
+  // `continuous`: the wheels below the highest one that changes turn a full
+  // turn too. A wheel that is new, or leaving, counts as a change.
+  int highestChange = -1;
+  if (continuous_) {
+    for (int power = count - 1; power >= 0; power--) {
+      const bool inTarget = power >= pad && power - pad < target.powerCount;
+      const int shown = power < currentCount ? shownGlyph(wheels_[static_cast<size_t>(power)]) : -1;
+      if (!inTarget || shown != target.digit(power - pad)) {
+        highestChange = power;
+        break;
+      }
+    }
+  }
   for (int power = 0; power < count; power++) {
     const Wheel current = power < currentCount ? wheels_[static_cast<size_t>(power)] : Wheel{-1.0, 0.0, true, false};
     Wheel from = current;
@@ -422,10 +498,11 @@ void RollingEngine::planRoll(Transition& next, const Target& target, bool increa
       // column `changeFormat` opened (blank and closed, below the mandatory ones).
       const bool opening = from.linear && current.width < 1.0;
       const bool isEdge = opening || (power - pad >= mandatory && (power >= currentCount || current.width < 1.0 || from.linear || current.blankZero));
+      const int modulus = modulusAtPower(power - pad);
       if (isEdge) {
         // Appearing (or still appearing) wheel: linear strip blank → digit.
         if (!from.linear) {
-          from.position = wrap(from.position);
+          from.position = wrapTo(from.position, modulus);
         }
         from.linear = true;
         to = Wheel{digit, 1.0, true, current.blankZero};
@@ -433,13 +510,14 @@ void RollingEngine::planRoll(Transition& next, const Target& target, bool increa
         // Interior wheel: shortest roll in the direction of the change, or
         // with `shortest` the shorter way round for this wheel alone (8 → 2
         // rolls back through 5), a tie (five apart) going with the change.
-        const double base = wrap(from.position);
+        const double base = wrapTo(from.position, modulus);
         from.position = base;
         from.linear = false;
-        const double up = wrap(digit - base);
-        const double down = wrap(base - digit);
+        const double up = wrapTo(digit - base, modulus);
+        const double down = wrapTo(base - digit, modulus);
         double delta = increasing ? up : -down;
         if (direction_ == 3 && up != down) delta = up < down ? up : -down;
+        if (delta == 0 && power < highestChange) delta = increasing ? modulus : -modulus;
         to = Wheel{base + delta, 1.0, false, false};
       }
       next.finals.push_back(Wheel{digit, 1.0, false, false});
@@ -652,6 +730,7 @@ void RollingEngine::holdReveal(double value) {
   reveal_.milestoneTimes.clear();
   reveal_.milestoneMagnitudes.clear();
   reveal_.target = makeTarget(value);
+  noteSign(reveal_.target);
   reveal_.start = 0;
   applyReveal(0);
   settle(reveal_.target);
@@ -661,6 +740,7 @@ void RollingEngine::reveal(double value, double now) {
   endTransition();
   targetValue_ = value;
   const Target target = makeTarget(value);
+  noteSign(target);
   if (revealDuration_ <= 0 || reduceMotion_) {
     snap(target);
     return;
@@ -1194,6 +1274,10 @@ void RollingEngine::reset() {
   transitionStyle_ = 0;
   flashSeconds_ = 0;
   popOnChange_ = 0;
+  continuous_ = false;
+  signDisplay_ = 0;
+  signPositive_ = false;
+  clearDigitMax();
   flashes_.clear();
   popStart_ = -1;
   popScale_ = 1;

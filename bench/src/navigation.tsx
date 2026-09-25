@@ -7,6 +7,7 @@ import { Btn, Card, Row, styles } from './harness'
 import { InputBenchScreen } from './bench/InputBenchScreen'
 import { MarketCompareScreen, type MarketCompareParams } from './bench/MarketCompareScreen'
 import { RollingBenchScreen, type RollingBenchParams } from './bench/RollingBenchScreen'
+import { TextMountScreen } from './bench/TextMountScreen'
 import { parsePlan } from './bench/plan'
 
 export type RootStackParamList = {
@@ -14,6 +15,7 @@ export type RootStackParamList = {
   RollingBench: RollingBenchParams
   InputBench: undefined
   MarketCompare: MarketCompareParams
+  TextMount: { rounds?: number } | undefined
 }
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
@@ -30,6 +32,7 @@ function HomeScreen() {
       </Card>
       <Card title="Text input" hint="Mount and focus cost of NitroInput against TextInput and Expo UI's TextField.">
         <Row><Btn testID="home-bench" tone="primary" title="Mount / focus benchmark" onPress={() => nav.navigate('InputBench')} /></Row>
+        <Row><Btn testID="home-text-mount" tone="primary" title="Text mount: Text / PlainText / NitroText" onPress={() => nav.navigate('TextMount')} /></Row>
       </Card>
       <Text style={styles.cardHint}>scripts/bench/run.mjs launches this app with a plan and drives it; see BENCHMARKS.md.</Text>
     </ScrollView>
@@ -48,7 +51,13 @@ function useLaunchPlan(navRef: ReturnType<typeof useNavigationContainerRef<RootS
     const check = () => {
       const json = launchPlan()
       // `{"compare":"nitro-roll"}` opens a market comparison, for profiling it.
-      const compare = json ? (JSON.parse(json) as { compare?: MarketCompareParams['lib'] }).compare : undefined
+      const parsed = json ? (JSON.parse(json) as { compare?: MarketCompareParams['lib']; textMount?: { rounds?: number } }) : undefined
+      // `{"textMount":{"rounds":6}}` runs the text mount comparison on its own, with no touches.
+      if (parsed?.textMount) {
+        navRef.navigate('TextMount', { rounds: parsed.textMount.rounds ?? 6 })
+        return
+      }
+      const compare = parsed?.compare
       if (compare) {
         navRef.navigate('MarketCompare', { lib: compare })
         return
@@ -74,6 +83,7 @@ export function RootNavigator() {
         <Stack.Screen name="RollingBench" component={RollingBenchScreen} options={{ title: 'Rolling number benchmark' }} />
         <Stack.Screen name="InputBench" component={InputBenchScreen} options={{ title: 'Input benchmark' }} />
         <Stack.Screen name="MarketCompare" component={MarketCompareScreen} options={{ title: 'Market comparison' }} />
+        <Stack.Screen name="TextMount" component={TextMountScreen} options={{ title: 'Text mount' }} />
       </Stack.Navigator>
     </NavigationContainer>
   )

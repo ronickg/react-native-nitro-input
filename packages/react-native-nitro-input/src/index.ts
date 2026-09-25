@@ -56,12 +56,17 @@ export {
   type NitroNumberHandle,
   type NitroNumberRef,
 } from './NitroNumber'
+export { NitroTime, type NitroTimeProps, type NitroTimeFormat } from './NitroTime'
+export { NitroText, NativeNitroTextView, type NitroTextProps } from './NitroText'
+export type { NitroTextMeasure, NitroTextView } from './specs/NitroText.nitro'
 export type {
   NitroNumberAffixAlign,
   NitroNumberDirection,
   NitroNumberTransition,
   NitroNumberEasing,
   NitroNumberRevealStyle,
+  NitroNumberShimmerDirection,
+  NitroNumberSignDisplay,
   NitroNumberTextAlign,
   NitroNumberMethods,
   NitroNumberProps as NativeNitroNumberProps,

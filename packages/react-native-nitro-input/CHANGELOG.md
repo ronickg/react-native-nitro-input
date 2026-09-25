@@ -1,5 +1,54 @@
 # Changelog
 
+## Unreleased
+
+- **Signs**: `signDisplay` (`'auto'`, `'always'`, `'exceptZero'`,
+  `'negative'`, `'never'`, as `Intl.NumberFormat`'s) puts a plus on gains,
+  and a plus that turns into a minus swaps like any other glyph; `plusSign`
+  and `minusSign` set the glyphs. A `format` gives its sign display and its
+  locale's minus.
+- **Styled parts**: `prefixColor`, `suffixColor`, and `fractionFontSize`,
+  `fractionColor` and `fractionAlign` for smaller, dimmer or superscript
+  cents.
+- **`onAnimationStart` / `onAnimationEnd`**: when the figure sets off from
+  rest and when it comes to rest, once for a run of changes.
+- **`NitroTime`**: seconds as a clock, timer or countdown (`m:ss`,
+  `h:mm:ss`…), its tens of seconds and minutes wrapping after 5 so 0:59 →
+  1:00 turns them one step. Built on `digits` (the highest digit a position
+  shows before it wraps, as NumberFlow's) and `groupingSizes`, both open to
+  any figure.
+- **Compact figures**: a compact `format` rolls the figure it shows and swaps
+  its suffix ("950" → "1.5K" → "2.3M").
+- **`continuous`**: the wheels below the highest one that changes turn a full
+  turn too, so a roll seems to pass through every value between.
+- **Native digits and grouping**: `digitGlyphs` and `groupingSizes`, or a
+  `format`'s numbering system and group sizes (`ar-EG`'s ٠١٢٣…, `en-IN`'s
+  12,34,567).
+- **`animated={false}`** shows every change at once, and
+  **`respectReduceMotion={false}`** animates under Reduce Motion.
+- **`NitroText`**: a single line of text that morphs natively, shared
+  characters gliding to their new places ("Sign in" → "Signing in…",
+  "$1,204" → "$1,318"), as Torph does on the web. Its own native view: one
+  draw of cached glyphs at rest like a label, sized by a synchronous native
+  measurement in the render that mounts it, with the loading shimmer and its
+  options. Only the props you set cross to native, a static label never
+  touches the reflow engine, and a reused view keeps its drawn line: 1000
+  labels mount in 54 ms of main thread on an iPhone 11 Pro and ~450 ms on a
+  Galaxy A22 (`Text`: 149 and ~720, `react-native-plain-text`: 50 and ~590).
+- **Shimmer options**: `shimmerAngle`, `shimmerWidth`, `shimmerBaseColor`
+  (a skeleton), `shimmerDirection` (following the layout direction by
+  default, so a right-to-left layout now sweeps right to left) and
+  `shimmerDelay`.
+- Fixed: on iOS the loading glint was drawn in the label colour (black
+  on dark text, so invisible) unless `shimmerColor` was given; it uses the
+  documented light neutral now.
+- Fixed: `NumberFormat` with `notation: 'compact'` dropped the currency and
+  the percent sign ("950" for "$950"; Android printed a compact currency in
+  full) and signDisplay's plus. It prints them as V8 does now.
+- Android: `NitroText` crosses JNI to the reflow engine once per text
+  change and once per frame, rather than once per character and several
+  times a frame.
+
 ## 0.3.0
 
 - **`NumberFormat`**: `Intl.NumberFormat`'s API, formatted natively.

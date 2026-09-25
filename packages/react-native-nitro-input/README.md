@@ -541,6 +541,13 @@ ticker), or SwiftUI's `.contentTransition(.numericText())`, or a scramble.
 - A currency switch plays as one change: prefix, suffix and separators blur
   across, decimal columns open and close, the digits swap or roll.
 - `animateTo` / `jumpTo` on the Nitro object work from a Reanimated worklet.
+- Signs (`signDisplay`: a plus on gains that swaps into the minus), styled
+  affixes and cents (`prefixColor`, `fractionFontSize`, superscript
+  `fractionAlign`), native digits and grouping (`ar-EG`'s ٠١٢٣, `en-IN`'s
+  12,34,567), compact figures that roll ("950" → "1.5K"), `continuous` rolls,
+  and `onAnimationStart` / `onAnimationEnd`.
+- `NitroTime` shows seconds as a clock, timer or countdown whose tens wrap
+  after 5, as a clock's wheels do.
 
 Guide: **https://ronickg.github.io/react-native-nitro-input/docs/nitro-number**
 
@@ -726,6 +733,24 @@ Hand the final value back to React when the feed stops (`scheduleOnRN`) so the
 `value` prop matches the screen; posting every tick queues them up while JS is
 busy and replays them afterwards.
 
+### Clocks and timers
+
+`NitroTime` is a `NitroNumber` with a number of seconds as its figure. The tens
+of seconds and of minutes wrap after 5, so 0:59 → 1:00 turns them one step
+instead of rolling back through 4, 3, 2, 1.
+
+```tsx
+import { NitroTime } from 'react-native-nitro-input'
+
+<NitroTime seconds={elapsed} />                          // 12:07
+<NitroTime seconds={remaining} timeFormat="h:mm:ss" />    // 1:00:05
+```
+
+`timeFormat` is `'m:ss'` (the default; minutes run past 59), `'mm:ss'`,
+`'h:mm:ss'` or `'hh:mm:ss'`; `separator` defaults to `':'`. Every other
+`NitroNumber` prop applies. The wheels are open to any figure through `digits`
+(a position's highest digit) and `groupingSizes`.
+
 ## NitroNumber props
 
 | Prop | Type | Default | Description |
@@ -733,9 +758,18 @@ busy and replays them afterwards.
 | `value` | `number` | – | The number to display. Shown with at most 18 digits: `|value| × 10^fractionDigits` is clamped at 10^17, and a JS number carries exact integers only up to 2^53. |
 | `fractionDigits` | `number` | `0` | Digits after the decimal separator. |
 | `minimumIntegerDigits` | `number` | `1` | Zero-pads the integer part. |
-| `groupingSeparator` | `string` | `''` | Inserted every three integer digits. |
+| `groupingSeparator` | `string` | `''` | Inserted between digit groups. |
+| `groupingSizes` | `number[]` | `[3]` | Group sizes from the decimal point: `[3, 2]` is Indian grouping (12,34,567). |
 | `decimalSeparator` | `string` | `'.'` | Between integer and fraction digits. |
 | `prefix` / `suffix` | `string` | `''` | Static text around the number. |
+| `signDisplay` | `'auto' \| 'always' \| 'exceptZero' \| 'negative' \| 'never'` | `'auto'` | Which values carry a sign; `'exceptZero'` puts a plus on gains, and a plus that turns into a minus swaps. |
+| `plusSign` / `minusSign` | `string` | `'+'` / `'-'` | The sign glyphs (e.g. `'−'`, U+2212). |
+| `digitGlyphs` | `string[]` | `'0'`…`'9'` | Ten glyphs for native digits (Arabic-Indic, Devanagari…). |
+| `digits` | `Record<number, { max }>` | – | The highest digit a position shows before it wraps (a clock's tens: `{ 1: { max: 5 } }`). |
+| `continuous` | `boolean` | `false` | Rolls turn the lower wheels a full turn too, so the figure seems to pass through every value. |
+| `animated` | `boolean` | `true` | `false` shows every change at once. |
+| `respectReduceMotion` | `boolean` | `true` | Snap while the system's Reduce Motion is on. |
+| `onAnimationStart` / `onAnimationEnd` | `() => void` / `(value) => void` | – | The figure set off from rest / came to rest, once for a run of changes. |
 | `duration` | `number` | `500` | Roll duration in ms; `0` snaps. |
 | `easing` | `'linear' \| 'easeIn' \| 'easeOut' \| 'easeInOut' \| 'spring'` | `'easeInOut'` | Roll timing curve. A value that arrives while the wheels are still rolling continues with the ease-out half of the curve, so rapid updates never stall. |
 | `bounce` | `number` | `0.15` | Overshoot of the `spring` easing (0–1). |
@@ -758,6 +792,11 @@ busy and replays them afterwards.
 | `loading` | `boolean` | `false` | "Shine" glint: a slanted, text-wide band sweeps through the ink; cross-fades on toggle. |
 | `shimmerColor` | `ColorValue` | light neutral | Color of the glint's core (`#D6D9E1`, `#2B2E37` in dark mode). |
 | `shimmerDuration` | `number` | `950` | ms per sweep (linear, repeating). |
+| `shimmerAngle` | `number` | `31` | The band's slant in degrees (0 upright). |
+| `shimmerWidth` | `number` | `1` | The band's width, a fraction of the number's. |
+| `shimmerBaseColor` | `ColorValue` | `color` | The glyphs' colour outside the band: a skeleton. |
+| `shimmerDirection` | `'auto' \| 'ltr' \| 'rtl'` | `'auto'` | Sweep direction; `'auto'` follows the layout direction. |
+| `shimmerDelay` | `number` | `0` | ms of pause after each sweep. |
 | `fontSize` | `number` | `32` | Font size of the digits in points. |
 | `prefixFontSize` / `suffixFontSize` | `number` | `fontSize` | Smaller (or larger) prefix/suffix, e.g. a currency symbol or code. |
 | `affixAlign` | `'baseline' \| 'center' \| 'top' \| 'bottom'` | `'baseline'` | How prefix/suffix line up with the digits: `top` pins the glyph tops (cap height), `bottom` the bottom of the glyphs' ink (a currency code sits on the digits' baseline, not down where a comma's tail reaches). |
@@ -765,7 +804,10 @@ busy and replays them afterwards.
 | `letterSpacing` | number | `0` | Points added after every glyph, like `Text`'s; a smaller affix gets it in proportion to its size. |
 | `prefixSpacing` / `suffixSpacing` | number | the letter spacing | Points between the prefix and the digits, and between the digits and the suffix. |
 | `prefixOffset` / `suffixOffset` | number | `0` | Points an affix is moved down after its alignment (negative: up). |
-| `format` | `NumberFormat` | none | The number follows it: prefix and suffix, separators, fraction and minimum integer digits. The individual props override it. |
+| `prefixColor` / `suffixColor` | `ColorValue` | `color` | The affixes' colours. |
+| `fractionFontSize` / `fractionColor` | `number` / `ColorValue` | `fontSize` / `color` | Smaller, dimmer cents (the decimal separator follows). |
+| `fractionAlign` | `'baseline' \| 'center' \| 'top' \| 'bottom'` | `'baseline'` | `'top'`: superscript cents. |
+| `format` | `NumberFormat` | none | The number follows it: prefix and suffix, separators and group sizes, fraction and minimum integer digits, sign display, native digits; a compact format rolls its figure and swaps its suffix ("950" → "1.5K"). The individual props override it. |
 | `tabularNums` | boolean | `true` | `false` lays each digit out at its own width (proportional figures); a changing column eases once from the old digit's width to the new one's. |
 | `adjustsFontSizeToFit` | `boolean` | `false` | Shrink the whole number to fit the view's fixed `width`; the view keeps its full height. |
 | `minimumFontScale` | `number` | `0.5` | Lower bound for `adjustsFontSizeToFit`. |
@@ -782,6 +824,44 @@ The view reports its intrinsic size from native and sizes itself. Give it an
 explicit `width` in `style` plus `textAlign="right"` if you don't want the layout
 to reflow while digits appear (e.g. a counter that grows past `999`).
 
+## NitroText
+
+A single line of text that morphs to the next, natively: the characters two
+strings share glide to their new places and the rest fade, as
+[Torph](https://torph.lochie.me) does on the web. Digits match by place, so
+"Total $1,204" → "Total $1,318" rolls the hundreds and tens.
+
+```tsx
+import { NitroText } from 'react-native-nitro-input'
+
+<NitroText fontSize={17} fontWeight="600">{busy ? 'Signing in…' : 'Sign in'}</NitroText>
+```
+
+It is its own native view, not a text field: at rest it draws its line in one
+pass, like a label, and only a morph draws each character on its own. It
+measures its text natively while it renders, so it lays out in the commit that
+mounts it, and only the props you set cross to native. Mounting 1000 labels
+(Release, warm) costs about what `react-native-plain-text` does and less than
+`Text`: 54 ms of main thread on an iPhone 11 Pro (PlainText 50, Text 149) and
+~450 ms on a Galaxy A22 (PlainText ~590, Text ~720). A label that never
+changes never touches the morph engine.
+
+| Prop | Default | |
+| --- | --- | --- |
+| `children` | – | The text: a string or a number. A change morphs to it. |
+| `fontSize` / `fontWeight` / `fontFamily` | `17` / `'normal'` / system | As `Text`'s. Digits are tabular, so a column keeps its width while it morphs. |
+| `color` | label colour | |
+| `letterSpacing` | `0` | Points after every character. |
+| `textAlign` | `'auto'` | `'left'`, `'center'` or `'right'` in a wider view; `'auto'` is the start edge. |
+| `allowFontScaling` / `maxFontSizeMultiplier` | `false` / none | Scale with the system text size, like `Text`. |
+| `duration` / `easing` / `bounce` / `effect` | `400` / `'expo'` / `0.15` / `'auto'` | The morph's timing, as the [reflow](#how-the-reflow-decides-what-moves)'s. |
+| `respectReduceMotion` | `true` | Snap while Reduce Motion (iOS) or "Remove animations" (Android) is on. |
+| `loading` and `shimmer*` | `false` | The loading glint, with every option of `NitroNumber`'s. |
+
+It is one line (no wrapping). Scripts that shape by context (Arabic, Indic)
+and characters from fallback fonts (emoji, CJK) are drawn as strings, so they
+render correctly, but they are laid out character by character.
+
 ## Accessibility and threading
 
 ### NitroInput
@@ -796,6 +876,14 @@ to reflow while digits appear (e.g. a counter that grows past `999`).
   the user sees waits for it. A `value` prop carrying a stale
   `mostRecentEventCount` (the user typed since) is ignored, like React
   Native's own `TextInput`.
+
+### NitroText
+
+- The view is the accessibility element, read as text with its string (and
+  "loading" while the shimmer runs); an `accessibilityLabel` replaces it.
+- Reduce Motion (iOS) and "Remove animations" (Android) snap a morph.
+- The view implements `RecyclableView`: a reused view keeps its drawn line, so
+  an element with the same text and style draws nothing.
 
 ### NitroNumber
 

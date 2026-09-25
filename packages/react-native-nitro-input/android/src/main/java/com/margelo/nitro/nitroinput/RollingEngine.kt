@@ -23,7 +23,18 @@ class RollingEngine {
   external fun setFlash(seconds: Double)
   external fun setPopOnChange(overshoot: Double)
   external fun setReduceMotion(reduceMotion: Boolean)
-  /** A text slot (0 prefix, 1 suffix, 2 grouping, 3 decimal) changed; see `RollingEngine::changeText`. */
+  external fun setContinuous(continuous: Boolean)
+  /** The highest digit the wheel at integer [power] shows before it wraps (a clock's 5); see `RollingEngine::setDigitMax`. */
+  external fun setDigitMax(power: Int, max: Int)
+  external fun clearDigitMax()
+  /** Places the wheel at [index] wraps after: 10, or `max + 1`. [frameInto] carries it per wheel too. */
+  external fun wheelModulus(index: Int): Int
+  /** ECMA-402's signDisplay: 0 auto, 1 always, 2 exceptZero, 3 negative, 4 never. */
+  external fun setSignDisplay(mode: Int)
+  /** True when the sign shown (or last shown) is a plus. */
+  external fun signPositive(): Boolean
+  external fun signFactor(): Double
+  /** A text slot (0 prefix, 1 suffix, 2 grouping, 3 decimal, 4 sign) changed; see `RollingEngine::changeText`. */
   external fun changeText(slot: Int, now: Double)
   /** `setFormat`, the change played; see `RollingEngine::changeFormat`. */
   external fun changeFormat(fractionDigits: Int, minimumIntegerDigits: Int, now: Double)
@@ -46,7 +57,7 @@ class RollingEngine {
   external fun revealMilestoneValue(index: Int): Double
   /**
    * Fills [out] with the render state without allocating:
-   * `[signFactor, loadingProgress, revealScale, wheelCount, (position, width, linear, blankZero, fromGlyph, toGlyph, blend, fromAbove, flash, flashUp, focus, grow, blurOut, progress)…]`,
+   * `[signFactor, loadingProgress, revealScale, wheelCount, (position, width, linear, blankZero, fromGlyph, toGlyph, blend, fromAbove, flash, flashUp, focus, grow, blurOut, progress, modulus)…]`,
    * then each text slot's swap and the decimal columns.
    * Returns the number of doubles written, or -1 if [out] is too small.
    */

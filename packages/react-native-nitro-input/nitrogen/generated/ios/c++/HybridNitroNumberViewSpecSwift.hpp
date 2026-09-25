@@ -20,8 +20,12 @@ namespace margelo::nitro::nitroinput { enum class NitroNumberTransition; }
 namespace margelo::nitro::nitroinput { enum class NitroNumberDirection; }
 // Forward declaration of `NitroNumberRevealStyle` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberRevealStyle; }
+// Forward declaration of `NitroNumberShimmerDirection` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberShimmerDirection; }
 // Forward declaration of `NitroNumberAffixAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberAffixAlign; }
+// Forward declaration of `NitroNumberSignDisplay` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberSignDisplay; }
 // Forward declaration of `NitroNumberTextAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberTextAlign; }
 
@@ -32,7 +36,9 @@ namespace margelo::nitro::nitroinput { enum class NitroNumberTextAlign; }
 #include "NitroNumberDirection.hpp"
 #include "NitroNumberRevealStyle.hpp"
 #include <vector>
+#include "NitroNumberShimmerDirection.hpp"
 #include "NitroNumberAffixAlign.hpp"
+#include "NitroNumberSignDisplay.hpp"
 #include "NitroNumberTextAlign.hpp"
 #include <functional>
 
@@ -277,6 +283,41 @@ namespace margelo::nitro::nitroinput {
     inline void setShimmerDuration(std::optional<double> shimmerDuration) noexcept override {
       _swiftPart.setShimmerDuration(shimmerDuration);
     }
+    inline std::optional<double> getShimmerAngle() noexcept override {
+      auto __result = _swiftPart.getShimmerAngle();
+      return __result;
+    }
+    inline void setShimmerAngle(std::optional<double> shimmerAngle) noexcept override {
+      _swiftPart.setShimmerAngle(shimmerAngle);
+    }
+    inline std::optional<double> getShimmerWidth() noexcept override {
+      auto __result = _swiftPart.getShimmerWidth();
+      return __result;
+    }
+    inline void setShimmerWidth(std::optional<double> shimmerWidth) noexcept override {
+      _swiftPart.setShimmerWidth(shimmerWidth);
+    }
+    inline std::optional<double> getShimmerBaseColor() noexcept override {
+      auto __result = _swiftPart.getShimmerBaseColor();
+      return __result;
+    }
+    inline void setShimmerBaseColor(std::optional<double> shimmerBaseColor) noexcept override {
+      _swiftPart.setShimmerBaseColor(shimmerBaseColor);
+    }
+    inline std::optional<NitroNumberShimmerDirection> getShimmerDirection() noexcept override {
+      auto __result = _swiftPart.getShimmerDirection();
+      return __result;
+    }
+    inline void setShimmerDirection(std::optional<NitroNumberShimmerDirection> shimmerDirection) noexcept override {
+      _swiftPart.setShimmerDirection(shimmerDirection);
+    }
+    inline std::optional<double> getShimmerDelay() noexcept override {
+      auto __result = _swiftPart.getShimmerDelay();
+      return __result;
+    }
+    inline void setShimmerDelay(std::optional<double> shimmerDelay) noexcept override {
+      _swiftPart.setShimmerDelay(shimmerDelay);
+    }
     inline std::optional<double> getFontSize() noexcept override {
       auto __result = _swiftPart.getFontSize();
       return __result;
@@ -361,6 +402,97 @@ namespace margelo::nitro::nitroinput {
     inline void setTabularNums(std::optional<bool> tabularNums) noexcept override {
       _swiftPart.setTabularNums(tabularNums);
     }
+    inline std::optional<NitroNumberSignDisplay> getSignDisplay() noexcept override {
+      auto __result = _swiftPart.getSignDisplay();
+      return __result;
+    }
+    inline void setSignDisplay(std::optional<NitroNumberSignDisplay> signDisplay) noexcept override {
+      _swiftPart.setSignDisplay(signDisplay);
+    }
+    inline std::optional<std::string> getPlusSign() noexcept override {
+      auto __result = _swiftPart.getPlusSign();
+      return __result;
+    }
+    inline void setPlusSign(const std::optional<std::string>& plusSign) noexcept override {
+      _swiftPart.setPlusSign(plusSign);
+    }
+    inline std::optional<std::string> getMinusSign() noexcept override {
+      auto __result = _swiftPart.getMinusSign();
+      return __result;
+    }
+    inline void setMinusSign(const std::optional<std::string>& minusSign) noexcept override {
+      _swiftPart.setMinusSign(minusSign);
+    }
+    inline std::optional<std::vector<std::string>> getDigitGlyphs() noexcept override {
+      auto __result = _swiftPart.getDigitGlyphs();
+      return __result;
+    }
+    inline void setDigitGlyphs(const std::optional<std::vector<std::string>>& digitGlyphs) noexcept override {
+      _swiftPart.setDigitGlyphs(digitGlyphs);
+    }
+    inline std::optional<std::vector<double>> getGroupingSizes() noexcept override {
+      auto __result = _swiftPart.getGroupingSizes();
+      return __result;
+    }
+    inline void setGroupingSizes(const std::optional<std::vector<double>>& groupingSizes) noexcept override {
+      _swiftPart.setGroupingSizes(groupingSizes);
+    }
+    inline std::optional<std::vector<double>> getDigitMax() noexcept override {
+      auto __result = _swiftPart.getDigitMax();
+      return __result;
+    }
+    inline void setDigitMax(const std::optional<std::vector<double>>& digitMax) noexcept override {
+      _swiftPart.setDigitMax(digitMax);
+    }
+    inline std::optional<bool> getContinuous() noexcept override {
+      auto __result = _swiftPart.getContinuous();
+      return __result;
+    }
+    inline void setContinuous(std::optional<bool> continuous) noexcept override {
+      _swiftPart.setContinuous(continuous);
+    }
+    inline std::optional<double> getPrefixColor() noexcept override {
+      auto __result = _swiftPart.getPrefixColor();
+      return __result;
+    }
+    inline void setPrefixColor(std::optional<double> prefixColor) noexcept override {
+      _swiftPart.setPrefixColor(prefixColor);
+    }
+    inline std::optional<double> getSuffixColor() noexcept override {
+      auto __result = _swiftPart.getSuffixColor();
+      return __result;
+    }
+    inline void setSuffixColor(std::optional<double> suffixColor) noexcept override {
+      _swiftPart.setSuffixColor(suffixColor);
+    }
+    inline std::optional<double> getFractionColor() noexcept override {
+      auto __result = _swiftPart.getFractionColor();
+      return __result;
+    }
+    inline void setFractionColor(std::optional<double> fractionColor) noexcept override {
+      _swiftPart.setFractionColor(fractionColor);
+    }
+    inline std::optional<double> getFractionFontSize() noexcept override {
+      auto __result = _swiftPart.getFractionFontSize();
+      return __result;
+    }
+    inline void setFractionFontSize(std::optional<double> fractionFontSize) noexcept override {
+      _swiftPart.setFractionFontSize(fractionFontSize);
+    }
+    inline std::optional<NitroNumberAffixAlign> getFractionAlign() noexcept override {
+      auto __result = _swiftPart.getFractionAlign();
+      return __result;
+    }
+    inline void setFractionAlign(std::optional<NitroNumberAffixAlign> fractionAlign) noexcept override {
+      _swiftPart.setFractionAlign(fractionAlign);
+    }
+    inline std::optional<bool> getRespectReduceMotion() noexcept override {
+      auto __result = _swiftPart.getRespectReduceMotion();
+      return __result;
+    }
+    inline void setRespectReduceMotion(std::optional<bool> respectReduceMotion) noexcept override {
+      _swiftPart.setRespectReduceMotion(respectReduceMotion);
+    }
     inline std::optional<bool> getAdjustsFontSizeToFit() noexcept override {
       auto __result = _swiftPart.getAdjustsFontSizeToFit();
       return __result;
@@ -444,6 +576,20 @@ namespace margelo::nitro::nitroinput {
     }
     inline void setOnRevealMilestone(const std::optional<std::function<void(double /* index */, double /* value */)>>& onRevealMilestone) noexcept override {
       _swiftPart.setOnRevealMilestone(onRevealMilestone);
+    }
+    inline std::optional<std::function<void()>> getOnAnimationStart() noexcept override {
+      auto __result = _swiftPart.getOnAnimationStart();
+      return __result;
+    }
+    inline void setOnAnimationStart(const std::optional<std::function<void()>>& onAnimationStart) noexcept override {
+      _swiftPart.setOnAnimationStart(onAnimationStart);
+    }
+    inline std::optional<std::function<void(double /* value */)>> getOnAnimationEnd() noexcept override {
+      auto __result = _swiftPart.getOnAnimationEnd();
+      return __result;
+    }
+    inline void setOnAnimationEnd(const std::optional<std::function<void(double /* value */)>>& onAnimationEnd) noexcept override {
+      _swiftPart.setOnAnimationEnd(onAnimationEnd);
     }
 
   public:

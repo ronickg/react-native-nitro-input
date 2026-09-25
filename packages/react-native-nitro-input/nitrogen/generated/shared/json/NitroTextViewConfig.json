@@ -1,0 +1,30 @@
+{
+  "uiViewClassName": "NitroTextView",
+  "supportsRawText": false,
+  "bubblingEventTypes": {},
+  "directEventTypes": {},
+  "validAttributes": {
+    "text": true,
+    "fontSize": true,
+    "fontWeight": true,
+    "fontFamily": true,
+    "color": true,
+    "letterSpacing": true,
+    "textAlign": true,
+    "rightToLeft": true,
+    "duration": true,
+    "easing": true,
+    "bounce": true,
+    "effect": true,
+    "respectReduceMotion": true,
+    "loading": true,
+    "shimmerColor": true,
+    "shimmerDuration": true,
+    "shimmerAngle": true,
+    "shimmerWidth": true,
+    "shimmerBaseColor": true,
+    "shimmerDirection": true,
+    "shimmerDelay": true,
+    "hybridRef": true
+  }
+}

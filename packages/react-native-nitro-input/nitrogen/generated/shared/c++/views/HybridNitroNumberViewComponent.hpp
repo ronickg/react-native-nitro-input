@@ -24,7 +24,9 @@
 #include "NitroNumberDirection.hpp"
 #include "NitroNumberRevealStyle.hpp"
 #include <vector>
+#include "NitroNumberShimmerDirection.hpp"
 #include "NitroNumberAffixAlign.hpp"
+#include "NitroNumberSignDisplay.hpp"
 #include "NitroNumberTextAlign.hpp"
 #include <functional>
 #include <memory>
@@ -78,6 +80,11 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<std::optional<bool>> loading;
     nitro::ReactProp<std::optional<double>> shimmerColor;
     nitro::ReactProp<std::optional<double>> shimmerDuration;
+    nitro::ReactProp<std::optional<double>> shimmerAngle;
+    nitro::ReactProp<std::optional<double>> shimmerWidth;
+    nitro::ReactProp<std::optional<double>> shimmerBaseColor;
+    nitro::ReactProp<std::optional<NitroNumberShimmerDirection>> shimmerDirection;
+    nitro::ReactProp<std::optional<double>> shimmerDelay;
     nitro::ReactProp<std::optional<double>> fontSize;
     nitro::ReactProp<std::optional<double>> prefixFontSize;
     nitro::ReactProp<std::optional<double>> suffixFontSize;
@@ -90,6 +97,19 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<std::optional<double>> prefixOffset;
     nitro::ReactProp<std::optional<double>> suffixOffset;
     nitro::ReactProp<std::optional<bool>> tabularNums;
+    nitro::ReactProp<std::optional<NitroNumberSignDisplay>> signDisplay;
+    nitro::ReactProp<std::optional<std::string>> plusSign;
+    nitro::ReactProp<std::optional<std::string>> minusSign;
+    nitro::ReactProp<std::optional<std::vector<std::string>>> digitGlyphs;
+    nitro::ReactProp<std::optional<std::vector<double>>> groupingSizes;
+    nitro::ReactProp<std::optional<std::vector<double>>> digitMax;
+    nitro::ReactProp<std::optional<bool>> continuous;
+    nitro::ReactProp<std::optional<double>> prefixColor;
+    nitro::ReactProp<std::optional<double>> suffixColor;
+    nitro::ReactProp<std::optional<double>> fractionColor;
+    nitro::ReactProp<std::optional<double>> fractionFontSize;
+    nitro::ReactProp<std::optional<NitroNumberAffixAlign>> fractionAlign;
+    nitro::ReactProp<std::optional<bool>> respectReduceMotion;
     nitro::ReactProp<std::optional<bool>> adjustsFontSizeToFit;
     nitro::ReactProp<std::optional<double>> minimumFontScale;
     nitro::ReactProp<std::optional<bool>> allowFontScaling;
@@ -102,6 +122,8 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<std::optional<std::function<void(double /* width */, double /* height */)>>> onSizeChange;
     nitro::ReactProp<std::optional<std::function<void()>>> onRevealEnd;
     nitro::ReactProp<std::optional<std::function<void(double /* index */, double /* value */)>>> onRevealMilestone;
+    nitro::ReactProp<std::optional<std::function<void()>>> onAnimationStart;
+    nitro::ReactProp<std::optional<std::function<void(double /* value */)>>> onAnimationEnd;
     nitro::ReactProp<std::optional<std::function<void(const std::shared_ptr<HybridNitroNumberViewSpec>& /* ref */)>>> hybridRef;
 
     [[nodiscard]]
@@ -134,6 +156,11 @@ namespace margelo::nitro::nitroinput::views {
              loading.hasSameValue(other.loading) &&
              shimmerColor.hasSameValue(other.shimmerColor) &&
              shimmerDuration.hasSameValue(other.shimmerDuration) &&
+             shimmerAngle.hasSameValue(other.shimmerAngle) &&
+             shimmerWidth.hasSameValue(other.shimmerWidth) &&
+             shimmerBaseColor.hasSameValue(other.shimmerBaseColor) &&
+             shimmerDirection.hasSameValue(other.shimmerDirection) &&
+             shimmerDelay.hasSameValue(other.shimmerDelay) &&
              fontSize.hasSameValue(other.fontSize) &&
              prefixFontSize.hasSameValue(other.prefixFontSize) &&
              suffixFontSize.hasSameValue(other.suffixFontSize) &&
@@ -146,6 +173,19 @@ namespace margelo::nitro::nitroinput::views {
              prefixOffset.hasSameValue(other.prefixOffset) &&
              suffixOffset.hasSameValue(other.suffixOffset) &&
              tabularNums.hasSameValue(other.tabularNums) &&
+             signDisplay.hasSameValue(other.signDisplay) &&
+             plusSign.hasSameValue(other.plusSign) &&
+             minusSign.hasSameValue(other.minusSign) &&
+             digitGlyphs.hasSameValue(other.digitGlyphs) &&
+             groupingSizes.hasSameValue(other.groupingSizes) &&
+             digitMax.hasSameValue(other.digitMax) &&
+             continuous.hasSameValue(other.continuous) &&
+             prefixColor.hasSameValue(other.prefixColor) &&
+             suffixColor.hasSameValue(other.suffixColor) &&
+             fractionColor.hasSameValue(other.fractionColor) &&
+             fractionFontSize.hasSameValue(other.fractionFontSize) &&
+             fractionAlign.hasSameValue(other.fractionAlign) &&
+             respectReduceMotion.hasSameValue(other.respectReduceMotion) &&
              adjustsFontSizeToFit.hasSameValue(other.adjustsFontSizeToFit) &&
              minimumFontScale.hasSameValue(other.minimumFontScale) &&
              allowFontScaling.hasSameValue(other.allowFontScaling) &&
@@ -158,6 +198,8 @@ namespace margelo::nitro::nitroinput::views {
              onSizeChange.hasSameValue(other.onSizeChange) &&
              onRevealEnd.hasSameValue(other.onRevealEnd) &&
              onRevealMilestone.hasSameValue(other.onRevealMilestone) &&
+             onAnimationStart.hasSameValue(other.onAnimationStart) &&
+             onAnimationEnd.hasSameValue(other.onAnimationEnd) &&
              hybridRef.hasSameValue(other.hybridRef);
     }
 
@@ -191,6 +233,11 @@ namespace margelo::nitro::nitroinput::views {
              loading.isProvided() ||
              shimmerColor.isProvided() ||
              shimmerDuration.isProvided() ||
+             shimmerAngle.isProvided() ||
+             shimmerWidth.isProvided() ||
+             shimmerBaseColor.isProvided() ||
+             shimmerDirection.isProvided() ||
+             shimmerDelay.isProvided() ||
              fontSize.isProvided() ||
              prefixFontSize.isProvided() ||
              suffixFontSize.isProvided() ||
@@ -203,6 +250,19 @@ namespace margelo::nitro::nitroinput::views {
              prefixOffset.isProvided() ||
              suffixOffset.isProvided() ||
              tabularNums.isProvided() ||
+             signDisplay.isProvided() ||
+             plusSign.isProvided() ||
+             minusSign.isProvided() ||
+             digitGlyphs.isProvided() ||
+             groupingSizes.isProvided() ||
+             digitMax.isProvided() ||
+             continuous.isProvided() ||
+             prefixColor.isProvided() ||
+             suffixColor.isProvided() ||
+             fractionColor.isProvided() ||
+             fractionFontSize.isProvided() ||
+             fractionAlign.isProvided() ||
+             respectReduceMotion.isProvided() ||
              adjustsFontSizeToFit.isProvided() ||
              minimumFontScale.isProvided() ||
              allowFontScaling.isProvided() ||
@@ -215,6 +275,8 @@ namespace margelo::nitro::nitroinput::views {
              onSizeChange.isProvided() ||
              onRevealEnd.isProvided() ||
              onRevealMilestone.isProvided() ||
+             onAnimationStart.isProvided() ||
+             onAnimationEnd.isProvided() ||
              hybridRef.isProvided();
     }
 

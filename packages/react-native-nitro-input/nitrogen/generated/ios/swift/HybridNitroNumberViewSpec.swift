@@ -38,6 +38,11 @@ public protocol HybridNitroNumberViewSpec_protocol: HybridObject, HybridView {
   var loading: Bool? { get set }
   var shimmerColor: Double? { get set }
   var shimmerDuration: Double? { get set }
+  var shimmerAngle: Double? { get set }
+  var shimmerWidth: Double? { get set }
+  var shimmerBaseColor: Double? { get set }
+  var shimmerDirection: NitroNumberShimmerDirection? { get set }
+  var shimmerDelay: Double? { get set }
   var fontSize: Double? { get set }
   var prefixFontSize: Double? { get set }
   var suffixFontSize: Double? { get set }
@@ -50,6 +55,19 @@ public protocol HybridNitroNumberViewSpec_protocol: HybridObject, HybridView {
   var prefixOffset: Double? { get set }
   var suffixOffset: Double? { get set }
   var tabularNums: Bool? { get set }
+  var signDisplay: NitroNumberSignDisplay? { get set }
+  var plusSign: String? { get set }
+  var minusSign: String? { get set }
+  var digitGlyphs: [String]? { get set }
+  var groupingSizes: [Double]? { get set }
+  var digitMax: [Double]? { get set }
+  var continuous: Bool? { get set }
+  var prefixColor: Double? { get set }
+  var suffixColor: Double? { get set }
+  var fractionColor: Double? { get set }
+  var fractionFontSize: Double? { get set }
+  var fractionAlign: NitroNumberAffixAlign? { get set }
+  var respectReduceMotion: Bool? { get set }
   var adjustsFontSizeToFit: Bool? { get set }
   var minimumFontScale: Double? { get set }
   var allowFontScaling: Bool? { get set }
@@ -62,6 +80,8 @@ public protocol HybridNitroNumberViewSpec_protocol: HybridObject, HybridView {
   var onSizeChange: ((_ width: Double, _ height: Double) -> Void)? { get set }
   var onRevealEnd: (() -> Void)? { get set }
   var onRevealMilestone: ((_ index: Double, _ value: Double) -> Void)? { get set }
+  var onAnimationStart: (() -> Void)? { get set }
+  var onAnimationEnd: ((_ value: Double) -> Void)? { get set }
 
   // Methods
   func jumpTo(value: Double) throws -> Void

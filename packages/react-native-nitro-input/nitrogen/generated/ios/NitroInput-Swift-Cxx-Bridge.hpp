@@ -16,6 +16,14 @@ namespace margelo::nitro::nitroinput { class HybridNitroNumberFormatPlatformSpec
 namespace margelo::nitro::nitroinput { class HybridNitroNumberViewSpec; }
 // Forward declaration of `HybridNitroPlatformNumberFormatterSpec` to properly resolve imports.
 namespace margelo::nitro::nitroinput { class HybridNitroPlatformNumberFormatterSpec; }
+// Forward declaration of `HybridNitroTextMeasureSpec` to properly resolve imports.
+namespace margelo::nitro::nitroinput { class HybridNitroTextMeasureSpec; }
+// Forward declaration of `HybridNitroTextViewSpec` to properly resolve imports.
+namespace margelo::nitro::nitroinput { class HybridNitroTextViewSpec; }
+// Forward declaration of `NitroInputEasing` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputEasing; }
+// Forward declaration of `NitroInputEffect` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputEffect; }
 // Forward declaration of `NitroInputNotation` to properly resolve imports.
 namespace margelo::nitro::nitroinput { struct NitroInputNotation; }
 // Forward declaration of `NitroNumberAffixAlign` to properly resolve imports.
@@ -26,6 +34,10 @@ namespace margelo::nitro::nitroinput { enum class NitroNumberDirection; }
 namespace margelo::nitro::nitroinput { enum class NitroNumberEasing; }
 // Forward declaration of `NitroNumberRevealStyle` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberRevealStyle; }
+// Forward declaration of `NitroNumberShimmerDirection` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberShimmerDirection; }
+// Forward declaration of `NitroNumberSignDisplay` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberSignDisplay; }
 // Forward declaration of `NitroNumberTextAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberTextAlign; }
 // Forward declaration of `NitroNumberTransition` to properly resolve imports.
@@ -40,17 +52,27 @@ namespace NitroInput { class HybridNitroNumberFormatPlatformSpec_cxx; }
 namespace NitroInput { class HybridNitroNumberViewSpec_cxx; }
 // Forward declaration of `HybridNitroPlatformNumberFormatterSpec_cxx` to properly resolve imports.
 namespace NitroInput { class HybridNitroPlatformNumberFormatterSpec_cxx; }
+// Forward declaration of `HybridNitroTextMeasureSpec_cxx` to properly resolve imports.
+namespace NitroInput { class HybridNitroTextMeasureSpec_cxx; }
+// Forward declaration of `HybridNitroTextViewSpec_cxx` to properly resolve imports.
+namespace NitroInput { class HybridNitroTextViewSpec_cxx; }
 
 // Include C++ defined types
 #include "HybridNitroInputViewSpec.hpp"
 #include "HybridNitroNumberFormatPlatformSpec.hpp"
 #include "HybridNitroNumberViewSpec.hpp"
 #include "HybridNitroPlatformNumberFormatterSpec.hpp"
+#include "HybridNitroTextMeasureSpec.hpp"
+#include "HybridNitroTextViewSpec.hpp"
+#include "NitroInputEasing.hpp"
+#include "NitroInputEffect.hpp"
 #include "NitroInputNotation.hpp"
 #include "NitroNumberAffixAlign.hpp"
 #include "NitroNumberDirection.hpp"
 #include "NitroNumberEasing.hpp"
 #include "NitroNumberRevealStyle.hpp"
+#include "NitroNumberShimmerDirection.hpp"
+#include "NitroNumberSignDisplay.hpp"
 #include "NitroNumberTextAlign.hpp"
 #include "NitroNumberTransition.hpp"
 #include <NitroModules/Result.hpp>
@@ -509,6 +531,21 @@ namespace margelo::nitro::nitroinput::bridge::swift {
     return optional.value();
   }
   
+  // pragma MARK: std::optional<NitroNumberShimmerDirection>
+  /**
+   * Specialized version of `std::optional<NitroNumberShimmerDirection>`.
+   */
+  using std__optional_NitroNumberShimmerDirection_ = std::optional<NitroNumberShimmerDirection>;
+  inline std::optional<NitroNumberShimmerDirection> create_std__optional_NitroNumberShimmerDirection_(const NitroNumberShimmerDirection& value) noexcept {
+    return std::optional<NitroNumberShimmerDirection>(value);
+  }
+  inline bool has_value_std__optional_NitroNumberShimmerDirection_(const std::optional<NitroNumberShimmerDirection>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline NitroNumberShimmerDirection get_std__optional_NitroNumberShimmerDirection_(const std::optional<NitroNumberShimmerDirection>& optional) noexcept {
+    return optional.value();
+  }
+  
   // pragma MARK: std::optional<NitroNumberAffixAlign>
   /**
    * Specialized version of `std::optional<NitroNumberAffixAlign>`.
@@ -521,6 +558,47 @@ namespace margelo::nitro::nitroinput::bridge::swift {
     return optional.has_value();
   }
   inline NitroNumberAffixAlign get_std__optional_NitroNumberAffixAlign_(const std::optional<NitroNumberAffixAlign>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::optional<NitroNumberSignDisplay>
+  /**
+   * Specialized version of `std::optional<NitroNumberSignDisplay>`.
+   */
+  using std__optional_NitroNumberSignDisplay_ = std::optional<NitroNumberSignDisplay>;
+  inline std::optional<NitroNumberSignDisplay> create_std__optional_NitroNumberSignDisplay_(const NitroNumberSignDisplay& value) noexcept {
+    return std::optional<NitroNumberSignDisplay>(value);
+  }
+  inline bool has_value_std__optional_NitroNumberSignDisplay_(const std::optional<NitroNumberSignDisplay>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline NitroNumberSignDisplay get_std__optional_NitroNumberSignDisplay_(const std::optional<NitroNumberSignDisplay>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::vector<std::string>
+  /**
+   * Specialized version of `std::vector<std::string>`.
+   */
+  using std__vector_std__string_ = std::vector<std::string>;
+  inline std::vector<std::string> create_std__vector_std__string_(size_t size) noexcept {
+    std::vector<std::string> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::optional<std::vector<std::string>>
+  /**
+   * Specialized version of `std::optional<std::vector<std::string>>`.
+   */
+  using std__optional_std__vector_std__string__ = std::optional<std::vector<std::string>>;
+  inline std::optional<std::vector<std::string>> create_std__optional_std__vector_std__string__(const std::vector<std::string>& value) noexcept {
+    return std::optional<std::vector<std::string>>(value);
+  }
+  inline bool has_value_std__optional_std__vector_std__string__(const std::optional<std::vector<std::string>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::vector<std::string> get_std__optional_std__vector_std__string__(const std::optional<std::vector<std::string>>& optional) noexcept {
     return optional.value();
   }
   
@@ -603,6 +681,60 @@ namespace margelo::nitro::nitroinput::bridge::swift {
   using std__weak_ptr_HybridNitroNumberViewSpec_ = std::weak_ptr<HybridNitroNumberViewSpec>;
   inline std__weak_ptr_HybridNitroNumberViewSpec_ weakify_std__shared_ptr_HybridNitroNumberViewSpec_(const std::shared_ptr<HybridNitroNumberViewSpec>& strong) noexcept { return strong; }
   
+  // pragma MARK: std::shared_ptr<HybridNitroTextMeasureSpec>
+  /**
+   * Specialized version of `std::shared_ptr<HybridNitroTextMeasureSpec>`.
+   */
+  using std__shared_ptr_HybridNitroTextMeasureSpec_ = std::shared_ptr<HybridNitroTextMeasureSpec>;
+  std::shared_ptr<HybridNitroTextMeasureSpec> create_std__shared_ptr_HybridNitroTextMeasureSpec_(void* NON_NULL swiftUnsafePointer) noexcept;
+  void* NON_NULL get_std__shared_ptr_HybridNitroTextMeasureSpec_(std__shared_ptr_HybridNitroTextMeasureSpec_ cppType);
+  
+  // pragma MARK: std::weak_ptr<HybridNitroTextMeasureSpec>
+  using std__weak_ptr_HybridNitroTextMeasureSpec_ = std::weak_ptr<HybridNitroTextMeasureSpec>;
+  inline std__weak_ptr_HybridNitroTextMeasureSpec_ weakify_std__shared_ptr_HybridNitroTextMeasureSpec_(const std::shared_ptr<HybridNitroTextMeasureSpec>& strong) noexcept { return strong; }
+  
+  // pragma MARK: std::optional<NitroInputEasing>
+  /**
+   * Specialized version of `std::optional<NitroInputEasing>`.
+   */
+  using std__optional_NitroInputEasing_ = std::optional<NitroInputEasing>;
+  inline std::optional<NitroInputEasing> create_std__optional_NitroInputEasing_(const NitroInputEasing& value) noexcept {
+    return std::optional<NitroInputEasing>(value);
+  }
+  inline bool has_value_std__optional_NitroInputEasing_(const std::optional<NitroInputEasing>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline NitroInputEasing get_std__optional_NitroInputEasing_(const std::optional<NitroInputEasing>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::optional<NitroInputEffect>
+  /**
+   * Specialized version of `std::optional<NitroInputEffect>`.
+   */
+  using std__optional_NitroInputEffect_ = std::optional<NitroInputEffect>;
+  inline std::optional<NitroInputEffect> create_std__optional_NitroInputEffect_(const NitroInputEffect& value) noexcept {
+    return std::optional<NitroInputEffect>(value);
+  }
+  inline bool has_value_std__optional_NitroInputEffect_(const std::optional<NitroInputEffect>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline NitroInputEffect get_std__optional_NitroInputEffect_(const std::optional<NitroInputEffect>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridNitroTextViewSpec>
+  /**
+   * Specialized version of `std::shared_ptr<HybridNitroTextViewSpec>`.
+   */
+  using std__shared_ptr_HybridNitroTextViewSpec_ = std::shared_ptr<HybridNitroTextViewSpec>;
+  std::shared_ptr<HybridNitroTextViewSpec> create_std__shared_ptr_HybridNitroTextViewSpec_(void* NON_NULL swiftUnsafePointer) noexcept;
+  void* NON_NULL get_std__shared_ptr_HybridNitroTextViewSpec_(std__shared_ptr_HybridNitroTextViewSpec_ cppType);
+  
+  // pragma MARK: std::weak_ptr<HybridNitroTextViewSpec>
+  using std__weak_ptr_HybridNitroTextViewSpec_ = std::weak_ptr<HybridNitroTextViewSpec>;
+  inline std__weak_ptr_HybridNitroTextViewSpec_ weakify_std__shared_ptr_HybridNitroTextViewSpec_(const std::shared_ptr<HybridNitroTextViewSpec>& strong) noexcept { return strong; }
+  
   // pragma MARK: std::shared_ptr<HybridNitroPlatformNumberFormatterSpec>
   /**
    * Specialized version of `std::shared_ptr<HybridNitroPlatformNumberFormatterSpec>`.
@@ -614,17 +746,6 @@ namespace margelo::nitro::nitroinput::bridge::swift {
   // pragma MARK: std::weak_ptr<HybridNitroPlatformNumberFormatterSpec>
   using std__weak_ptr_HybridNitroPlatformNumberFormatterSpec_ = std::weak_ptr<HybridNitroPlatformNumberFormatterSpec>;
   inline std__weak_ptr_HybridNitroPlatformNumberFormatterSpec_ weakify_std__shared_ptr_HybridNitroPlatformNumberFormatterSpec_(const std::shared_ptr<HybridNitroPlatformNumberFormatterSpec>& strong) noexcept { return strong; }
-  
-  // pragma MARK: std::vector<std::string>
-  /**
-   * Specialized version of `std::vector<std::string>`.
-   */
-  using std__vector_std__string_ = std::vector<std::string>;
-  inline std::vector<std::string> create_std__vector_std__string_(size_t size) noexcept {
-    std::vector<std::string> vector;
-    vector.reserve(size);
-    return vector;
-  }
   
   // pragma MARK: std::shared_ptr<HybridNitroNumberFormatPlatformSpec>
   /**
