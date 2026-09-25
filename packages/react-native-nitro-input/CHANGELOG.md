@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- **`NumberFormat`**: `Intl.NumberFormat`'s API, formatted natively.
+  `new NumberFormat(locales, options)` learns the locale's format once from
+  the platform's formatter (Foundation / ICU, the data Hermes' `Intl` uses)
+  and formats in C++ from then on: `format`, `formatToParts` (on iOS too),
+  `resolvedOptions` and `supportedLocalesOf`, every option of
+  `Intl.NumberFormatOptions` (compact and scientific notation, units and
+  currency names through the platform formatter), numbers, bigints and
+  decimal strings. Formatters are immutable and shared. On a Galaxy A22 a
+  formatter builds in 9 µs instead of 3.5 ms and formats in 2.7 µs instead
+  of 10.5 µs. Where Hermes departs from ECMA-402 (iOS rounds ties to even on
+  the binary double, and prints NaN and infinities without the currency;
+  Android shows narrow currency symbols in zh-CN) it follows the
+  specification, as V8 does.
+- The Android `minSdkVersion` default is 24, as React Native's.
+
 ## 0.2.0
 
 - `react-native-nitro-rolling-number` is part of this package now, and its

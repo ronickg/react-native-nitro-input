@@ -38,8 +38,13 @@ export const INPUT_IMPLS = [
   ['nitro-mask', '**NitroInput (mask)**'],
   ['expo', 'Expo UI TextField'],
 ]
-const ORDER = new Map([...IMPLS, ...INPUT_IMPLS].map(([k], i) => [k, i]))
-const LABEL = new Map([...IMPLS, ...INPUT_IMPLS])
+// Mirrors bench/src/bench/formatters.ts.
+export const FORMAT_IMPLS = [
+  ['intl', 'Intl.NumberFormat (Hermes)'],
+  ['nitro', '**NumberFormat (native)**'],
+]
+const ORDER = new Map([...IMPLS, ...INPUT_IMPLS, ...FORMAT_IMPLS].map(([k], i) => [k, i]))
+const LABEL = new Map([...IMPLS, ...INPUT_IMPLS, ...FORMAT_IMPLS])
 
 export function loadRun(file) {
   const events = fs
@@ -71,7 +76,14 @@ const rateText = (rate) => (rate === 'frame' ? 'new value every frame' : `${rate
 const thermalBefore = (r) => (typeof r.thermal === 'string' ? r.thermal : r.thermal?.before)
 const THROTTLED = new Set(['serious', 'severe', 'critical', 'emergency', 'shutdown'])
 /** Tables in this order: the stream matrix (heavier first), then the list, mount, typing and focus. */
-const KIND_ORDER = { stream: 0, list: 1, mount: 2, leak: 3, leaklist: 4, footprint: 5, type: 6, focus: 7 }
+const KIND_ORDER = { stream: 0, list: 1, mount: 2, leak: 3, leaklist: 4, footprint: 5, type: 6, focus: 7, format: 8 }
+const FORMAT_OP_ORDER = ['construct', 'format', 'formatToParts', 'toLocaleString']
+const FORMAT_OP_TITLE = {
+  construct: 'Formatting: building a formatter',
+  format: 'Formatting: format() with a built formatter',
+  formatToParts: 'Formatting: formatToParts() with a built formatter',
+  toLocaleString: 'Formatting: toLocaleString(), a formatter per call',
+}
 
 export function groupKey(r) {
   switch (kindOf(r)) {
@@ -92,6 +104,8 @@ export function groupKey(r) {
       return `leaklist|${r.rows}`
     case 'footprint':
       return `footprint|${r.count}`
+    case 'format':
+      return `format|${r.op}`
     default:
       return kindOf(r)
   }
@@ -115,6 +129,8 @@ export function groupTitle(r) {
       return `Memory over about ${Math.round(r.seconds / 10) * 10} s of a list of ${r.rows} rows scrolling`
     case 'footprint':
       return `Memory per copy, ${r.count} mounted at once`
+    case 'format':
+      return FORMAT_OP_TITLE[r.op] ?? `Formatting: ${r.op}`
     default:
       return kindOf(r)
   }
@@ -147,6 +163,8 @@ function columns(kind, android) {
       cols.push('left behind per copy')
       return cols
     }
+    case 'format':
+      return ['Implementation', 'µs per call', 'fastest batch', 'slowest batch', 'first call ms']
     default:
       return ['Implementation']
   }
@@ -217,6 +235,10 @@ function cells(kind, ok, android) {
       out.push(kb(m((r) => r.leftFootprintKb)))
       return out
     }
+    case 'format': {
+      const us = (x) => (x == null ? '–' : x >= 100 ? x.toFixed(0) : x.toFixed(2))
+      return [us(m((r) => r.us.p50)), us(m((r) => r.us.min)), us(m((r) => r.us.max)), f1(m((r) => r.firstMs))]
+    }
     default:
       return []
   }
@@ -244,6 +266,7 @@ export function renderRun(run) {
       return b.sample.count - a.sample.count || ra - rb
     }
     if (a.kind === 'type') return a.sample.rate - b.sample.rate
+    if (a.kind === 'format') return FORMAT_OP_ORDER.indexOf(a.sample.op) - FORMAT_OP_ORDER.indexOf(b.sample.op)
     return 0
   })
   let out = ''
@@ -325,6 +348,7 @@ export function summarizeRun(run) {
       return b.sample.count - a.sample.count || ra - rb
     }
     if (a.kind === 'type') return a.sample.rate - b.sample.rate
+    if (a.kind === 'format') return FORMAT_OP_ORDER.indexOf(a.sample.op) - FORMAT_OP_ORDER.indexOf(b.sample.op)
     return 0
   })
   const d = run.device

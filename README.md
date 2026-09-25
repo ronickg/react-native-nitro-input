@@ -178,6 +178,29 @@ Typed into at eight keys a second by the benchmark probe, the way a keyboard typ
 
 Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inputs); as charts: [the input benchmarks page](https://ronickg.github.io/react-native-nitro-input/docs/benchmarks).
 
+## NumberFormat
+
+`NumberFormat` is `Intl.NumberFormat`, formatted natively. It learns a locale's format once from the platform's own formatter (Foundation on iOS, ICU on Android, the data Hermes' `Intl` uses too) and formats every number after that in C++, so the output matches Hermes' `Intl` while building a formatter and formatting stop costing milliseconds. It also brings what Hermes leaves out on iOS: `formatToParts`, `signDisplay`, rounding modes and increments, and ECMA-402's rounding of ties (`1.005` → `1.01`).
+
+```ts
+import { NumberFormat } from 'react-native-nitro-input'
+
+const php = new NumberFormat('en-PH', { style: 'currency', currency: 'PHP' })
+php.format(1234.5) // "₱1,234.50"
+php.formatToParts(-12)
+```
+
+Per call, Release builds, against Hermes' `Intl.NumberFormat`:
+
+| | iPhone 11 Pro | Galaxy A22 |
+| --- | --- | --- |
+| Building a formatter | 3.3 µs (Hermes 44 µs) | 9.3 µs (Hermes 3.5 ms) |
+| `format()` | 1.0 µs (Hermes 1.6 µs) | 2.7 µs (Hermes 10.5 µs) |
+| `formatToParts()` | 2.8 µs (Hermes: not implemented) | 7.6 µs (Hermes 99 µs) |
+| A formatter per call (`toLocaleString`) | 4.0 µs (Hermes 90 µs) | 11 µs (Hermes 2.0 ms) |
+
+[Guide →](https://ronickg.github.io/react-native-nitro-input/docs/number-format)
+
 ## Repository
 
 - [`packages/react-native-nitro-input`](packages/react-native-nitro-input) – the package: the shared C++ engines (`cpp/RollingEngine` for NitroNumber; `cpp/ReflowEngine`, `cpp/AmountFormatter`, `cpp/MaskEngine` and `cpp/OutlineGeometry` for the input), the Swift and Kotlin views (the input's around a hidden system text field), the Nitro specs and the JS wrappers. Its [README](packages/react-native-nitro-input/README.md) is the API reference.

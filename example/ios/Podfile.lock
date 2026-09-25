@@ -36,7 +36,7 @@ PODS:
   - hermes-engine (250829098.0.17):
     - hermes-engine/Pre-built (= 250829098.0.17)
   - hermes-engine/Pre-built (250829098.0.17)
-  - NitroInput (0.1.0):
+  - NitroInput (0.2.0):
     - hermes-engine
     - NitroModules
     - RCTRequired
@@ -2304,7 +2304,7 @@ SPEC CHECKSUMS:
   fmt: ba0886e864ebb21d14c98b2e12e164b8002f5b93
   glog: 3cf7cb46f743c4bc758ae3e6d9c15bd1b4cfd6d4
   hermes-engine: 35975068890c71d4609534b47111140882468c3a
-  NitroInput: 0e4c130477af3dae16e49df3ab860760c542ebd8
+  NitroInput: 3f0f57006ab3c61ff178f053981504ad2d99d6d1
   NitroModules: b4d92f95f7e70027935b09736d7a589181bc0912
   RCT-Folly: 82921e585c0400eda46fac1068297aa9dfb035e4
   RCTDeprecation: 5cc865306ce4974b7a57ddbc575fd1f3fef41957

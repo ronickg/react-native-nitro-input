@@ -1,0 +1,60 @@
+---
+title: NumberFormat
+description: Intl.NumberFormat's API, formatted natively. Built once per locale from the platform's own data, then formatted in C++ without a platform call per number.
+---
+
+# NumberFormat
+
+`NumberFormat` has the API of `Intl.NumberFormat` and formats natively:
+
+```ts
+import { NumberFormat } from 'react-native-nitro-input'
+
+const php = new NumberFormat('en-PH', { style: 'currency', currency: 'PHP' })
+php.format(1234.5) // "₱1,234.50"
+php.formatToParts(-12) // [{ type: 'minusSign', value: '-' }, { type: 'currency', value: '₱' }, …]
+php.resolvedOptions().maximumFractionDigits // 2
+```
+
+Swap `new Intl.NumberFormat(` for `new NumberFormat(` and the output stays the same: it is checked against Hermes' `Intl` on both platforms, for 25 locales and every style, in the library's on-device tests.
+
+## Why
+
+In Hermes, building an `Intl.NumberFormat` is slow, and on Android every `format()` also goes through JNI to Java's ICU:
+
+- **Building one** costs about 3.5 ms on a Galaxy A22 (44 µs on an iPhone 11 Pro). An app that builds formatters as it renders (or calls `toLocaleString`, which builds one per call) pays that for every amount on screen, which on a budget phone adds up to hundreds of milliseconds of startup.
+- **iOS lacks parts of the API.** Hermes' `Intl` on iOS has no `formatToParts`, no `signDisplay` and no compact notation, and it rounds ties to even on the binary double, so `1.005` prints `1.00` instead of `1.01`.
+
+`NumberFormat` learns a locale's format once from the platform's own formatter (Foundation's `NumberFormatter` on iOS, ICU on Android: the same data Hermes' `Intl` uses), then formats every number in C++. Formatters are immutable and cached: building one with locales and options seen before returns the same object, so there is nothing to memoize.
+
+## What it supports
+
+Everything in `Intl.NumberFormatOptions`:
+
+| | |
+| --- | --- |
+| Styles | `decimal`, `currency`, `percent`, `unit` (Android) |
+| Currency | `currencyDisplay`: `symbol`, `narrowSymbol`, `code`, `name`; `currencySign: 'accounting'` |
+| Digits | `minimumIntegerDigits`, fraction and significant digits, `roundingPriority`, `roundingIncrement`, `trailingZeroDisplay` |
+| Rounding | every `roundingMode`, on the decimal the number stands for (`1.005` → `1.01`) |
+| Signs and grouping | every `signDisplay`; `useGrouping`: `true`, `false`, `'always'`, `'auto'`, `'min2'` |
+| Notation | `standard` in C++; `compact`, `scientific` and `engineering` through the platform formatter |
+| Numbers | `number`, `bigint` (up to 64 bits) and decimal strings, formatted exactly: `format('12345678901234567890.125')` |
+| Numbering systems | `-u-nu-` in the locale or `numberingSystem` (Arabic-Indic, Devanagari, …) |
+
+Compact and scientific notation, units and currency names are formatted by the platform formatter, still synchronously; everything else never leaves C++. A formatter can be used from a worklet.
+
+Where Hermes' `Intl` does not follow ECMA-402 (the iOS rounding above, NaN and infinities printed without the currency), `NumberFormat` follows the specification, as V8 does.
+
+## Measured
+
+Per call on the JS thread, Release builds, cycling through six locale and currency setups (en-US USD, en-PH PHP, de-DE EUR, en-IN INR, ja-JP JPY, fr-FR decimal); the benchmark is the `format` plan of `scripts/bench/run.mjs`.
+
+| | iPhone 11 Pro, Hermes | iPhone 11 Pro, `NumberFormat` | Galaxy A22, Hermes | Galaxy A22, `NumberFormat` |
+| --- | --- | --- | --- | --- |
+| Building a formatter | 44 µs | 3.3 µs | 3,476 µs | 9.3 µs |
+| `format()` | 1.6 µs | 1.0 µs | 10.5 µs | 2.7 µs |
+| `formatToParts()` | not implemented | 2.8 µs | 99 µs | 7.6 µs |
+| A formatter per call (`toLocaleString`) | 90 µs | 4.0 µs | 1,983 µs | 11 µs |
+
+The first formatter for a new locale and currency asks the platform once, about as long as building one `Intl.NumberFormat`; every formatter after that for the same locale and currency, whatever its digit options, does not.

@@ -9,7 +9,9 @@
 
 // Include C++ implementation defined types
 #include "HybridNitroInputViewSpecSwift.hpp"
+#include "HybridNitroNumberFormatPlatformSpecSwift.hpp"
 #include "HybridNitroNumberViewSpecSwift.hpp"
+#include "HybridNitroPlatformNumberFormatterSpecSwift.hpp"
 #include "NitroInput-Swift-Cxx-Umbrella.hpp"
 #include <NitroModules/NitroDefines.hpp>
 
@@ -100,6 +102,38 @@ namespace margelo::nitro::nitroinput::bridge::swift {
     }
     #endif
     NitroInput::HybridNitroNumberViewSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
+    return swiftPart.toUnsafe();
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridNitroPlatformNumberFormatterSpec>
+  std::shared_ptr<HybridNitroPlatformNumberFormatterSpec> create_std__shared_ptr_HybridNitroPlatformNumberFormatterSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
+    NitroInput::HybridNitroPlatformNumberFormatterSpec_cxx swiftPart = NitroInput::HybridNitroPlatformNumberFormatterSpec_cxx::fromUnsafe(swiftUnsafePointer);
+    return std::make_shared<margelo::nitro::nitroinput::HybridNitroPlatformNumberFormatterSpecSwift>(swiftPart);
+  }
+  void* NON_NULL get_std__shared_ptr_HybridNitroPlatformNumberFormatterSpec_(std__shared_ptr_HybridNitroPlatformNumberFormatterSpec_ cppType) {
+    std::shared_ptr<margelo::nitro::nitroinput::HybridNitroPlatformNumberFormatterSpecSwift> swiftWrapper = std::dynamic_pointer_cast<margelo::nitro::nitroinput::HybridNitroPlatformNumberFormatterSpecSwift>(cppType);
+    #ifdef NITRO_DEBUG
+    if (swiftWrapper == nullptr) [[unlikely]] {
+      throw std::runtime_error("Class \"HybridNitroPlatformNumberFormatterSpec\" is not implemented in Swift!");
+    }
+    #endif
+    NitroInput::HybridNitroPlatformNumberFormatterSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
+    return swiftPart.toUnsafe();
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridNitroNumberFormatPlatformSpec>
+  std::shared_ptr<HybridNitroNumberFormatPlatformSpec> create_std__shared_ptr_HybridNitroNumberFormatPlatformSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
+    NitroInput::HybridNitroNumberFormatPlatformSpec_cxx swiftPart = NitroInput::HybridNitroNumberFormatPlatformSpec_cxx::fromUnsafe(swiftUnsafePointer);
+    return std::make_shared<margelo::nitro::nitroinput::HybridNitroNumberFormatPlatformSpecSwift>(swiftPart);
+  }
+  void* NON_NULL get_std__shared_ptr_HybridNitroNumberFormatPlatformSpec_(std__shared_ptr_HybridNitroNumberFormatPlatformSpec_ cppType) {
+    std::shared_ptr<margelo::nitro::nitroinput::HybridNitroNumberFormatPlatformSpecSwift> swiftWrapper = std::dynamic_pointer_cast<margelo::nitro::nitroinput::HybridNitroNumberFormatPlatformSpecSwift>(cppType);
+    #ifdef NITRO_DEBUG
+    if (swiftWrapper == nullptr) [[unlikely]] {
+      throw std::runtime_error("Class \"HybridNitroNumberFormatPlatformSpec\" is not implemented in Swift!");
+    }
+    #endif
+    NitroInput::HybridNitroNumberFormatPlatformSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
     return swiftPart.toUnsafe();
   }
 

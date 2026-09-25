@@ -21,6 +21,9 @@ add_library(${PACKAGE_NAME} SHARED
         ../cpp/RollingEngine.cpp
         ../cpp/worklets/NitroInputWorkletsBridge.cpp
         ../cpp/worklets/HybridNitroInputWorklets.cpp
+        ../cpp/numberformat/NumberFormatCore.cpp
+        ../cpp/numberformat/NumberFormatProbe.cpp
+        ../cpp/numberformat/HybridNitroNumberFormat.cpp
 )
 
 # Add Nitrogen specs :)
@@ -31,6 +34,7 @@ include_directories(
         "src/main/cpp"
         "../cpp"
         "../cpp/worklets"
+        "../cpp/numberformat"
 )
 
 # Worklets are optional: with react-native-worklets installed the views can

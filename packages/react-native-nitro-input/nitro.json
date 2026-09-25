@@ -38,6 +38,22 @@
         "language": "kotlin",
         "implementationClassName": "HybridNitroNumberView"
       }
+    },
+    "NitroNumberFormatFactory": {
+      "all": {
+        "language": "c++",
+        "implementationClassName": "HybridNitroNumberFormatFactory"
+      }
+    },
+    "NitroNumberFormatPlatform": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridNitroNumberFormatPlatform"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridNitroNumberFormatPlatform"
+      }
     }
   },
   "ignorePaths": [

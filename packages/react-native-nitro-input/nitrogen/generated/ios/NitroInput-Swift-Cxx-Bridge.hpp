@@ -10,8 +10,12 @@
 // Forward declarations of C++ defined types
 // Forward declaration of `HybridNitroInputViewSpec` to properly resolve imports.
 namespace margelo::nitro::nitroinput { class HybridNitroInputViewSpec; }
+// Forward declaration of `HybridNitroNumberFormatPlatformSpec` to properly resolve imports.
+namespace margelo::nitro::nitroinput { class HybridNitroNumberFormatPlatformSpec; }
 // Forward declaration of `HybridNitroNumberViewSpec` to properly resolve imports.
 namespace margelo::nitro::nitroinput { class HybridNitroNumberViewSpec; }
+// Forward declaration of `HybridNitroPlatformNumberFormatterSpec` to properly resolve imports.
+namespace margelo::nitro::nitroinput { class HybridNitroPlatformNumberFormatterSpec; }
 // Forward declaration of `NitroInputNotation` to properly resolve imports.
 namespace margelo::nitro::nitroinput { struct NitroInputNotation; }
 // Forward declaration of `NitroNumberAffixAlign` to properly resolve imports.
@@ -30,12 +34,18 @@ namespace margelo::nitro::nitroinput { enum class NitroNumberTransition; }
 // Forward declarations of Swift defined types
 // Forward declaration of `HybridNitroInputViewSpec_cxx` to properly resolve imports.
 namespace NitroInput { class HybridNitroInputViewSpec_cxx; }
+// Forward declaration of `HybridNitroNumberFormatPlatformSpec_cxx` to properly resolve imports.
+namespace NitroInput { class HybridNitroNumberFormatPlatformSpec_cxx; }
 // Forward declaration of `HybridNitroNumberViewSpec_cxx` to properly resolve imports.
 namespace NitroInput { class HybridNitroNumberViewSpec_cxx; }
+// Forward declaration of `HybridNitroPlatformNumberFormatterSpec_cxx` to properly resolve imports.
+namespace NitroInput { class HybridNitroPlatformNumberFormatterSpec_cxx; }
 
 // Include C++ defined types
 #include "HybridNitroInputViewSpec.hpp"
+#include "HybridNitroNumberFormatPlatformSpec.hpp"
 #include "HybridNitroNumberViewSpec.hpp"
+#include "HybridNitroPlatformNumberFormatterSpec.hpp"
 #include "NitroInputNotation.hpp"
 #include "NitroNumberAffixAlign.hpp"
 #include "NitroNumberDirection.hpp"
@@ -592,5 +602,58 @@ namespace margelo::nitro::nitroinput::bridge::swift {
   // pragma MARK: std::weak_ptr<HybridNitroNumberViewSpec>
   using std__weak_ptr_HybridNitroNumberViewSpec_ = std::weak_ptr<HybridNitroNumberViewSpec>;
   inline std__weak_ptr_HybridNitroNumberViewSpec_ weakify_std__shared_ptr_HybridNitroNumberViewSpec_(const std::shared_ptr<HybridNitroNumberViewSpec>& strong) noexcept { return strong; }
+  
+  // pragma MARK: std::shared_ptr<HybridNitroPlatformNumberFormatterSpec>
+  /**
+   * Specialized version of `std::shared_ptr<HybridNitroPlatformNumberFormatterSpec>`.
+   */
+  using std__shared_ptr_HybridNitroPlatformNumberFormatterSpec_ = std::shared_ptr<HybridNitroPlatformNumberFormatterSpec>;
+  std::shared_ptr<HybridNitroPlatformNumberFormatterSpec> create_std__shared_ptr_HybridNitroPlatformNumberFormatterSpec_(void* NON_NULL swiftUnsafePointer) noexcept;
+  void* NON_NULL get_std__shared_ptr_HybridNitroPlatformNumberFormatterSpec_(std__shared_ptr_HybridNitroPlatformNumberFormatterSpec_ cppType);
+  
+  // pragma MARK: std::weak_ptr<HybridNitroPlatformNumberFormatterSpec>
+  using std__weak_ptr_HybridNitroPlatformNumberFormatterSpec_ = std::weak_ptr<HybridNitroPlatformNumberFormatterSpec>;
+  inline std__weak_ptr_HybridNitroPlatformNumberFormatterSpec_ weakify_std__shared_ptr_HybridNitroPlatformNumberFormatterSpec_(const std::shared_ptr<HybridNitroPlatformNumberFormatterSpec>& strong) noexcept { return strong; }
+  
+  // pragma MARK: std::vector<std::string>
+  /**
+   * Specialized version of `std::vector<std::string>`.
+   */
+  using std__vector_std__string_ = std::vector<std::string>;
+  inline std::vector<std::string> create_std__vector_std__string_(size_t size) noexcept {
+    std::vector<std::string> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridNitroNumberFormatPlatformSpec>
+  /**
+   * Specialized version of `std::shared_ptr<HybridNitroNumberFormatPlatformSpec>`.
+   */
+  using std__shared_ptr_HybridNitroNumberFormatPlatformSpec_ = std::shared_ptr<HybridNitroNumberFormatPlatformSpec>;
+  std::shared_ptr<HybridNitroNumberFormatPlatformSpec> create_std__shared_ptr_HybridNitroNumberFormatPlatformSpec_(void* NON_NULL swiftUnsafePointer) noexcept;
+  void* NON_NULL get_std__shared_ptr_HybridNitroNumberFormatPlatformSpec_(std__shared_ptr_HybridNitroNumberFormatPlatformSpec_ cppType);
+  
+  // pragma MARK: std::weak_ptr<HybridNitroNumberFormatPlatformSpec>
+  using std__weak_ptr_HybridNitroNumberFormatPlatformSpec_ = std::weak_ptr<HybridNitroNumberFormatPlatformSpec>;
+  inline std__weak_ptr_HybridNitroNumberFormatPlatformSpec_ weakify_std__shared_ptr_HybridNitroNumberFormatPlatformSpec_(const std::shared_ptr<HybridNitroNumberFormatPlatformSpec>& strong) noexcept { return strong; }
+  
+  // pragma MARK: Result<std::shared_ptr<HybridNitroPlatformNumberFormatterSpec>>
+  using Result_std__shared_ptr_HybridNitroPlatformNumberFormatterSpec__ = Result<std::shared_ptr<HybridNitroPlatformNumberFormatterSpec>>;
+  inline Result_std__shared_ptr_HybridNitroPlatformNumberFormatterSpec__ create_Result_std__shared_ptr_HybridNitroPlatformNumberFormatterSpec__(const std::shared_ptr<HybridNitroPlatformNumberFormatterSpec>& value) noexcept {
+    return Result<std::shared_ptr<HybridNitroPlatformNumberFormatterSpec>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_HybridNitroPlatformNumberFormatterSpec__ create_Result_std__shared_ptr_HybridNitroPlatformNumberFormatterSpec__(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<HybridNitroPlatformNumberFormatterSpec>>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::vector<std::string>>
+  using Result_std__vector_std__string__ = Result<std::vector<std::string>>;
+  inline Result_std__vector_std__string__ create_Result_std__vector_std__string__(const std::vector<std::string>& value) noexcept {
+    return Result<std::vector<std::string>>::withValue(value);
+  }
+  inline Result_std__vector_std__string__ create_Result_std__vector_std__string__(const std::exception_ptr& error) noexcept {
+    return Result<std::vector<std::string>>::withError(error);
+  }
 
 } // namespace margelo::nitro::nitroinput::bridge::swift
