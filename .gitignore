@@ -16,6 +16,7 @@ example/android/local.properties
 example/ios/build/
 *.log
 example/ios/build-device/
+example/ios/build-device-debug/
 .claude/
 raw/
 scripts/iosrec/IosRec.app/Contents/MacOS/iosrec

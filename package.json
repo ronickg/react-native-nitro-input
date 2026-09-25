@@ -16,6 +16,7 @@
     "example": "bun --cwd example",
     "bench": "bun --cwd bench",
     "test:harness:ios": "bun --cwd example test:harness:ios",
+    "test:harness:ios-device": "bun --cwd example test:harness:ios-device",
     "test:harness:android": "bun --cwd example test:harness:android",
     "test:harness:android-device": "bun --cwd example test:harness:android-device"
   },
