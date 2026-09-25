@@ -202,6 +202,14 @@ export interface NitroNumberProps extends Omit<ViewProps, 'children'> {
   /** Points the suffix is moved down after `suffixAlign` places it (negative: up). Default: `0`. */
   suffixOffset?: number
   /**
+   * `true` (the default): every digit as wide as the widest, so columns never
+   * move, what a ticker or a price wants. `false`: each digit at its own
+   * width, the font's proportional figures, for a face whose "1" is narrow
+   * (or that has no tabular figures at all); a column's width then eases
+   * between the digits it rolls through.
+   */
+  tabularNums?: boolean
+  /**
    * A `NumberFormat` the number follows: its prefix and suffix (the currency
    * where the locale puts it), grouping and decimal separators, fraction
    * digits and minimum integer digits. The individual props override what it
@@ -325,6 +333,7 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
       suffixSpacing,
       prefixOffset,
       suffixOffset,
+      tabularNums,
       format,
       adjustsFontSizeToFit,
       minimumFontScale,
@@ -500,6 +509,7 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
         suffixSpacing={suffixSpacing ?? Infinity}
         prefixOffset={prefixOffset ?? 0}
         suffixOffset={suffixOffset ?? 0}
+        tabularNums={tabularNums ?? true}
         adjustsFontSizeToFit={adjustsFontSizeToFit ?? false}
         minimumFontScale={minimumFontScale ?? 0.5}
         allowFontScaling={allowFontScaling ?? false}

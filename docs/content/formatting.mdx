@@ -96,6 +96,14 @@ Try **Switch currency** above: every transition plays it, the roll included.
 
 `NitroInput` takes the same five props.
 
+## Proportional digits
+
+Digits are tabular by default: every one as wide as the widest, so a column never moves as the value changes, which is what a ticker or a price list wants. `tabularNums={false}` sets each digit at its own width instead, the font's proportional figures. Use it for a face whose "1" is much narrower than its "0", or that has no tabular figures at all, where tabular digits leave gaps around every 1. While a column rolls or swaps, its width eases between the digits it passes, and a reveal keeps its target's widths from the first frame, so the count does not shuffle.
+
+```tsx
+<NitroNumber value={1111.11} fontFamily="OpenRunde-Bold" tabularNums={false} />
+```
+
 ## Fonts
 
 `fontSize`, `fontWeight`, `fontFamily` and `color` work like `Text`'s, and custom fonts resolve the same way (`UIAppFonts` on iOS, React Native's font manager on Android, including `expo-font`). Digits use tabular figures, so every column has the same width. `allowFontScaling` follows the system text size, capped by `maxFontSizeMultiplier`; it is off by default, so an amount keeps its design size.

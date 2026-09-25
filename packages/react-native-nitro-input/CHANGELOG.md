@@ -24,6 +24,10 @@
   **`prefixOffset` / `suffixOffset`** on both components: tracking like
   `Text`'s (affixes in proportion to their size), an exact gap between an
   affix and the digits, and a nudge of an affix after its alignment.
+- **`tabularNums={false}`** on `NitroNumber`: each digit at its own width
+  (the font's proportional figures) instead of the widest digit's. A
+  column's width eases between the digits it rolls or swaps through, and a
+  reveal keeps its target's widths throughout. Tabular stays the default.
 - An `accessibilityLabel` given to `NitroNumber` is what VoiceOver and
   TalkBack read; the figure was read instead.
 - The Android `minSdkVersion` default is 24, as React Native's.

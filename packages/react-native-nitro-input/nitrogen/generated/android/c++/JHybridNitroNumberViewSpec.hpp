@@ -128,6 +128,8 @@ namespace margelo::nitro::nitroinput {
     void setPrefixOffset(std::optional<double> prefixOffset) override;
     std::optional<double> getSuffixOffset() override;
     void setSuffixOffset(std::optional<double> suffixOffset) override;
+    std::optional<bool> getTabularNums() override;
+    void setTabularNums(std::optional<bool> tabularNums) override;
     std::optional<bool> getAdjustsFontSizeToFit() override;
     void setAdjustsFontSizeToFit(std::optional<bool> adjustsFontSizeToFit) override;
     std::optional<double> getMinimumFontScale() override;

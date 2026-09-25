@@ -249,6 +249,11 @@ void JHybridNitroNumberViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCl
     hybridView->setSuffixOffset(newProps->suffixOffset.get());
   }
   if (oldProps == nullptr
+        ? newProps->tabularNums.isProvided()
+        : !newProps->tabularNums.hasSameValue(oldProps->tabularNums)) {
+    hybridView->setTabularNums(newProps->tabularNums.get());
+  }
+  if (oldProps == nullptr
         ? newProps->adjustsFontSizeToFit.isProvided()
         : !newProps->adjustsFontSizeToFit.hasSameValue(oldProps->adjustsFontSizeToFit)) {
     hybridView->setAdjustsFontSizeToFit(newProps->adjustsFontSizeToFit.get());

@@ -195,6 +195,8 @@ export interface NitroNumberProps extends HybridViewProps {
   prefixOffset?: number
   /** Points the suffix is moved down after its alignment (negative: up). Default: `0`. */
   suffixOffset?: number
+  /** Every digit as wide as the widest (`true`, the default), or each digit at its own width. */
+  tabularNums?: boolean
   /**
    * When the view is narrower than the number (e.g. it has a fixed `width` or
    * `maxWidth`), scale the whole number down so it fits. Default: `false`.

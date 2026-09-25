@@ -89,6 +89,7 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<std::optional<double>> suffixSpacing;
     nitro::ReactProp<std::optional<double>> prefixOffset;
     nitro::ReactProp<std::optional<double>> suffixOffset;
+    nitro::ReactProp<std::optional<bool>> tabularNums;
     nitro::ReactProp<std::optional<bool>> adjustsFontSizeToFit;
     nitro::ReactProp<std::optional<double>> minimumFontScale;
     nitro::ReactProp<std::optional<bool>> allowFontScaling;
@@ -144,6 +145,7 @@ namespace margelo::nitro::nitroinput::views {
              suffixSpacing.hasSameValue(other.suffixSpacing) &&
              prefixOffset.hasSameValue(other.prefixOffset) &&
              suffixOffset.hasSameValue(other.suffixOffset) &&
+             tabularNums.hasSameValue(other.tabularNums) &&
              adjustsFontSizeToFit.hasSameValue(other.adjustsFontSizeToFit) &&
              minimumFontScale.hasSameValue(other.minimumFontScale) &&
              allowFontScaling.hasSameValue(other.allowFontScaling) &&
@@ -200,6 +202,7 @@ namespace margelo::nitro::nitroinput::views {
              suffixSpacing.isProvided() ||
              prefixOffset.isProvided() ||
              suffixOffset.isProvided() ||
+             tabularNums.isProvided() ||
              adjustsFontSizeToFit.isProvided() ||
              minimumFontScale.isProvided() ||
              allowFontScaling.isProvided() ||

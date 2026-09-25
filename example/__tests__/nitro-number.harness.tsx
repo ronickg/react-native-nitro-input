@@ -273,6 +273,33 @@ describe('NitroNumber', () => {
     expectSameLength(euroFormat.state.current!.width, euroExplicit.state.current!.width)
   })
 
+  it('lays proportional digits out at their own widths, and rolls into the new width', async () => {
+    const tabularOnes = layoutOf()
+    const tabularEights = layoutOf()
+    const ones = layoutOf()
+    const eights = layoutOf()
+    const rolling = layoutOf()
+    const ref = createRef<NitroNumberHandle>()
+    await render(
+      <View>
+        <NitroNumber value={1111} fontSize={24} style={content} onLayout={tabularOnes.onLayout} />
+        <NitroNumber value={8888} fontSize={24} style={content} onLayout={tabularEights.onLayout} />
+        <NitroNumber value={1111} fontSize={24} tabularNums={false} style={content} onLayout={ones.onLayout} />
+        <NitroNumber value={8888} fontSize={24} tabularNums={false} style={content} onLayout={eights.onLayout} />
+        <NitroNumber ref={ref} value={1111} fontSize={24} tabularNums={false} duration={200} style={content} onLayout={rolling.onLayout} />
+      </View>
+    )
+    const all = [tabularOnes, tabularEights, ones, eights, rolling]
+    await waitFor(() => expect(Math.min(...all.map((l) => l.state.current?.width ?? 0))).toBeGreaterThan(0))
+    // Tabular: every digit as wide as the widest.
+    expectSameLength(tabularOnes.state.current!.width, tabularEights.state.current!.width)
+    // Proportional: a "1" is narrower than an "8" in the system fonts.
+    expect(ones.state.current!.width).toBeLessThan(eights.state.current!.width - 2)
+    expectSameLength(rolling.state.current!.width, ones.state.current!.width)
+    ref.current?.animateTo(8888)
+    await waitFor(() => expectSameLength(rolling.state.current!.width, eights.state.current!.width), { timeout: 3000 })
+  })
+
   it('mirrors under a right-to-left layout without changing its size', async () => {
     const ltr = layoutOf()
     const rtl = layoutOf()

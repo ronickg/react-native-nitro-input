@@ -90,6 +90,7 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
   var suffixSpacing: Double? { didSet { markConfigDirty() } }
   var prefixOffset: Double? { didSet { markConfigDirty() } }
   var suffixOffset: Double? { didSet { markConfigDirty() } }
+  var tabularNums: Bool? { didSet { markConfigDirty() } }
   var adjustsFontSizeToFit: Bool? { didSet { markConfigDirty() } }
   var minimumFontScale: Double? { didSet { markConfigDirty() } }
   var allowFontScaling: Bool? { didSet { markConfigDirty() } }
@@ -235,6 +236,7 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
     suffixSpacing = nil
     prefixOffset = nil
     suffixOffset = nil
+    tabularNums = nil
     adjustsFontSizeToFit = nil
     minimumFontScale = nil
     allowFontScaling = nil
@@ -320,6 +322,7 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
     typography.suffixSpacing = suffixSpacing.flatMap { $0.isFinite ? CGFloat($0) : nil }
     typography.prefixOffset = CGFloat((prefixOffset ?? 0).isFinite ? prefixOffset ?? 0 : 0)
     typography.suffixOffset = CGFloat((suffixOffset ?? 0).isFinite ? suffixOffset ?? 0 : 0)
+    typography.tabularNums = tabularNums ?? true
     typography.adjustsFontSizeToFit = adjustsFontSizeToFit ?? false
     typography.minimumFontScale = CGFloat(min(1, max(0.05, minimumFontScale ?? 0.5)))
     typography.allowFontScaling = allowFontScaling ?? false
