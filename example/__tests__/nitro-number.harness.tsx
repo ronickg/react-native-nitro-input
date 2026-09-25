@@ -300,6 +300,18 @@ describe('NitroNumber', () => {
     await waitFor(() => expectSameLength(rolling.state.current!.width, eights.state.current!.width), { timeout: 3000 })
   })
 
+  it('rolls each digit its own shorter way with direction="shortest" and settles on the value', async () => {
+    const ref = createRef<NitroNumberHandle>()
+    await render(<NitroNumber ref={ref} value={12} direction="shortest" duration={150} style={content} />)
+    await waitFor(() => expect(ref.current?.native).not.toBeNull())
+    ref.current?.animateTo(21)
+    await sleep(400)
+    expect(ref.current?.getValue()).toBe(21)
+    ref.current?.animateTo(12)
+    await sleep(400)
+    expect(ref.current?.getValue()).toBe(12)
+  })
+
   it('mirrors under a right-to-left layout without changing its size', async () => {
     const ltr = layoutOf()
     const rtl = layoutOf()

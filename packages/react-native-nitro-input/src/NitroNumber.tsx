@@ -113,7 +113,12 @@ export interface NitroNumberProps extends Omit<ViewProps, 'children'> {
    * (`150` for the numeric transition).
    */
   stagger?: number
-  /** Which way the digits roll. `'auto'` follows the sign of the change. Default: `'auto'`. */
+  /**
+   * Which way the digits roll. `'auto'` follows the sign of the change;
+   * `'up'` / `'down'` force one; `'shortest'` rolls each digit its own
+   * shorter way round (1 → 2 is one step up even when the value falls, where
+   * `'auto'` rolls nine steps down), which is calmer on big jumps. The numeric transition and the reveal ignore it. Default: `'auto'`.
+   */
   direction?: NitroNumberDirection
   /**
    * Jackpot reveal, the casino "you won" presentation. While `false` the view

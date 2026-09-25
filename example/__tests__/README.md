@@ -22,6 +22,15 @@ are bundled by `node scripts/test262/number-format.mjs` (a pinned test262
 commit, fetched into `scripts/test262/.cache`); without the bundle the suite
 is skipped.
 
+Worklets (`transform`, handlers marked `'worklet'`, `useNitroInputState`) are
+not covered here. Harness serves its own entry point as the main bundle and
+each test file as a separate bundle, and in Worklets Bundle Mode the UI
+runtime evaluates a copy of the main bundle only: neither
+`react-native-worklets` nor a worklet written in a test is in it, so every
+worklet fails with "Requiring unknown module". They are checked in the app
+itself, on the Demo screen's Worklets section; the logic around them is
+covered by Jest (`packages/react-native-nitro-input/src/__tests__/Worklets.test.tsx`).
+
 `App.test.tsx` next to them is an ordinary Jest test and runs on Node
 (`bun run test` in this folder); the harness runner only picks up
 `*.harness.*` files (`jest.harness.config.mjs`).

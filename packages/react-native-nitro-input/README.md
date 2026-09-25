@@ -744,7 +744,7 @@ busy and replays them afterwards.
 | `flashUpColor`, `flashDownColor` | `ColorValue` | unset | The change flash: digits whose glyph changes light up in the up colour when the value grew, the down colour when it shrank, stay lit while they move, and fade back over `flashDuration` once they have landed. Unset: no flash. |
 | `flashDuration` | `number` | `600` | ms a change flash takes to fade, once the digit has landed. |
 | `popOnChange` | `number` | `0` | A punch of the whole figure on every change, peak overshoot 0–1, rung out like the reveal's landing pop. |
-| `direction` | `'auto' \| 'up' \| 'down'` | `'auto'` | Roll direction; `auto` follows the sign of the change. |
+| `direction` | `'auto' \| 'up' \| 'down' \| 'shortest'` | `'auto'` | Roll direction; `auto` follows the sign of the change. `shortest` rolls each digit its own shorter way round. |
 | `reveal` | `boolean` | – | `false` holds the opening frame (`$0.00` in the final layout); `true` plays the reveal to `value`. Unset = a normal NitroNumber. |
 | `revealStyle` | `'count' \| 'spin'` | `'count'` | The win-meter rollup, or slot reels locking from the left. |
 | `revealDuration` | `number` | `2200` | ms of the count, or until the last reel locks (holds and the pop come on top). |

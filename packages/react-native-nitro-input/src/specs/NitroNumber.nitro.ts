@@ -23,7 +23,7 @@ export type NitroNumberEasing =
   | 'spring'
 
 /** Which way the digits roll: `'auto'` follows the sign of the change. */
-export type NitroNumberDirection = 'auto' | 'up' | 'down'
+export type NitroNumberDirection = 'auto' | 'up' | 'down' | 'shortest'
 
 /**
  * How a value change plays. `'roll'` is the odometer: every changed digit

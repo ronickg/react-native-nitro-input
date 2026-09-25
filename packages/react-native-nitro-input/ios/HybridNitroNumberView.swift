@@ -429,6 +429,7 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
     case .auto: return .auto
     case .up: return .up
     case .down: return .down
+    case .shortest: return .shortest
     default: return .auto
     }
   }

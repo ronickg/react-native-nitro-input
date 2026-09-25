@@ -103,7 +103,7 @@ class NitroNumberView(context: Context) : View(context) {
 
   enum class Easing(val raw: Int) { LINEAR(0), EASE_IN(1), EASE_OUT(2), EASE_IN_OUT(3), SPRING(4) }
 
-  enum class Direction(val raw: Int) { AUTO(0), UP(1), DOWN(2) }
+  enum class Direction(val raw: Int) { AUTO(0), UP(1), DOWN(2), SHORTEST(3) }
 
   data class Timing(
     /** The odometer roll, or one of the glyph-swap transitions. */

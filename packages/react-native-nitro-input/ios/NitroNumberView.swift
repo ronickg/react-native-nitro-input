@@ -71,7 +71,7 @@ final class NitroNumberView: UIView {
   }
 
   enum Direction: Int32 {
-    case auto = 0, up = 1, down = 2
+    case auto = 0, up = 1, down = 2, shortest = 3
   }
 
   struct Timing: Equatable {
