@@ -458,6 +458,11 @@ pre code {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  /* A canvas number draws past its box so a pop is never cut (see
+     NitroNumberCanvas). On a phone a figure that fills the stage pushed that
+     transparent margin past the viewport and the page scrolled sideways; the
+     frame keeps it, and the padding leaves the pop its room. */
+  overflow-x: clip;
 }
 
 /* An <Example> frame wrapping a demo that draws its own frame: only the
@@ -468,6 +473,7 @@ pre code {
   padding: 0;
   margin: 0;
   border-radius: 0;
+  overflow-x: visible;
 }
 
 .rn-demo-stage {
@@ -625,11 +631,13 @@ pre code {
   color: var(--nitro-ink-muted);
 }
 
+/* Kept whole when it fits; a long one ("'blurAndSubmit', 'newline' when
+   multiline") wraps rather than pushing the page wider than a phone. */
 .prop-default {
   margin-left: auto;
   font-size: 0.8rem;
   color: var(--nitro-ink-muted);
-  white-space: nowrap;
+  max-width: 100%;
 }
 
 .prop-default code {
