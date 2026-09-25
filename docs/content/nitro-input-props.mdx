@@ -119,6 +119,22 @@ Alignment of `prefix` only.
 Alignment of `suffix` only.
 </Prop>
 
+<Prop name="letterSpacing" type="number" default="0">
+Points added after every glyph, like `Text`'s `letterSpacing` (negative tightens). A smaller prefix or suffix gets it in proportion to its size.
+</Prop>
+
+<Prop name="prefixSpacing, suffixSpacing" type="number" default="the letter spacing">
+Points between the prefix and the text, and between the text and the suffix, in place of the letter spacing there.
+</Prop>
+
+<Prop name="prefixOffset, suffixOffset" type="number" default="0">
+Points an affix is moved down after its alignment places it (negative: up), for a symbol that sits a little off every preset.
+</Prop>
+
+<Prop name="format" type="NumberFormat">
+A [`NumberFormat`](/docs/number-format) the amount follows: its prefix and suffix (the currency where the locale puts it), grouping and decimal separators, fraction digits and where the sign goes. Sets `mode` to `'number'` unless it is given; the individual props override what it says.
+</Prop>
+
 ## Frame and label
 
 An outlined or filled box with a floating label, drawn natively. See [Frames](/docs/nitro-input#frames).

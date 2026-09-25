@@ -118,6 +118,18 @@ namespace margelo::nitro::nitroinput {
     void setPrefixAlign(std::optional<NitroNumberAffixAlign> prefixAlign) override;
     std::optional<NitroNumberAffixAlign> getSuffixAlign() override;
     void setSuffixAlign(std::optional<NitroNumberAffixAlign> suffixAlign) override;
+    std::optional<double> getLetterSpacing() override;
+    void setLetterSpacing(std::optional<double> letterSpacing) override;
+    std::optional<double> getPrefixSpacing() override;
+    void setPrefixSpacing(std::optional<double> prefixSpacing) override;
+    std::optional<double> getSuffixSpacing() override;
+    void setSuffixSpacing(std::optional<double> suffixSpacing) override;
+    std::optional<double> getPrefixOffset() override;
+    void setPrefixOffset(std::optional<double> prefixOffset) override;
+    std::optional<double> getSuffixOffset() override;
+    void setSuffixOffset(std::optional<double> suffixOffset) override;
+    std::optional<bool> getTabularNums() override;
+    void setTabularNums(std::optional<bool> tabularNums) override;
     std::optional<bool> getAdjustsFontSizeToFit() override;
     void setAdjustsFontSizeToFit(std::optional<bool> adjustsFontSizeToFit) override;
     std::optional<double> getMinimumFontScale() override;

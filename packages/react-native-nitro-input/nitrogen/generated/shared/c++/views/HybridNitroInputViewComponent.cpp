@@ -50,6 +50,11 @@ namespace margelo::nitro::nitroinput::views {
     signPlacement(nitro::ReactProp<NitroInputSignPlacement>::fromRawValue("NitroInputView", "signPlacement", rawProps, sourceProps.signPlacement)),
     prefixAlign(nitro::ReactProp<NitroInputAffixAlign>::fromRawValue("NitroInputView", "prefixAlign", rawProps, sourceProps.prefixAlign)),
     suffixAlign(nitro::ReactProp<NitroInputAffixAlign>::fromRawValue("NitroInputView", "suffixAlign", rawProps, sourceProps.suffixAlign)),
+    letterSpacing(nitro::ReactProp<double>::fromRawValue("NitroInputView", "letterSpacing", rawProps, sourceProps.letterSpacing)),
+    prefixSpacing(nitro::ReactProp<double>::fromRawValue("NitroInputView", "prefixSpacing", rawProps, sourceProps.prefixSpacing)),
+    suffixSpacing(nitro::ReactProp<double>::fromRawValue("NitroInputView", "suffixSpacing", rawProps, sourceProps.suffixSpacing)),
+    prefixOffset(nitro::ReactProp<double>::fromRawValue("NitroInputView", "prefixOffset", rawProps, sourceProps.prefixOffset)),
+    suffixOffset(nitro::ReactProp<double>::fromRawValue("NitroInputView", "suffixOffset", rawProps, sourceProps.suffixOffset)),
     placeholder(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "placeholder", rawProps, sourceProps.placeholder)),
     placeholderColor(nitro::ReactProp<double>::fromRawValue("NitroInputView", "placeholderColor", rawProps, sourceProps.placeholderColor)),
     duration(nitro::ReactProp<double>::fromRawValue("NitroInputView", "duration", rawProps, sourceProps.duration)),
@@ -146,6 +151,11 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("signPlacement"): return true;
       case hashString("prefixAlign"): return true;
       case hashString("suffixAlign"): return true;
+      case hashString("letterSpacing"): return true;
+      case hashString("prefixSpacing"): return true;
+      case hashString("suffixSpacing"): return true;
+      case hashString("prefixOffset"): return true;
+      case hashString("suffixOffset"): return true;
       case hashString("placeholder"): return true;
       case hashString("placeholderColor"): return true;
       case hashString("duration"): return true;

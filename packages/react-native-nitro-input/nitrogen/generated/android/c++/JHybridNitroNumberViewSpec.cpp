@@ -386,6 +386,60 @@ namespace margelo::nitro::nitroinput {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroNumberAffixAlign> /* suffixAlign */)>("setSuffixAlign");
     method(_javaPart, suffixAlign.has_value() ? JNitroNumberAffixAlign::fromCpp(suffixAlign.value()) : nullptr);
   }
+  std::optional<double> JHybridNitroNumberViewSpec::getLetterSpacing() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getLetterSpacing");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setLetterSpacing(std::optional<double> letterSpacing) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* letterSpacing */)>("setLetterSpacing");
+    method(_javaPart, letterSpacing.has_value() ? jni::JDouble::valueOf(letterSpacing.value()) : nullptr);
+  }
+  std::optional<double> JHybridNitroNumberViewSpec::getPrefixSpacing() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getPrefixSpacing");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setPrefixSpacing(std::optional<double> prefixSpacing) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* prefixSpacing */)>("setPrefixSpacing");
+    method(_javaPart, prefixSpacing.has_value() ? jni::JDouble::valueOf(prefixSpacing.value()) : nullptr);
+  }
+  std::optional<double> JHybridNitroNumberViewSpec::getSuffixSpacing() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getSuffixSpacing");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setSuffixSpacing(std::optional<double> suffixSpacing) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* suffixSpacing */)>("setSuffixSpacing");
+    method(_javaPart, suffixSpacing.has_value() ? jni::JDouble::valueOf(suffixSpacing.value()) : nullptr);
+  }
+  std::optional<double> JHybridNitroNumberViewSpec::getPrefixOffset() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getPrefixOffset");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setPrefixOffset(std::optional<double> prefixOffset) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* prefixOffset */)>("setPrefixOffset");
+    method(_javaPart, prefixOffset.has_value() ? jni::JDouble::valueOf(prefixOffset.value()) : nullptr);
+  }
+  std::optional<double> JHybridNitroNumberViewSpec::getSuffixOffset() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getSuffixOffset");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setSuffixOffset(std::optional<double> suffixOffset) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* suffixOffset */)>("setSuffixOffset");
+    method(_javaPart, suffixOffset.has_value() ? jni::JDouble::valueOf(suffixOffset.value()) : nullptr);
+  }
+  std::optional<bool> JHybridNitroNumberViewSpec::getTabularNums() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JBoolean>()>("getTabularNums");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(static_cast<bool>(__result->value())) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setTabularNums(std::optional<bool> tabularNums) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JBoolean> /* tabularNums */)>("setTabularNums");
+    method(_javaPart, tabularNums.has_value() ? jni::JBoolean::valueOf(tabularNums.value()) : nullptr);
+  }
   std::optional<bool> JHybridNitroNumberViewSpec::getAdjustsFontSizeToFit() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JBoolean>()>("getAdjustsFontSizeToFit");
     auto __result = method(_javaPart);

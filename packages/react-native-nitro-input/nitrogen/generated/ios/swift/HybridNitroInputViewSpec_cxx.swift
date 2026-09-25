@@ -457,6 +457,61 @@ open class HybridNitroInputViewSpec_cxx {
     }
   }
   
+  public final var letterSpacing: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.letterSpacing
+    }
+    @inline(__always)
+    set {
+      self.__implementation.letterSpacing = newValue
+    }
+  }
+  
+  public final var prefixSpacing: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.prefixSpacing
+    }
+    @inline(__always)
+    set {
+      self.__implementation.prefixSpacing = newValue
+    }
+  }
+  
+  public final var suffixSpacing: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.suffixSpacing
+    }
+    @inline(__always)
+    set {
+      self.__implementation.suffixSpacing = newValue
+    }
+  }
+  
+  public final var prefixOffset: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.prefixOffset
+    }
+    @inline(__always)
+    set {
+      self.__implementation.prefixOffset = newValue
+    }
+  }
+  
+  public final var suffixOffset: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.suffixOffset
+    }
+    @inline(__always)
+    set {
+      self.__implementation.suffixOffset = newValue
+    }
+  }
+  
   public final var placeholder: std.string {
     @inline(__always)
     get {

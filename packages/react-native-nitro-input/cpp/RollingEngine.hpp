@@ -111,7 +111,8 @@ public:
   static constexpr double kScrambleStepSeconds = 0.045;
 
   // Easing: 0 linear, 1 easeIn, 2 easeOut, 3 easeInOut, 4 spring.
-  // Direction: 0 auto (sign of the change), 1 up, 2 down.
+  // Direction: 0 auto (sign of the change), 1 up, 2 down, 3 shortest (each
+  // interior wheel its own shorter way round; a tie goes with the change).
   // Transition: 0 roll (the odometer), 1 numeric (glyphs swap in place),
   // 2 scramble.
 

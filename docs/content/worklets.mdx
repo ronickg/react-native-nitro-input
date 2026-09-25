@@ -99,6 +99,8 @@ Bundle Mode needs three things, and the example app in the repo has all of them 
 - `getBundleModeMetroConfig(config)` from `react-native-worklets/bundleMode` in `metro.config.js`.
 - The small Metro patch Software Mansion publishes next to it. The Babel plugin writes worklet modules while bundling, and unpatched Metro fails with "Failed to get the SHA-1".
 
+`strictGlobal: true` works too: the library's own worklets name nothing they do not bind but UI runtime globals, and the example app runs with it on.
+
 ## Without worklets
 
 Everything degrades cleanly. Without `react-native-worklets` the `transform` and the worklet handlers are ignored with one console warning, plain handlers keep working, and the native code compiles without it.

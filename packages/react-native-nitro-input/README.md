@@ -11,6 +11,9 @@ one native module.
 - **[`NitroNumber`](#nitronumber)**: a number that animates its changes.
   Every digit is a wheel that rolls to its new glyph, or swaps in place the way
   SwiftUI's `.contentTransition(.numericText())` does.
+- **[`NumberFormat`](#numberformat)**: `Intl.NumberFormat`, formatted
+  natively. It learns a locale's format once from the platform and formats in
+  C++, with Hermes' output and a fraction of its cost.
 
 Fabric only (new architecture), React Native ≥ 0.78, Nitro Modules ≥ 0.37.
 
@@ -416,6 +419,10 @@ rather than renumbering the columns.
 | `prefixFontSize` / `suffixFontSize` | `number` | `fontSize` | Their own sizes. |
 | `affixAlign` | `'baseline' \| 'center' \| 'top' \| 'bottom'` | `'baseline'` | How they line up with the text: `top` pins glyph tops, `bottom` the bottom of the ink (a currency code sits on the digits' baseline). |
 | `prefixAlign` / `suffixAlign` | same | `affixAlign` | Per-affix override. |
+| `letterSpacing` | number | `0` | Points added after every glyph, like `Text`'s; a smaller affix gets it in proportion to its size. |
+| `prefixSpacing` / `suffixSpacing` | number | the letter spacing | Points between the prefix and the text, and between the text and the suffix. |
+| `prefixOffset` / `suffixOffset` | number | `0` | Points an affix is moved down after its alignment (negative: up). |
+| `format` | `NumberFormat` | none | The amount follows it: prefix and suffix, separators, fraction digits, where the sign goes. Sets `mode="number"`; the individual props override it. |
 | `placeholder` | `string` | `''` | Shown while empty; the first character reflows it away. `'0'` reads well for amounts. |
 | `placeholderTextColor` | `ColorValue` | platform | Placeholder color. |
 | `transition` | `'none' \| 'reflow'` | `'none'` | `'reflow'` runs the glyph engine, so characters glide, slide and fade as the text changes. |
@@ -737,7 +744,7 @@ busy and replays them afterwards.
 | `flashUpColor`, `flashDownColor` | `ColorValue` | unset | The change flash: digits whose glyph changes light up in the up colour when the value grew, the down colour when it shrank, stay lit while they move, and fade back over `flashDuration` once they have landed. Unset: no flash. |
 | `flashDuration` | `number` | `600` | ms a change flash takes to fade, once the digit has landed. |
 | `popOnChange` | `number` | `0` | A punch of the whole figure on every change, peak overshoot 0–1, rung out like the reveal's landing pop. |
-| `direction` | `'auto' \| 'up' \| 'down'` | `'auto'` | Roll direction; `auto` follows the sign of the change. |
+| `direction` | `'auto' \| 'up' \| 'down' \| 'shortest'` | `'auto'` | Roll direction; `auto` follows the sign of the change. `shortest` rolls each digit its own shorter way round. |
 | `reveal` | `boolean` | – | `false` holds the opening frame (`$0.00` in the final layout); `true` plays the reveal to `value`. Unset = a normal NitroNumber. |
 | `revealStyle` | `'count' \| 'spin'` | `'count'` | The win-meter rollup, or slot reels locking from the left. |
 | `revealDuration` | `number` | `2200` | ms of the count, or until the last reel locks (holds and the pop come on top). |
@@ -755,6 +762,11 @@ busy and replays them afterwards.
 | `prefixFontSize` / `suffixFontSize` | `number` | `fontSize` | Smaller (or larger) prefix/suffix, e.g. a currency symbol or code. |
 | `affixAlign` | `'baseline' \| 'center' \| 'top' \| 'bottom'` | `'baseline'` | How prefix/suffix line up with the digits: `top` pins the glyph tops (cap height), `bottom` the bottom of the glyphs' ink (a currency code sits on the digits' baseline, not down where a comma's tail reaches). |
 | `prefixAlign` / `suffixAlign` | same | `affixAlign` | Per-affix override, e.g. `$` pinned top and `USD` pinned bottom. |
+| `letterSpacing` | number | `0` | Points added after every glyph, like `Text`'s; a smaller affix gets it in proportion to its size. |
+| `prefixSpacing` / `suffixSpacing` | number | the letter spacing | Points between the prefix and the digits, and between the digits and the suffix. |
+| `prefixOffset` / `suffixOffset` | number | `0` | Points an affix is moved down after its alignment (negative: up). |
+| `format` | `NumberFormat` | none | The number follows it: prefix and suffix, separators, fraction and minimum integer digits. The individual props override it. |
+| `tabularNums` | boolean | `true` | `false` lays each digit out at its own width (proportional figures); a column eases between the digits it rolls through. |
 | `adjustsFontSizeToFit` | `boolean` | `false` | Shrink the whole number to fit the view's fixed `width`; the view keeps its full height. |
 | `minimumFontScale` | `number` | `0.5` | Lower bound for `adjustsFontSizeToFit`. |
 | `allowFontScaling` | `boolean` | `false` | Follow the system text size like `Text` (off by default so amounts keep their design size). |
@@ -838,6 +850,36 @@ to reflow while digits appear (e.g. a counter that grows past `999`).
 - A frame is about a dozen cached glyph draws with Core Graphics / `Canvas`.
 - Props are parsed by Nitro from JSI (no Fabric codegen); the view is a Fabric
   component, so `style`, `opacity`, `transform` and friends work as usual.
+
+## NumberFormat
+
+`Intl.NumberFormat`'s API, formatted natively. The first formatter for a
+locale and currency learns its format from the platform's own formatter
+(Foundation on iOS, ICU on Android, the data Hermes' `Intl` uses); every number
+after that is formatted in C++. It behaves as ECMA-402 specifies (callable
+without `new`, a bound `format`, options read and checked in the specified
+order) and passes test262's `intl402/NumberFormat` suite as far as the
+platform's data goes: 242 of 251 tests on iOS and 244 on Android, where Hermes'
+own `Intl` passes 121 and 101.
+
+```ts
+import { NumberFormat, NitroNumber } from 'react-native-nitro-input'
+
+const php = new NumberFormat('en-PH', { style: 'currency', currency: 'PHP' })
+php.format(1234.5)                 // "₱1,234.50"
+php.formatToParts(-12)             // on iOS too
+php.formatRange(3, 5)              // "₱3.00 – ₱5.00"
+[1, 2].map(php.format)             // format is bound
+php.format('12345678901234567890.125') // exact
+
+<NitroNumber value={balance} format={php} />
+```
+
+Building a formatter takes 9 µs on a Galaxy A22 against Hermes' 3.3 ms, and
+`format()` 2.8 µs against 10 µs. Every option of `Intl.NumberFormatOptions` is
+supported; compact notation, units and currency names are printed by the
+platform formatter (iOS has no long compact form). Full guide:
+https://ronickg.github.io/react-native-nitro-input/docs/number-format
 
 ## Credits
 

@@ -141,6 +141,18 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
     set(v) { field = v; markConfigDirty() }
   override var suffixAlign: NitroNumberAffixAlign? = null
     set(v) { field = v; markConfigDirty() }
+  override var letterSpacing: Double? = null
+    set(v) { field = v; markConfigDirty() }
+  override var prefixSpacing: Double? = null
+    set(v) { field = v; markConfigDirty() }
+  override var suffixSpacing: Double? = null
+    set(v) { field = v; markConfigDirty() }
+  override var prefixOffset: Double? = null
+    set(v) { field = v; markConfigDirty() }
+  override var suffixOffset: Double? = null
+    set(v) { field = v; markConfigDirty() }
+  override var tabularNums: Boolean? = null
+    set(v) { field = v; markConfigDirty() }
   override var adjustsFontSizeToFit: Boolean? = null
     set(v) { field = v; markConfigDirty() }
   override var minimumFontScale: Double? = null
@@ -309,6 +321,12 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
     affixAlign = null
     prefixAlign = null
     suffixAlign = null
+    letterSpacing = null
+    prefixSpacing = null
+    suffixSpacing = null
+    prefixOffset = null
+    suffixOffset = null
+    tabularNums = null
     adjustsFontSizeToFit = null
     minimumFontScale = null
     allowFontScaling = null
@@ -377,6 +395,12 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
       color = color?.let { colorFromARGB(it) },
       prefixAlign = mapAffixAlign(prefixAlign ?: affixAlign),
       suffixAlign = mapAffixAlign(suffixAlign ?: affixAlign),
+      letterSpacing = (letterSpacing ?: 0.0).takeIf { it.isFinite() }?.toFloat() ?: 0f,
+      prefixSpacing = prefixSpacing?.takeIf { it.isFinite() }?.toFloat(),
+      suffixSpacing = suffixSpacing?.takeIf { it.isFinite() }?.toFloat(),
+      prefixOffset = (prefixOffset ?: 0.0).takeIf { it.isFinite() }?.toFloat() ?: 0f,
+      suffixOffset = (suffixOffset ?: 0.0).takeIf { it.isFinite() }?.toFloat() ?: 0f,
+      tabularNums = tabularNums ?: true,
       adjustsFontSizeToFit = adjustsFontSizeToFit ?: false,
       minimumFontScale = (minimumFontScale ?: 0.5).coerceIn(0.05, 1.0).toFloat(),
       allowFontScaling = allowFontScaling ?: false,
@@ -410,6 +434,7 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
       direction = when (rollDirection) {
         NitroNumberDirection.UP -> NitroNumberView.Direction.UP
         NitroNumberDirection.DOWN -> NitroNumberView.Direction.DOWN
+        NitroNumberDirection.SHORTEST -> NitroNumberView.Direction.SHORTEST
         NitroNumberDirection.AUTO, null -> NitroNumberView.Direction.AUTO
       },
       revealDurationMs = Math.max(0.0, revealDuration ?: 2200.0).toLong(),

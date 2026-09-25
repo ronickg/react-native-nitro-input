@@ -50,6 +50,16 @@ final class NitroNumberView: UIView {
     var color: UIColor = .label
     var prefixAlign: AffixAlign = .baseline
     var suffixAlign: AffixAlign = .baseline
+    /// Points added after every glyph, as `Text`'s letterSpacing; an affix gets it in proportion to its size.
+    var letterSpacing: CGFloat = 0
+    /// Points between the prefix and the digits, and between the digits and the suffix, in place of the letter spacing there.
+    var prefixSpacing: CGFloat? = nil
+    var suffixSpacing: CGFloat? = nil
+    /// Points an affix is moved down (negative: up) after its alignment.
+    var prefixOffset: CGFloat = 0
+    var suffixOffset: CGFloat = 0
+    /// Every digit as wide as the widest (tabular figures, the default), or each at its own width.
+    var tabularNums: Bool = true
     var adjustsFontSizeToFit: Bool = false
     var minimumFontScale: CGFloat = 0.5
     var allowFontScaling: Bool = false
@@ -61,7 +71,7 @@ final class NitroNumberView: UIView {
   }
 
   enum Direction: Int32 {
-    case auto = 0, up = 1, down = 2
+    case auto = 0, up = 1, down = 2, shortest = 3
   }
 
   struct Timing: Equatable {
@@ -318,12 +328,24 @@ final class NitroNumberView: UIView {
     let color: UIColor
     let prefixAlign: AffixAlign
     let suffixAlign: AffixAlign
+    /// Letter spacing after a digit / prefix / suffix glyph, and the spacing at the affix seams (nil: the letter spacing), scaled with the fonts.
+    let digitSpacing: CGFloat
+    let prefixLetterSpacing: CGFloat
+    let suffixLetterSpacing: CGFloat
+    let prefixSeam: CGFloat?
+    let suffixSeam: CGFloat?
+    let prefixOffset: CGFloat
+    let suffixOffset: CGFloat
     /// Height of the line box (the digit font's line height).
     let lineHeight: CGFloat
     /// The numeric transition's blur radius at full blur, in line heights.
     let numericBlur: CGFloat = NitroNumberView.numericBlur
     /// Width of the widest digit glyph.
     private(set) var digitWidth: CGFloat = 0
+    /// Each digit at its own advance instead of the widest's (`tabularNums={false}`).
+    let proportional: Bool
+    /// The advance of each digit 0…9.
+    private(set) var digitWidths: [CGFloat] = []
     // Keyed by a value type rather than a concatenated string: a lookup on the
     // frame path must not allocate.
     private var glyphCache: [GlyphKey: NSAttributedString] = [:]
@@ -367,7 +389,7 @@ final class NitroNumberView: UIView {
     private let colorKey: UInt32
     private func fontTag(_ role: GlyphRole) -> String {
       let font = self.font(for: role)
-      return "\(font.fontName)|\(font.pointSize)"
+      return "\(font.fontName)|\(font.pointSize)\(proportional ? "|p" : "")"
     }
     /// Pixel density the glyph images are rendered at.
     let renderScale: CGFloat
@@ -378,17 +400,26 @@ final class NitroNumberView: UIView {
       // The view's own display, not the main screen's (deprecated, and absent on visionOS).
       renderScale = max(1, traits.displayScale)
       let scale = NitroNumberView.systemFontMultiplier(t)
-      digit = NitroNumberView.makeFont(size: t.fontSize * scale, weight: t.fontWeight, family: t.fontFamily)
-      prefix = NitroNumberView.makeFont(size: (t.prefixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily)
-      suffix = NitroNumberView.makeFont(size: (t.suffixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily)
+      proportional = !t.tabularNums
+      digit = NitroNumberView.makeFont(size: t.fontSize * scale, weight: t.fontWeight, family: t.fontFamily, tabular: t.tabularNums)
+      prefix = NitroNumberView.makeFont(size: (t.prefixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily, tabular: t.tabularNums)
+      suffix = NitroNumberView.makeFont(size: (t.suffixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily, tabular: t.tabularNums)
       color = t.color.resolvedColor(with: traits)
       var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
       color.getRed(&r, green: &g, blue: &b, alpha: &a)
       colorKey = (UInt32(max(0, min(1, a)) * 255) << 24) | (UInt32(max(0, min(1, r)) * 255) << 16) | (UInt32(max(0, min(1, g)) * 255) << 8) | UInt32(max(0, min(1, b)) * 255)
       prefixAlign = t.prefixAlign
       suffixAlign = t.suffixAlign
+      digitSpacing = t.letterSpacing * scale
+      prefixLetterSpacing = t.letterSpacing * scale * (prefix.pointSize / digit.pointSize)
+      suffixLetterSpacing = t.letterSpacing * scale * (suffix.pointSize / digit.pointSize)
+      prefixSeam = t.prefixSpacing.map { $0 * scale }
+      suffixSeam = t.suffixSpacing.map { $0 * scale }
+      prefixOffset = t.prefixOffset * scale
+      suffixOffset = t.suffixOffset * scale
       lineHeight = ceil(digit.lineHeight)
-      digitWidth = (0...9).map { width(of: String($0), role: .digit) }.max() ?? 0
+      digitWidths = (0...9).map { width(of: String($0), role: .digit) }
+      digitWidth = digitWidths.max() ?? 0
     }
 
     func font(for role: GlyphRole) -> UIFont {
@@ -623,6 +654,19 @@ final class NitroNumberView: UIView {
     /// Top of the glyph's line box for `role` drawing `text`, given the top of the digit line box.
     func top(for role: GlyphRole, text: String, lineTop: CGFloat) -> CGFloat {
       guard role != .digit else { return lineTop }
+      return alignedTop(for: role, text: text, lineTop: lineTop) + (role == .prefix ? prefixOffset : suffixOffset)
+    }
+
+    /// Letter spacing after a glyph of `role`.
+    func spacing(for role: GlyphRole) -> CGFloat {
+      switch role {
+      case .digit: return digitSpacing
+      case .prefix: return prefixLetterSpacing
+      case .suffix: return suffixLetterSpacing
+      }
+    }
+
+    private func alignedTop(for role: GlyphRole, text: String, lineTop: CGFloat) -> CGFloat {
       let f = font(for: role)
       switch role == .prefix ? prefixAlign : suffixAlign {
       case .baseline:
@@ -1079,7 +1123,7 @@ final class NitroNumberView: UIView {
     return multiplier
   }
 
-  private static func makeFont(size: CGFloat, weight: CGFloat, family: String?) -> UIFont {
+  private static func makeFont(size: CGFloat, weight: CGFloat, family: String?, tabular: Bool) -> UIFont {
     let uiWeight = uiWeight(weight)
     let traits: [UIFontDescriptor.TraitKey: Any] = [.weight: uiWeight]
     var base: UIFont
@@ -1094,12 +1138,14 @@ final class NitroNumberView: UIView {
     } else {
       base = UIFont.systemFont(ofSize: size, weight: uiWeight)
     }
-    // Tabular (monospaced) digits so every column has the same width.
+    // Tabular (monospaced) digits so every column has the same width, or the
+    // font's proportional ones when each digit is laid out at its own width.
+    let selector = tabular ? kMonospacedNumbersSelector : kProportionalNumbersSelector
     let feature: [UIFontDescriptor.FeatureKey: Int]
     if #available(iOS 15.0, *) {
-      feature = [.type: kNumberSpacingType, .selector: kMonospacedNumbersSelector]
+      feature = [.type: kNumberSpacingType, .selector: selector]
     } else {
-      feature = [.featureIdentifier: kNumberSpacingType, .typeIdentifier: kMonospacedNumbersSelector]
+      feature = [.featureIdentifier: kNumberSpacingType, .typeIdentifier: selector]
     }
     let descriptor = base.fontDescriptor.addingAttributes([.featureSettings: [feature]])
     return UIFont(descriptor: descriptor, size: size)
@@ -1135,6 +1181,9 @@ final class NitroNumberView: UIView {
     var slot = -1
     var fromText: String?
     var anchor = 1
+    /// Space after the cell (letter spacing, or an affix seam), scaled with it; not part of the glyph's box.
+    var gap: CGFloat = 0
+    var advance: CGFloat { width + gap }
   }
 
   /// Pulls the engine's wheels into `wheelBuffer`.
@@ -1204,7 +1253,8 @@ final class NitroNumberView: UIView {
     while power >= 0 {
       let wheel = wheels[power]
       if wheel.width > 0 {
-        elements.append(Element(kind: .wheel(power), width: fonts.digitWidth * CGFloat(wheel.width), fullWidth: fonts.digitWidth, factor: wheel.width))
+        let advance = digitAdvance(wheel, power: power, fonts: fonts, settled: !animated)
+        elements.append(Element(kind: .wheel(power), width: advance * CGFloat(wheel.width), fullWidth: advance, factor: wheel.width))
       }
       if power > fd, (power - fd) % 3 == 0 {
         addGlyph(format.groupingSeparator, role: .digit, factor: wheel.width, slot: Self.groupingText, anchor: 0)
@@ -1220,6 +1270,70 @@ final class NitroNumberView: UIView {
       addGlyph("-", role: .digit, factor: signFactor)
     } else {
       addGlyph(affixes.suffixInk, role: .suffix, factor: 1, slot: Self.suffixText, anchor: -1)
+    }
+    applySpacing(to: &elements, fonts: fonts)
+  }
+
+  /// A wheel's cell width at full size: the widest digit's with tabular
+  /// figures; otherwise its digit's own advance, blended between the two
+  /// digits it is passing through (a roll between them, or a swap). Settled,
+  /// and throughout a reveal (whose layout is the target's from the first
+  /// frame), it is the target digit's.
+  private func digitAdvance(_ wheel: Engine.Wheel, power: Int, fonts: FontSet, settled: Bool) -> CGFloat {
+    guard fonts.proportional else { return fonts.digitWidth }
+    let widths = fonts.digitWidths
+    if settled || engine.isRevealing() {
+      return widths[max(0, min(9, Int(engine.targetDigit(Int32(power)))))]
+    }
+    // A blank slot (an emerging wheel) takes the width of the digit it turns into.
+    func width(_ glyph: Int, _ other: Int) -> CGFloat {
+      if glyph >= 0 { return widths[glyph % 10] }
+      return other >= 0 ? widths[other % 10] : widths[0]
+    }
+    let from: Int
+    let to: Int
+    let t: CGFloat
+    if wheel.blend < 1 {
+      from = Int(wheel.fromGlyph)
+      to = Int(wheel.toGlyph)
+      t = max(0, min(1, CGFloat(wheel.blend)))
+    } else {
+      let position = wheel.linear ? wheel.position : Self.wrap10(wheel.position)
+      let base = position.rounded(.down)
+      from = Int(base)
+      to = from + 1
+      t = CGFloat(position - base)
+    }
+    let a = width(from, to)
+    return a + (width(to, from) - a) * t
+  }
+
+  /// Letter spacing after every cell, and the affix seams: the space between
+  /// the prefix and the digits and between the digits and the suffix.
+  private func applySpacing(to elements: inout [Element], fonts: FontSet) {
+    guard fonts.digitSpacing != 0 || fonts.prefixSeam != nil || fonts.suffixSeam != nil else { return }
+    func role(_ e: Element) -> GlyphRole {
+      if case .glyph(_, let r) = e.kind { return r }
+      return .digit
+    }
+    for i in elements.indices {
+      elements[i].gap = fonts.spacing(for: role(elements[i])) * CGFloat(elements[i].factor)
+    }
+    // The seam is the gap at the affix's edge that faces the digits (the far side in RTL).
+    let rtl = isRTL
+    if let seam = fonts.prefixSeam {
+      if !rtl, let last = elements.lastIndex(where: { role($0) == .prefix }) {
+        elements[last].gap = seam
+      } else if rtl, let first = elements.firstIndex(where: { role($0) == .prefix }), first > 0 {
+        elements[first - 1].gap = seam
+      }
+    }
+    if let seam = fonts.suffixSeam {
+      if !rtl, let first = elements.firstIndex(where: { role($0) == .suffix }), first > 0 {
+        elements[first - 1].gap = seam
+      } else if rtl, let last = elements.lastIndex(where: { role($0) == .suffix }) {
+        elements[last].gap = seam
+      }
     }
   }
 
@@ -1300,7 +1414,7 @@ final class NitroNumberView: UIView {
       settledWheels.append(Engine.Wheel(position: 0, width: 1, linear: false, blankZero: false, fromGlyph: -1, toGlyph: -1, blend: 1, fromAbove: true, focus: 1, grow: 1, blurOut: 1, flash: 0, flashUp: true))
     }
     buildElements(into: &settledBuffer, wheels: settledWheels, signFactor: engine.settledNegative() ? 1 : 0, animated: false)
-    return settledBuffer.reduce(CGFloat(0)) { $0 + $1.width }
+    return settledBuffer.reduce(CGFloat(0)) { $0 + $1.advance }
   }
 
   /// Formats the target the way it is displayed, for VoiceOver.
@@ -1321,11 +1435,17 @@ final class NitroNumberView: UIView {
     return (engine.settledNegative() ? "-" : "") + format.prefix + digits + format.suffix
   }
 
+  /// An `accessibilityLabel` the app set, which VoiceOver reads instead of the figure.
+  private var explicitAccessibilityLabel: String?
+
   // VoiceOver reads the settled figure when it asks for it, so a value update
   // (which can come every frame) formats nothing.
   override var accessibilityLabel: String? {
-    get { engine.hasShownValue() ? accessibleText() : nil }
-    set {}
+    get {
+      if let explicit = explicitAccessibilityLabel, !explicit.isEmpty { return explicit }
+      return engine.hasShownValue() ? accessibleText() : nil
+    }
+    set { explicitAccessibilityLabel = newValue }
   }
 
   override var accessibilityValue: String? {
@@ -1401,7 +1521,7 @@ final class NitroNumberView: UIView {
     buildElements(into: &elementBuffer, wheels: wheelBuffer, signFactor: engine.signFactor())
     let wheels = wheelBuffer
     let elements = elementBuffer
-    let total = elements.reduce(CGFloat(0)) { $0 + $1.width }
+    let total = elements.reduce(CGFloat(0)) { $0 + $1.advance }
     updateFontScale(contentWidth: total)
     let placement = contentPlacement(total: total, lineHeight: fonts.lineHeight)
 
@@ -1421,7 +1541,12 @@ final class NitroNumberView: UIView {
       // still opening or closing is not cut to its width (the glyph read as a
       // sliver of its right edge, a ")" of a 0 rolling past); the glyph
       // overhangs, faded (`openingOpacity`). Vertically it is the roll's window.
-      let mask = CGRect(x: x + element.width - element.fullWidth, y: 0, width: element.fullWidth, height: fonts.lineHeight)
+      var mask = CGRect(x: x + element.width - element.fullWidth, y: 0, width: element.fullWidth, height: fonts.lineHeight)
+      if case .wheel = element.kind {
+        // A digit column is the widest digit wide, centred on the digit's own
+        // cell (with tabular figures the two are the same, right-aligned).
+        mask = CGRect(x: x + element.width - (element.fullWidth + fonts.digitWidth) / 2, y: 0, width: fonts.digitWidth, height: fonts.lineHeight)
+      }
       if slot.frame != mask {
         slot.layer.frame = mask
         slot.overlay?.frame = frame
@@ -1455,7 +1580,7 @@ final class NitroNumberView: UIView {
             slots[i].overlay = overlay
             slots[i].swap = swap
           }
-          layoutSwap(swap, wheel: wheel, fonts: fonts, cellWidth: element.width, tint: tint, flash: CGFloat(wheel.flash))
+          layoutSwap(swap, wheel: wheel, fonts: fonts, cellWidth: element.width, advance: element.fullWidth, tint: tint, flash: CGFloat(wheel.flash))
         } else if let swap = slot.swap, !swap.hidden {
           for layer in swap.all { layer.isHidden = true }
           swap.hidden = true
@@ -1468,7 +1593,7 @@ final class NitroNumberView: UIView {
         // Linear strips run from -1 (blank) to 9; a roll can be any real, so wrap it onto 0..<10.
         let position = wheel.linear ? wheel.position : Self.wrap10(wheel.position)
         let stripFrame = CGRect(
-          x: element.fullWidth - fonts.digitWidth,
+          x: 0,
           y: -(position + 1) * fonts.lineHeight,
           width: strip.bounds.width,
           height: strip.bounds.height
@@ -1495,7 +1620,7 @@ final class NitroNumberView: UIView {
             slots[i].textSwap = swap
           }
           layoutTextSwap(swap, element: element, from: from, to: text, role: role, fonts: fonts)
-          x += element.width
+          x += element.advance
           continue
         }
         if slot.layer.isHidden { slot.layer.isHidden = false }
@@ -1520,7 +1645,7 @@ final class NitroNumberView: UIView {
           slots[i].innerFrame = imageFrame
         }
       }
-      x += element.width
+      x += element.advance
     }
   }
 
@@ -1545,15 +1670,15 @@ final class NitroNumberView: UIView {
   /// cross-faded with its blurred image as it goes out of, or comes into,
   /// focus. With a change flash on (`tint`), the same two again in the tint
   /// at `flash` of their opacity, over them: the ink mixed towards the tint.
-  private func layoutSwap(_ swap: SwapLayers, wheel: Engine.Wheel, fonts: FontSet, cellWidth: CGFloat, tint: UIColor?, flash: CGFloat) {
+  private func layoutSwap(_ swap: SwapLayers, wheel: Engine.Wheel, fonts: FontSet, cellWidth: CGFloat, advance: CGFloat, tint: UIColor?, flash: CGFloat) {
     // The position clock overshoots 1 (a spring); only the offsets follow it there.
     let b = CGFloat(wheel.blend)
     let g = max(0, min(1, CGFloat(wheel.grow)))
     let f = max(0, min(1, CGFloat(wheel.focus)))
     let d: CGFloat = wheel.fromAbove ? 1 : -1
     let offset = fonts.lineHeight * Self.numericOffset
-    // The digit column is right-aligned in its cell (the cell shrinks and grows from the left).
-    let center = CGPoint(x: cellWidth - fonts.digitWidth / 2, y: fonts.lineHeight / 2)
+    // The digit sits right-aligned in its cell (the cell shrinks and grows from the left).
+    let center = CGPoint(x: cellWidth - advance / 2, y: fonts.lineHeight / 2)
     let outGlyph = Int(wheel.fromGlyph)
     let outCenter = CGPoint(x: center.x, y: center.y + d * offset * b)
     let outScale = 1 - (1 - Self.numericScale) * g
@@ -1796,7 +1921,7 @@ final class NitroNumberView: UIView {
     buildElements(into: &elementBuffer, wheels: wheelBuffer, signFactor: engine.signFactor())
     let wheels = wheelBuffer
     let elements = elementBuffer
-    let total = elements.reduce(CGFloat(0)) { $0 + $1.width }
+    let total = elements.reduce(CGFloat(0)) { $0 + $1.advance }
     updateFontScale(contentWidth: total)
     let placement = contentPlacement(total: total, lineHeight: fonts.lineHeight)
 
@@ -1814,11 +1939,11 @@ final class NitroNumberView: UIView {
     for element in elements {
       switch element.kind {
       case .wheel(let index):
-        drawWheel(wheels[index], fonts: fonts, x: x, width: element.width, ctx: ctx)
+        drawWheel(wheels[index], fonts: fonts, x: x, width: element.width, advance: element.fullWidth, ctx: ctx)
       case .glyph(let text, let role):
         drawGlyph(text, role: role, fonts: fonts, x: x, width: element.width, fullWidth: element.fullWidth, alpha: element.factor, ctx: ctx)
       }
-      x += element.width
+      x += element.advance
     }
     if dim > 0 {
       drawShimmer(contentWidth: total, dim: dim, ctx: ctx)
@@ -1865,12 +1990,14 @@ final class NitroNumberView: UIView {
     ctx.restoreGState()
   }
 
-  private func drawWheel(_ wheel: Engine.Wheel, fonts: FontSet, x: CGFloat, width: CGFloat, ctx: CGContext) {
+  private func drawWheel(_ wheel: Engine.Wheel, fonts: FontSet, x: CGFloat, width: CGFloat, advance: CGFloat, ctx: CGContext) {
     guard width > 0 else { return }
     let lineHeight = fonts.lineHeight
+    // The digit column, the widest digit wide, centred on the digit's own cell.
+    let columnLeft = x + width - (advance + fonts.digitWidth) / 2
     ctx.saveGState()
     // The roll's window, the whole digit wide (see `renderLayers`).
-    ctx.clip(to: CGRect(x: x + width - fonts.digitWidth, y: 0, width: fonts.digitWidth, height: lineHeight))
+    ctx.clip(to: CGRect(x: columnLeft, y: 0, width: fonts.digitWidth, height: lineHeight))
     ctx.setAlpha(CGFloat(Self.openingOpacity(wheel.width)))
     if wheel.blend < 1 || wheel.focus < 1 || wheel.grow < 1 {
       // The numeric transition under the glint: the pair, without the blur.
@@ -1878,7 +2005,7 @@ final class NitroNumberView: UIView {
       let g = max(0, min(1, CGFloat(wheel.grow)))
       let d: CGFloat = wheel.fromAbove ? 1 : -1
       let offset = lineHeight * Self.numericOffset
-      let cx = x + width - fonts.digitWidth / 2
+      let cx = columnLeft + fonts.digitWidth / 2
       let pair: [(glyph: Int, dy: CGFloat, scale: CGFloat, alpha: CGFloat)] = [
         (Int(wheel.fromGlyph), d * offset * b, 1 - (1 - Self.numericScale) * g, 1 - g),
         (Int(wheel.toGlyph), -d * offset * (1 - b), Self.numericScale + (1 - Self.numericScale) * g, g),
@@ -1898,7 +2025,6 @@ final class NitroNumberView: UIView {
     let base = wheel.position.rounded(.down)
     let fraction = CGFloat(wheel.position - base)
     let index = Int(base)
-    let columnLeft = x + width - fonts.digitWidth
     if let text = digitText(at: index, in: wheel), let image = fonts.image(text, role: .digit) {
       image.draw(at: CGPoint(x: columnLeft + (fonts.digitWidth - fonts.width(of: text, role: .digit)) / 2, y: -fraction * lineHeight))
     }

@@ -67,8 +67,8 @@ Milliseconds a change flash takes to fade, once the digit has landed.
 A punch of the whole figure on every value change, its peak overshoot as a fraction of the size, `0` (none) to `1`, rung out like the reveal's landing pop. `0.08` is a nudge, `0.2` a slam.
 </Prop>
 
-<Prop name="direction" type="'auto' | 'up' | 'down'" default="'auto'">
-Roll direction; `auto` follows the sign of the change.
+<Prop name="direction" type="'auto' | 'up' | 'down' | 'shortest'" default="'auto'">
+Roll direction; `auto` follows the sign of the change, `up` and `down` force one. `shortest` rolls each digit its own shorter way round: 1 → 2 is one step up even when the value falls, where `auto` rolls nine steps down, which keeps a big jump calm. The numeric transition and the reveal ignore it.
 </Prop>
 
 ## Jackpot reveal
@@ -145,6 +145,26 @@ How prefix / suffix line up with the digits: `top` pins the glyph tops (cap heig
 
 <Prop name="prefixAlign, suffixAlign" type="'baseline' | 'center' | 'top' | 'bottom'" default="affixAlign">
 Per-affix override.
+</Prop>
+
+<Prop name="letterSpacing" type="number" default="0">
+Points added after every glyph, like `Text`'s `letterSpacing` (negative tightens). A smaller prefix or suffix gets it in proportion to its size.
+</Prop>
+
+<Prop name="prefixSpacing, suffixSpacing" type="number" default="the letter spacing">
+Points between the prefix and the digits, and between the digits and the suffix, in place of the letter spacing there.
+</Prop>
+
+<Prop name="prefixOffset, suffixOffset" type="number" default="0">
+Points an affix is moved down after its alignment places it (negative: up), for a symbol that sits a little off every preset.
+</Prop>
+
+<Prop name="tabularNums" type="boolean" default="true">
+Every digit as wide as the widest, so columns never move. `false` lays each digit out at its own width (the font's proportional figures), for a face whose "1" is narrow or that has no tabular figures; a column's width eases between the digits it rolls or swaps through, and a reveal keeps its target's widths throughout.
+</Prop>
+
+<Prop name="format" type="NumberFormat">
+A [`NumberFormat`](/docs/number-format) the number follows: its prefix and suffix (the currency where the locale puts it), grouping and decimal separators, fraction digits and minimum integer digits. The individual props override what it says. The number keeps its own model: digits grouped in threes, a leading minus, Latin digits.
 </Prop>
 
 <Prop name="adjustsFontSizeToFit" type="boolean" default="false">

@@ -106,6 +106,11 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var signPlacement: NitroInputSignPlacement = .beforeaffix { didSet { markConfigDirty() } }
   var prefixAlign: NitroInputAffixAlign = .baseline { didSet { markConfigDirty() } }
   var suffixAlign: NitroInputAffixAlign = .baseline { didSet { markConfigDirty() } }
+  var letterSpacing: Double = 0 { didSet { markConfigDirty() } }
+  var prefixSpacing: Double = .infinity { didSet { markConfigDirty() } }
+  var suffixSpacing: Double = .infinity { didSet { markConfigDirty() } }
+  var prefixOffset: Double = 0 { didSet { markConfigDirty() } }
+  var suffixOffset: Double = 0 { didSet { markConfigDirty() } }
   var placeholder: String = "" { didSet { markConfigDirty() } }
   var placeholderColor: Double = .nan { didSet { markConfigDirty() } }
   var duration: Double = 400 { didSet { markConfigDirty() } }
@@ -302,6 +307,11 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     signPlacement = .beforeaffix
     prefixAlign = .baseline
     suffixAlign = .baseline
+    letterSpacing = 0
+    prefixSpacing = .infinity
+    suffixSpacing = .infinity
+    prefixOffset = 0
+    suffixOffset = 0
     placeholder = ""
     placeholderColor = .nan
     duration = 400
@@ -509,6 +519,11 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     typography.placeholderColor = Self.color(fromARGB: placeholderColor) ?? .placeholderText
     typography.prefixAlign = Self.mapAffixAlign(prefixAlign)
     typography.suffixAlign = Self.mapAffixAlign(suffixAlign)
+    typography.letterSpacing = CGFloat(letterSpacing.isFinite ? letterSpacing : 0)
+    typography.prefixSpacing = prefixSpacing.isFinite ? CGFloat(prefixSpacing) : nil
+    typography.suffixSpacing = suffixSpacing.isFinite ? CGFloat(suffixSpacing) : nil
+    typography.prefixOffset = CGFloat(prefixOffset.isFinite ? prefixOffset : 0)
+    typography.suffixOffset = CGFloat(suffixOffset.isFinite ? suffixOffset : 0)
     typography.adjustsFontSizeToFit = adjustsFontSizeToFit
     typography.minimumFontScale = CGFloat(min(1, max(0.05, minimumFontScale.isFinite ? minimumFontScale : 0.5)))
     typography.allowFontScaling = allowFontScaling

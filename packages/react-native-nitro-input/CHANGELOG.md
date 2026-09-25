@@ -16,6 +16,23 @@
   the binary double, and prints NaN and infinities without the currency;
   Android shows narrow currency symbols in zh-CN) it follows the
   specification, as V8 does.
+- **`format`** on `NitroNumber` and `NitroInput`: pass a `NumberFormat`
+  and the component takes its prefix and suffix, separators, fraction digits
+  (and, for the input, where the sign goes) from it; the individual props
+  still override.
+- **`letterSpacing`**, **`prefixSpacing` / `suffixSpacing`** and
+  **`prefixOffset` / `suffixOffset`** on both components: tracking like
+  `Text`'s (affixes in proportion to their size), an exact gap between an
+  affix and the digits, and a nudge of an affix after its alignment.
+- **`tabularNums={false}`** on `NitroNumber`: each digit at its own width
+  (the font's proportional figures) instead of the widest digit's. A
+  column's width eases between the digits it rolls or swaps through, and a
+  reveal keeps its target's widths throughout. Tabular stays the default.
+- **`direction="shortest"`** on `NitroNumber`: each digit rolls its own
+  shorter way round (1 → 2 is one step up even when the value falls), which
+  keeps a big jump calm; `auto` still follows the sign of the change.
+- An `accessibilityLabel` given to `NitroNumber` is what VoiceOver and
+  TalkBack read; the figure was read instead.
 - The Android `minSdkVersion` default is 24, as React Native's.
 
 ## 0.2.0

@@ -881,6 +881,150 @@ open class HybridNitroNumberViewSpec_cxx {
     }
   }
   
+  public final var letterSpacing: bridge.std__optional_double_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_double_ in
+        if let __unwrappedValue = self.__implementation.letterSpacing {
+          return bridge.create_std__optional_double_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.letterSpacing = { () -> Double? in
+        if bridge.has_value_std__optional_double_(newValue) {
+          let __unwrapped = bridge.get_std__optional_double_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var prefixSpacing: bridge.std__optional_double_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_double_ in
+        if let __unwrappedValue = self.__implementation.prefixSpacing {
+          return bridge.create_std__optional_double_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.prefixSpacing = { () -> Double? in
+        if bridge.has_value_std__optional_double_(newValue) {
+          let __unwrapped = bridge.get_std__optional_double_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var suffixSpacing: bridge.std__optional_double_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_double_ in
+        if let __unwrappedValue = self.__implementation.suffixSpacing {
+          return bridge.create_std__optional_double_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.suffixSpacing = { () -> Double? in
+        if bridge.has_value_std__optional_double_(newValue) {
+          let __unwrapped = bridge.get_std__optional_double_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var prefixOffset: bridge.std__optional_double_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_double_ in
+        if let __unwrappedValue = self.__implementation.prefixOffset {
+          return bridge.create_std__optional_double_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.prefixOffset = { () -> Double? in
+        if bridge.has_value_std__optional_double_(newValue) {
+          let __unwrapped = bridge.get_std__optional_double_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var suffixOffset: bridge.std__optional_double_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_double_ in
+        if let __unwrappedValue = self.__implementation.suffixOffset {
+          return bridge.create_std__optional_double_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.suffixOffset = { () -> Double? in
+        if bridge.has_value_std__optional_double_(newValue) {
+          let __unwrapped = bridge.get_std__optional_double_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var tabularNums: bridge.std__optional_bool_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_bool_ in
+        if let __unwrappedValue = self.__implementation.tabularNums {
+          return bridge.create_std__optional_bool_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.tabularNums = { () -> Bool? in
+        if bridge.has_value_std__optional_bool_(newValue) {
+          let __unwrapped = bridge.get_std__optional_bool_(newValue)
+          return __unwrapped
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
   public final var adjustsFontSizeToFit: bridge.std__optional_bool_ {
     @inline(__always)
     get {

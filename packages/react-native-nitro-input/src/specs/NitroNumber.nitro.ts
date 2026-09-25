@@ -23,7 +23,7 @@ export type NitroNumberEasing =
   | 'spring'
 
 /** Which way the digits roll: `'auto'` follows the sign of the change. */
-export type NitroNumberDirection = 'auto' | 'up' | 'down'
+export type NitroNumberDirection = 'auto' | 'up' | 'down' | 'shortest'
 
 /**
  * How a value change plays. `'roll'` is the odometer: every changed digit
@@ -185,6 +185,18 @@ export interface NitroNumberProps extends HybridViewProps {
   prefixAlign?: NitroNumberAffixAlign
   /** Vertical alignment of `suffix` only. Defaults to `affixAlign`. */
   suffixAlign?: NitroNumberAffixAlign
+  /** Points added after every glyph, like `Text`'s `letterSpacing`; an affix gets it in proportion to its size. Default: `0`. */
+  letterSpacing?: number
+  /** Points between the prefix and the digits, in place of the letter spacing there. Not finite: the letter spacing. */
+  prefixSpacing?: number
+  /** Points between the digits and the suffix, in place of the letter spacing there. Not finite: the letter spacing. */
+  suffixSpacing?: number
+  /** Points the prefix is moved down after its alignment (negative: up). Default: `0`. */
+  prefixOffset?: number
+  /** Points the suffix is moved down after its alignment (negative: up). Default: `0`. */
+  suffixOffset?: number
+  /** Every digit as wide as the widest (`true`, the default), or each digit at its own width. */
+  tabularNums?: boolean
   /**
    * When the view is narrower than the number (e.g. it has a fixed `width` or
    * `maxWidth`), scale the whole number down so it fits. Default: `false`.
