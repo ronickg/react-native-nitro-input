@@ -70,6 +70,16 @@ namespace margelo::nitro::nitroinput {
       prototype.registerHybridSetter("shimmerColor", &HybridNitroNumberViewSpec::setShimmerColor);
       prototype.registerHybridGetter("shimmerDuration", &HybridNitroNumberViewSpec::getShimmerDuration);
       prototype.registerHybridSetter("shimmerDuration", &HybridNitroNumberViewSpec::setShimmerDuration);
+      prototype.registerHybridGetter("shimmerAngle", &HybridNitroNumberViewSpec::getShimmerAngle);
+      prototype.registerHybridSetter("shimmerAngle", &HybridNitroNumberViewSpec::setShimmerAngle);
+      prototype.registerHybridGetter("shimmerWidth", &HybridNitroNumberViewSpec::getShimmerWidth);
+      prototype.registerHybridSetter("shimmerWidth", &HybridNitroNumberViewSpec::setShimmerWidth);
+      prototype.registerHybridGetter("shimmerBaseColor", &HybridNitroNumberViewSpec::getShimmerBaseColor);
+      prototype.registerHybridSetter("shimmerBaseColor", &HybridNitroNumberViewSpec::setShimmerBaseColor);
+      prototype.registerHybridGetter("shimmerDirection", &HybridNitroNumberViewSpec::getShimmerDirection);
+      prototype.registerHybridSetter("shimmerDirection", &HybridNitroNumberViewSpec::setShimmerDirection);
+      prototype.registerHybridGetter("shimmerDelay", &HybridNitroNumberViewSpec::getShimmerDelay);
+      prototype.registerHybridSetter("shimmerDelay", &HybridNitroNumberViewSpec::setShimmerDelay);
       prototype.registerHybridGetter("fontSize", &HybridNitroNumberViewSpec::getFontSize);
       prototype.registerHybridSetter("fontSize", &HybridNitroNumberViewSpec::setFontSize);
       prototype.registerHybridGetter("prefixFontSize", &HybridNitroNumberViewSpec::getPrefixFontSize);

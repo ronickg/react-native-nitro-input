@@ -161,6 +161,26 @@ Color of the glint's core (`#D6D9E1`, `#2B2E37` in dark mode).
 ms per sweep (linear, repeating).
 </Prop>
 
+<Prop name="shimmerAngle" type="number" default="31">
+The band's slant in degrees: `0` upright, positive leans it like "/", negative the other way (up to ±75).
+</Prop>
+
+<Prop name="shimmerWidth" type="number" default="1">
+The band's width as a fraction of the number's: `0.35` is a narrow glint, `1.5` a slow wash.
+</Prop>
+
+<Prop name="shimmerBaseColor" type="ColorValue" default="color">
+The glyphs' colour outside the band while loading. A light grey turns the figure into a skeleton that the band lights up; pair it with a darker `shimmerColor`.
+</Prop>
+
+<Prop name="shimmerDirection" type="'auto' | 'ltr' | 'rtl'" default="'auto'">
+Which way the band sweeps; `'auto'` follows the layout direction. `'rtl'` mirrors the slant too.
+</Prop>
+
+<Prop name="shimmerDelay" type="number" default="0">
+ms the band waits off the far edge after each sweep.
+</Prop>
+
 ## Typography and layout
 
 <Prop name="fontSize" type="number" default="32">

@@ -27,6 +27,16 @@ While a balance is being fetched, show the number's shape instead of a grey bloc
   <LoadingDemo />
 </Example>
 
+The glint is yours to shape: `shimmerAngle` leans it, `shimmerWidth` narrows or widens it, `shimmerDirection` turns it round, and `shimmerDelay` pauses between sweeps. `shimmerBaseColor` recolours the glyphs outside the band, which makes the classic skeleton: a pale figure with a darker sweep.
+
+```tsx
+// A skeleton
+<NitroNumber value={0} loading shimmerBaseColor="#E5E7EB" shimmerColor="#9CA3AF" shimmerWidth={1.4} />
+
+// A quick, upright glint every second and a half
+<NitroNumber value={balance} loading shimmerWidth={0.35} shimmerAngle={0} shimmerDuration={600} shimmerDelay={900} />
+```
+
 Under Reduce Motion the glint freezes, and the element is announced as loading.
 
 ## Jackpot reveal

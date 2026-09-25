@@ -26,6 +26,8 @@ namespace margelo::nitro::nitroinput { enum class NitroNumberDirection; }
 namespace margelo::nitro::nitroinput { enum class NitroNumberEasing; }
 // Forward declaration of `NitroNumberRevealStyle` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberRevealStyle; }
+// Forward declaration of `NitroNumberShimmerDirection` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberShimmerDirection; }
 // Forward declaration of `NitroNumberSignDisplay` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberSignDisplay; }
 // Forward declaration of `NitroNumberTextAlign` to properly resolve imports.
@@ -53,6 +55,7 @@ namespace NitroInput { class HybridNitroPlatformNumberFormatterSpec_cxx; }
 #include "NitroNumberDirection.hpp"
 #include "NitroNumberEasing.hpp"
 #include "NitroNumberRevealStyle.hpp"
+#include "NitroNumberShimmerDirection.hpp"
 #include "NitroNumberSignDisplay.hpp"
 #include "NitroNumberTextAlign.hpp"
 #include "NitroNumberTransition.hpp"
@@ -509,6 +512,21 @@ namespace margelo::nitro::nitroinput::bridge::swift {
     return optional.has_value();
   }
   inline bool get_std__optional_bool_(const std::optional<bool>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::optional<NitroNumberShimmerDirection>
+  /**
+   * Specialized version of `std::optional<NitroNumberShimmerDirection>`.
+   */
+  using std__optional_NitroNumberShimmerDirection_ = std::optional<NitroNumberShimmerDirection>;
+  inline std::optional<NitroNumberShimmerDirection> create_std__optional_NitroNumberShimmerDirection_(const NitroNumberShimmerDirection& value) noexcept {
+    return std::optional<NitroNumberShimmerDirection>(value);
+  }
+  inline bool has_value_std__optional_NitroNumberShimmerDirection_(const std::optional<NitroNumberShimmerDirection>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline NitroNumberShimmerDirection get_std__optional_NitroNumberShimmerDirection_(const std::optional<NitroNumberShimmerDirection>& optional) noexcept {
     return optional.value();
   }
   

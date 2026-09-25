@@ -20,6 +20,8 @@ namespace margelo::nitro::nitroinput { enum class NitroNumberTransition; }
 namespace margelo::nitro::nitroinput { enum class NitroNumberDirection; }
 // Forward declaration of `NitroNumberRevealStyle` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberRevealStyle; }
+// Forward declaration of `NitroNumberShimmerDirection` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberShimmerDirection; }
 // Forward declaration of `NitroNumberAffixAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberAffixAlign; }
 // Forward declaration of `NitroNumberSignDisplay` to properly resolve imports.
@@ -34,6 +36,7 @@ namespace margelo::nitro::nitroinput { enum class NitroNumberTextAlign; }
 #include "NitroNumberDirection.hpp"
 #include "NitroNumberRevealStyle.hpp"
 #include <vector>
+#include "NitroNumberShimmerDirection.hpp"
 #include "NitroNumberAffixAlign.hpp"
 #include "NitroNumberSignDisplay.hpp"
 #include "NitroNumberTextAlign.hpp"
@@ -279,6 +282,41 @@ namespace margelo::nitro::nitroinput {
     }
     inline void setShimmerDuration(std::optional<double> shimmerDuration) noexcept override {
       _swiftPart.setShimmerDuration(shimmerDuration);
+    }
+    inline std::optional<double> getShimmerAngle() noexcept override {
+      auto __result = _swiftPart.getShimmerAngle();
+      return __result;
+    }
+    inline void setShimmerAngle(std::optional<double> shimmerAngle) noexcept override {
+      _swiftPart.setShimmerAngle(shimmerAngle);
+    }
+    inline std::optional<double> getShimmerWidth() noexcept override {
+      auto __result = _swiftPart.getShimmerWidth();
+      return __result;
+    }
+    inline void setShimmerWidth(std::optional<double> shimmerWidth) noexcept override {
+      _swiftPart.setShimmerWidth(shimmerWidth);
+    }
+    inline std::optional<double> getShimmerBaseColor() noexcept override {
+      auto __result = _swiftPart.getShimmerBaseColor();
+      return __result;
+    }
+    inline void setShimmerBaseColor(std::optional<double> shimmerBaseColor) noexcept override {
+      _swiftPart.setShimmerBaseColor(shimmerBaseColor);
+    }
+    inline std::optional<NitroNumberShimmerDirection> getShimmerDirection() noexcept override {
+      auto __result = _swiftPart.getShimmerDirection();
+      return __result;
+    }
+    inline void setShimmerDirection(std::optional<NitroNumberShimmerDirection> shimmerDirection) noexcept override {
+      _swiftPart.setShimmerDirection(shimmerDirection);
+    }
+    inline std::optional<double> getShimmerDelay() noexcept override {
+      auto __result = _swiftPart.getShimmerDelay();
+      return __result;
+    }
+    inline void setShimmerDelay(std::optional<double> shimmerDelay) noexcept override {
+      _swiftPart.setShimmerDelay(shimmerDelay);
     }
     inline std::optional<double> getFontSize() noexcept override {
       auto __result = _swiftPart.getFontSize();

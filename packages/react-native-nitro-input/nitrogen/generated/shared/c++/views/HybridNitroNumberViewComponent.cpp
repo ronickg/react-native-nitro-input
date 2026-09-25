@@ -48,6 +48,11 @@ namespace margelo::nitro::nitroinput::views {
     loading(nitro::ReactProp<std::optional<bool>>::fromRawValue("NitroNumberView", "loading", rawProps, sourceProps.loading)),
     shimmerColor(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "shimmerColor", rawProps, sourceProps.shimmerColor)),
     shimmerDuration(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "shimmerDuration", rawProps, sourceProps.shimmerDuration)),
+    shimmerAngle(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "shimmerAngle", rawProps, sourceProps.shimmerAngle)),
+    shimmerWidth(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "shimmerWidth", rawProps, sourceProps.shimmerWidth)),
+    shimmerBaseColor(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "shimmerBaseColor", rawProps, sourceProps.shimmerBaseColor)),
+    shimmerDirection(nitro::ReactProp<std::optional<NitroNumberShimmerDirection>>::fromRawValue("NitroNumberView", "shimmerDirection", rawProps, sourceProps.shimmerDirection)),
+    shimmerDelay(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "shimmerDelay", rawProps, sourceProps.shimmerDelay)),
     fontSize(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "fontSize", rawProps, sourceProps.fontSize)),
     prefixFontSize(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "prefixFontSize", rawProps, sourceProps.prefixFontSize)),
     suffixFontSize(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "suffixFontSize", rawProps, sourceProps.suffixFontSize)),
@@ -119,6 +124,11 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("loading"): return true;
       case hashString("shimmerColor"): return true;
       case hashString("shimmerDuration"): return true;
+      case hashString("shimmerAngle"): return true;
+      case hashString("shimmerWidth"): return true;
+      case hashString("shimmerBaseColor"): return true;
+      case hashString("shimmerDirection"): return true;
+      case hashString("shimmerDelay"): return true;
       case hashString("fontSize"): return true;
       case hashString("prefixFontSize"): return true;
       case hashString("suffixFontSize"): return true;

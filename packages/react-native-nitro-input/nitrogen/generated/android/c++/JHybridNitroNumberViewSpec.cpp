@@ -15,6 +15,8 @@ namespace margelo::nitro::nitroinput { enum class NitroNumberTransition; }
 namespace margelo::nitro::nitroinput { enum class NitroNumberDirection; }
 // Forward declaration of `NitroNumberRevealStyle` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberRevealStyle; }
+// Forward declaration of `NitroNumberShimmerDirection` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberShimmerDirection; }
 // Forward declaration of `NitroNumberAffixAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberAffixAlign; }
 // Forward declaration of `NitroNumberSignDisplay` to properly resolve imports.
@@ -33,6 +35,8 @@ namespace margelo::nitro::nitroinput { enum class NitroNumberTextAlign; }
 #include "NitroNumberRevealStyle.hpp"
 #include "JNitroNumberRevealStyle.hpp"
 #include <vector>
+#include "NitroNumberShimmerDirection.hpp"
+#include "JNitroNumberShimmerDirection.hpp"
 #include "NitroNumberAffixAlign.hpp"
 #include "JNitroNumberAffixAlign.hpp"
 #include "NitroNumberSignDisplay.hpp"
@@ -336,6 +340,51 @@ namespace margelo::nitro::nitroinput {
   void JHybridNitroNumberViewSpec::setShimmerDuration(std::optional<double> shimmerDuration) {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* shimmerDuration */)>("setShimmerDuration");
     method(_javaPart, shimmerDuration.has_value() ? jni::JDouble::valueOf(shimmerDuration.value()) : nullptr);
+  }
+  std::optional<double> JHybridNitroNumberViewSpec::getShimmerAngle() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getShimmerAngle");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setShimmerAngle(std::optional<double> shimmerAngle) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* shimmerAngle */)>("setShimmerAngle");
+    method(_javaPart, shimmerAngle.has_value() ? jni::JDouble::valueOf(shimmerAngle.value()) : nullptr);
+  }
+  std::optional<double> JHybridNitroNumberViewSpec::getShimmerWidth() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getShimmerWidth");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setShimmerWidth(std::optional<double> shimmerWidth) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* shimmerWidth */)>("setShimmerWidth");
+    method(_javaPart, shimmerWidth.has_value() ? jni::JDouble::valueOf(shimmerWidth.value()) : nullptr);
+  }
+  std::optional<double> JHybridNitroNumberViewSpec::getShimmerBaseColor() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getShimmerBaseColor");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setShimmerBaseColor(std::optional<double> shimmerBaseColor) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* shimmerBaseColor */)>("setShimmerBaseColor");
+    method(_javaPart, shimmerBaseColor.has_value() ? jni::JDouble::valueOf(shimmerBaseColor.value()) : nullptr);
+  }
+  std::optional<NitroNumberShimmerDirection> JHybridNitroNumberViewSpec::getShimmerDirection() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JNitroNumberShimmerDirection>()>("getShimmerDirection");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->toCpp()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setShimmerDirection(std::optional<NitroNumberShimmerDirection> shimmerDirection) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroNumberShimmerDirection> /* shimmerDirection */)>("setShimmerDirection");
+    method(_javaPart, shimmerDirection.has_value() ? JNitroNumberShimmerDirection::fromCpp(shimmerDirection.value()) : nullptr);
+  }
+  std::optional<double> JHybridNitroNumberViewSpec::getShimmerDelay() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getShimmerDelay");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
+  }
+  void JHybridNitroNumberViewSpec::setShimmerDelay(std::optional<double> shimmerDelay) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* shimmerDelay */)>("setShimmerDelay");
+    method(_javaPart, shimmerDelay.has_value() ? jni::JDouble::valueOf(shimmerDelay.value()) : nullptr);
   }
   std::optional<double> JHybridNitroNumberViewSpec::getFontSize() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getFontSize");

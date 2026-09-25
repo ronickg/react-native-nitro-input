@@ -29,6 +29,13 @@
 - **`NitroText`**: any text morphs natively, shared characters gliding to
   their new places ("Sign in" → "Signing in…"), the reflow on a read-only
   label.
+- **Shimmer options**: `shimmerAngle`, `shimmerWidth`, `shimmerBaseColor`
+  (a skeleton), `shimmerDirection` (following the layout direction by
+  default, so a right-to-left layout now sweeps right to left) and
+  `shimmerDelay`.
+- Fixed: on iOS the loading glint was drawn in the label colour (black
+  on dark text, so invisible) unless `shimmerColor` was given; it uses the
+  documented light neutral now.
 - Fixed: `NumberFormat` with `notation: 'compact'` dropped the currency and
   the percent sign ("950" for "$950"; Android printed a compact currency in
   full) and signDisplay's plus. It prints them as V8 does now.

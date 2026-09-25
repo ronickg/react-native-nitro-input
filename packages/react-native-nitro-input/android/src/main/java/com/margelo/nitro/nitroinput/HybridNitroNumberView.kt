@@ -131,6 +131,16 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
     set(v) { field = v; markConfigDirty() }
   override var shimmerDuration: Double? = null
     set(v) { field = v; markConfigDirty() }
+  override var shimmerAngle: Double? = null
+    set(v) { field = v; markConfigDirty() }
+  override var shimmerWidth: Double? = null
+    set(v) { field = v; markConfigDirty() }
+  override var shimmerBaseColor: Double? = null
+    set(v) { field = v; markConfigDirty() }
+  override var shimmerDirection: NitroNumberShimmerDirection? = null
+    set(v) { field = v; markConfigDirty() }
+  override var shimmerDelay: Double? = null
+    set(v) { field = v; markConfigDirty() }
   override var fontSize: Double? = null
     set(v) { field = v; markConfigDirty() }
   override var prefixFontSize: Double? = null
@@ -345,6 +355,11 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
     loading = null
     shimmerColor = null
     shimmerDuration = null
+    shimmerAngle = null
+    shimmerWidth = null
+    shimmerBaseColor = null
+    shimmerDirection = null
+    shimmerDelay = null
     fontSize = null
     prefixFontSize = null
     suffixFontSize = null
@@ -515,6 +530,15 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
     rollingView.shimmer = NitroNumberView.Shimmer(
       color = shimmerColor?.let { colorFromARGB(it) },
       durationMs = Math.max(200.0, shimmerDuration ?: 950.0).toLong(),
+      angle = (shimmerAngle?.takeIf { it.isFinite() } ?: 31.0).toFloat(),
+      width = (shimmerWidth?.takeIf { it.isFinite() && it > 0 } ?: 1.0).toFloat(),
+      baseColor = shimmerBaseColor?.let { colorFromARGB(it) },
+      leftToRight = when (shimmerDirection) {
+        NitroNumberShimmerDirection.LTR -> true
+        NitroNumberShimmerDirection.RTL -> false
+        else -> null
+      },
+      delayMs = Math.max(0.0, shimmerDelay?.takeIf { it.isFinite() } ?: 0.0).toLong(),
     )
     rollingView.flash = NitroNumberView.Flash(
       upColor = flashUpColor?.let { colorFromARGB(it) },

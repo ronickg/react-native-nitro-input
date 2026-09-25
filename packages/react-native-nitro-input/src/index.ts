@@ -64,6 +64,7 @@ export type {
   NitroNumberTransition,
   NitroNumberEasing,
   NitroNumberRevealStyle,
+  NitroNumberShimmerDirection,
   NitroNumberSignDisplay,
   NitroNumberTextAlign,
   NitroNumberMethods,

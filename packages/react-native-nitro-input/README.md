@@ -767,6 +767,11 @@ busy and replays them afterwards.
 | `loading` | `boolean` | `false` | "Shine" glint: a slanted, text-wide band sweeps through the ink; cross-fades on toggle. |
 | `shimmerColor` | `ColorValue` | light neutral | Color of the glint's core (`#D6D9E1`, `#2B2E37` in dark mode). |
 | `shimmerDuration` | `number` | `950` | ms per sweep (linear, repeating). |
+| `shimmerAngle` | `number` | `31` | The band's slant in degrees (0 upright). |
+| `shimmerWidth` | `number` | `1` | The band's width, a fraction of the number's. |
+| `shimmerBaseColor` | `ColorValue` | `color` | The glyphs' colour outside the band: a skeleton. |
+| `shimmerDirection` | `'auto' \| 'ltr' \| 'rtl'` | `'auto'` | Sweep direction; `'auto'` follows the layout direction. |
+| `shimmerDelay` | `number` | `0` | ms of pause after each sweep. |
 | `fontSize` | `number` | `32` | Font size of the digits in points. |
 | `prefixFontSize` / `suffixFontSize` | `number` | `fontSize` | Smaller (or larger) prefix/suffix, e.g. a currency symbol or code. |
 | `affixAlign` | `'baseline' \| 'center' \| 'top' \| 'bottom'` | `'baseline'` | How prefix/suffix line up with the digits: `top` pins the glyph tops (cap height), `bottom` the bottom of the glyphs' ink (a currency code sits on the digits' baseline, not down where a comma's tail reaches). |

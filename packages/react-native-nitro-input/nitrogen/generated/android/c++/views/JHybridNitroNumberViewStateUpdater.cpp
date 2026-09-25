@@ -194,6 +194,31 @@ void JHybridNitroNumberViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCl
     hybridView->setShimmerDuration(newProps->shimmerDuration.get());
   }
   if (oldProps == nullptr
+        ? newProps->shimmerAngle.isProvided()
+        : !newProps->shimmerAngle.hasSameValue(oldProps->shimmerAngle)) {
+    hybridView->setShimmerAngle(newProps->shimmerAngle.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->shimmerWidth.isProvided()
+        : !newProps->shimmerWidth.hasSameValue(oldProps->shimmerWidth)) {
+    hybridView->setShimmerWidth(newProps->shimmerWidth.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->shimmerBaseColor.isProvided()
+        : !newProps->shimmerBaseColor.hasSameValue(oldProps->shimmerBaseColor)) {
+    hybridView->setShimmerBaseColor(newProps->shimmerBaseColor.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->shimmerDirection.isProvided()
+        : !newProps->shimmerDirection.hasSameValue(oldProps->shimmerDirection)) {
+    hybridView->setShimmerDirection(newProps->shimmerDirection.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->shimmerDelay.isProvided()
+        : !newProps->shimmerDelay.hasSameValue(oldProps->shimmerDelay)) {
+    hybridView->setShimmerDelay(newProps->shimmerDelay.get());
+  }
+  if (oldProps == nullptr
         ? newProps->fontSize.isProvided()
         : !newProps->fontSize.hasSameValue(oldProps->fontSize)) {
     hybridView->setFontSize(newProps->fontSize.get());

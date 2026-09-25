@@ -173,6 +173,16 @@ class NitroNumberView(context: Context) : View(context) {
     val color: Int? = null,
     /** Duration of one sweep across the number. */
     val durationMs: Long = 950,
+    /** The band's slant in degrees (0 upright, positive leans like "/"). */
+    val angle: Float = 31f,
+    /** The band's width, a fraction of the number's. */
+    val width: Float = 1f,
+    /** The glyphs' colour outside the band while loading (null: the text colour). */
+    val baseColor: Int? = null,
+    /** Sweep direction: null follows the layout direction, true left to right. */
+    val leftToRight: Boolean? = null,
+    /** A pause after each sweep. */
+    val delayMs: Long = 0,
   )
 
   /** `AUTO` is the start edge of the layout direction, as `Text` with no `textAlign`; the rest are absolute. */
@@ -836,6 +846,8 @@ class NitroNumberView(context: Context) : View(context) {
   private var shimmerGradientWidth = -1f
   private var shimmerGradientBase = 0
   private var shimmerGradientHighlight = 0
+  private var shimmerGradientLength = -1f
+  private var shimmerGradientSlant = Float.NaN
   private val shimmerMatrix = Matrix()
 
   init {
@@ -1618,22 +1630,33 @@ class NitroNumberView(context: Context) : View(context) {
    */
   private fun drawShimmer(canvas: Canvas, fonts: FontSet, contentWidth: Float, dim: Float) {
     if (contentWidth <= 0f) return
-    val base = fonts.digit.color
+    val base = shimmer.baseColor ?: fonts.digit.color
     val highlight = shimmer.color ?: defaultShimmerColor()
-    val phase = engine.shimmerPhase(now(), shimmer.durationMs / 1000.0).toFloat()
-    val progress = SHIMMER_SEED + (1f - SHIMMER_SEED) * phase
-    // Core at width * (2p - 0.5): enters at the left edge, exits past the right.
-    val startX = contentWidth * (2f * progress - 1f)
+    // One sweep takes `durationMs`; the band then waits off the far edge for `delayMs`.
+    val cycleMs = shimmer.durationMs + shimmer.delayMs
+    val phase = (engine.shimmerPhase(now(), cycleMs / 1000.0).toFloat() * cycleMs / shimmer.durationMs).coerceAtMost(1f)
+    val seeded = SHIMMER_SEED + (1f - SHIMMER_SEED) * phase
+    val ltr = shimmer.leftToRight ?: !isRtl
+    val progress = if (ltr) seeded else 1f - seeded
+    // The gradient runs `length` along x (its slant on top): it enters at the
+    // left edge and leaves past the right, or the mirror image.
+    val length = contentWidth * shimmer.width.coerceAtLeast(0.05f)
+    val startX = (contentWidth + length) * progress - length
+    val slant = Math.tan(Math.toRadians(shimmer.angle.coerceIn(-75f, 75f).toDouble())).toFloat() * (if (ltr) 1f else -1f)
     var gradient = shimmerGradient
-    if (gradient == null || shimmerGradientWidth != contentWidth || shimmerGradientBase != base || shimmerGradientHighlight != highlight) {
+    if (gradient == null || shimmerGradientWidth != contentWidth || shimmerGradientBase != base || shimmerGradientHighlight != highlight ||
+      shimmerGradientLength != length || shimmerGradientSlant != slant
+    ) {
       gradient = LinearGradient(
-        0f, 0f, contentWidth, SHIMMER_SLANT * contentWidth,
+        0f, 0f, length, slant * length,
         intArrayOf(base, highlight, base), floatArrayOf(0.1f, 0.5f, 0.9f), Shader.TileMode.CLAMP,
       )
       shimmerGradient = gradient
       shimmerGradientWidth = contentWidth
       shimmerGradientBase = base
       shimmerGradientHighlight = highlight
+      shimmerGradientLength = length
+      shimmerGradientSlant = slant
       shimmerPaint.shader = gradient
     }
     shimmerMatrix.setTranslate(startX, 0f)
@@ -2050,8 +2073,6 @@ class NitroNumberView(context: Context) : View(context) {
       (if (blankZero) 1 else 0) or (modulus shl 1) or (if (role == GlyphRole.FRACTION) 1 shl 8 else 0)
     /** The core starts at the glyphs' left edge instead of parked off-screen. */
     private const val SHIMMER_SEED = 0.25f
-    /** How far the top of the band leads the bottom, as a fraction of the height ("/" slant). */
-    private const val SHIMMER_SLANT = 0.6f
   }
 }
 

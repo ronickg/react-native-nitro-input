@@ -266,6 +266,36 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.shimmerDuration.hasSameValue(oldViewProps->shimmerDuration)) {
       swiftPart.setShimmerDuration(newViewProps.shimmerDuration.get());
     }
+    // shimmerAngle: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.shimmerAngle.isProvided()
+          : !newViewProps.shimmerAngle.hasSameValue(oldViewProps->shimmerAngle)) {
+      swiftPart.setShimmerAngle(newViewProps.shimmerAngle.get());
+    }
+    // shimmerWidth: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.shimmerWidth.isProvided()
+          : !newViewProps.shimmerWidth.hasSameValue(oldViewProps->shimmerWidth)) {
+      swiftPart.setShimmerWidth(newViewProps.shimmerWidth.get());
+    }
+    // shimmerBaseColor: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.shimmerBaseColor.isProvided()
+          : !newViewProps.shimmerBaseColor.hasSameValue(oldViewProps->shimmerBaseColor)) {
+      swiftPart.setShimmerBaseColor(newViewProps.shimmerBaseColor.get());
+    }
+    // shimmerDirection: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.shimmerDirection.isProvided()
+          : !newViewProps.shimmerDirection.hasSameValue(oldViewProps->shimmerDirection)) {
+      swiftPart.setShimmerDirection(newViewProps.shimmerDirection.get());
+    }
+    // shimmerDelay: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.shimmerDelay.isProvided()
+          : !newViewProps.shimmerDelay.hasSameValue(oldViewProps->shimmerDelay)) {
+      swiftPart.setShimmerDelay(newViewProps.shimmerDelay.get());
+    }
     // fontSize: optional
     if (oldViewProps == nullptr
           ? newViewProps.fontSize.isProvided()

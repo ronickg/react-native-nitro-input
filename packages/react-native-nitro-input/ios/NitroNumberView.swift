@@ -141,6 +141,16 @@ final class NitroNumberView: UIView {
     var color: UIColor? = nil
     /// Duration of one sweep across the number.
     var duration: TimeInterval = 0.95
+    /// The band's slant in degrees (0 upright, positive leans like "/").
+    var angle: CGFloat = 31
+    /// The band's width, a fraction of the number's.
+    var width: CGFloat = 1
+    /// The glyphs' colour outside the band while loading (nil: the text colour).
+    var baseColor: UIColor? = nil
+    /// Sweep direction: nil follows the layout direction, true left to right.
+    var leftToRight: Bool? = nil
+    /// A pause after each sweep.
+    var delay: TimeInterval = 0
   }
 
   enum Alignment {
@@ -286,8 +296,6 @@ final class NitroNumberView: UIView {
   }
   /// The core starts at the glyphs' left edge instead of parked off-screen.
   private static let shimmerSeed: CGFloat = 0.25
-  /// How far the top of the band leads the bottom, as a fraction of the height ("/" slant).
-  private static let shimmerSlant: CGFloat = 0.6
 
   // MARK: - Fonts
 
@@ -2188,23 +2196,30 @@ final class NitroNumberView: UIView {
   private func drawShimmer(contentWidth: CGFloat, dim: CGFloat, ctx: CGContext) {
     guard contentWidth > 0 else { return }
     var br: CGFloat = 0, bg: CGFloat = 0, bb: CGFloat = 0, ba: CGFloat = 1
-    typography.color.getRed(&br, green: &bg, blue: &bb, alpha: &ba)
+    (shimmer.baseColor ?? typography.color).resolvedColor(with: traitCollection).getRed(&br, green: &bg, blue: &bb, alpha: &ba)
     var hr: CGFloat = 0, hg: CGFloat = 0, hb: CGFloat = 0, ha: CGFloat = 1
-    (shimmer.color ?? Self.defaultShimmerColor).getRed(&hr, green: &hg, blue: &hb, alpha: &ha)
+    (shimmer.color ?? Self.defaultShimmerColor).resolvedColor(with: traitCollection).getRed(&hr, green: &hg, blue: &hb, alpha: &ha)
     let base = CGColor(red: br, green: bg, blue: bb, alpha: ba)
     let colors = [base, CGColor(red: hr, green: hg, blue: hb, alpha: ha), base] as CFArray
     guard let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0.1, 0.5, 0.9]) else { return }
-    let phase = CGFloat(engine.shimmerPhase(CACurrentMediaTime(), shimmer.duration))
-    let progress = Self.shimmerSeed + (1 - Self.shimmerSeed) * phase
-    // Core at width * (2p - 0.5): enters at the left edge, exits past the right.
-    let startX = contentWidth * (2 * progress - 1)
+    // One sweep takes `duration`; the band then waits off the far edge for `delay`.
+    let cycle = shimmer.duration + shimmer.delay
+    let phase = min(1, CGFloat(engine.shimmerPhase(CACurrentMediaTime(), cycle)) * CGFloat(cycle / shimmer.duration))
+    let seeded = Self.shimmerSeed + (1 - Self.shimmerSeed) * phase
+    let ltr = shimmer.leftToRight ?? !isRTL
+    let progress = ltr ? seeded : 1 - seeded
+    // The gradient runs `length` along x (its slant on top): it enters at the
+    // left edge and leaves past the right, or the mirror image.
+    let length = contentWidth * max(0.05, shimmer.width)
+    let startX = (contentWidth + length) * progress - length
+    let slant = tan(max(-75, min(75, shimmer.angle)) * .pi / 180) * (ltr ? 1 : -1)
     ctx.saveGState()
     ctx.setBlendMode(.sourceAtop)
     ctx.setAlpha(dim)
     ctx.drawLinearGradient(
       gradient,
       start: CGPoint(x: startX, y: 0),
-      end: CGPoint(x: startX + contentWidth, y: Self.shimmerSlant * contentWidth),
+      end: CGPoint(x: startX + length, y: slant * length),
       options: [.drawsBeforeStartLocation, .drawsAfterEndLocation]
     )
     ctx.restoreGState()

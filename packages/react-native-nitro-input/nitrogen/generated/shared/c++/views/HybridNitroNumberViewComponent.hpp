@@ -24,6 +24,7 @@
 #include "NitroNumberDirection.hpp"
 #include "NitroNumberRevealStyle.hpp"
 #include <vector>
+#include "NitroNumberShimmerDirection.hpp"
 #include "NitroNumberAffixAlign.hpp"
 #include "NitroNumberSignDisplay.hpp"
 #include "NitroNumberTextAlign.hpp"
@@ -79,6 +80,11 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<std::optional<bool>> loading;
     nitro::ReactProp<std::optional<double>> shimmerColor;
     nitro::ReactProp<std::optional<double>> shimmerDuration;
+    nitro::ReactProp<std::optional<double>> shimmerAngle;
+    nitro::ReactProp<std::optional<double>> shimmerWidth;
+    nitro::ReactProp<std::optional<double>> shimmerBaseColor;
+    nitro::ReactProp<std::optional<NitroNumberShimmerDirection>> shimmerDirection;
+    nitro::ReactProp<std::optional<double>> shimmerDelay;
     nitro::ReactProp<std::optional<double>> fontSize;
     nitro::ReactProp<std::optional<double>> prefixFontSize;
     nitro::ReactProp<std::optional<double>> suffixFontSize;
@@ -150,6 +156,11 @@ namespace margelo::nitro::nitroinput::views {
              loading.hasSameValue(other.loading) &&
              shimmerColor.hasSameValue(other.shimmerColor) &&
              shimmerDuration.hasSameValue(other.shimmerDuration) &&
+             shimmerAngle.hasSameValue(other.shimmerAngle) &&
+             shimmerWidth.hasSameValue(other.shimmerWidth) &&
+             shimmerBaseColor.hasSameValue(other.shimmerBaseColor) &&
+             shimmerDirection.hasSameValue(other.shimmerDirection) &&
+             shimmerDelay.hasSameValue(other.shimmerDelay) &&
              fontSize.hasSameValue(other.fontSize) &&
              prefixFontSize.hasSameValue(other.prefixFontSize) &&
              suffixFontSize.hasSameValue(other.suffixFontSize) &&
@@ -222,6 +233,11 @@ namespace margelo::nitro::nitroinput::views {
              loading.isProvided() ||
              shimmerColor.isProvided() ||
              shimmerDuration.isProvided() ||
+             shimmerAngle.isProvided() ||
+             shimmerWidth.isProvided() ||
+             shimmerBaseColor.isProvided() ||
+             shimmerDirection.isProvided() ||
+             shimmerDelay.isProvided() ||
              fontSize.isProvided() ||
              prefixFontSize.isProvided() ||
              suffixFontSize.isProvided() ||

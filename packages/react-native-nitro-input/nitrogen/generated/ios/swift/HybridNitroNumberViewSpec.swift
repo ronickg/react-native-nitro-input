@@ -38,6 +38,11 @@ public protocol HybridNitroNumberViewSpec_protocol: HybridObject, HybridView {
   var loading: Bool? { get set }
   var shimmerColor: Double? { get set }
   var shimmerDuration: Double? { get set }
+  var shimmerAngle: Double? { get set }
+  var shimmerWidth: Double? { get set }
+  var shimmerBaseColor: Double? { get set }
+  var shimmerDirection: NitroNumberShimmerDirection? { get set }
+  var shimmerDelay: Double? { get set }
   var fontSize: Double? { get set }
   var prefixFontSize: Double? { get set }
   var suffixFontSize: Double? { get set }

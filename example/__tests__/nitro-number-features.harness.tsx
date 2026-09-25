@@ -169,6 +169,30 @@ describe('NitroNumber 0.4', () => {
   })
 })
 
+describe('NitroNumber shimmer', () => {
+  it('takes the shimmer options without moving the layout', async () => {
+    const plain = layoutOf()
+    const shaped = layoutOf()
+    const common = { value: 1234.5, fractionDigits: 2, fontSize: 24, loading: true, style: content } as const
+    await render(
+      <View>
+        <NitroNumber {...common} onLayout={plain.onLayout} />
+        <NitroNumber
+          {...common}
+          shimmerAngle={-20}
+          shimmerWidth={0.4}
+          shimmerBaseColor="#E5E7EB"
+          shimmerDirection="rtl"
+          shimmerDelay={500}
+          onLayout={shaped.onLayout}
+        />
+      </View>
+    )
+    const [p, s] = await widthsOf([plain, shaped])
+    expectSameLength(p!, s!)
+  })
+})
+
 describe('NitroTime', () => {
   it('shows seconds as a clock and lays m:ss and h:mm:ss out', async () => {
     const ref = createRef<NitroNumberHandle>()

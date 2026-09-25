@@ -106,6 +106,16 @@ namespace margelo::nitro::nitroinput {
     void setShimmerColor(std::optional<double> shimmerColor) override;
     std::optional<double> getShimmerDuration() override;
     void setShimmerDuration(std::optional<double> shimmerDuration) override;
+    std::optional<double> getShimmerAngle() override;
+    void setShimmerAngle(std::optional<double> shimmerAngle) override;
+    std::optional<double> getShimmerWidth() override;
+    void setShimmerWidth(std::optional<double> shimmerWidth) override;
+    std::optional<double> getShimmerBaseColor() override;
+    void setShimmerBaseColor(std::optional<double> shimmerBaseColor) override;
+    std::optional<NitroNumberShimmerDirection> getShimmerDirection() override;
+    void setShimmerDirection(std::optional<NitroNumberShimmerDirection> shimmerDirection) override;
+    std::optional<double> getShimmerDelay() override;
+    void setShimmerDelay(std::optional<double> shimmerDelay) override;
     std::optional<double> getFontSize() override;
     void setFontSize(std::optional<double> fontSize) override;
     std::optional<double> getPrefixFontSize() override;

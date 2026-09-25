@@ -85,6 +85,11 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
   var loading: Bool? { didSet { markConfigDirty() } }
   var shimmerColor: Double? { didSet { markConfigDirty() } }
   var shimmerDuration: Double? { didSet { markConfigDirty() } }
+  var shimmerAngle: Double? { didSet { markConfigDirty() } }
+  var shimmerWidth: Double? { didSet { markConfigDirty() } }
+  var shimmerBaseColor: Double? { didSet { markConfigDirty() } }
+  var shimmerDirection: NitroNumberShimmerDirection? { didSet { markConfigDirty() } }
+  var shimmerDelay: Double? { didSet { markConfigDirty() } }
   var fontSize: Double? { didSet { markConfigDirty() } }
   var prefixFontSize: Double? { didSet { markConfigDirty() } }
   var suffixFontSize: Double? { didSet { markConfigDirty() } }
@@ -246,6 +251,11 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
     loading = nil
     shimmerColor = nil
     shimmerDuration = nil
+    shimmerAngle = nil
+    shimmerWidth = nil
+    shimmerBaseColor = nil
+    shimmerDirection = nil
+    shimmerDelay = nil
     fontSize = nil
     prefixFontSize = nil
     suffixFontSize = nil
@@ -393,8 +403,17 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
     timing.respectReduceMotion = respectReduceMotion ?? true
 
     var shimmer = NitroNumberView.Shimmer()
-    shimmer.color = shimmerColor.map(Self.color(fromARGB:))
+    shimmer.color = shimmerColor.flatMap(Self.optionalColor(fromARGB:))
     shimmer.duration = max(0.2, (shimmerDuration ?? 950) / 1000)
+    shimmer.angle = CGFloat(shimmerAngle.flatMap { $0.isFinite ? $0 : nil } ?? 31)
+    shimmer.width = CGFloat(shimmerWidth.flatMap { $0.isFinite && $0 > 0 ? $0 : nil } ?? 1)
+    shimmer.baseColor = shimmerBaseColor.flatMap(Self.optionalColor(fromARGB:))
+    switch shimmerDirection {
+    case .ltr: shimmer.leftToRight = true
+    case .rtl: shimmer.leftToRight = false
+    default: shimmer.leftToRight = nil
+    }
+    shimmer.delay = max(0, (shimmerDelay.flatMap { $0.isFinite ? $0 : nil } ?? 0) / 1000)
 
     var flash = NitroNumberView.Flash()
     flash.upColor = flashUpColor.flatMap(Self.optionalColor(fromARGB:))

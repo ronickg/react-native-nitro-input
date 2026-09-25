@@ -61,6 +61,9 @@ export type NitroNumberAffixAlign = 'baseline' | 'center' | 'top' | 'bottom'
  */
 export type NitroNumberSignDisplay = 'auto' | 'always' | 'never' | 'exceptZero' | 'negative'
 
+/** Which way the loading shimmer sweeps: `'auto'` follows the layout direction. */
+export type NitroNumberShimmerDirection = 'auto' | 'ltr' | 'rtl'
+
 export interface NitroNumberProps extends HybridViewProps {
   /**
    * The number to display.
@@ -182,6 +185,16 @@ export interface NitroNumberProps extends HybridViewProps {
   shimmerColor?: number
   /** Duration of one sweep in ms (linear, repeating). Default: `950`. */
   shimmerDuration?: number
+  /** The band's slant in degrees: 0 upright, positive leans it like "/". Default: `31`. */
+  shimmerAngle?: number
+  /** The band's width as a fraction of the number's. Default: `1`. */
+  shimmerWidth?: number
+  /** The glyphs' colour while loading, outside the band (processed). Not finite: `color`. */
+  shimmerBaseColor?: number
+  /** Which way the band sweeps. Default: `'auto'`, the layout direction. */
+  shimmerDirection?: NitroNumberShimmerDirection
+  /** A pause after each sweep, in ms. Default: `0`. */
+  shimmerDelay?: number
   /** Font size of the digits in points. Default: `32`. */
   fontSize?: number
   /** Font size of `prefix` in points. Defaults to `fontSize`. */

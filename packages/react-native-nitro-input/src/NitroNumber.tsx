@@ -26,6 +26,7 @@ import type {
   NitroNumberMethods,
   NitroNumberProps as NativeNitroNumberProps,
   NitroNumberRevealStyle,
+  NitroNumberShimmerDirection,
   NitroNumberSignDisplay,
   NitroNumberTextAlign,
 } from './specs/NitroNumber.nitro'
@@ -177,6 +178,19 @@ export interface NitroNumberProps extends Omit<ViewProps, 'children'> {
   shimmerColor?: ColorValue
   /** Duration of one sweep in ms (linear, repeating). Default: `950`. */
   shimmerDuration?: number
+  /** The band's slant in degrees: 0 upright, positive leans it like "/", negative the other way. Default: `31`. */
+  shimmerAngle?: number
+  /** The band's width as a fraction of the number's: `0.5` is a narrow glint. Default: `1`. */
+  shimmerWidth?: number
+  /**
+   * The glyphs' colour outside the band while loading: a light grey makes the
+   * figure a skeleton that the band lights up. Default: `color`.
+   */
+  shimmerBaseColor?: ColorValue
+  /** Which way the band sweeps. Default: `'auto'`, the layout direction. */
+  shimmerDirection?: NitroNumberShimmerDirection
+  /** A pause after each sweep, in ms. Default: `0`. */
+  shimmerDelay?: number
   /** Font size of the digits in points. Default: `32`. */
   fontSize?: number
   /** Font size of `prefix`, e.g. a smaller currency symbol. Defaults to `fontSize`. */
@@ -394,6 +408,11 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
       loading,
       shimmerColor,
       shimmerDuration,
+      shimmerAngle,
+      shimmerWidth,
+      shimmerBaseColor,
+      shimmerDirection,
+      shimmerDelay,
       fontSize,
       prefixFontSize,
       suffixFontSize,
@@ -546,6 +565,7 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
       () => toProcessedColor(shimmerColor) ?? Infinity,
       [shimmerColor]
     )
+    const processedShimmerBase = useMemo(() => toProcessedColor(shimmerBaseColor) ?? Infinity, [shimmerBaseColor])
     const processedFlashUp = useMemo(() => toProcessedColor(flashUpColor) ?? Infinity, [flashUpColor])
     const processedFlashDown = useMemo(() => toProcessedColor(flashDownColor) ?? Infinity, [flashDownColor])
     const numericWeight = toNumericWeight(fontWeight) ?? 400
@@ -639,6 +659,11 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
         loading={loading ?? false}
         shimmerColor={processedShimmerColor}
         shimmerDuration={shimmerDuration ?? 950}
+        shimmerAngle={shimmerAngle ?? 31}
+        shimmerWidth={shimmerWidth ?? 1}
+        shimmerBaseColor={processedShimmerBase}
+        shimmerDirection={shimmerDirection ?? 'auto'}
+        shimmerDelay={shimmerDelay ?? 0}
         fontSize={resolvedFontSize}
         prefixFontSize={prefixFontSize ?? resolvedFontSize}
         suffixFontSize={suffixFontSize ?? resolvedFontSize}

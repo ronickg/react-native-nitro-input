@@ -183,10 +183,31 @@ function TextDemo() {
   )
 }
 
+function ShimmerDemo() {
+  const [loading, setLoading] = useState(true)
+  const common = { value: 1234.56, fractionDigits: 2, groupingSeparator: ',', prefix: '$', fontSize: 32, fontWeight: '700', color: INK, loading } as const
+  return (
+    <Card title="Shimmer" hint="The loading glint's angle, width, base colour, direction and pause.">
+      <Label>Default</Label>
+      <NitroNumber testID="features-shimmer-default" {...common} />
+      <Label>Skeleton: shimmerBaseColor, a wide band</Label>
+      <NitroNumber testID="features-shimmer-skeleton" {...common} shimmerBaseColor="#E5E7EB" shimmerColor="#9CA3AF" shimmerWidth={1.4} />
+      <Label>A narrow, upright glint with a pause</Label>
+      <NitroNumber testID="features-shimmer-glint" {...common} shimmerWidth={0.35} shimmerAngle={0} shimmerDuration={600} shimmerDelay={900} />
+      <Label>Leaning back, right to left</Label>
+      <NitroNumber testID="features-shimmer-rtl" {...common} shimmerAngle={-35} shimmerDirection="rtl" />
+      <Row>
+        <Btn testID="features-shimmer-toggle" title={loading ? 'Loaded' : 'Loading'} onPress={() => setLoading((l) => !l)} />
+      </Row>
+    </Card>
+  )
+}
+
 export function FeaturesScreen() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <SignDemo />
+      <ShimmerDemo />
       <CentsDemo />
       <ClockDemo />
       <CompactDemo />

@@ -21,6 +21,8 @@ namespace margelo::nitro::nitroinput { enum class NitroNumberTransition; }
 namespace margelo::nitro::nitroinput { enum class NitroNumberDirection; }
 // Forward declaration of `NitroNumberRevealStyle` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberRevealStyle; }
+// Forward declaration of `NitroNumberShimmerDirection` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroNumberShimmerDirection; }
 // Forward declaration of `NitroNumberAffixAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberAffixAlign; }
 // Forward declaration of `NitroNumberSignDisplay` to properly resolve imports.
@@ -35,6 +37,7 @@ namespace margelo::nitro::nitroinput { enum class NitroNumberTextAlign; }
 #include "NitroNumberDirection.hpp"
 #include "NitroNumberRevealStyle.hpp"
 #include <vector>
+#include "NitroNumberShimmerDirection.hpp"
 #include "NitroNumberAffixAlign.hpp"
 #include "NitroNumberSignDisplay.hpp"
 #include "NitroNumberTextAlign.hpp"
@@ -123,6 +126,16 @@ namespace margelo::nitro::nitroinput {
       virtual void setShimmerColor(std::optional<double> shimmerColor) = 0;
       virtual std::optional<double> getShimmerDuration() = 0;
       virtual void setShimmerDuration(std::optional<double> shimmerDuration) = 0;
+      virtual std::optional<double> getShimmerAngle() = 0;
+      virtual void setShimmerAngle(std::optional<double> shimmerAngle) = 0;
+      virtual std::optional<double> getShimmerWidth() = 0;
+      virtual void setShimmerWidth(std::optional<double> shimmerWidth) = 0;
+      virtual std::optional<double> getShimmerBaseColor() = 0;
+      virtual void setShimmerBaseColor(std::optional<double> shimmerBaseColor) = 0;
+      virtual std::optional<NitroNumberShimmerDirection> getShimmerDirection() = 0;
+      virtual void setShimmerDirection(std::optional<NitroNumberShimmerDirection> shimmerDirection) = 0;
+      virtual std::optional<double> getShimmerDelay() = 0;
+      virtual void setShimmerDelay(std::optional<double> shimmerDelay) = 0;
       virtual std::optional<double> getFontSize() = 0;
       virtual void setFontSize(std::optional<double> fontSize) = 0;
       virtual std::optional<double> getPrefixFontSize() = 0;
