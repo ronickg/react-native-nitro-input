@@ -5,9 +5,9 @@
  */
 import React, { createRef } from 'react'
 import { View, type LayoutRectangle } from 'react-native'
-import { describe, expect, it, waitFor } from 'react-native-harness'
+import { describe, expect, it } from 'react-native-harness'
 import { NitroNumber, NumberFormat, type NitroNumberHandle } from 'react-native-nitro-input'
-import { deferred, expectSameLength, render, sleep, withTimeout } from './test-utils'
+import { deferred, expectSameLength, render, sleep, waitFor, withTimeout } from './test-utils'
 import { forceGc, trackNativeViews, trackedLiveCount } from 'bench-probe'
 
 /**

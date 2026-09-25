@@ -4,7 +4,7 @@
  */
 
 import { PixelRatio } from 'react-native'
-import { expect, render as harnessRender } from 'react-native-harness'
+import { expect, render as harnessRender, waitFor as harnessWaitFor, type WaitForOptions } from 'react-native-harness'
 
 /**
  * How long a tree gets to mount or re-render. Harness waits 1 s by default,
@@ -17,6 +17,22 @@ const RENDER_TIMEOUT_MS = 5000
 /** Harness's `render`, with a mount and re-render timeout an emulator can meet. */
 export function render(...[element, options]: Parameters<typeof harnessRender>) {
   return harnessRender(element, { timeout: RENDER_TIMEOUT_MS, ...options })
+}
+
+/**
+ * How long a wait for the device gets: a size reported back from native, an
+ * event, a state settling. Harness's 1 s default is the same trap as its
+ * render timeout: on a slow CI machine (a hosted macOS runner once took 337 s
+ * for the iOS suites that usually take 100-260 s) four waits for a first
+ * size or a focus ran out, on the new tests of a run whose code passed
+ * everywhere else. A wait that is met returns as soon as it is.
+ */
+const WAIT_TIMEOUT_MS = 5000
+
+/** Harness's `waitFor`, with a timeout a slow CI machine can meet. */
+export function waitFor<T>(callback: () => T | Promise<T>, options: number | WaitForOptions = {}): Promise<T> {
+  const given = typeof options === 'number' ? { timeout: options } : options
+  return harnessWaitFor(callback, { ...given, timeout: Math.max(given.timeout ?? 0, WAIT_TIMEOUT_MS) })
 }
 
 /**

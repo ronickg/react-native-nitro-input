@@ -7,7 +7,7 @@
  */
 import React, { createRef, useEffect, useRef } from 'react'
 import { View, type LayoutRectangle } from 'react-native'
-import { describe, expect, it, waitFor } from 'react-native-harness'
+import { describe, expect, it } from 'react-native-harness'
 import {
   NitroInput,
   type NitroInputHandle,
@@ -15,7 +15,7 @@ import {
   type NitroInputSelectionEvent,
   NumberFormat,
 } from 'react-native-nitro-input'
-import { deferred, expectSameLength, render, sleep, withTimeout } from './test-utils'
+import { deferred, expectSameLength, render, sleep, waitFor, withTimeout } from './test-utils'
 import { forceGc, trackNativeViews, trackedLiveCount } from 'bench-probe'
 
 function layoutOf() {
@@ -146,14 +146,14 @@ describe('NitroInput', () => {
     await waitFor(() => expect(ref.current?.native).not.toBeNull())
 
     ref.current!.focus()
-    const focusEvent = await withTimeout(focused.promise, 5000, 'onFocus')
+    const focusEvent = await withTimeout(focused.promise, 10000, 'onFocus')
     expect(focusEvent.text).toBe('hi')
     expect(focusEvent.nativeEvent.text).toBe('hi')
     expect(typeof focusEvent.eventCount).toBe('number')
     await waitFor(() => expect(ref.current!.isFocused()).toBe(true))
 
     ref.current!.blur()
-    const blurEvent = await withTimeout(blurred.promise, 5000, 'onBlur')
+    const blurEvent = await withTimeout(blurred.promise, 10000, 'onBlur')
     expect(blurEvent.text).toBe('hi')
     await waitFor(() => expect(ref.current!.isFocused()).toBe(false))
   })
