@@ -902,6 +902,7 @@ void RollingEngine::apply(double elapsed) {
       w.blend = 1;
       w.focus = 1;
       w.grow = 1;
+      w.progress = 1;
     } else if (tr.style == 2) {
       // Scramble: a different digit every step until the wheel locks.
       const int from = static_cast<int>(wt.from.fromGlyph);
@@ -927,6 +928,7 @@ void RollingEngine::apply(double elapsed) {
       w.blend = 1;
       w.focus = 1;
       w.grow = 1;
+      w.progress = clamp01(t);
     } else if (tr.numeric) {
       // Numeric: the glyphs swap in place; the position is the digit
       // arriving and the three clocks say how far the swap is (see the header).
@@ -948,6 +950,8 @@ void RollingEngine::apply(double elapsed) {
         w.focus = damped(local, kNumericFocusZeta, kNumericFocusSettle * d);
         w.blurOut = damped(local, 1.0, kNumericBlurOutSettle * d);
       }
+      // The grow clock is critically damped, so a column never rings.
+      w.progress = clamp01(w.grow);
     } else {
       w.position = wt.from.position + (wt.to.position - wt.from.position) * t;
       w.fromGlyph = -1;
@@ -955,6 +959,7 @@ void RollingEngine::apply(double elapsed) {
       w.blend = 1;
       w.focus = 1;
       w.grow = 1;
+      w.progress = clamp01(t);
     }
   }
   const double signRaw = tr.duration > 0 ? clamp01(elapsed / tr.duration) : 1.0;

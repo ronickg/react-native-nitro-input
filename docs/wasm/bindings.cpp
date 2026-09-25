@@ -28,7 +28,8 @@ EMSCRIPTEN_BINDINGS(rolling_engine) {
       .field("flashUp", &RollingEngine::Wheel::flashUp)
       .field("focus", &RollingEngine::Wheel::focus)
       .field("grow", &RollingEngine::Wheel::grow)
-      .field("blurOut", &RollingEngine::Wheel::blurOut);
+      .field("blurOut", &RollingEngine::Wheel::blurOut)
+      .field("progress", &RollingEngine::Wheel::progress);
 
   value_object<RollingEngine::TextChange>("TextChange")
       .field("grow", &RollingEngine::TextChange::grow)

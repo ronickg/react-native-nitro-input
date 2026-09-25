@@ -46,7 +46,8 @@ class RollingEngine {
   external fun revealMilestoneValue(index: Int): Double
   /**
    * Fills [out] with the render state without allocating:
-   * `[signFactor, loadingProgress, revealScale, wheelCount, (position, width, linear, blankZero, fromGlyph, toGlyph, blend, fromAbove, flash, flashUp)…]`.
+   * `[signFactor, loadingProgress, revealScale, wheelCount, (position, width, linear, blankZero, fromGlyph, toGlyph, blend, fromAbove, flash, flashUp, focus, grow, blurOut, progress)…]`,
+   * then each text slot's swap and the decimal columns.
    * Returns the number of doubles written, or -1 if [out] is too small.
    */
   external fun frameInto(out: DoubleArray): Int

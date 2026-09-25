@@ -26,8 +26,9 @@
   affix and the digits, and a nudge of an affix after its alignment.
 - **`tabularNums={false}`** on `NitroNumber`: each digit at its own width
   (the font's proportional figures) instead of the widest digit's. A
-  column's width eases between the digits it rolls or swaps through, and a
-  reveal keeps its target's widths throughout. Tabular stays the default.
+  changing column's width eases once from the old digit's to the new one's,
+  on the roll's own easing (not through every digit it passes, which made
+  the number pulse), and a reveal keeps its target's widths throughout. Tabular stays the default.
 - **`direction="shortest"`** on `NitroNumber`: each digit rolls its own
   shorter way round (1 → 2 is one step up even when the value falls), which
   keeps a big jump calm; `auto` still follows the sign of the change.
