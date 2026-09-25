@@ -35,6 +35,8 @@ const COUNT = 1000
 type Variant = 'text' | 'plain' | 'nitro'
 const LABEL: Record<Variant, string> = { text: 'Text', plain: 'PlainText', nitro: 'NitroText' }
 const ITEMS = Array.from({ length: COUNT }, (_, i) => `Label number ${i + 1}`)
+// Every label changed at once: NitroText morphs them (the digits roll), the others re-render.
+const UPDATED = Array.from({ length: COUNT }, (_, i) => `Label number ${i + 1001}`)
 const style = { fontSize: 16, color: '#111827' } as const
 
 type Result = { interaction: number; commit: number; memoryKb: number | null }
@@ -54,6 +56,7 @@ const wait = (ms: number) => new Promise<void>((r) => setTimeout(() => r(), ms))
 export function TextMountScreen({ route }: NativeStackScreenProps<RootStackParamList, 'TextMount'>) {
   const rounds = route.params?.rounds
   const [variant, setVariant] = useState<Variant | null>(null)
+  const [updated, setUpdated] = useState(false)
   const [results, setResults] = useState<Record<Variant, Result[]>>({ text: [], plain: [], nitro: [] })
   const events = useRef<{ start: number; duration: number }[]>([])
   const press = useRef<{ variant: Variant; start: number } | null>(null)
@@ -99,6 +102,34 @@ export function TextMountScreen({ route }: NativeStackScreenProps<RootStackParam
           }
           report({ event: 'text-mount', variant: v, round, ...r })
           setAuto((a) => ({ ...a, [v]: [...a[v], r] }))
+
+          // Then every label changes: for NitroText, a morph of each.
+          await wait(500)
+          const u0 = sample()
+          startFrames()
+          const uStart = performance.now()
+          const uLayout = new Promise<void>((resolve) => (committed.current = () => resolve()))
+          setUpdated(true)
+          await uLayout
+          const uCommit = performance.now() - uStart
+          await wait(1200)
+          const uFrames = stopFrames()
+          const u1 = sample()
+          const uCpu = u0 && u1 ? cpuBetween(u0, u1) : null
+          const uWall = u0 && u1 ? u1.wallMs - u0.wallMs : 0
+          report({
+            event: 'text-update',
+            variant: v,
+            round,
+            commit: uCommit,
+            mainMs: uCpu ? (uCpu.main * uWall) / 100 : 0,
+            jsMs: uCpu ? (uCpu.js * uWall) / 100 : 0,
+            renderMs: uCpu ? (uCpu.render * uWall) / 100 : 0,
+            maxFrame: uFrames?.max ?? 0,
+            dropped: uFrames?.dropped ?? 0,
+          })
+          setUpdated(false)
+          await wait(300)
         }
       }
       setVariant(null)
@@ -124,6 +155,9 @@ export function TextMountScreen({ route }: NativeStackScreenProps<RootStackParam
       committed.current()
       committed.current = null
     }
+  }, [variant, updated])
+
+  useLayoutEffect(() => {
     const current = press.current
     if (!current || variant !== current.variant) return
     const commit = performance.now() - current.start
@@ -196,9 +230,9 @@ export function TextMountScreen({ route }: NativeStackScreenProps<RootStackParam
         ))}
       </View>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 12 }}>
-        {variant === 'text' && ITEMS.map((t, i) => <Text key={i} style={style}>{t}</Text>)}
-        {variant === 'plain' && ITEMS.map((t, i) => <PlainText key={i} style={style}>{t}</PlainText>)}
-        {variant === 'nitro' && ITEMS.map((t, i) => <NitroText key={i} fontSize={16} color="#111827">{t}</NitroText>)}
+        {variant === 'text' && (updated ? UPDATED : ITEMS).map((t, i) => <Text key={i} style={style}>{t}</Text>)}
+        {variant === 'plain' && (updated ? UPDATED : ITEMS).map((t, i) => <PlainText key={i} style={style}>{t}</PlainText>)}
+        {variant === 'nitro' && (updated ? UPDATED : ITEMS).map((t, i) => <NitroText key={i} fontSize={16} color="#111827">{t}</NitroText>)}
       </ScrollView>
     </View>
   )

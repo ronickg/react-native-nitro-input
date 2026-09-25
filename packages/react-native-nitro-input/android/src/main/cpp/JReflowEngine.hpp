@@ -43,12 +43,25 @@ public:
   /// without allocating once warm; returns the number of doubles written, or
   /// -1 if `out` is too small.
   int frameInto(jni::alias_ref<jni::JArrayDouble> out);
+  /// A whole line in one crossing: `setReduceMotion`, `beginText`, an
+  /// `addGlyph` per character (in `role`, never a placeholder) and
+  /// `commitText`. Returns `needsFrames()`.
+  bool commitLine(jni::alias_ref<jni::JArrayInt> characters, jni::alias_ref<jni::JArrayInt> kinds,
+                  jni::alias_ref<jni::JArrayDouble> widths, int count, int role, bool reduceMotion, int caret, double now);
+  /// `tick` and `frameInto` in one crossing: the number of doubles written
+  /// (or -1 if `out` is too small, after ticking), plus `kMoreFrames` while
+  /// the engine still needs frames.
+  int tickInto(double now, jni::alias_ref<jni::JArrayDouble> out);
+  static constexpr int kMoreFrames = 1 << 30;
 
 private:
   friend HybridBase;
   JReflowEngine() = default;
   ReflowEngine engine_;
   std::vector<double> scratch_;
+  std::vector<jint> lineChars_;
+  std::vector<jint> lineKinds_;
+  std::vector<double> lineWidths_;
 };
 
 } // namespace margelo::nitro::nitroinput

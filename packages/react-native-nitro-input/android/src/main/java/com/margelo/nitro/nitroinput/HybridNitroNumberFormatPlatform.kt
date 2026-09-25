@@ -247,7 +247,9 @@ class HybridNitroPlatformNumberFormatter(o: NumberFormatPlatformOptions) : Hybri
     fun modernCompact(o: NumberFormatPlatformOptions, locale: ULocale): (BigDecimal) -> String {
       var f: LocalizedNumberFormatter = NumberFormatter.withLocale(locale)
         .notation(if (o.compactDisplay == NumberFormatCompactDisplay.LONG) Notation.compactLong() else Notation.compactShort())
-        .grouping(if (o.useGrouping) NumberFormatter.GroupingStrategy.AUTO else NumberFormatter.GroupingStrategy.OFF)
+        // Compact numbers group from five digits ("9876", "12,345"): ECMA-402's
+        // default for compact notation is "min2", which is what this receives as true.
+        .grouping(if (o.useGrouping) NumberFormatter.GroupingStrategy.MIN2 else NumberFormatter.GroupingStrategy.OFF)
       f = if (o.minimumSignificantDigits > 0) {
         f.precision(Precision.minMaxSignificantDigits(o.minimumSignificantDigits.toInt(), o.maximumSignificantDigits.toInt()))
       } else {

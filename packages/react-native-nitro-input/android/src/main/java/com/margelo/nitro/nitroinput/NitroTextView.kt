@@ -35,10 +35,11 @@ import kotlin.math.min
 
 /**
  * A single line of text that morphs to the next (NitroText). The C++
- * `ReflowEngine` decides where every character is; this view draws them in
- * one pass: at rest the whole line in one draw (per font run, glyphs shaped
- * once and placed where the engine put them), and while a morph runs every
- * character at its own position, opacity and scale, frame by frame. There is
+ * `ReflowEngine` decides where every character is while a morph runs, and
+ * this view draws every character at its own position, opacity and scale,
+ * frame by frame. At rest the line is one draw (per font run, glyphs shaped
+ * once and placed at their advances) and the engine is not involved: a label
+ * that never changes never crosses JNI. There is
  * no text field and no child view, so mounting a thousand of them costs about
  * what a thousand labels do. [HybridNitroTextMeasure] measures a line the same
  * way ([NitroTextFonts]), so the JS side gives the view its size in the commit
@@ -74,7 +75,20 @@ internal object NitroTextFonts {
     val baseline: Float = -metrics.ascent
     internal val advances = SparseArray<Float>()
     internal val shaped = SparseArray<Any>()
+    /**
+     * The same for the first [DIRECT] code points, read without the lock:
+     * every commit and every frame looks characters up, and on the main thread
+     * the lock and the binary search cost more than the lookup. Written under
+     * the lock; a reader that sees no value yet takes the locked path. A float
+     * store is atomic, and a shaped entry is immutable (final fields), so a
+     * value seen is a whole one.
+     */
+    internal val directAdvances = FloatArray(DIRECT) { Float.NaN }
+    internal val directShaped = arrayOfNulls<Any>(DIRECT)
   }
+
+  /** Code points below this (Latin, Greek, Cyrillic) have lock-free slots. */
+  private const val DIRECT = 0x530
 
   /** The one density the views and the measurer convert with. */
   val density: Float =
@@ -102,12 +116,19 @@ internal object NitroTextFonts {
   fun paintCopy(entry: Entry): TextPaint = synchronized(lock) { TextPaint(entry.paint) }
 
   /** One character's advance in px, as the view lays it out (no kerning with its neighbours). */
-  fun advance(codePoint: Int, entry: Entry): Float = synchronized(lock) {
-    entry.advances.get(codePoint)?.let { return it }
-    val n = Character.toChars(codePoint, chars, 0)
-    val width = entry.paint.measureText(chars, 0, n)
-    entry.advances.put(codePoint, width)
-    width
+  fun advance(codePoint: Int, entry: Entry): Float {
+    if (codePoint in 0 until DIRECT) {
+      val width = entry.directAdvances[codePoint]
+      if (!width.isNaN()) return width
+    }
+    return synchronized(lock) {
+      entry.advances.get(codePoint)?.let { return it }
+      val n = Character.toChars(codePoint, chars, 0)
+      val width = entry.paint.measureText(chars, 0, n)
+      entry.advances.put(codePoint, width)
+      if (codePoint in 0 until DIRECT) entry.directAdvances[codePoint] = width
+      width
+    }
   }
 
   /** The line's width in px: every character's advance and the letter spacing after it. */
@@ -124,12 +145,18 @@ internal object NitroTextFonts {
 
   /** One character shaped once, for [Canvas.drawGlyphs]. */
   @RequiresApi(Build.VERSION_CODES.S)
-  fun shaped(codePoint: Int, entry: Entry): NitroTextGlyphs = synchronized(lock) {
-    (entry.shaped.get(codePoint) as NitroTextGlyphs?)?.let { return it }
-    val n = Character.toChars(codePoint, chars, 0)
-    val glyphs = NitroTextGlyphs.of(chars, n, entry.paint)
-    entry.shaped.put(codePoint, glyphs)
-    glyphs
+  fun shaped(codePoint: Int, entry: Entry): NitroTextGlyphs {
+    if (codePoint in 0 until DIRECT) {
+      (entry.directShaped[codePoint] as NitroTextGlyphs?)?.let { return it }
+    }
+    return synchronized(lock) {
+      (entry.shaped.get(codePoint) as NitroTextGlyphs?)?.let { return it }
+      val n = Character.toChars(codePoint, chars, 0)
+      val glyphs = NitroTextGlyphs.of(chars, n, entry.paint)
+      entry.shaped.put(codePoint, glyphs)
+      if (codePoint in 0 until DIRECT) entry.directShaped[codePoint] = glyphs
+      glyphs
+    }
   }
 
   private fun makePaint(sizeDp: Double, weight: Double, family: String, assets: AssetManager?): TextPaint {
@@ -242,8 +269,8 @@ class NitroTextView(context: Context) : View(context) {
       if (field == value) return
       field = value
       applyFonts()
-      // New advances: lay the same text out again, at once.
-      if (committed) commit(animated = false)
+      // New advances: the engine lays the line out again when it next morphs.
+      engineText = null
       invalidate()
     }
 
@@ -265,9 +292,25 @@ class NitroTextView(context: Context) : View(context) {
   var text: String
     get() = shownText
     set(value) {
-      if (shownText == value) return
+      val old = shownText
+      if (old == value) {
+        // Shown even when unchanged: a recycled view handed its own text again.
+        shown = true
+        return
+      }
       shownText = value
-      commit(animated = committed)
+      restValid = false
+      if (shown && morphs()) {
+        // Hand the engine what is on screen first if it doesn't hold it: it
+        // only learns a line when that line has to morph.
+        if (engineText != old) commit(old, animated = false)
+        commit(value, animated = true)
+      } else {
+        engineText = null
+      }
+      shown = true
+      scheduleFrameIfNeeded()
+      invalidate()
       // A no-op unless an accessibility service is on.
       sendAccessibilityEvent(AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED)
     }
@@ -293,8 +336,21 @@ class NitroTextView(context: Context) : View(context) {
 
   private val engine = ReflowEngine()
   private var shownText = ""
-  /** `ReflowEngine::hasText()`: something was committed since the last reset. */
-  private var committed = false
+  /**
+   * The line the engine holds (its target, while it morphs); null when it is
+   * out of date and the view draws [shownText] on its own.
+   */
+  private var engineText: String? = null
+  /** A line has been shown: the next one morphs from it. */
+  private var shown = false
+  /** The engine's `needsFrames()` as of its last commit or tick, kept here so asking costs no JNI crossing. */
+  private var engineMoving = false
+  /** [frameBuffer] holds the engine's frame since its last commit. */
+  private var frameFresh = false
+  /** A line on its way to the engine: one crossing per commit ([ReflowEngine.commitLine]). */
+  private var lineChars = IntArray(32)
+  private var lineKinds = IntArray(32)
+  private var lineWidths = DoubleArray(32)
   private var fonts: NitroTextFonts.Entry = NitroTextFonts.entry(17.0, 400.0, "", context.assets)
   private var paint: TextPaint = NitroTextFonts.paintCopy(fonts)
   private var letterSpacingPx = 0f
@@ -313,9 +369,9 @@ class NitroTextView(context: Context) : View(context) {
   private var glyphPositions = FloatArray(16)
 
   /**
-   * The line at rest (API 31+): every glyph of every character, by font,
-   * positioned where the engine laid it out, so a settled line is one
-   * `drawGlyphs` per font. Rebuilt after every morph, reused in between.
+   * The line at rest (API 31+): every glyph of every character, by font, at
+   * its advance, so a settled line is one `drawGlyphs` per font. Rebuilt when
+   * the text or the font changes, reused in between.
    */
   private class RestRun {
     var font: Any? = null
@@ -327,18 +383,38 @@ class NitroTextView(context: Context) : View(context) {
   private var restRunCount = 0
   private var restContentWidth = 0f
   private var restValid = false
+  /** Where each character of the line at rest starts (API < 31 draws them one by one). */
+  private var restXs = FloatArray(16)
 
   private val frameCallback = Choreographer.FrameCallback { frameTimeNanos ->
     frameScheduled = false
-    engine.tick(frameTimeNanos / 1e9)
+    if (engineText != null) tick(frameTimeNanos / 1e9)
     val target = if (loading) 1f else 0f
     if (loadingProgress != target) {
       val t = min(1.0, (now() - loadingStart) / LOADING_FADE).toFloat()
       loadingProgress = loadingFrom + (target - loadingFrom) * t
     }
-    invalidate()
+    // A view scrolled out of sight is not drawn every frame (a parent
+    // records every invalidated child, on screen or not); it is drawn once
+    // when it settles, and every frame again as soon as it is in sight.
+    if (onScreen()) {
+      invalidate()
+      framesSkipped = false
+    } else {
+      framesSkipped = true
+    }
     scheduleFrameIfNeeded()
+    if (!frameScheduled && framesSkipped) {
+      framesSkipped = false
+      invalidate()
+    }
   }
+
+  private val visibleRect = android.graphics.Rect()
+  /** Frames went undrawn while the view was out of sight. */
+  private var framesSkipped = false
+
+  private fun onScreen(): Boolean = isAttachedToWindow && getLocalVisibleRect(visibleRect)
 
   private val shimmerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
     xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP)
@@ -378,23 +454,31 @@ class NitroTextView(context: Context) : View(context) {
 
   // region Lifecycle
 
-  /** Fabric is about to reuse this view: forget the text and every animation. */
+  /**
+   * Fabric is about to reuse this view: forget every animation, and that a
+   * line was shown, so the next element's text appears instead of morphing.
+   * The text and what is drawn stay, as a label's do: an element with the
+   * same text and style (a list scrolled back, a screen mounted again) draws
+   * nothing.
+   */
   fun resetForRecycle() {
+    val settled = !moving() && loadingProgress == 0f && !loading
     stopFrames()
     engine.reset()
     engine.setTiming(timing.durationSeconds, timing.easing, timing.bounce)
     engine.setEffect(timing.effect)
     engine.setRightToLeft(rightToLeft)
-    committed = false
-    restValid = false
+    engineText = null
+    shown = false
+    engineMoving = false
+    frameFresh = false
     frameCount = 0
-    // Not through the setter: nothing is committed, so the next text shows at once, as on a fresh mount.
-    shownText = ""
     loadingProgress = 0f
     loadingFrom = 0f
     loading = false
     explicitDescription = null
-    invalidate()
+    // Caught mid-morph or loading: the next draw is the line at rest.
+    if (!settled) invalidate()
   }
 
   fun stopFrames() {
@@ -446,27 +530,50 @@ class NitroTextView(context: Context) : View(context) {
    * digits match by place and separators travel with their digits, the rest
    * by the longest common run.
    */
-  private fun commit(animated: Boolean) {
-    engine.setReduceMotion(!animated || (timing.respectReduceMotion && animationsDisabled()))
-    engine.beginText()
-    val s = shownText
+  private fun commit(s: String, animated: Boolean) {
     val entry = fonts
+    var n = 0
     var previous = -1
     var i = 0
     while (i < s.length) {
       val cp = s.codePointAt(i)
       val next = i + Character.charCount(cp)
       val following = if (next < s.length) s.codePointAt(next) else -1
-      val width = NitroTextFonts.advance(cp, entry) + letterSpacingPx
-      engine.addGlyph(cp, ROLE_BODY, kind(cp, previous, following), width.toDouble(), false)
+      if (n == lineChars.size) {
+        lineChars = lineChars.copyOf(n * 2)
+        lineKinds = lineKinds.copyOf(n * 2)
+        lineWidths = lineWidths.copyOf(n * 2)
+      }
+      lineChars[n] = cp
+      lineKinds[n] = kind(cp, previous, following)
+      lineWidths[n] = (NitroTextFonts.advance(cp, entry) + letterSpacingPx).toDouble()
+      n++
       previous = cp
       i = next
     }
-    engine.commitText(-1, now())
-    committed = true
-    restValid = false
-    scheduleFrameIfNeeded()
-    invalidate()
+    engineMoving = engine.commitLine(lineChars, lineKinds, lineWidths, n, ROLE_BODY, !animated, -1, now())
+    engineText = s
+    frameFresh = false
+  }
+
+  /** A change morphs unless it can't be seen to: no duration, or animations off. */
+  private fun morphs(): Boolean =
+    timing.durationSeconds > 0 && !(timing.respectReduceMotion && animationsDisabled())
+
+  private fun moving(): Boolean = engineText != null && engineMoving
+
+  /** One crossing per frame: the engine ticks and hands back its frame ([ReflowEngine.tickInto]). */
+  private fun tick(now: Double) {
+    val result = engine.tickInto(now, frameBuffer)
+    if (result < 0) {
+      readFrame()
+      engineMoving = engine.needsFrames()
+      return
+    }
+    engineMoving = (result and ReflowEngine.MORE_FRAMES) != 0
+    frameCount = frameBuffer[0].toInt()
+    frameContentWidth = frameBuffer[1].toFloat()
+    frameFresh = true
   }
 
   private fun isDigit(cp: Int): Boolean = cp in 48..57
@@ -488,7 +595,7 @@ class NitroTextView(context: Context) : View(context) {
 
   private fun now(): Double = SystemClock.uptimeMillis() / 1000.0
 
-  private fun needsFrames(): Boolean = engine.needsFrames() || loading || loadingProgress > 0f
+  private fun needsFrames(): Boolean = moving() || loading || loadingProgress > 0f
 
   private fun scheduleFrameIfNeeded() {
     if (!frameScheduled && needsFrames()) {
@@ -531,6 +638,7 @@ class NitroTextView(context: Context) : View(context) {
     }
     frameCount = frameBuffer[0].toInt()
     frameContentWidth = frameBuffer[1].toFloat()
+    frameFresh = true
     return true
   }
 
@@ -540,13 +648,16 @@ class NitroTextView(context: Context) : View(context) {
 
   override fun onDraw(canvas: Canvas) {
     super.onDraw(canvas)
-    if (!committed) return
+    val moving = moving()
+    if (!moving && shownText.isEmpty()) return
     val entry = fonts
     val lineHeight = entry.lineHeight
-    val moving = engine.needsFrames()
-    val useRest = !moving && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && (restValid || (readFrame() && buildRestLine(entry)))
-    if (!useRest && !readFrame()) return
-    val content = if (useRest) restContentWidth else frameContentWidth
+    if (moving) {
+      if (!frameFresh && !readFrame()) return
+    } else if (!restValid) {
+      buildRestLine(entry)
+    }
+    val content = if (moving) frameContentWidth else restContentWidth
     val originX = when (style.textAlign) {
       NitroNumberView.Alignment.LEFT -> 0f
       NitroNumberView.Alignment.RIGHT -> width - content
@@ -565,10 +676,10 @@ class NitroTextView(context: Context) : View(context) {
     val layerRight = originX + content + lineHeight
     val layerBottom = originY + lineHeight * 2f
     val layer = if (dim > 0f) canvas.saveLayer(layerLeft, layerTop, layerRight, layerBottom, null) else -1
-    if (useRest) {
-      drawRest(canvas, originX, originY + entry.baseline)
-    } else {
+    if (moving) {
       drawGlyphs(canvas, entry, originX, originY, lineHeight, ink)
+    } else {
+      drawRest(canvas, originX, originY + entry.baseline)
     }
     if (dim > 0f) {
       drawShimmer(canvas, ink, originX, content, originY, dim, layerLeft, layerTop, layerRight, layerBottom)
@@ -577,43 +688,47 @@ class NitroTextView(context: Context) : View(context) {
   }
 
   /**
-   * Gathers the settled line into [restRuns]: each character's shaped glyphs
-   * at the engine's x, grouped by font. False when the frame is not at rest
-   * after all (a glyph still faded, scaled or offset), so it is drawn glyph by glyph.
+   * Lays the line at rest out from the text alone: each character at the sum
+   * of the advances (and letter spacing) before it, as the engine would; on
+   * API 31+ its shaped glyphs gathered into [restRuns] by font.
    */
-  @RequiresApi(Build.VERSION_CODES.S)
-  private fun buildRestLine(entry: NitroTextFonts.Entry): Boolean {
+  private fun buildRestLine(entry: NitroTextFonts.Entry) {
     for (r in 0 until restRunCount) restRuns[r].count = 0
     restRunCount = 0
-    val f = frameBuffer
-    for (i in 0 until frameCount) {
-      val base = 3 + i * GLYPH_FIELDS
-      if (f[base + 10] != 0.0) {
-        if (f[base + 8] > 0.002) return false
-        continue
+    val s = shownText
+    var x = 0f
+    var n = 0
+    var i = 0
+    while (i < s.length) {
+      val cp = s.codePointAt(i)
+      if (restXs.size <= n) restXs = restXs.copyOf(restXs.size * 2)
+      restXs[n++] = x
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) addToRest(cp, x, entry)
+      x += NitroTextFonts.advance(cp, entry) + letterSpacingPx
+      i += Character.charCount(cp)
+    }
+    restContentWidth = x
+    restValid = true
+  }
+
+  @RequiresApi(Build.VERSION_CODES.S)
+  private fun addToRest(codePoint: Int, x: Float, entry: NitroTextFonts.Entry) {
+    val shaped = NitroTextFonts.shaped(codePoint, entry)
+    for (r in shaped.fonts.indices) {
+      val run = restRun(shaped.fonts[r])
+      val ids = shaped.ids[r]
+      val pos = shaped.positions[r]
+      if (run.ids.size < run.count + ids.size) {
+        run.ids = run.ids.copyOf(max(run.ids.size * 2, run.count + ids.size))
+        run.positions = run.positions.copyOf(run.ids.size * 2)
       }
-      if (f[base + 8] < 0.998 || f[base + 7] != 0.0 || f[base + 9] != 1.0) return false
-      val x = f[base + 6].toFloat()
-      val shaped = NitroTextFonts.shaped(f[base + 1].toInt(), entry)
-      for (r in shaped.fonts.indices) {
-        val run = restRun(shaped.fonts[r])
-        val ids = shaped.ids[r]
-        val pos = shaped.positions[r]
-        if (run.ids.size < run.count + ids.size) {
-          run.ids = run.ids.copyOf(max(run.ids.size * 2, run.count + ids.size))
-          run.positions = run.positions.copyOf(run.ids.size * 2)
-        }
-        for (g in ids.indices) {
-          run.ids[run.count] = ids[g]
-          run.positions[run.count * 2] = pos[g * 2] + x
-          run.positions[run.count * 2 + 1] = pos[g * 2 + 1]
-          run.count++
-        }
+      for (g in ids.indices) {
+        run.ids[run.count] = ids[g]
+        run.positions[run.count * 2] = pos[g * 2] + x
+        run.positions[run.count * 2 + 1] = pos[g * 2 + 1]
+        run.count++
       }
     }
-    restContentWidth = frameContentWidth
-    restValid = true
-    return true
   }
 
   /** The rest run drawn in [font], reusing the run objects of earlier lines. */
@@ -628,15 +743,26 @@ class NitroTextView(context: Context) : View(context) {
     return run
   }
 
-  /** At rest: the whole line, one `drawGlyphs` per font. */
-  @RequiresApi(Build.VERSION_CODES.S)
+  /** At rest: the whole line, one `drawGlyphs` per font (per character below API 31). */
   private fun drawRest(canvas: Canvas, x: Float, baseline: Float) {
     val saved = canvas.save()
     canvas.translate(x, baseline)
-    for (r in 0 until restRunCount) {
-      val run = restRuns[r]
-      if (run.count == 0) continue
-      canvas.drawGlyphs(run.ids, 0, run.positions, 0, run.count, run.font as android.graphics.fonts.Font, paint)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+      for (r in 0 until restRunCount) {
+        val run = restRuns[r]
+        if (run.count == 0) continue
+        canvas.drawGlyphs(run.ids, 0, run.positions, 0, run.count, run.font as android.graphics.fonts.Font, paint)
+      }
+    } else {
+      val s = shownText
+      var n = 0
+      var i = 0
+      while (i < s.length) {
+        val cp = s.codePointAt(i)
+        val count = Character.toChars(cp, chars, 0)
+        canvas.drawText(chars, 0, count, restXs[n++], 0f, paint)
+        i += Character.charCount(cp)
+      }
     }
     canvas.restoreToCount(saved)
   }

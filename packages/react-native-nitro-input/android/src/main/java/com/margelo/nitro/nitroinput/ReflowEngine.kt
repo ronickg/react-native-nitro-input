@@ -44,4 +44,25 @@ class ReflowEngine {
    * and returns the number of doubles written, or -1 if [out] is too small.
    */
   external fun frameInto(out: DoubleArray): Int
+
+  /**
+   * A whole line in one JNI crossing instead of one per character:
+   * `setReduceMotion`, `beginText`, an `addGlyph` per character (all in
+   * [role], none a placeholder) and `commitText`. Returns [needsFrames].
+   */
+  external fun commitLine(
+    characters: IntArray, kinds: IntArray, widths: DoubleArray, count: Int,
+    role: Int, reduceMotion: Boolean, caret: Int, now: Double,
+  ): Boolean
+
+  /**
+   * [tick] and [frameInto] in one crossing: the doubles written (or -1 when
+   * [out] is too small, after ticking), with [MORE_FRAMES] set while the
+   * engine still needs frames.
+   */
+  external fun tickInto(now: Double, out: DoubleArray): Int
+
+  companion object {
+    const val MORE_FRAMES = 1 shl 30
+  }
 }

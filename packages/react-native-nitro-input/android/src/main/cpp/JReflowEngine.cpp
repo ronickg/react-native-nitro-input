@@ -5,6 +5,8 @@
 
 #include "JReflowEngine.hpp"
 
+#include <algorithm>
+
 namespace margelo::nitro::nitroinput {
 
 jni::local_ref<JReflowEngine::jhybriddata> JReflowEngine::initHybrid(jni::alias_ref<jhybridobject>) {
@@ -31,6 +33,8 @@ void JReflowEngine::registerNatives() {
       makeNativeMethod("caretX", JReflowEngine::caretX),
       makeNativeMethod("reset", JReflowEngine::reset),
       makeNativeMethod("frameInto", JReflowEngine::frameInto),
+      makeNativeMethod("commitLine", JReflowEngine::commitLine),
+      makeNativeMethod("tickInto", JReflowEngine::tickInto),
   });
 }
 
@@ -127,6 +131,34 @@ int JReflowEngine::frameInto(jni::alias_ref<jni::JArrayDouble> out) {
   }
   out->setRegion(0, needed, data);
   return static_cast<int>(needed);
+}
+
+bool JReflowEngine::commitLine(jni::alias_ref<jni::JArrayInt> characters, jni::alias_ref<jni::JArrayInt> kinds,
+                               jni::alias_ref<jni::JArrayDouble> widths, int count, int role, bool reduceMotion,
+                               int caret, double now) {
+  const size_t n = static_cast<size_t>(std::max(0, count));
+  lineChars_.resize(n);
+  lineKinds_.resize(n);
+  lineWidths_.resize(n);
+  if (n > 0) {
+    characters->getRegion(0, static_cast<jsize>(n), lineChars_.data());
+    kinds->getRegion(0, static_cast<jsize>(n), lineKinds_.data());
+    widths->getRegion(0, static_cast<jsize>(n), lineWidths_.data());
+  }
+  engine_.setReduceMotion(reduceMotion);
+  engine_.beginText();
+  for (size_t i = 0; i < n; ++i) {
+    engine_.addGlyph(static_cast<uint32_t>(lineChars_[i]), role, lineKinds_[i], lineWidths_[i], false);
+  }
+  engine_.commitText(caret, now);
+  return engine_.needsFrames();
+}
+
+int JReflowEngine::tickInto(double now, jni::alias_ref<jni::JArrayDouble> out) {
+  engine_.tick(now);
+  const int written = frameInto(out);
+  const int more = engine_.needsFrames() ? kMoreFrames : 0;
+  return written < 0 ? -1 : (written | more);
 }
 
 } // namespace margelo::nitro::nitroinput
