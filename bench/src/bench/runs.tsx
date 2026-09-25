@@ -4,7 +4,8 @@ import type { NitroNumberHandle } from 'react-native-nitro-input'
 import { BENCH_START, BenchItem, IMPLS, ImplBoundary, type ImplKey } from './impls'
 import { INPUT_IMPLS, InputItem, type InputHandle, type InputImplKey } from './inputs'
 import { cpuBetween, forceGc, sample, thermalState, typeText, type Sample, type TypeStats } from 'bench-probe'
-import type { FocusScenario, FootprintScenario, LeakListScenario, LeakScenario, ListScenario, MountScenario, Rate, TypeScenario } from './plan'
+import { FORMAT_CASES, FORMAT_IMPLS, FORMAT_VALUES, type FormatImplKey, type FormatOp } from './formatters'
+import type { FocusScenario, FootprintScenario, FormatScenario, LeakListScenario, LeakScenario, ListScenario, MountScenario, Rate, TypeScenario } from './plan'
 import { benchValue } from './impls'
 import { quantile, useBenchValue, useMeasuredStream, type StreamStats } from './runner'
 
@@ -428,6 +429,102 @@ export function FocusRun({ scenario, running, onDone }: { scenario: FocusScenari
   return (
     <View style={styles.typeBox}>
       <InputItem ref={ref} impl={impl} onFocus={() => resolveFocus.current?.(performance.now() - t0.current)} />
+    </View>
+  )
+}
+
+export type FormatResult = {
+  kind: 'format'
+  impl: FormatImplKey
+  op: FormatOp
+  /** µs per call: the median batch, the fastest and the slowest. */
+  us: { p50: number; min: number; max: number }
+  /** The scenario's first call, ms. The first formatter a fresh process builds also loads the locale data. */
+  firstMs: number
+  calls: number
+  error?: string
+}
+
+const FORMAT_BATCHES = 7
+const FORMAT_BATCH_MS = 120
+
+/**
+ * Times one formatter op on the JS thread: calls in a tight loop for
+ * FORMAT_BATCH_MS, FORMAT_BATCHES times with a frame between them, cycling
+ * through every locale setup and a fixed set of values.
+ */
+export function FormatRun({ scenario, running, onDone }: { scenario: FormatScenario; running: boolean; onDone: (r: FormatResult) => void }) {
+  const { impl, op } = scenario
+  const onDoneRef = useRef(onDone)
+  onDoneRef.current = onDone
+
+  useEffect(() => {
+    if (!running) return
+    let cancelled = false
+    ;(async () => {
+      const done = (r: Omit<FormatResult, 'kind' | 'impl' | 'op'>) => !cancelled && onDoneRef.current({ kind: 'format', impl, op, ...r })
+      const failed = (error: string) => done({ us: { p50: 0, min: 0, max: 0 }, firstMs: 0, calls: 0, error })
+      const formatter = FORMAT_IMPLS.find((i) => i.key === impl)
+      if (!formatter) return failed(`unknown formatter ${impl}`)
+      await nextFrame()
+      try {
+        const t = performance.now()
+        const built = op === 'construct' || op === 'toLocaleString' ? [] : FORMAT_CASES.map((c) => formatter.create(c.locale, c.options))
+        const buildMs = performance.now() - t
+        if (op === 'formatToParts' && built.some((f) => typeof f.formatToParts !== 'function')) return failed('formatToParts is not implemented')
+        let i = 0
+        let sink = 0
+        const call = () => {
+          const k = i++
+          const c = FORMAT_CASES[k % FORMAT_CASES.length]!
+          const value = FORMAT_VALUES[k % FORMAT_VALUES.length]!
+          switch (op) {
+            case 'construct':
+              sink += formatter.create(c.locale, c.options) ? 1 : 0
+              break
+            case 'format':
+              sink += built[k % built.length]!.format(value).length
+              break
+            case 'formatToParts':
+              sink += built[k % built.length]!.formatToParts!(value).length
+              break
+            case 'toLocaleString':
+              sink += formatter.toLocaleString(value, c.locale, c.options).length
+              break
+          }
+        }
+        const first = performance.now()
+        call()
+        // For the ops that format with built formatters, building them was the scenario's first work.
+        const firstMs = op === 'format' || op === 'formatToParts' ? buildMs : performance.now() - first
+        const perCall: number[] = []
+        let calls = 0
+        for (let b = 0; b < FORMAT_BATCHES && !cancelled; b++) {
+          await nextFrame()
+          const t0 = performance.now()
+          let n = 0
+          do {
+            for (let j = 0; j < 8; j++) call()
+            n += 8
+          } while (performance.now() - t0 < FORMAT_BATCH_MS)
+          perCall.push(((performance.now() - t0) * 1000) / n)
+          calls += n
+        }
+        if (sink < 0) console.log(sink)
+        const sorted = [...perCall].sort((a, b) => a - b)
+        done({ us: { p50: quantile(sorted, 0.5), min: sorted[0] ?? 0, max: sorted[sorted.length - 1] ?? 0 }, firstMs, calls })
+      } catch (e) {
+        failed(e instanceof Error ? e.message : String(e))
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [running, impl, op])
+
+  return (
+    <View style={styles.typeBox}>
+      <Text>{running ? `Timing ${op}…` : op}</Text>
     </View>
   )
 }

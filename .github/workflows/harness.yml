@@ -46,6 +46,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - name: Install
         run: bun install --frozen-lockfile
+      - name: test262 intl402/NumberFormat
+        # Bundles the conformance tests the NumberFormat suite runs (pinned commit).
+        run: node scripts/test262/number-format.mjs
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -123,6 +126,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - name: Install
         run: bun install --frozen-lockfile
+      - name: test262 intl402/NumberFormat
+        # Bundles the conformance tests the NumberFormat suite runs (pinned commit).
+        run: node scripts/test262/number-format.mjs
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3'

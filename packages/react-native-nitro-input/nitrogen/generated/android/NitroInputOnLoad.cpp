@@ -26,8 +26,11 @@
 #include "JHybridNitroNumberViewSpec.hpp"
 #include "JFunc_void.hpp"
 #include "views/JHybridNitroNumberViewStateUpdater.hpp"
+#include "JHybridNitroPlatformNumberFormatterSpec.hpp"
+#include "JHybridNitroNumberFormatPlatformSpec.hpp"
 #include <NitroModules/DefaultConstructableObject.hpp>
 #include "HybridNitroInputWorklets.hpp"
+#include "HybridNitroNumberFormatFactory.hpp"
 
 namespace margelo::nitro::nitroinput {
 
@@ -53,6 +56,14 @@ struct JHybridNitroNumberViewSpecImpl: public jni::JavaClass<JHybridNitroNumberV
     return javaPart->getJHybridNitroNumberViewSpec();
   }
 };
+struct JHybridNitroNumberFormatPlatformSpecImpl: public jni::JavaClass<JHybridNitroNumberFormatPlatformSpecImpl, JHybridNitroNumberFormatPlatformSpec::JavaPart> {
+  static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/nitroinput/HybridNitroNumberFormatPlatform;";
+  static std::shared_ptr<JHybridNitroNumberFormatPlatformSpec> create() {
+    static const auto constructorFn = javaClassStatic()->getConstructor<JHybridNitroNumberFormatPlatformSpecImpl::javaobject()>();
+    jni::local_ref<JHybridNitroNumberFormatPlatformSpec::JavaPart> javaPart = javaClassStatic()->newObject(constructorFn);
+    return javaPart->getJHybridNitroNumberFormatPlatformSpec();
+  }
+};
 
 void registerAllNatives() {
   using namespace margelo::nitro;
@@ -70,6 +81,8 @@ void registerAllNatives() {
   margelo::nitro::nitroinput::JHybridNitroNumberViewSpec::CxxPart::registerNatives();
   margelo::nitro::nitroinput::JFunc_void_cxx::registerNatives();
   margelo::nitro::nitroinput::views::JHybridNitroNumberViewStateUpdater::registerNatives();
+  margelo::nitro::nitroinput::JHybridNitroPlatformNumberFormatterSpec::CxxPart::registerNatives();
+  margelo::nitro::nitroinput::JHybridNitroNumberFormatPlatformSpec::CxxPart::registerNatives();
 
   // Register Nitro Hybrid Objects
   HybridObjectRegistry::registerHybridObjectConstructor(
@@ -91,6 +104,21 @@ void registerAllNatives() {
     "NitroNumberView",
     []() -> std::shared_ptr<HybridObject> {
       return JHybridNitroNumberViewSpecImpl::create();
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "NitroNumberFormatFactory",
+    []() -> std::shared_ptr<HybridObject> {
+      static_assert(std::is_default_constructible_v<HybridNitroNumberFormatFactory>,
+                    "The HybridObject \"HybridNitroNumberFormatFactory\" is not default-constructible! "
+                    "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
+      return std::make_shared<HybridNitroNumberFormatFactory>();
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "NitroNumberFormatPlatform",
+    []() -> std::shared_ptr<HybridObject> {
+      return JHybridNitroNumberFormatPlatformSpecImpl::create();
     }
   );
 }

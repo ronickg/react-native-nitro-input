@@ -13,6 +13,15 @@ module in `modules/bench-probe`, what `dumpsys meminfo` calls Views) must be whe
 copies mounted afterwards must work. That is the leak the 0.1.0 memory fix
 closed, kept closed.
 
+`number-format.harness.tsx` checks `NumberFormat` against Hermes' own
+`Intl.NumberFormat` (25 locales, every style), and
+`test262-number-format.harness.tsx` runs test262's `intl402/NumberFormat`
+conformance suite against both: every test Hermes passes must pass, and the
+few `NumberFormat` is known to fail are listed with their reason. Its tests
+are bundled by `node scripts/test262/number-format.mjs` (a pinned test262
+commit, fetched into `scripts/test262/.cache`); without the bundle the suite
+is skipped.
+
 `App.test.tsx` next to them is an ordinary Jest test and runs on Node
 (`bun run test` in this folder); the harness runner only picks up
 `*.harness.*` files (`jest.harness.config.mjs`).

@@ -10,8 +10,12 @@
 // Forward declarations of C++ defined types
 // Forward declaration of `HybridNitroInputViewSpec` to properly resolve imports.
 namespace margelo::nitro::nitroinput { class HybridNitroInputViewSpec; }
+// Forward declaration of `HybridNitroNumberFormatPlatformSpec` to properly resolve imports.
+namespace margelo::nitro::nitroinput { class HybridNitroNumberFormatPlatformSpec; }
 // Forward declaration of `HybridNitroNumberViewSpec` to properly resolve imports.
 namespace margelo::nitro::nitroinput { class HybridNitroNumberViewSpec; }
+// Forward declaration of `HybridNitroPlatformNumberFormatterSpec` to properly resolve imports.
+namespace margelo::nitro::nitroinput { class HybridNitroPlatformNumberFormatterSpec; }
 // Forward declaration of `NitroInputAffixAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputAffixAlign; }
 // Forward declaration of `NitroInputAutoCapitalize` to properly resolve imports.
@@ -54,10 +58,32 @@ namespace margelo::nitro::nitroinput { enum class NitroNumberRevealStyle; }
 namespace margelo::nitro::nitroinput { enum class NitroNumberTextAlign; }
 // Forward declaration of `NitroNumberTransition` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberTransition; }
+// Forward declaration of `NumberFormatCompactDisplay` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NumberFormatCompactDisplay; }
+// Forward declaration of `NumberFormatCurrencyDisplay` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NumberFormatCurrencyDisplay; }
+// Forward declaration of `NumberFormatCurrencySign` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NumberFormatCurrencySign; }
+// Forward declaration of `NumberFormatNotation` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NumberFormatNotation; }
+// Forward declaration of `NumberFormatPlatformOptions` to properly resolve imports.
+namespace margelo::nitro::nitroinput { struct NumberFormatPlatformOptions; }
+// Forward declaration of `NumberFormatPlatformSymbols` to properly resolve imports.
+namespace margelo::nitro::nitroinput { struct NumberFormatPlatformSymbols; }
+// Forward declaration of `NumberFormatRoundingMode` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NumberFormatRoundingMode; }
+// Forward declaration of `NumberFormatSignDisplay` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NumberFormatSignDisplay; }
+// Forward declaration of `NumberFormatStyle` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NumberFormatStyle; }
+// Forward declaration of `NumberFormatUnitDisplay` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NumberFormatUnitDisplay; }
 
 // Include C++ defined types
 #include "HybridNitroInputViewSpec.hpp"
+#include "HybridNitroNumberFormatPlatformSpec.hpp"
 #include "HybridNitroNumberViewSpec.hpp"
+#include "HybridNitroPlatformNumberFormatterSpec.hpp"
 #include "NitroInputAffixAlign.hpp"
 #include "NitroInputAutoCapitalize.hpp"
 #include "NitroInputEasing.hpp"
@@ -79,6 +105,16 @@ namespace margelo::nitro::nitroinput { enum class NitroNumberTransition; }
 #include "NitroNumberRevealStyle.hpp"
 #include "NitroNumberTextAlign.hpp"
 #include "NitroNumberTransition.hpp"
+#include "NumberFormatCompactDisplay.hpp"
+#include "NumberFormatCurrencyDisplay.hpp"
+#include "NumberFormatCurrencySign.hpp"
+#include "NumberFormatNotation.hpp"
+#include "NumberFormatPlatformOptions.hpp"
+#include "NumberFormatPlatformSymbols.hpp"
+#include "NumberFormatRoundingMode.hpp"
+#include "NumberFormatSignDisplay.hpp"
+#include "NumberFormatStyle.hpp"
+#include "NumberFormatUnitDisplay.hpp"
 #include <NitroModules/Result.hpp>
 #include <exception>
 #include <functional>
@@ -99,8 +135,12 @@ namespace margelo::nitro::nitroinput { enum class NitroNumberTransition; }
 // Forward declarations of Swift defined types
 // Forward declaration of `HybridNitroInputViewSpec_cxx` to properly resolve imports.
 namespace NitroInput { class HybridNitroInputViewSpec_cxx; }
+// Forward declaration of `HybridNitroNumberFormatPlatformSpec_cxx` to properly resolve imports.
+namespace NitroInput { class HybridNitroNumberFormatPlatformSpec_cxx; }
 // Forward declaration of `HybridNitroNumberViewSpec_cxx` to properly resolve imports.
 namespace NitroInput { class HybridNitroNumberViewSpec_cxx; }
+// Forward declaration of `HybridNitroPlatformNumberFormatterSpec_cxx` to properly resolve imports.
+namespace NitroInput { class HybridNitroPlatformNumberFormatterSpec_cxx; }
 
 // Include Swift defined types
 #if __has_include("NitroInput-Swift.h")

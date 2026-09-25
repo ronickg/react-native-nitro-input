@@ -5,6 +5,7 @@ import { IMPLS, type ImplKey } from './impls'
 import {
   fullPlan,
   inputPlan,
+  formatPlan,
   kindOf,
   leakPlan,
   listPlan,
@@ -23,7 +24,9 @@ import { BenchRun, type BenchResult } from './runner'
 import {
   FocusRun,
   FootprintRun,
+  FormatRun,
   type FootprintResult,
+  type FormatResult,
   LeakListRun,
   LeakRun,
   ListRun,
@@ -40,7 +43,7 @@ import {
 
 export type RollingBenchParams = { plan?: Plan } | undefined
 
-export type AnyResult = BenchResult | ListResult | MountResult | TypeResult | FocusResult | LeakResult | LeakListResult | FootprintResult
+export type AnyResult = BenchResult | ListResult | MountResult | TypeResult | FocusResult | LeakResult | LeakListResult | FootprintResult | FormatResult
 
 type Phase = 'idle' | 'settling' | 'running'
 
@@ -88,6 +91,8 @@ function fmtLine(r: AnyResult) {
       return `memory, ${implShort(r.impl)} list for ${f0(r.seconds)} s: RSS ${f1(r.rssFirstMb)} → ${f1(r.rssLastMb)} MB (max ${f1(r.rssMaxMb)}), ${f1(r.growthKbPerSecond)} KB/s`
     case 'footprint':
       return `footprint, ${r.count} × ${implShort(r.impl)}: ${f1(r.perViewFootprintKb)} KB per copy (malloc ${f1(r.perViewNativeKb)} KB${r.perViewJavaKb != null ? `, java ${f1(r.perViewJavaKb)} KB` : ''}), left behind ${f1(r.leftFootprintKb)} KB`
+    case 'format':
+      return `${r.op} ${r.impl}: ${r.us.p50.toFixed(2)} µs per call (${r.us.min.toFixed(2)}–${r.us.max.toFixed(2)}), first ${f1(r.firstMs)} ms`
   }
 }
 
@@ -118,6 +123,8 @@ function Stage({ scenario, plan, running, onMeasureStart, onDone }: { scenario: 
       return <LeakListRun scenario={scenario as Extract<Scenario, { kind: 'leaklist' }>} running={running} onDone={onDone} />
     case 'footprint':
       return <FootprintRun scenario={scenario as Extract<Scenario, { kind: 'footprint' }>} running={running} onDone={onDone} />
+    case 'format':
+      return <FormatRun scenario={scenario as Extract<Scenario, { kind: 'format' }>} running={running} onDone={onDone} />
   }
 }
 
@@ -240,6 +247,7 @@ export function RollingBenchScreen() {
         <Chip title={`Mount (${minutes(mountPlan())})`} testID="bench-mount" onPress={() => !busy && startPlan(mountPlan())} />
         <Chip title={`List (${minutes(listPlan())})`} testID="bench-list" onPress={() => !busy && startPlan(listPlan())} />
         <Chip title={`Memory (${minutes(leakPlan())})`} testID="bench-memory" onPress={() => !busy && startPlan(leakPlan())} />
+        <Chip title={`Formatting (${minutes(formatPlan())})`} testID="bench-format" onPress={() => !busy && startPlan(formatPlan())} />
       </View>
       <Text style={styles.status} testID="bench-status">
         {status}

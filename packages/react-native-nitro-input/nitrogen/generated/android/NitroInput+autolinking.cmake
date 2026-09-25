@@ -38,11 +38,17 @@ target_sources(
   ../nitrogen/generated/shared/c++/HybridNitroInputWorkletsSpec.cpp
   ../nitrogen/generated/shared/c++/HybridNitroNumberViewSpec.cpp
   ../nitrogen/generated/shared/c++/views/HybridNitroNumberViewComponent.cpp
+  ../nitrogen/generated/shared/c++/HybridNitroNumberFormatSpec.cpp
+  ../nitrogen/generated/shared/c++/HybridNitroNumberFormatFactorySpec.cpp
+  ../nitrogen/generated/shared/c++/HybridNitroPlatformNumberFormatterSpec.cpp
+  ../nitrogen/generated/shared/c++/HybridNitroNumberFormatPlatformSpec.cpp
   # Android-specific Nitrogen C++ sources
   ../nitrogen/generated/android/c++/JHybridNitroInputViewSpec.cpp
   ../nitrogen/generated/android/c++/views/JHybridNitroInputViewStateUpdater.cpp
   ../nitrogen/generated/android/c++/JHybridNitroNumberViewSpec.cpp
   ../nitrogen/generated/android/c++/views/JHybridNitroNumberViewStateUpdater.cpp
+  ../nitrogen/generated/android/c++/JHybridNitroPlatformNumberFormatterSpec.cpp
+  ../nitrogen/generated/android/c++/JHybridNitroNumberFormatPlatformSpec.cpp
 )
 
 # From node_modules/react-native/ReactAndroid/cmake-utils/folly-flags.cmake

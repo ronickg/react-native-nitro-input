@@ -1,5 +1,6 @@
 import { Platform } from 'react-native'
 import { IMPLS, type ImplKey } from './impls'
+import { FORMAT_IMPLS, FORMAT_OPS, type FormatImplKey, type FormatOp } from './formatters'
 import { INPUT_IMPLS, type InputImplKey } from './inputs'
 
 /** 'frame' pushes a new value on every JS frame; a number is pushes per second. */
@@ -22,8 +23,10 @@ export type LeakScenario = { kind: 'leak'; impl: ImplKey | InputImplKey; count: 
 export type LeakListScenario = { kind: 'leaklist'; impl: ImplKey; rows: number; rate: Rate; seconds: number }
 /** `count` copies mounted at once, memory read after a forced collection before, with them, and after: the per-view footprint. */
 export type FootprintScenario = { kind: 'footprint'; impl: ImplKey | InputImplKey; count: number }
-export type Scenario = StreamScenario | ListScenario | MountScenario | TypeScenario | FocusScenario | LeakScenario | LeakListScenario | FootprintScenario
-export type Kind = 'stream' | 'list' | 'mount' | 'type' | 'focus' | 'leak' | 'leaklist' | 'footprint'
+/** A number formatter's `op` (building one, or formatting with it) timed on the JS thread, per call. */
+export type FormatScenario = { kind: 'format'; impl: FormatImplKey; op: FormatOp }
+export type Scenario = StreamScenario | ListScenario | MountScenario | TypeScenario | FocusScenario | LeakScenario | LeakListScenario | FootprintScenario | FormatScenario
+export type Kind = 'stream' | 'list' | 'mount' | 'type' | 'focus' | 'leak' | 'leaklist' | 'footprint' | 'format'
 
 export const kindOf = (s: Scenario): Kind => s.kind ?? 'stream'
 
@@ -46,6 +49,7 @@ export const DEFAULT_SETTLE = 1
 
 const IMPL_KEYS = new Set<string>(IMPLS.map((i) => i.key))
 const INPUT_KEYS = new Set<string>(INPUT_IMPLS.map((i) => i.key))
+const FORMAT_KEYS = new Set<string>(FORMAT_IMPLS.map((i) => i.key))
 const COUNTS: Count[] = [1, 8, 24]
 
 function num(v: unknown, fallback: number) {
@@ -76,6 +80,8 @@ function isScenario(s: unknown): s is Scenario {
       return IMPL_KEYS.has(impl) && isPositive(o.rows) && isRate(o.rate) && isPositive(o.seconds)
     case 'footprint':
       return (IMPL_KEYS.has(impl) || INPUT_KEYS.has(impl)) && isPositive(o.count)
+    case 'format':
+      return FORMAT_KEYS.has(impl) && FORMAT_OPS.includes(o.op as FormatOp)
     default:
       return false
   }
@@ -198,6 +204,13 @@ export function footprintPlan(): Plan {
   return withDefaults('footprint', scenarios)
 }
 
+/** Every formatter, every op. Building a formatter first, so the first scenario of a fresh process also shows the cold start. */
+export function formatPlan(): Plan {
+  const scenarios: Scenario[] = []
+  for (const op of FORMAT_OPS) for (const i of FORMAT_IMPLS) scenarios.push({ kind: 'format', impl: i.key, op })
+  return withDefaults('format', scenarios)
+}
+
 export function rateLabel(rate: Rate) {
   return rate === 'frame' ? 'every frame' : `${rate}/s`
 }
@@ -220,6 +233,8 @@ export function scenarioSeconds(plan: Plan, s: Scenario) {
       return plan.settle + 2 + (s as LeakListScenario).seconds
     case 'footprint':
       return plan.settle + 20
+    case 'format':
+      return plan.settle + 3
   }
 }
 
@@ -228,7 +243,7 @@ export function planSeconds(plan: Plan) {
 }
 
 export function scenarioLabel(s: Scenario): string {
-  const impl = IMPLS.find((i) => i.key === s.impl)?.short ?? INPUT_IMPLS.find((i) => i.key === s.impl)?.short ?? s.impl
+  const impl = IMPLS.find((i) => i.key === s.impl)?.short ?? INPUT_IMPLS.find((i) => i.key === s.impl)?.short ?? FORMAT_IMPLS.find((i) => i.key === s.impl)?.label ?? s.impl
   switch (kindOf(s)) {
     case 'stream': {
       const st = s as StreamScenario
@@ -260,5 +275,7 @@ export function scenarioLabel(s: Scenario): string {
       const f = s as FootprintScenario
       return `footprint: ${f.count} × ${impl} mounted`
     }
+    case 'format':
+      return `${(s as FormatScenario).op}: ${impl}`
   }
 }

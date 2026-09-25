@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Runs the rolling-number benchmark on real devices and collects the results.
 //
-//   node scripts/bench/run.mjs --ios <udid> --android <serial> [--plan full|headline|quick|file.json]
+//   node scripts/bench/run.mjs --ios <udid> --android <serial> [--plan full|headline|quick|inputs|mount|list|leak|footprint|format|all|file.json]
 //        [--impls a,b,c] [--repeat 3] [--seconds 10] [--warmup 2] [--settle 1.5]
 //        [--build] [--no-install] [--team <apple team id>] [--label name]
 //
@@ -15,12 +15,16 @@ import { execFileSync, spawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { IMPLS, INPUT_IMPLS, RESULTS_DIR, renderAll } from './report.mjs'
+import { FORMAT_IMPLS, IMPLS, INPUT_IMPLS, RESULTS_DIR, renderAll } from './report.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const app = path.resolve(here, '../../bench')
 const IOS_BUNDLE = 'org.reactjs.native.example.RollingNumberExample'
 const IOS_APP = path.join(app, 'ios/build-device/Build/Products/Release-iphoneos/RollingNumberExample.app')
+const IOS_SIM_APP = path.join(app, 'ios/build-sim/Build/Products/Release-iphonesimulator/RollingNumberExample.app')
+// Simulator and emulator runs compare implementations on this Mac; they are not
+// the published phone numbers, so they are kept out of the report's results.
+const LOCAL_RESULTS_DIR = path.join(RESULTS_DIR, 'local')
 const ANDROID_PKG = 'com.rollingnumberexample'
 const ANDROID_APK = path.join(app, 'android/app/build/outputs/apk/release/app-release.apk')
 const ANDROID_HOME = process.env.ANDROID_HOME ?? path.join(process.env.HOME ?? '', 'Library/Android/sdk')
@@ -66,11 +70,12 @@ const inputKeys = (impl) => INPUT_KEYS[impl] ?? '123456789012'
  */
 function buildPlan(o) {
   const scenarios = []
-  const known = [...IMPLS, ...INPUT_IMPLS].map(([k]) => k)
+  const known = [...IMPLS, ...INPUT_IMPLS, ...FORMAT_IMPLS].map(([k]) => k)
   const unknown = (o.impls ?? []).filter((k) => !known.includes(k))
   if (unknown.length) throw new Error(`unknown implementations: ${unknown.join(', ')}`)
   const rolling = RUN_ORDER.filter((k) => !o.impls || o.impls.includes(k))
   const inputs = INPUT_IMPLS.map(([k]) => k).filter((k) => !o.impls || o.impls.includes(k))
+  const formatters = FORMAT_IMPLS.map(([k]) => k).filter((k) => !o.impls || o.impls.includes(k))
   const parts = o.plan === 'all' ? ['full', 'inputs', 'mount', 'list', 'leak'] : [o.plan]
   for (const part of parts) {
     if (part === 'full' || part === 'headline' || part === 'quick') {
@@ -98,6 +103,11 @@ function buildPlan(o) {
       for (const impl of rolling) scenarios.push({ kind: 'leak', impl, count: 24, cycles: 40 })
       for (const impl of inputs) scenarios.push({ kind: 'leak', impl, count: 20, cycles: 40 })
       for (const impl of rolling) scenarios.push({ kind: 'leaklist', impl, rows: 200, rate: 10, seconds: 30 })
+    } else if (part === 'format') {
+      // Building a formatter first: in a fresh process its first call also loads the locale data.
+      for (let round = 0; round < Math.max(1, o.repeat); round++) {
+        for (const op of ['construct', 'format', 'formatToParts', 'toLocaleString']) for (const impl of formatters) scenarios.push({ kind: 'format', impl, op })
+      }
     } else if (part === 'footprint') {
       // Per-view memory: what one mounted copy costs, after forced collections.
       // Repeated and interleaved (--repeat), so a row is a median of runs that
@@ -128,6 +138,8 @@ const scenarioSeconds = (plan, s) => {
       return plan.settle + 2 + s.seconds
     case 'footprint':
       return plan.settle + 20
+    case 'format':
+      return plan.settle + 3
     default:
       return plan.settle + plan.warmup + plan.seconds + 1
   }
@@ -196,6 +208,8 @@ function describe(r) {
       return `memory ${r.impl} list ${Math.round(r.seconds)} s → RSS ${r.rssFirstMb?.toFixed(1)} → ${r.rssLastMb?.toFixed(1)} MB, ${r.growthKbPerSecond?.toFixed(1)} KB/s${r.meminfo ? `, views ${r.meminfo.viewsStart} → ${r.meminfo.viewsEnd}` : ''}`
     case 'footprint':
       return `footprint ${r.count} × ${r.impl} → ${r.perViewFootprintKb?.toFixed(1)} KB per copy (malloc ${r.perViewNativeKb?.toFixed(1)}${r.perViewJavaKb != null ? `, java ${r.perViewJavaKb.toFixed(1)}` : ''}), left ${r.leftFootprintKb?.toFixed(1)} KB`
+    case 'format':
+      return `${r.op} ${r.impl} → ${r.us.p50.toFixed(2)} µs per call, first ${r.firstMs.toFixed(1)} ms`
     default: {
       const ui = r.ui ? `UI ${r.ui.fps.toFixed(1)}/${r.ui.hz} fps, ${r.ui.dropped} dropped` : 'UI –'
       const what = r.kind === 'list' ? `${r.impl} list of ${r.rows} @${r.rate}` : `${r.impl} ×${r.count} @${r.rate}`
@@ -204,17 +218,49 @@ function describe(r) {
   }
 }
 
-function save(label, events) {
+function save(label, events, dir) {
   const device = events.find((e) => e.event === 'plan')?.device
   const stamp = new Date().toISOString().slice(0, 16).replace(/[-:]/g, '').replace('T', '-')
   const name = `${label}-${device?.platform ?? 'unknown'}-${(device?.model ?? 'device').replace(/[^\w.]+/g, '_')}-${stamp}.ndjson`
-  fs.mkdirSync(RESULTS_DIR, { recursive: true })
-  const file = path.join(RESULTS_DIR, name)
+  fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, name)
   fs.writeFileSync(file, events.map((e) => JSON.stringify(e)).join('\n') + '\n')
   return file
 }
 
+const isSimulator = (udid) => {
+  try {
+    return execFileSync('xcrun', ['simctl', 'list', 'devices', '-j'], { encoding: 'utf8' }).includes(`"udid" : "${udid}"`)
+  } catch {
+    return false
+  }
+}
+
+/** A simulator: a Release build for the simulator, launched through simctl with the plan in its environment. */
+async function runIosSimulator(udid, plan, o) {
+  const tag = `sim ${udid.slice(0, 8)}`
+  if (o.build) {
+    run('xcodebuild', ['-workspace', 'ios/RollingNumberExample.xcworkspace', '-scheme', 'RollingNumberExample', '-configuration', 'Release', '-sdk', 'iphonesimulator', '-destination', `id=${udid}`, '-derivedDataPath', 'ios/build-sim', 'CODE_SIGNING_ALLOWED=NO', '-quiet', 'build'], { cwd: app })
+  }
+  if (o.install) run('xcrun', ['simctl', 'install', udid, IOS_SIM_APP])
+  const encoded = Buffer.from(JSON.stringify(plan)).toString('base64')
+  console.log(`[${tag}] launching with ${plan.scenarios.length} scenarios (~${Math.round(planSeconds(plan) / 60)} min)`)
+  const child = spawn('xcrun', ['simctl', 'launch', '--console-pty', '--terminate-running-process', udid, IOS_BUNDLE], {
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, SIMCTL_CHILD_BENCH_PLAN: encoded },
+  })
+  try {
+    return await collect(tag, child.stdout, null, planSeconds(plan) * 1000 * 1.5 + 90_000)
+  } finally {
+    child.kill('SIGINT')
+    try {
+      execFileSync('xcrun', ['simctl', 'terminate', udid, IOS_BUNDLE])
+    } catch {}
+  }
+}
+
 async function runIos(udid, plan, o) {
+  if (isSimulator(udid)) return runIosSimulator(udid, plan, o)
   const tag = `ios ${udid.slice(0, 8)}`
   if (o.build) {
     run('xcodebuild', ['-workspace', 'ios/RollingNumberExample.xcworkspace', '-scheme', 'RollingNumberExample', '-configuration', 'Release', '-destination', `id=${udid}`, '-derivedDataPath', 'ios/build-device', '-allowProvisioningUpdates', `DEVELOPMENT_TEAM=${o.team}`, 'CODE_SIGN_STYLE=Automatic', '-quiet', 'build'], { cwd: app })
@@ -307,7 +353,8 @@ const settled = await Promise.allSettled(jobs)
 const files = []
 settled.forEach((s, i) => {
   const target = i < o.ios.length ? `ios ${o.ios[i]}` : `android ${o.android[i - o.ios.length]}`
-  if (s.status === 'fulfilled') files.push(save(plan.label, s.value))
+  const local = i < o.ios.length ? isSimulator(o.ios[i]) : o.android[i - o.ios.length].startsWith('emulator-')
+  if (s.status === 'fulfilled') files.push(save(plan.label, s.value, local ? LOCAL_RESULTS_DIR : RESULTS_DIR))
   else console.error(`${target} failed: ${s.reason?.message ?? s.reason}`)
 })
 if (files.length) {

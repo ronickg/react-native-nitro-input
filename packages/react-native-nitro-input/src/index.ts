@@ -67,3 +67,21 @@ export type {
   NitroNumberProps as NativeNitroNumberProps,
   NitroNumberView,
 } from './specs/NitroNumber.nitro'
+
+export { NumberFormat, type NumberFormatConstructor, type NumberFormatRangePart } from './NumberFormat'
+export type {
+  NumberFormatOptions,
+  NumberFormatPart,
+  ResolvedNumberFormatOptions,
+  NumberFormatStyle,
+  NumberFormatCurrencyDisplay,
+  NumberFormatCurrencySign,
+  NumberFormatUnitDisplay,
+  NumberFormatNotation,
+  NumberFormatCompactDisplay,
+  NumberFormatSignDisplay,
+  NumberFormatRoundingMode,
+  NumberFormatRoundingPriority,
+  NumberFormatTrailingZeroDisplay,
+  NumberFormatGrouping,
+} from './specs/NumberFormat.nitro'

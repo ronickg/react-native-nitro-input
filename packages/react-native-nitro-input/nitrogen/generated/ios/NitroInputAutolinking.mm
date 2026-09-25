@@ -13,6 +13,8 @@
 #include "HybridNitroInputViewSpecSwift.hpp"
 #include "HybridNitroInputWorklets.hpp"
 #include "HybridNitroNumberViewSpecSwift.hpp"
+#include "HybridNitroNumberFormatFactory.hpp"
+#include "HybridNitroNumberFormatPlatformSpecSwift.hpp"
 
 @interface NitroInputAutolinking : NSObject
 @end
@@ -43,6 +45,22 @@
     "NitroNumberView",
     []() -> std::shared_ptr<HybridObject> {
       std::shared_ptr<HybridNitroNumberViewSpec> hybridObject = NitroInput::NitroInputAutolinking::createNitroNumberView();
+      return hybridObject;
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "NitroNumberFormatFactory",
+    []() -> std::shared_ptr<HybridObject> {
+      static_assert(std::is_default_constructible_v<HybridNitroNumberFormatFactory>,
+                    "The HybridObject \"HybridNitroNumberFormatFactory\" is not default-constructible! "
+                    "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
+      return std::make_shared<HybridNitroNumberFormatFactory>();
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "NitroNumberFormatPlatform",
+    []() -> std::shared_ptr<HybridObject> {
+      std::shared_ptr<HybridNitroNumberFormatPlatformSpec> hybridObject = NitroInput::NitroInputAutolinking::createNitroNumberFormatPlatform();
       return hybridObject;
     }
   );

@@ -1,7 +1,7 @@
 ---
 slug: /
 title: Getting started
-description: Install react-native-nitro-input and render a native text input and an animated number.
+description: Install react-native-nitro-input and render a native text input and an animated number, and format numbers natively.
 ---
 
 import {Frame, BasicDemo} from '@site/src/components/Demo/Demo';
@@ -9,12 +9,13 @@ import {NitroInputPlainDemo} from '@site/src/components/NitroInput/NitroInputDem
 
 # Getting started
 
-`react-native-nitro-input` is native text for React Native, built with [Nitro Modules](https://nitro.margelo.com). It has two components:
+`react-native-nitro-input` is native text for React Native, built with [Nitro Modules](https://nitro.margelo.com). It has two components and a number formatter:
 
 - **`NitroInput`**, a text input. A system text field (`UITextField` / `EditText`) owns the keyboard, editing, selection, paste and accessibility; amounts are formatted and masks applied in C++ before a frame is drawn, and the characters can [reflow](/docs/reflow) as they change.
 - **`NitroNumber`**, a number that animates its changes. Every digit is a wheel that rolls to its new glyph, or swaps in place the way SwiftUI's `.contentTransition(.numericText())` does.
+- **[`NumberFormat`](/docs/number-format)**, `Intl.NumberFormat`'s API formatted natively: it learns a locale's format once from the platform and formats in C++, with the same output as Hermes' `Intl` and none of its cost (a formatter builds in 9 µs instead of 3.3 ms on a budget Android phone).
 
-Both are driven by C++ engines shared by iOS and Android, and share one formatting model: prefix and suffix at their own size, pinned to the top, bottom, baseline or centre of the digits; grouping and decimal separators of your choice.
+The components are driven by C++ engines shared by iOS and Android, and share one formatting model: prefix and suffix at their own size, pinned to the top, bottom, baseline or centre of the digits; grouping and decimal separators of your choice.
 
 ## Install
 

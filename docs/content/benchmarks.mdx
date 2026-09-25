@@ -1,6 +1,6 @@
 ---
 title: Benchmarks
-description: Release-build measurements of both components against the other libraries on npm, on an iPhone 11 Pro and a Samsung Galaxy A22.
+description: Release-build measurements of both components against the other libraries on npm, and of NumberFormat against Hermes' Intl, on an iPhone 11 Pro and a Samsung Galaxy A22.
 ---
 
 import BenchChart from '@site/src/components/BenchChart';
@@ -42,3 +42,14 @@ NitroNumber is measured with both of its transitions: the roll (the `value` prop
 **Mounting 20 fields.** A Nitro view costs more to create than a `TextInput`: 35–73 ms against 26 on the 11 Pro, 213–296 against 144 on the A22. Unmounting costs about the same for every field.
 
 <BenchChart group="mount|20" metrics={['mountMs.p50']} />
+
+## NumberFormat
+
+Per call on the JS thread, against Hermes' `Intl.NumberFormat`, six locale and currency setups. Details and the method are on the [NumberFormat page](/docs/number-format#measured).
+
+| | iPhone 11 Pro, Hermes | iPhone 11 Pro, `NumberFormat` | Galaxy A22, Hermes | Galaxy A22, `NumberFormat` |
+| --- | --- | --- | --- | --- |
+| Building a formatter | 42 µs | 4.9 µs | 3,319 µs | 9.2 µs |
+| `format()` | 1.6 µs | 1.2 µs | 10.0 µs | 2.8 µs |
+| `formatToParts()` | not implemented | 3.4 µs | 93 µs | 7.6 µs |
+| A formatter per call (`toLocaleString`) | 85 µs | 6.2 µs | 2,035 µs | 11 µs |

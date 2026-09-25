@@ -885,6 +885,84 @@ how much on each phone. Unmounting costs about the same for every field.
 | **NitroInput (text)** | 36.4 KB | 56.1 KB | 27.4 KB | 10.9 KB | 3 |
 | **NitroInput reflow (text)** | 137.4 KB | 168.7 KB | 23.9 KB | 120.5 KB | 3 |
 
+## Number formatting
+
+Measured on 2026‑09‑25, Release builds: `NumberFormat` against Hermes'
+`Intl.NumberFormat`, per call on the JS thread, cycling through six locale
+and currency setups (en-US USD, en-PH PHP, de-DE EUR, en-IN INR, ja-JP JPY,
+fr-FR decimal) and a fixed set of 512 amounts. Each row is the median of
+seven 120 ms batches, three runs; *first call* is the scenario's first call
+in a fresh process. `--plan format` runs it.
+
+Building an `Intl.NumberFormat` is Hermes' expensive step: 42 µs on the
+iPhone 11 Pro and 3.3 ms on the Galaxy A22, where every call also crosses
+JNI into ICU. `NumberFormat` reads its options in JavaScript the way
+ECMA-402 specifies, asks the platform once per locale and currency, and
+reuses the native formatter after that (4.9 µs and 9.2 µs), and formats in
+C++: 1.2 µs and 2.8 µs against Hermes' 1.6 µs and 10.0 µs. Hermes has no
+`formatToParts` on iOS.
+
+### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
+
+#### building a formatter
+
+| Implementation | µs per call | fastest batch | slowest batch | first call ms | runs |
+| --- | --- | --- | --- | --- | --- |
+| Intl.NumberFormat (Hermes) | 3319 | 2836 | 4484 | 6.6 | 3 |
+| **NumberFormat (native)** | 9.21 | 9.04 | 11.22 | 0.1 | 3 |
+
+#### format() with a built formatter
+
+| Implementation | µs per call | fastest batch | slowest batch | first call ms | runs |
+| --- | --- | --- | --- | --- | --- |
+| Intl.NumberFormat (Hermes) | 9.95 | 9.67 | 11.33 | 20.2 | 3 |
+| **NumberFormat (native)** | 2.79 | 2.76 | 3.36 | 0.2 | 3 |
+
+#### formatToParts() with a built formatter
+
+| Implementation | µs per call | fastest batch | slowest batch | first call ms | runs |
+| --- | --- | --- | --- | --- | --- |
+| Intl.NumberFormat (Hermes) | 93.34 | 89.17 | 104 | 18.5 | 3 |
+| **NumberFormat (native)** | 7.62 | 7.55 | 8.81 | 0.2 | 3 |
+
+#### toLocaleString(), a formatter per call
+
+| Implementation | µs per call | fastest batch | slowest batch | first call ms | runs |
+| --- | --- | --- | --- | --- | --- |
+| Intl.NumberFormat (Hermes) | 2035 | 1920 | 2814 | 5.1 | 3 |
+| **NumberFormat (native)** | 11.22 | 11.10 | 14.83 | 0.2 | 3 |
+
+
+### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
+
+#### building a formatter
+
+| Implementation | µs per call | fastest batch | slowest batch | first call ms | runs |
+| --- | --- | --- | --- | --- | --- |
+| Intl.NumberFormat (Hermes) | 41.99 | 40.85 | 59.91 | 0.5 | 3 |
+| **NumberFormat (native)** | 4.85 | 4.83 | 6.69 | 0.1 | 3 |
+
+#### format() with a built formatter
+
+| Implementation | µs per call | fastest batch | slowest batch | first call ms | runs |
+| --- | --- | --- | --- | --- | --- |
+| Intl.NumberFormat (Hermes) | 1.60 | 1.60 | 2.17 | 1.4 | 3 |
+| **NumberFormat (native)** | 1.23 | 1.23 | 1.68 | 0.2 | 3 |
+
+#### formatToParts() with a built formatter
+
+| Implementation | µs per call | fastest batch | slowest batch | first call ms | runs |
+| --- | --- | --- | --- | --- | --- |
+| Intl.NumberFormat (Hermes) | failed: formatToParts is not implemented | | | | |
+| **NumberFormat (native)** | 3.40 | 3.39 | 4.61 | 0.2 | 3 |
+
+#### toLocaleString(), a formatter per call
+
+| Implementation | µs per call | fastest batch | slowest batch | first call ms | runs |
+| --- | --- | --- | --- | --- | --- |
+| Intl.NumberFormat (Hermes) | 85.45 | 85.30 | 120 | 0.8 | 3 |
+| **NumberFormat (native)** | 6.19 | 6.18 | 8.75 | 0.2 | 3 |
+
 ## Earlier measurements
 
 The tables this file carried before 2026‑09‑22 (an iPhone 17 Pro simulator,
@@ -914,6 +992,12 @@ node scripts/bench/assemble.mjs
 
 # the other plans: the fields, mount and unmount, the scrolling list, memory, what one copy costs, or everything
 node scripts/bench/run.mjs --ios <CoreDevice id> --android <adb serial> --plan inputs   # mount | list | leak | footprint | all
+
+# number formatting: NumberFormat against Hermes' Intl.NumberFormat
+node scripts/bench/run.mjs --ios <CoreDevice id> --android <adb serial> --plan format --build
+
+# a simulator or an emulator works too, for comparing on one Mac; those results go to results/local/
+node scripts/bench/run.mjs --ios <simulator UDID> --android emulator-5554 --plan format --build
 
 # the Instruments cross-check (iOS)
 node scripts/bench/hitches.mjs --ios <CoreDevice id> --impls nitro-prop,nitro-jump,rnna,arn,nf-view
