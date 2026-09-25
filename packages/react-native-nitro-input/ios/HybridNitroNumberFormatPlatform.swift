@@ -162,15 +162,14 @@ final class HybridNitroPlatformNumberFormatter: HybridNitroPlatformNumberFormatt
     }
 
     if o.notation == .compact, #available(iOS 16.0, *) {
-      var style = FloatingPointFormatStyle<Double>(locale: locale)
-        .notation(.compactName)
-        .grouping(o.useGrouping ? .automatic : .never)
-      if o.minimumSignificantDigits > 0 {
-        style = style.precision(.significantDigits(Int(o.minimumSignificantDigits)...Int(o.maximumSignificantDigits)))
-      } else {
-        style = style.precision(.fractionLength(Int(o.minimumFractionDigits)...Int(o.maximumFractionDigits)))
-      }
-      compact = { style.format($0) }
+      // Before iOS 18 Foundation has no compact currency style: the currency
+      // formatter's own affixes go around the compact number ("$" + "1.5K").
+      let affixes = o.style == .currency
+        ? CompactAffixes(
+            positivePrefix: formatter.positivePrefix ?? "", positiveSuffix: formatter.positiveSuffix ?? "",
+            negativePrefix: formatter.negativePrefix ?? "-", negativeSuffix: formatter.negativeSuffix ?? "")
+        : nil
+      compact = Self.compactStyle(o, locale: locale, currencyAffixes: affixes)
     }
 
     if o.style == .unit, let unit = o.unit {
@@ -188,6 +187,85 @@ final class HybridNitroPlatformNumberFormatter: HybridNitroPlatformNumberFormatt
       infinity: (formatter.positiveInfinitySymbol as String?) ?? "∞",
       exponentSeparator: (formatter.exponentSymbol as String?) ?? "E"
     )
+  }
+
+  /// Compact notation in the style the options ask for: a decimal style
+  /// alone dropped the currency ("950" for "$950"), the percent sign and a
+  /// signDisplay's plus. Foundation has a compact currency and percent style
+  /// of its own, which prints the locale's compact currency patterns.
+  /// A currency pattern's text around the number, for compact currency before iOS 18.
+  private struct CompactAffixes {
+    let positivePrefix: String
+    let positiveSuffix: String
+    let negativePrefix: String
+    let negativeSuffix: String
+  }
+
+  @available(iOS 16.0, *)
+  private static func compactStyle(_ o: NumberFormatPlatformOptions, locale: Locale, currencyAffixes: CompactAffixes?) -> (Double) -> String {
+    let grouping: NumberFormatStyleConfiguration.Grouping = o.useGrouping ? .automatic : .never
+    let precision: NumberFormatStyleConfiguration.Precision = o.minimumSignificantDigits > 0
+      ? .significantDigits(Int(o.minimumSignificantDigits)...Int(o.maximumSignificantDigits))
+      : .fractionLength(Int(o.minimumFractionDigits)...Int(o.maximumFractionDigits))
+    let sign: NumberFormatStyleConfiguration.SignDisplayStrategy
+    switch o.signDisplay {
+    case .always: sign = .always(includingZero: true)
+    case .exceptzero: sign = .always(includingZero: false)
+    case .never: sign = .never
+    default: sign = .automatic
+    }
+    if o.style == .currency, let code = o.currency, #available(iOS 18.0, *) {
+      let presentation: CurrencyFormatStyleConfiguration.Presentation
+      switch o.currencyDisplay {
+      case .code: presentation = .isoCode
+      case .name: presentation = .fullName
+      case .narrowsymbol: presentation = .narrow
+      default: presentation = .standard
+      }
+      let currencySign: CurrencyFormatStyleConfiguration.SignDisplayStrategy
+      switch o.signDisplay {
+      case .always: currencySign = .always(showZero: true)
+      case .exceptzero: currencySign = .always(showZero: false)
+      case .never: currencySign = .never
+      default: currencySign = o.currencySign == .accounting ? .accounting : .automatic
+      }
+      let style = FloatingPointFormatStyle<Double>.Currency(code: code, locale: locale)
+        .notation(.compactName)
+        .grouping(grouping)
+        .precision(precision)
+        .presentation(presentation)
+        .sign(strategy: currencySign)
+      return { style.format($0) }
+    }
+    if o.style == .percent {
+      let style = FloatingPointFormatStyle<Double>.Percent(locale: locale)
+        .notation(.compactName)
+        .grouping(grouping)
+        .precision(precision)
+        .sign(strategy: sign)
+      return { style.format($0) }
+    }
+    if let affixes = currencyAffixes {
+      // The sign is the currency pattern's (its prefixes carry signDisplay's plus).
+      let number = FloatingPointFormatStyle<Double>(locale: locale)
+        .notation(.compactName)
+        .grouping(grouping)
+        .precision(precision)
+        .sign(strategy: .never)
+      return { value in
+        let negative = value < 0 || (value == 0 && value.sign == .minus)
+        let body = number.format(value)
+        return negative
+          ? affixes.negativePrefix + body + affixes.negativeSuffix
+          : affixes.positivePrefix + body + affixes.positiveSuffix
+      }
+    }
+    let style = FloatingPointFormatStyle<Double>(locale: locale)
+      .notation(.compactName)
+      .grouping(grouping)
+      .precision(precision)
+      .sign(strategy: sign)
+    return { style.format($0) }
   }
 
   func format(value: Double) throws -> String {
