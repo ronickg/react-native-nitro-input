@@ -29,6 +29,8 @@ import type {
   NitroNumberTextAlign,
 } from './specs/NitroNumber.nitro'
 import { toNumericWeight, toProcessedColor } from './styleHelpers'
+import { formatProps } from './formatProps'
+import type { NumberFormat } from './NumberFormat'
 
 /**
  * The raw Nitro host component. Prefer {@link NitroNumber}, which adds
@@ -186,6 +188,27 @@ export interface NitroNumberProps extends Omit<ViewProps, 'children'> {
   /** Alignment of `suffix` only. Defaults to `affixAlign`. */
   suffixAlign?: NitroNumberAffixAlign
   /**
+   * Points added after every glyph, like `Text`'s `letterSpacing` (negative
+   * tightens). A smaller prefix or suffix gets it in proportion to its size.
+   * Default: `0`.
+   */
+  letterSpacing?: number
+  /** Points between the prefix and the digits, in place of the letter spacing there. Defaults to the letter spacing. */
+  prefixSpacing?: number
+  /** Points between the digits and the suffix, in place of the letter spacing there. Defaults to the letter spacing. */
+  suffixSpacing?: number
+  /** Points the prefix is moved down after `prefixAlign` places it (negative: up). Default: `0`. */
+  prefixOffset?: number
+  /** Points the suffix is moved down after `suffixAlign` places it (negative: up). Default: `0`. */
+  suffixOffset?: number
+  /**
+   * A `NumberFormat` the number follows: its prefix and suffix (the currency
+   * where the locale puts it), grouping and decimal separators, fraction
+   * digits and minimum integer digits. The individual props override what it
+   * says.
+   */
+  format?: NumberFormat
+  /**
    * Scale the number down when the view is narrower than its content, and back
    * up (never above `fontSize`) when it fits again. Give the view a fixed
    * `width` in `style`; the view keeps its full-size height so the box around
@@ -297,6 +320,12 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
       affixAlign,
       prefixAlign,
       suffixAlign,
+      letterSpacing,
+      prefixSpacing,
+      suffixSpacing,
+      prefixOffset,
+      suffixOffset,
+      format,
       adjustsFontSizeToFit,
       minimumFontScale,
       allowFontScaling,
@@ -406,6 +435,7 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
     const numericWeight = toNumericWeight(fontWeight) ?? 400
     const resolvedFontSize = fontSize ?? 32
     const resolvedAffixAlign = affixAlign ?? 'baseline'
+    const derived = format ? formatProps(format) : undefined
 
     const autoSize = useMemo(
       () =>
@@ -430,12 +460,12 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
         style={[autoSize, style]}
         hybridRef={hybridRef}
         value={value}
-        fractionDigits={fractionDigits ?? 0}
-        minimumIntegerDigits={minimumIntegerDigits ?? 1}
-        groupingSeparator={groupingSeparator ?? ''}
-        decimalSeparator={decimalSeparator ?? '.'}
-        prefix={prefix ?? ''}
-        suffix={suffix ?? ''}
+        fractionDigits={fractionDigits ?? derived?.fractionDigits ?? 0}
+        minimumIntegerDigits={minimumIntegerDigits ?? derived?.minimumIntegerDigits ?? 1}
+        groupingSeparator={groupingSeparator ?? derived?.groupingSeparator ?? ''}
+        decimalSeparator={decimalSeparator ?? derived?.decimalSeparator ?? '.'}
+        prefix={prefix ?? derived?.prefix ?? ''}
+        suffix={suffix ?? derived?.suffix ?? ''}
         transition={transition ?? 'roll'}
         flashUpColor={processedFlashUp}
         flashDownColor={processedFlashDown}
@@ -465,6 +495,11 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
         affixAlign={resolvedAffixAlign}
         prefixAlign={prefixAlign ?? resolvedAffixAlign}
         suffixAlign={suffixAlign ?? resolvedAffixAlign}
+        letterSpacing={letterSpacing ?? 0}
+        prefixSpacing={prefixSpacing ?? Infinity}
+        suffixSpacing={suffixSpacing ?? Infinity}
+        prefixOffset={prefixOffset ?? 0}
+        suffixOffset={suffixOffset ?? 0}
         adjustsFontSizeToFit={adjustsFontSizeToFit ?? false}
         minimumFontScale={minimumFontScale ?? 0.5}
         allowFontScaling={allowFontScaling ?? false}

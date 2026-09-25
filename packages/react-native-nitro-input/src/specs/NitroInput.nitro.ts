@@ -220,6 +220,16 @@ export interface NitroInputProps extends HybridViewProps {
   prefixAlign: NitroInputAffixAlign
   /** Vertical alignment of `suffix` relative to the text (the wrapper folds its `affixAlign` into this). */
   suffixAlign: NitroInputAffixAlign
+  /** Points added after every glyph, like `Text`'s `letterSpacing`; an affix gets it in proportion to its size. */
+  letterSpacing: number
+  /** Points between the prefix and the text, in place of the letter spacing there. Not finite: the letter spacing. */
+  prefixSpacing: number
+  /** Points between the text and the suffix, in place of the letter spacing there. Not finite: the letter spacing. */
+  suffixSpacing: number
+  /** Points the prefix is moved down after its alignment (negative: up). */
+  prefixOffset: number
+  /** Points the suffix is moved down after its alignment (negative: up). */
+  suffixOffset: number
   /** Shown (and reflowed away) while the field is empty. Default: `''`. */
   placeholder: string
   /** Color of the placeholder as a processed ARGB integer; `NaN` = platform default. */

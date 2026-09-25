@@ -82,6 +82,16 @@ namespace margelo::nitro::nitroinput {
       prototype.registerHybridSetter("prefixAlign", &HybridNitroNumberViewSpec::setPrefixAlign);
       prototype.registerHybridGetter("suffixAlign", &HybridNitroNumberViewSpec::getSuffixAlign);
       prototype.registerHybridSetter("suffixAlign", &HybridNitroNumberViewSpec::setSuffixAlign);
+      prototype.registerHybridGetter("letterSpacing", &HybridNitroNumberViewSpec::getLetterSpacing);
+      prototype.registerHybridSetter("letterSpacing", &HybridNitroNumberViewSpec::setLetterSpacing);
+      prototype.registerHybridGetter("prefixSpacing", &HybridNitroNumberViewSpec::getPrefixSpacing);
+      prototype.registerHybridSetter("prefixSpacing", &HybridNitroNumberViewSpec::setPrefixSpacing);
+      prototype.registerHybridGetter("suffixSpacing", &HybridNitroNumberViewSpec::getSuffixSpacing);
+      prototype.registerHybridSetter("suffixSpacing", &HybridNitroNumberViewSpec::setSuffixSpacing);
+      prototype.registerHybridGetter("prefixOffset", &HybridNitroNumberViewSpec::getPrefixOffset);
+      prototype.registerHybridSetter("prefixOffset", &HybridNitroNumberViewSpec::setPrefixOffset);
+      prototype.registerHybridGetter("suffixOffset", &HybridNitroNumberViewSpec::getSuffixOffset);
+      prototype.registerHybridSetter("suffixOffset", &HybridNitroNumberViewSpec::setSuffixOffset);
       prototype.registerHybridGetter("adjustsFontSizeToFit", &HybridNitroNumberViewSpec::getAdjustsFontSizeToFit);
       prototype.registerHybridSetter("adjustsFontSizeToFit", &HybridNitroNumberViewSpec::setAdjustsFontSizeToFit);
       prototype.registerHybridGetter("minimumFontScale", &HybridNitroNumberViewSpec::getMinimumFontScale);

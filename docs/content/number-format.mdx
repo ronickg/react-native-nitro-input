@@ -29,6 +29,17 @@ The library runs test262's `intl402/NumberFormat` suite, the conformance tests o
 
 Every test Hermes passes, `NumberFormat` passes. Of the rest, four need test262's own host hooks or leave state no runner can undo, one tests Hermes' `Number.prototype.toLocaleString`, iOS has no long compact notation ("988 million", four tests), and Android's ICU carries older CLDR data than test262 expects (two). `node scripts/test262/number-format.mjs` fetches the suite for `example/__tests__/test262-number-format.harness.tsx`.
 
+## With the components
+
+`NitroNumber` and `NitroInput` take a formatter as `format`, and follow its currency, separators and fraction digits:
+
+```tsx
+const php = new NumberFormat('en-PH', { style: 'currency', currency: 'PHP' })
+
+<NitroNumber value={balance} format={php} />
+<NitroInput format={php} onChangeValue={setAmount} />
+```
+
 ## Why
 
 In Hermes, building an `Intl.NumberFormat` is slow, and on Android every `format()` also goes through JNI to Java's ICU:

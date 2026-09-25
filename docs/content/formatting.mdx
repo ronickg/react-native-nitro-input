@@ -19,6 +19,18 @@ Formatting happens on the native side, so the layout is known before the first f
 
 A negative value gets a leading `-` that slides in and out like a digit column. At most 18 digits are shown.
 
+### From a NumberFormat
+
+Pass a [`NumberFormat`](/docs/number-format) as `format` and the number takes its prefix and suffix (the currency where the locale puts it), separators, fraction digits and minimum integer digits from it:
+
+```tsx
+const eur = new NumberFormat('de-DE', { style: 'currency', currency: 'EUR' })
+
+<NitroNumber value={1234.5} format={eur} />   // 1.234,50 €
+```
+
+The props you set yourself win, so `format={eur} suffixFontSize={20}` keeps the euro and sizes it. The number keeps its own model: digits grouped in threes, a leading minus and Latin digits, so a format outside it (Indian grouping, Arabic-Indic digits, accounting parentheses) is followed as far as that goes.
+
 ## Currency
 
 Money is usually set with the currency mark at a different size from the amount. `prefixFontSize` / `suffixFontSize` size the affixes, and `affixAlign` (or `prefixAlign` / `suffixAlign`) says how they line up with the digits. `NitroInput` takes the same props.
@@ -62,6 +74,27 @@ Change `prefix`, `suffix`, the separators and `fractionDigits` together with `va
 </Example>
 
 Try **Switch currency** above: every transition plays it, the roll included.
+
+## Spacing and offsets
+
+`letterSpacing` adds points after every glyph, like `Text`'s; a negative value tightens a heavy display face. A smaller prefix or suffix gets it in proportion to its size, since tracking is relative to the size of the type.
+
+`prefixSpacing` and `suffixSpacing` set the gap between an affix and the digits exactly, in points, instead of relying on the font's space. `prefixOffset` and `suffixOffset` move an affix down (or up, negative) after `affixAlign` has placed it, for a symbol a design puts a couple of points off every preset. An offset moves only what is drawn: the number's size stays the same.
+
+```tsx
+<NitroNumber
+  value={balance}
+  prefix="$"
+  prefixFontSize={24}
+  affixAlign="bottom"
+  fontSize={44}
+  letterSpacing={-2.2}   // -5% of 44
+  prefixSpacing={2}
+  prefixOffset={-2}
+/>
+```
+
+`NitroInput` takes the same five props.
 
 ## Fonts
 
