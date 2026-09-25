@@ -188,6 +188,8 @@ import { NumberFormat } from 'react-native-nitro-input'
 const php = new NumberFormat('en-PH', { style: 'currency', currency: 'PHP' })
 php.format(1234.5) // "₱1,234.50"
 php.formatToParts(-12)
+
+<NitroNumber value={balance} format={php} />   // the components follow a format too
 ```
 
 Per call, Release builds, against Hermes' `Intl.NumberFormat`:

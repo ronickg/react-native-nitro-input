@@ -74,6 +74,16 @@ namespace margelo::nitro::nitroinput {
       prototype.registerHybridSetter("prefixAlign", &HybridNitroInputViewSpec::setPrefixAlign);
       prototype.registerHybridGetter("suffixAlign", &HybridNitroInputViewSpec::getSuffixAlign);
       prototype.registerHybridSetter("suffixAlign", &HybridNitroInputViewSpec::setSuffixAlign);
+      prototype.registerHybridGetter("letterSpacing", &HybridNitroInputViewSpec::getLetterSpacing);
+      prototype.registerHybridSetter("letterSpacing", &HybridNitroInputViewSpec::setLetterSpacing);
+      prototype.registerHybridGetter("prefixSpacing", &HybridNitroInputViewSpec::getPrefixSpacing);
+      prototype.registerHybridSetter("prefixSpacing", &HybridNitroInputViewSpec::setPrefixSpacing);
+      prototype.registerHybridGetter("suffixSpacing", &HybridNitroInputViewSpec::getSuffixSpacing);
+      prototype.registerHybridSetter("suffixSpacing", &HybridNitroInputViewSpec::setSuffixSpacing);
+      prototype.registerHybridGetter("prefixOffset", &HybridNitroInputViewSpec::getPrefixOffset);
+      prototype.registerHybridSetter("prefixOffset", &HybridNitroInputViewSpec::setPrefixOffset);
+      prototype.registerHybridGetter("suffixOffset", &HybridNitroInputViewSpec::getSuffixOffset);
+      prototype.registerHybridSetter("suffixOffset", &HybridNitroInputViewSpec::setSuffixOffset);
       prototype.registerHybridGetter("placeholder", &HybridNitroInputViewSpec::getPlaceholder);
       prototype.registerHybridSetter("placeholder", &HybridNitroInputViewSpec::setPlaceholder);
       prototype.registerHybridGetter("placeholderColor", &HybridNitroInputViewSpec::getPlaceholderColor);

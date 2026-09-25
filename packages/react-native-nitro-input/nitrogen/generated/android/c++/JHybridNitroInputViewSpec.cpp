@@ -398,6 +398,51 @@ namespace margelo::nitro::nitroinput {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroInputAffixAlign> /* suffixAlign */)>("setSuffixAlign");
     method(_javaPart, JNitroInputAffixAlign::fromCpp(suffixAlign));
   }
+  double JHybridNitroInputViewSpec::getLetterSpacing() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getLetterSpacing");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setLetterSpacing(double letterSpacing) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* letterSpacing */)>("setLetterSpacing");
+    method(_javaPart, letterSpacing);
+  }
+  double JHybridNitroInputViewSpec::getPrefixSpacing() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getPrefixSpacing");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setPrefixSpacing(double prefixSpacing) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* prefixSpacing */)>("setPrefixSpacing");
+    method(_javaPart, prefixSpacing);
+  }
+  double JHybridNitroInputViewSpec::getSuffixSpacing() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getSuffixSpacing");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setSuffixSpacing(double suffixSpacing) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* suffixSpacing */)>("setSuffixSpacing");
+    method(_javaPart, suffixSpacing);
+  }
+  double JHybridNitroInputViewSpec::getPrefixOffset() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getPrefixOffset");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setPrefixOffset(double prefixOffset) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* prefixOffset */)>("setPrefixOffset");
+    method(_javaPart, prefixOffset);
+  }
+  double JHybridNitroInputViewSpec::getSuffixOffset() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getSuffixOffset");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setSuffixOffset(double suffixOffset) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* suffixOffset */)>("setSuffixOffset");
+    method(_javaPart, suffixOffset);
+  }
   std::string JHybridNitroInputViewSpec::getPlaceholder() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("getPlaceholder");
     auto __result = method(_javaPart);

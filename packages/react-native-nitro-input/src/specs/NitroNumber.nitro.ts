@@ -185,6 +185,16 @@ export interface NitroNumberProps extends HybridViewProps {
   prefixAlign?: NitroNumberAffixAlign
   /** Vertical alignment of `suffix` only. Defaults to `affixAlign`. */
   suffixAlign?: NitroNumberAffixAlign
+  /** Points added after every glyph, like `Text`'s `letterSpacing`; an affix gets it in proportion to its size. Default: `0`. */
+  letterSpacing?: number
+  /** Points between the prefix and the digits, in place of the letter spacing there. Not finite: the letter spacing. */
+  prefixSpacing?: number
+  /** Points between the digits and the suffix, in place of the letter spacing there. Not finite: the letter spacing. */
+  suffixSpacing?: number
+  /** Points the prefix is moved down after its alignment (negative: up). Default: `0`. */
+  prefixOffset?: number
+  /** Points the suffix is moved down after its alignment (negative: up). Default: `0`. */
+  suffixOffset?: number
   /**
    * When the view is narrower than the number (e.g. it has a fixed `width` or
    * `maxWidth`), scale the whole number down so it fits. Default: `false`.

@@ -85,6 +85,11 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
   var affixAlign: NitroNumberAffixAlign? { didSet { markConfigDirty() } }
   var prefixAlign: NitroNumberAffixAlign? { didSet { markConfigDirty() } }
   var suffixAlign: NitroNumberAffixAlign? { didSet { markConfigDirty() } }
+  var letterSpacing: Double? { didSet { markConfigDirty() } }
+  var prefixSpacing: Double? { didSet { markConfigDirty() } }
+  var suffixSpacing: Double? { didSet { markConfigDirty() } }
+  var prefixOffset: Double? { didSet { markConfigDirty() } }
+  var suffixOffset: Double? { didSet { markConfigDirty() } }
   var adjustsFontSizeToFit: Bool? { didSet { markConfigDirty() } }
   var minimumFontScale: Double? { didSet { markConfigDirty() } }
   var allowFontScaling: Bool? { didSet { markConfigDirty() } }
@@ -225,6 +230,11 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
     affixAlign = nil
     prefixAlign = nil
     suffixAlign = nil
+    letterSpacing = nil
+    prefixSpacing = nil
+    suffixSpacing = nil
+    prefixOffset = nil
+    suffixOffset = nil
     adjustsFontSizeToFit = nil
     minimumFontScale = nil
     allowFontScaling = nil
@@ -305,6 +315,11 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
     let sharedAlign = Self.mapAffixAlign(affixAlign)
     typography.prefixAlign = prefixAlign.map { Self.mapAffixAlign($0) } ?? sharedAlign
     typography.suffixAlign = suffixAlign.map { Self.mapAffixAlign($0) } ?? sharedAlign
+    typography.letterSpacing = CGFloat((letterSpacing ?? 0).isFinite ? letterSpacing ?? 0 : 0)
+    typography.prefixSpacing = prefixSpacing.flatMap { $0.isFinite ? CGFloat($0) : nil }
+    typography.suffixSpacing = suffixSpacing.flatMap { $0.isFinite ? CGFloat($0) : nil }
+    typography.prefixOffset = CGFloat((prefixOffset ?? 0).isFinite ? prefixOffset ?? 0 : 0)
+    typography.suffixOffset = CGFloat((suffixOffset ?? 0).isFinite ? suffixOffset ?? 0 : 0)
     typography.adjustsFontSizeToFit = adjustsFontSizeToFit ?? false
     typography.minimumFontScale = CGFloat(min(1, max(0.05, minimumFontScale ?? 0.5)))
     typography.allowFontScaling = allowFontScaling ?? false

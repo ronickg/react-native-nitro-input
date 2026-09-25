@@ -319,6 +319,41 @@ namespace margelo::nitro::nitroinput {
     inline void setSuffixAlign(std::optional<NitroNumberAffixAlign> suffixAlign) noexcept override {
       _swiftPart.setSuffixAlign(suffixAlign);
     }
+    inline std::optional<double> getLetterSpacing() noexcept override {
+      auto __result = _swiftPart.getLetterSpacing();
+      return __result;
+    }
+    inline void setLetterSpacing(std::optional<double> letterSpacing) noexcept override {
+      _swiftPart.setLetterSpacing(letterSpacing);
+    }
+    inline std::optional<double> getPrefixSpacing() noexcept override {
+      auto __result = _swiftPart.getPrefixSpacing();
+      return __result;
+    }
+    inline void setPrefixSpacing(std::optional<double> prefixSpacing) noexcept override {
+      _swiftPart.setPrefixSpacing(prefixSpacing);
+    }
+    inline std::optional<double> getSuffixSpacing() noexcept override {
+      auto __result = _swiftPart.getSuffixSpacing();
+      return __result;
+    }
+    inline void setSuffixSpacing(std::optional<double> suffixSpacing) noexcept override {
+      _swiftPart.setSuffixSpacing(suffixSpacing);
+    }
+    inline std::optional<double> getPrefixOffset() noexcept override {
+      auto __result = _swiftPart.getPrefixOffset();
+      return __result;
+    }
+    inline void setPrefixOffset(std::optional<double> prefixOffset) noexcept override {
+      _swiftPart.setPrefixOffset(prefixOffset);
+    }
+    inline std::optional<double> getSuffixOffset() noexcept override {
+      auto __result = _swiftPart.getSuffixOffset();
+      return __result;
+    }
+    inline void setSuffixOffset(std::optional<double> suffixOffset) noexcept override {
+      _swiftPart.setSuffixOffset(suffixOffset);
+    }
     inline std::optional<bool> getAdjustsFontSizeToFit() noexcept override {
       auto __result = _swiftPart.getAdjustsFontSizeToFit();
       return __result;

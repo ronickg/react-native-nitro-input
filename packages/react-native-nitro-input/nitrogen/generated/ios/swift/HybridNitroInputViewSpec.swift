@@ -40,6 +40,11 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   var signPlacement: NitroInputSignPlacement { get set }
   var prefixAlign: NitroInputAffixAlign { get set }
   var suffixAlign: NitroInputAffixAlign { get set }
+  var letterSpacing: Double { get set }
+  var prefixSpacing: Double { get set }
+  var suffixSpacing: Double { get set }
+  var prefixOffset: Double { get set }
+  var suffixOffset: Double { get set }
   var placeholder: String { get set }
   var placeholderColor: Double { get set }
   var duration: Double { get set }

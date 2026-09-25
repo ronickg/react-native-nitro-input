@@ -13,8 +13,9 @@ import {
   type NitroInputHandle,
   type NitroInputFocusEvent,
   type NitroInputSelectionEvent,
+  NumberFormat,
 } from 'react-native-nitro-input'
-import { deferred, render, sleep, withTimeout } from './test-utils'
+import { deferred, expectSameLength, render, sleep, withTimeout } from './test-utils'
 import { forceGc, trackNativeViews, trackedLiveCount } from 'bench-probe'
 
 function layoutOf() {
@@ -39,6 +40,28 @@ describe('NitroInput', () => {
     // "Hello world" at 20pt is well over 60pt wide on every platform font.
     await waitFor(() => expect(state.current?.width ?? 0).toBeGreaterThan(60))
     expect(state.current!.width).toBeLessThan(200)
+  })
+
+  it('spaces its glyphs and its affixes, plain and reflowing, and takes a NumberFormat', async () => {
+    const layouts = Array.from({ length: 6 }, () => layoutOf())
+    const usd = new NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+    const amount = { autoWidth: true, mode: 'number', fontSize: 20, defaultValue: '1234', prefix: '$', fractionDigits: 0 } as const
+    await render(
+      <View style={{ alignSelf: 'flex-start' }}>
+        <NitroInput {...amount} onLayout={layouts[0]!.onLayout} />
+        <NitroInput {...amount} letterSpacing={2} onLayout={layouts[1]!.onLayout} />
+        <NitroInput {...amount} transition="reflow" onLayout={layouts[2]!.onLayout} />
+        <NitroInput {...amount} transition="reflow" letterSpacing={2} onLayout={layouts[3]!.onLayout} />
+        <NitroInput autoWidth fontSize={20} defaultValue="1234.5" format={usd} transition="reflow" onLayout={layouts[4]!.onLayout} />
+        <NitroInput autoWidth fontSize={20} defaultValue="1234.5" mode="number" prefix="$" groupingSeparator="," fractionDigits={2} transition="reflow" onLayout={layouts[5]!.onLayout} />
+      </View>
+    )
+    await waitFor(() => expect(Math.min(...layouts.map((l) => l.state.current?.width ?? 0))).toBeGreaterThan(0))
+    const w = layouts.map((l) => l.state.current!.width)
+    // "$1,234": six glyphs, two points after each.
+    expect(Math.abs(w[1]! - w[0]! - 12)).toBeLessThanOrEqual(2)
+    expect(Math.abs(w[3]! - w[2]! - 12)).toBeLessThanOrEqual(2)
+    expectSameLength(w[4]!, w[5]!)
   })
 
   it('keeps the caret where it is when a controlled parent echoes the same text back', async () => {

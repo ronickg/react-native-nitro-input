@@ -224,6 +224,31 @@ void JHybridNitroNumberViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCl
     hybridView->setSuffixAlign(newProps->suffixAlign.get());
   }
   if (oldProps == nullptr
+        ? newProps->letterSpacing.isProvided()
+        : !newProps->letterSpacing.hasSameValue(oldProps->letterSpacing)) {
+    hybridView->setLetterSpacing(newProps->letterSpacing.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->prefixSpacing.isProvided()
+        : !newProps->prefixSpacing.hasSameValue(oldProps->prefixSpacing)) {
+    hybridView->setPrefixSpacing(newProps->prefixSpacing.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->suffixSpacing.isProvided()
+        : !newProps->suffixSpacing.hasSameValue(oldProps->suffixSpacing)) {
+    hybridView->setSuffixSpacing(newProps->suffixSpacing.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->prefixOffset.isProvided()
+        : !newProps->prefixOffset.hasSameValue(oldProps->prefixOffset)) {
+    hybridView->setPrefixOffset(newProps->prefixOffset.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->suffixOffset.isProvided()
+        : !newProps->suffixOffset.hasSameValue(oldProps->suffixOffset)) {
+    hybridView->setSuffixOffset(newProps->suffixOffset.get());
+  }
+  if (oldProps == nullptr
         ? newProps->adjustsFontSizeToFit.isProvided()
         : !newProps->adjustsFontSizeToFit.hasSameValue(oldProps->adjustsFontSizeToFit)) {
     hybridView->setAdjustsFontSizeToFit(newProps->adjustsFontSizeToFit.get());

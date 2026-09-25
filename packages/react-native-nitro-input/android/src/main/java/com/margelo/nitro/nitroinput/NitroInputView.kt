@@ -131,6 +131,14 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val placeholderColor: Int? = null,
     val prefixAlign: AffixAlign = AffixAlign.BASELINE,
     val suffixAlign: AffixAlign = AffixAlign.BASELINE,
+    /** Dp added after every glyph, as `Text`'s letterSpacing; an affix gets it in proportion to its size. */
+    val letterSpacing: Float = 0f,
+    /** Dp between the prefix and the text, and between the text and the suffix, in place of the letter spacing there. */
+    val prefixSpacing: Float? = null,
+    val suffixSpacing: Float? = null,
+    /** Dp an affix is moved down (negative: up) after its alignment. */
+    val prefixOffset: Float = 0f,
+    val suffixOffset: Float = 0f,
     val adjustsFontSizeToFit: Boolean = false,
     val minimumFontScale: Float = 0.5f,
     val allowFontScaling: Boolean = false,
@@ -613,6 +621,14 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val suffix = makePaint(t, t.suffixFontSize * scale)
     private val prefixAlign = t.prefixAlign
     private val suffixAlign = t.suffixAlign
+    /** Letter spacing after a body / prefix / suffix glyph, the seams (null: the letter spacing) and the affix offsets, in px. */
+    val bodySpacing = t.letterSpacing * scale * density
+    val prefixLetterSpacing = bodySpacing * (t.prefixFontSize / t.fontSize)
+    val suffixLetterSpacing = bodySpacing * (t.suffixFontSize / t.fontSize)
+    val prefixSeam = t.prefixSpacing?.let { it * scale * density }
+    val suffixSeam = t.suffixSpacing?.let { it * scale * density }
+    val prefixOffset = t.prefixOffset * scale * density
+    val suffixOffset = t.suffixOffset * scale * density
     private val bodyMetrics: Paint.FontMetrics = body.fontMetrics
     /** The font's own line box, before any `lineHeight` override. */
     val fontLineHeight: Float = ceil(bodyMetrics.descent - bodyMetrics.ascent)
@@ -666,8 +682,34 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       return total
     }
 
+    /** Letter spacing after a glyph of [role], in px. */
+    fun spacing(role: Role): Float = when (role) {
+      Role.BODY -> bodySpacing
+      Role.PREFIX -> prefixLetterSpacing
+      Role.SUFFIX -> suffixLetterSpacing
+    }
+
+    /** The room an affix takes beside the text: its glyphs, their spacing and the seam, in px. */
+    fun affixRoom(affix: String, role: Role): Float {
+      if (affix.isEmpty()) return 0f
+      val count = affix.codePointCount(0, affix.length)
+      val glyphs = width(affix, role)
+      if (role == Role.PREFIX) return glyphs + prefixLetterSpacing * (count - 1) + (prefixSeam ?: prefixLetterSpacing)
+      // The edit text's own letter spacing already follows its last glyph.
+      return glyphs + suffixLetterSpacing * count + ((suffixSeam ?: bodySpacing) - bodySpacing)
+    }
+
     /** Baseline y for `role` drawing `text`, given the top of the body line box. */
     fun baseline(role: Role, text: String, lineTop: Float): Float {
+      val aligned = alignedBaseline(role, text, lineTop)
+      return when (role) {
+        Role.BODY -> aligned
+        Role.PREFIX -> aligned + prefixOffset
+        Role.SUFFIX -> aligned + suffixOffset
+      }
+    }
+
+    private fun alignedBaseline(role: Role, text: String, lineTop: Float): Float {
       // `baselineNudge` re-centres the run when `lineHeight` differs from the
       // font's: the extra goes above the line, so the body sits that far lower.
       // Everything pinned to the body follows it; `CENTER` does not, because it
@@ -789,6 +831,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   private fun applyEditTextLayout() {
     val f = fonts
     editText.typeface = f.body.typeface
+    // Spaced like the overlay, so the selection highlight lines up with the drawn glyphs.
+    editText.letterSpacing = if (f.body.textSize > 0f) f.bodySpacing / f.body.textSize else 0f
     // Not `setTextSize` directly: the platform ignores it while auto-sizing is
     // on, which would leave the auto-size bounds stale after a font change.
     applyAutoSize()
@@ -829,9 +873,9 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     // Relative: the prefix sits at the start edge and the suffix at the end,
     // so under a right-to-left layout the room for them swaps sides too.
     editText.setPaddingRelative(
-      side + f.width(format.prefix, Role.PREFIX).roundToInt(),
+      side + f.affixRoom(format.prefix, Role.PREFIX).roundToInt(),
       frameTopInsetPx.roundToInt() + framePadding + labelOverhang,
-      side + f.width(format.suffix, Role.SUFFIX).roundToInt(),
+      side + f.affixRoom(format.suffix, Role.SUFFIX).roundToInt(),
       framePadding,
     )
     applyAffixes()
@@ -1006,6 +1050,13 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     view.gravity = Gravity.CENTER_VERTICAL
     view.typeface = paint.typeface
     view.setTextSize(TypedValue.COMPLEX_UNIT_PX, paint.textSize)
+    view.letterSpacing = if (paint.textSize > 0f) fonts.spacing(role) / paint.textSize else 0f
+    // The seam against the text, and the affix's own offset.
+    val seam = fonts.affixRoom(affix, role) - fonts.width(affix, role) - fonts.spacing(role) * affix.codePointCount(0, affix.length)
+    val extra = seam.roundToInt().coerceAtLeast(0)
+    view.setPaddingRelative(view.paddingStart + if (edge == Gravity.END) extra else 0, view.paddingTop,
+                            view.paddingEnd + if (edge == Gravity.START) extra else 0, view.paddingBottom)
+    view.translationY = if (role == Role.PREFIX) fonts.prefixOffset else fonts.suffixOffset
     view.setTextColor(resolvedTextColor)
     if (view.text?.toString() != affix) view.text = affix
     return view
@@ -1494,9 +1545,12 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     // order they are added - and is only laid out ahead of the prefix.
     val signed = format.signBeforeAffix && !showPlaceholder && format.prefix.isNotEmpty() &&
       shown.isNotEmpty() && isSign(shown[0])
+    // Advances carry the letter spacing; the last prefix glyph and the last
+    // body glyph before a suffix carry the seams instead.
     if (signed) addRun(shown.substring(0, 1), Role.BODY, f, placeholder = false)
-    addRun(format.prefix, Role.PREFIX, f, placeholder = false)
-    addRun(if (signed) shown.substring(1) else shown, Role.BODY, f, placeholder = showPlaceholder)
+    addRun(format.prefix, Role.PREFIX, f, placeholder = false, lastSpacing = f.prefixSeam)
+    addRun(if (signed) shown.substring(1) else shown, Role.BODY, f, placeholder = showPlaceholder,
+           lastSpacing = if (format.suffix.isNotEmpty()) f.suffixSeam else null)
     addRun(format.suffix, Role.SUFFIX, f, placeholder = false)
     engine.commitText(caret, now())
     fed = true
@@ -1508,14 +1562,17 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   /** A leading minus, in either the keyboard's spelling or the typographic one. */
   private fun isSign(c: Char): Boolean = c == '-' || c == '\u2212'
 
-  private fun addRun(s: String, role: Role, f: FontSet, placeholder: Boolean) {
+  private fun addRun(s: String, role: Role, f: FontSet, placeholder: Boolean, lastSpacing: Float? = null) {
     val numberKinds = role == Role.BODY && format.mode == Mode.NUMBER
+    val spacing = f.spacing(role)
     var i = 0
     while (i < s.length) {
       val cp = s.codePointAt(i)
       val kind = if (numberKinds) formatter.kindOf(cp) else 0
-      engine.addGlyph(cp, role.ordinal, kind, f.width(cp, role).toDouble(), placeholder)
-      i += Character.charCount(cp)
+      val next = i + Character.charCount(cp)
+      val after = if (next >= s.length && lastSpacing != null) lastSpacing else spacing
+      engine.addGlyph(cp, role.ordinal, kind, (f.width(cp, role) + after).toDouble(), placeholder)
+      i = next
     }
   }
 
@@ -1665,9 +1722,11 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       keyboard.secureTextEntry -> "\u2022".repeat(text.codePointCount(0, text.length))
       else -> text
     }
-    return fonts.paint(Role.PREFIX).measureText(format.prefix) +
-      fonts.paint(Role.BODY).measureText(body) +
-      fonts.paint(Role.SUFFIX).measureText(format.suffix)
+    // The edit text's own letter spacing follows every glyph; the affixes take their room with their seams.
+    val f = fonts
+    return f.affixRoom(format.prefix, Role.PREFIX) +
+      f.paint(Role.BODY).measureText(body) + f.bodySpacing * body.codePointCount(0, body.length) +
+      f.affixRoom(format.suffix, Role.SUFFIX)
   }
 
   private fun reportIntrinsicSize() {

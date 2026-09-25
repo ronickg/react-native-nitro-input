@@ -381,6 +381,15 @@ function slotsOf(value: unknown, method: string, unwrap = false): Slots {
 }
 const nativeOf = (value: unknown, method: string, unwrap = false) => slotsOf(value, method, unwrap).native
 
+/**
+ * The native formatter behind a `NumberFormat`, which every instance with the
+ * same locales and options shares: a key for caching what is derived from one.
+ * @internal
+ */
+export function sharedFormatterOf(value: unknown): object | undefined {
+  return typeof value === 'object' && value !== null ? slots.get(value)?.native : undefined
+}
+
 // `length` is 0 as the specification says: the arguments are read from `arguments`.
 function NumberFormatConstructor(this: unknown): unknown {
   const locales = arguments[0]

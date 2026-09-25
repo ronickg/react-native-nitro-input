@@ -52,6 +52,8 @@ import {
   type NitroInputTransform,
 } from './worklets'
 import { toNumericWeight, toProcessedColor } from './styleHelpers'
+import { formatProps } from './formatProps'
+import type { NumberFormat } from './NumberFormat'
 
 /**
  * React Native's registry of mounted text inputs. `TextInput.State` only
@@ -362,6 +364,27 @@ export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' 
   prefixAlign?: NitroInputAffixAlign
   /** Alignment of `suffix` only. Defaults to `affixAlign`. */
   suffixAlign?: NitroInputAffixAlign
+  /**
+   * Points added after every glyph, like `Text`'s `letterSpacing` (negative
+   * tightens). A smaller prefix or suffix gets it in proportion to its size.
+   * Default: `0`.
+   */
+  letterSpacing?: number
+  /** Points between the prefix and the text, in place of the letter spacing there. Defaults to the letter spacing. */
+  prefixSpacing?: number
+  /** Points between the text and the suffix, in place of the letter spacing there. Defaults to the letter spacing. */
+  suffixSpacing?: number
+  /** Points the prefix is moved down after `prefixAlign` places it (negative: up). Default: `0`. */
+  prefixOffset?: number
+  /** Points the suffix is moved down after `suffixAlign` places it (negative: up). Default: `0`. */
+  suffixOffset?: number
+  /**
+   * A `NumberFormat` the amount follows: its prefix and suffix (the currency
+   * where the locale puts it), grouping and decimal separators, fraction
+   * digits and where the sign goes. Sets `mode` to `'number'` unless it is
+   * given. The individual props override what it says.
+   */
+  format?: NumberFormat
   /** Shown while the field is empty and reflowed away by the first character. In `'number'` mode `'0'` reads well. */
   placeholder?: string
   /** Color of the placeholder. Defaults to the platform placeholder color. */
@@ -632,6 +655,12 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       signPlacement,
       prefixAlign,
       suffixAlign,
+      letterSpacing,
+      prefixSpacing,
+      suffixSpacing,
+      prefixOffset,
+      suffixOffset,
+      format,
       placeholder,
       placeholderTextColor,
       duration,
@@ -1074,13 +1103,14 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       if (prefix) warnIncompatible('prefix')
       if (suffix) warnIncompatible('suffix')
     }
-    const resolvedMode = isMultiline ? 'text' : (mode ?? 'text')
+    const derived = format ? formatProps(format) : undefined
+    const resolvedMode = isMultiline ? 'text' : (mode ?? (derived ? 'number' : 'text'))
     const reflows = !isMultiline && transition === 'reflow'
     // The affixes are accessory views beside one line of text; a wrapping text
     // view has no slot for them, so they go with the mode rather than being
     // half-drawn on one platform and not the other.
-    const resolvedPrefix = isMultiline ? '' : (prefix ?? '')
-    const resolvedSuffix = isMultiline ? '' : (suffix ?? '')
+    const resolvedPrefix = isMultiline ? '' : (prefix ?? derived?.prefix ?? '')
+    const resolvedSuffix = isMultiline ? '' : (suffix ?? derived?.suffix ?? '')
     // A new `maskNotations` literal each render must not re-set the native
     // prop, so it is keyed on its contents. Always an array (empty = none):
     // removing the prop would reach native as `null`, which Nitro's array
@@ -1092,7 +1122,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       // eslint-disable-next-line react-hooks/exhaustive-deps
       [notationsKey]
     )
-    const resolvedFractionDigits = fractionDigits ?? 2
+    const resolvedFractionDigits = fractionDigits ?? derived?.fractionDigits ?? 2
     const resolvedKeyboardType =
       keyboardType ??
       (inputMode != null
@@ -1196,15 +1226,20 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         plain={!reflows}
         fractionDigits={resolvedFractionDigits}
         maxIntegerDigits={maxIntegerDigits ?? 15}
-        groupingSeparator={groupingSeparator ?? ','}
-        decimalSeparator={decimalSeparator ?? '.'}
+        groupingSeparator={groupingSeparator ?? derived?.groupingSeparator ?? ','}
+        decimalSeparator={decimalSeparator ?? derived?.decimalSeparator ?? '.'}
         prefix={resolvedPrefix}
         suffix={resolvedSuffix}
         prefixFontSize={prefixFontSize ?? resolvedFontSize}
         suffixFontSize={suffixFontSize ?? resolvedFontSize}
-        signPlacement={signPlacement ?? 'beforeAffix'}
+        signPlacement={signPlacement ?? derived?.signPlacement ?? 'beforeAffix'}
         prefixAlign={prefixAlign ?? resolvedAffixAlign}
         suffixAlign={suffixAlign ?? resolvedAffixAlign}
+        letterSpacing={letterSpacing ?? 0}
+        prefixSpacing={prefixSpacing ?? Infinity}
+        suffixSpacing={suffixSpacing ?? Infinity}
+        prefixOffset={prefixOffset ?? 0}
+        suffixOffset={suffixOffset ?? 0}
         placeholder={placeholder ?? ''}
         placeholderColor={processedPlaceholderColor}
         duration={duration ?? 400}

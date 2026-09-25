@@ -6,7 +6,7 @@
 import React, { createRef } from 'react'
 import { View, type LayoutRectangle } from 'react-native'
 import { describe, expect, it, waitFor } from 'react-native-harness'
-import { NitroNumber, type NitroNumberHandle } from 'react-native-nitro-input'
+import { NitroNumber, NumberFormat, type NitroNumberHandle } from 'react-native-nitro-input'
 import { deferred, expectSameLength, render, sleep, withTimeout } from './test-utils'
 import { forceGc, trackNativeViews, trackedLiveCount } from 'bench-probe'
 
@@ -227,6 +227,50 @@ describe('NitroNumber', () => {
     await sleep(400)
     expect(state.current!.width).toBeCloseTo(affixed.width, 0)
     expect(state.current!.height).toBeCloseTo(affixed.height, 0)
+  })
+
+  it('spaces its glyphs and its affixes, and moves an affix without resizing it', async () => {
+    const base = layoutOf()
+    const spaced = layoutOf()
+    const seam = layoutOf()
+    const moved = layoutOf()
+    const common = { value: 1234, fontSize: 20, prefix: '$', style: content } as const
+    await render(
+      <View>
+        <NitroNumber {...common} onLayout={base.onLayout} />
+        <NitroNumber {...common} letterSpacing={2} onLayout={spaced.onLayout} />
+        <NitroNumber {...common} prefixSpacing={8} onLayout={seam.onLayout} />
+        <NitroNumber {...common} prefixOffset={-4} suffixOffset={3} onLayout={moved.onLayout} />
+      </View>
+    )
+    await waitFor(() => expect(Math.min(base.state.current?.width ?? 0, spaced.state.current?.width ?? 0, seam.state.current?.width ?? 0, moved.state.current?.width ?? 0)).toBeGreaterThan(0))
+    const width = base.state.current!.width
+    // "$1234": five glyphs, two points after each.
+    expectSameLength(spaced.state.current!.width - width, 10)
+    // The seam replaces the (zero) letter spacing after the prefix.
+    expectSameLength(seam.state.current!.width - width, 8)
+    // An offset only moves the drawn affix.
+    expectSameLength(moved.state.current!.width, width)
+  })
+
+  it('takes its prefix, suffix, separators and digits from a NumberFormat', async () => {
+    const fromFormat = layoutOf()
+    const explicit = layoutOf()
+    const euroFormat = layoutOf()
+    const euroExplicit = layoutOf()
+    const usd = new NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+    const eur = new NumberFormat('de-DE', { style: 'currency', currency: 'EUR' })
+    await render(
+      <View>
+        <NitroNumber value={1234.5} fontSize={20} format={usd} style={content} onLayout={fromFormat.onLayout} />
+        <NitroNumber value={1234.5} fontSize={20} prefix="$" groupingSeparator="," fractionDigits={2} style={content} onLayout={explicit.onLayout} />
+        <NitroNumber value={1234.5} fontSize={20} format={eur} style={content} onLayout={euroFormat.onLayout} />
+        <NitroNumber value={1234.5} fontSize={20} suffix={'\u00a0\u20ac'} groupingSeparator="." decimalSeparator="," fractionDigits={2} style={content} onLayout={euroExplicit.onLayout} />
+      </View>
+    )
+    await waitFor(() => expect(Math.min(...[fromFormat, explicit, euroFormat, euroExplicit].map((l) => l.state.current?.width ?? 0))).toBeGreaterThan(0))
+    expectSameLength(fromFormat.state.current!.width, explicit.state.current!.width)
+    expectSameLength(euroFormat.state.current!.width, euroExplicit.state.current!.width)
   })
 
   it('mirrors under a right-to-left layout without changing its size', async () => {

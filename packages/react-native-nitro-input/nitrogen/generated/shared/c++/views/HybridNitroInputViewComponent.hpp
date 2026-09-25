@@ -89,6 +89,11 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<NitroInputSignPlacement> signPlacement;
     nitro::ReactProp<NitroInputAffixAlign> prefixAlign;
     nitro::ReactProp<NitroInputAffixAlign> suffixAlign;
+    nitro::ReactProp<double> letterSpacing;
+    nitro::ReactProp<double> prefixSpacing;
+    nitro::ReactProp<double> suffixSpacing;
+    nitro::ReactProp<double> prefixOffset;
+    nitro::ReactProp<double> suffixOffset;
     nitro::ReactProp<std::string> placeholder;
     nitro::ReactProp<double> placeholderColor;
     nitro::ReactProp<double> duration;
@@ -185,6 +190,11 @@ namespace margelo::nitro::nitroinput::views {
              signPlacement.hasSameValue(other.signPlacement) &&
              prefixAlign.hasSameValue(other.prefixAlign) &&
              suffixAlign.hasSameValue(other.suffixAlign) &&
+             letterSpacing.hasSameValue(other.letterSpacing) &&
+             prefixSpacing.hasSameValue(other.prefixSpacing) &&
+             suffixSpacing.hasSameValue(other.suffixSpacing) &&
+             prefixOffset.hasSameValue(other.prefixOffset) &&
+             suffixOffset.hasSameValue(other.suffixOffset) &&
              placeholder.hasSameValue(other.placeholder) &&
              placeholderColor.hasSameValue(other.placeholderColor) &&
              duration.hasSameValue(other.duration) &&
@@ -282,6 +292,11 @@ namespace margelo::nitro::nitroinput::views {
              signPlacement.isProvided() ||
              prefixAlign.isProvided() ||
              suffixAlign.isProvided() ||
+             letterSpacing.isProvided() ||
+             prefixSpacing.isProvided() ||
+             suffixSpacing.isProvided() ||
+             prefixOffset.isProvided() ||
+             suffixOffset.isProvided() ||
              placeholder.isProvided() ||
              placeholderColor.isProvided() ||
              duration.isProvided() ||
