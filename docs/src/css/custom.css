@@ -167,7 +167,20 @@ pre code {
 
 .navbar {
   border-bottom: 1px solid var(--nitro-border);
+  background: transparent;
+}
+
+/* The frosted glass lives on a layer behind the navbar, not on the navbar:
+   a backdrop-filter makes its element the containing block of every fixed
+   descendant, and the mobile menu (fixed, full height, inside the navbar)
+   was cut off at the navbar's 60px. */
+.navbar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
   background: color-mix(in srgb, var(--ifm-background-color) 82%, transparent);
 }
 
@@ -195,6 +208,33 @@ pre code {
   align-items: center;
   justify-content: center;
   transition: background-color 120ms ease;
+}
+
+/* Below Infima's breakpoint the navbar's items move into the mobile menu;
+   the display above would otherwise keep these two in the bar, underneath
+   the search button. */
+@media (max-width: 996px) {
+  .navbar__items .navbar__icon {
+    display: none;
+  }
+}
+
+/* In the mobile menu they are rows like the links above them, and a glyph
+   alone does not say where it goes: name it. */
+.navbar-sidebar .navbar__icon {
+  width: auto;
+  height: auto;
+  padding: 0.3rem 0.65rem;
+  justify-content: flex-start;
+  gap: 0.6rem;
+}
+
+.navbar-sidebar .navbar__icon--npm::after {
+  content: 'npm';
+}
+
+.navbar-sidebar .navbar__icon--github::after {
+  content: 'GitHub';
 }
 
 .navbar__icon:hover {
@@ -418,6 +458,11 @@ pre code {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  /* A canvas number draws past its box so a pop is never cut (see
+     NitroNumberCanvas). On a phone a figure that fills the stage pushed that
+     transparent margin past the viewport and the page scrolled sideways; the
+     frame keeps it, and the padding leaves the pop its room. */
+  overflow-x: clip;
 }
 
 /* An <Example> frame wrapping a demo that draws its own frame: only the
@@ -428,6 +473,7 @@ pre code {
   padding: 0;
   margin: 0;
   border-radius: 0;
+  overflow-x: visible;
 }
 
 .rn-demo-stage {
@@ -585,11 +631,13 @@ pre code {
   color: var(--nitro-ink-muted);
 }
 
+/* Kept whole when it fits; a long one ("'blurAndSubmit', 'newline' when
+   multiline") wraps rather than pushing the page wider than a phone. */
 .prop-default {
   margin-left: auto;
   font-size: 0.8rem;
   color: var(--nitro-ink-muted);
-  white-space: nowrap;
+  max-width: 100%;
 }
 
 .prop-default code {
