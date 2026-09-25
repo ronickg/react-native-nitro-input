@@ -62,7 +62,7 @@ up on it: a render that did not mount within the second Harness allows by
 default, a bridge that was not ready in time, or Android killing an app that
 took over 25 s to start as not responding. The failures then move between
 tests from run to run, and every one is a timeout, never a wrong value.
-`test-utils.ts`'s `render` gives a mount or re-render 5 s, and the config gives
+`test-utils.ts`'s `render` gives a mount or re-render 5 s and its `waitFor` gives every wait at least 5 s (import both from there, not from Harness), and the config gives
 startup a slow machine's allowance everywhere; past that, run the Android
 suites on a phone (`android-device`, a Galaxy A22 by default, the
 `HARNESS_ANDROID_DEVICE_*` variables for another), which has a CPU of its own,
