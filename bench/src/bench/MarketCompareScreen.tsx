@@ -6,6 +6,7 @@ import type { RootStackParamList } from '../navigation'
 import Animated, { useAnimatedProps, useFrameCallback, useSharedValue } from 'react-native-reanimated'
 import { NitroNumber } from 'react-native-nitro-input'
 import { AnimatedNumber } from 'react-native-number-animation'
+import { cpuBetween, report, sample, startFrames, stopFrames } from 'bench-probe'
 
 // ---------------------------------------------------------------------------
 // The example's market dashboard, drawn by one library at a time so two
@@ -179,6 +180,38 @@ export function MarketCompareScreen({ route, navigation }: NativeStackScreenProp
   useEffect(() => {
     navigation.setOptions({ headerShown: false })
   }, [navigation])
+
+  // One measured window per visit, for scripted runs: after a warm-up, the
+  // main thread's CPU and frame pacing over 10 s of the feed, as a BENCH line.
+  useEffect(() => {
+    let cancelled = false
+    const warmup = setTimeout(() => {
+      const before = sample()
+      startFrames()
+      setTimeout(() => {
+        if (cancelled) return
+        const frames = stopFrames()
+        const after = sample()
+        const cpu = before && after ? cpuBetween(before, after) : null
+        report({
+          event: 'market',
+          lib,
+          mainPct: cpu?.main ?? null,
+          jsPct: cpu?.js ?? null,
+          renderPct: cpu?.render ?? null,
+          fps: frames?.fps ?? null,
+          dropped: frames?.dropped ?? null,
+          p95: frames?.p95 ?? null,
+          max: frames?.max ?? null,
+        })
+        report({ event: 'done' })
+      }, 10_000)
+    }, 3_000)
+    return () => {
+      cancelled = true
+      clearTimeout(warmup)
+    }
+  }, [lib])
 
   useEffect(() => {
     const r = makeRandom(42)

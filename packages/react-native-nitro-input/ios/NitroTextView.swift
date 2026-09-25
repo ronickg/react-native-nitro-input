@@ -26,12 +26,34 @@ final class NitroTextFonts {
     /// features (tabular digits) apply; 0 when it is not one glyph of this
     /// font (a fallback font, a cluster), and the line is drawn as a string.
     fileprivate var glyphs: [UInt32: CGGlyph] = [:]
+    /**
+     * The same for the first `direct` scalars, read without the lock: every
+     * commit and every frame looks characters up, and on the main thread the
+     * lock cost more than the lookup. Fixed buffers written under the lock;
+     * an aligned 8- or 4-byte store is atomic on arm64, so a reader sees the
+     * sentinel (and takes the locked path) or the whole value.
+     */
+    fileprivate let directAdvances: UnsafeMutablePointer<CGFloat>
+    fileprivate let directGlyphs: UnsafeMutablePointer<UInt32>
 
     init(font: UIFont) {
       self.font = font
       lineHeight = ceil(font.lineHeight)
+      directAdvances = .allocate(capacity: NitroTextFonts.direct)
+      directAdvances.initialize(repeating: .nan, count: NitroTextFonts.direct)
+      directGlyphs = .allocate(capacity: NitroTextFonts.direct)
+      directGlyphs.initialize(repeating: NitroTextFonts.unknownGlyph, count: NitroTextFonts.direct)
+    }
+
+    deinit {
+      directAdvances.deallocate()
+      directGlyphs.deallocate()
     }
   }
+
+  /// Scalars below this (Latin, Greek, Cyrillic) have lock-free slots.
+  fileprivate static let direct = 0x530
+  fileprivate static let unknownGlyph = UInt32.max
 
   static let shared = NitroTextFonts()
   private var entries: [String: Entry] = [:]
@@ -50,6 +72,11 @@ final class NitroTextFonts {
 
   /// One character's advance, as the view lays it out (no kerning with its neighbours).
   func advance(of scalar: Unicode.Scalar, in entry: Entry) -> CGFloat {
+    let v = Int(scalar.value)
+    if v < Self.direct {
+      let width = entry.directAdvances[v]
+      if !width.isNaN { return width }
+    }
     lock.lock()
     if let width = entry.advances[scalar.value] {
       lock.unlock()
@@ -59,6 +86,7 @@ final class NitroTextFonts {
     let width = NSAttributedString(string: String(Character(scalar)), attributes: [.font: entry.font]).size().width
     lock.lock()
     entry.advances[scalar.value] = width
+    if v < Self.direct { entry.directAdvances[v] = width }
     lock.unlock()
     return width
   }
@@ -68,6 +96,11 @@ final class NitroTextFonts {
   /// character this font lacks.
   func glyph(of scalar: Unicode.Scalar, in entry: Entry) -> CGGlyph {
     guard Self.drawsAlone(scalar) else { return 0 }
+    let v = Int(scalar.value)
+    if v < Self.direct {
+      let glyph = entry.directGlyphs[v]
+      if glyph != Self.unknownGlyph { return CGGlyph(glyph) }
+    }
     lock.lock()
     if let glyph = entry.glyphs[scalar.value] {
       lock.unlock()
@@ -85,6 +118,7 @@ final class NitroTextFonts {
     }
     lock.lock()
     entry.glyphs[scalar.value] = glyph
+    if v < Self.direct { entry.directGlyphs[v] = UInt32(glyph) }
     lock.unlock()
     return glyph
   }
@@ -233,6 +267,8 @@ final class NitroTextView: UIView {
   /// The line at rest, as one attributed string (kerning off, so it lands where the engine put each character).
   private var restString: NSAttributedString?
   private var displayLink: CADisplayLink?
+  /// Frames went undrawn while the view was out of sight.
+  private var framesSkipped = false
   private var loadingProgress: CGFloat = 0
   private var loadingFrom: CGFloat = 0
   private var loadingStart: CFTimeInterval = 0
@@ -286,6 +322,7 @@ final class NitroTextView: UIView {
     loading = false
     displayLink?.invalidate()
     displayLink = nil
+    framesSkipped = false
     engine.reset()
     engine.setTiming(timing.duration, timing.easing, timing.bounce)
     engine.setEffect(timing.effect)
@@ -335,9 +372,10 @@ final class NitroTextView: UIView {
 
   // MARK: - Frames
 
+  private var needsFrames: Bool { moving || loading || loadingProgress > 0 }
+
   private func updateDisplayLink() {
-    let loadingMoves = loading || loadingProgress > 0
-    if moving || loadingMoves {
+    if needsFrames {
       guard displayLink == nil else { return }
       let link = CADisplayLink(target: DisplayLinkProxy(self), selector: #selector(DisplayLinkProxy.tick(_:)))
       link.add(to: .main, forMode: .common)
@@ -348,7 +386,17 @@ final class NitroTextView: UIView {
     }
   }
 
-  fileprivate func step() {
+  private final class DisplayLinkProxy: NSObject {
+    weak var view: NitroTextView?
+    init(_ view: NitroTextView) { self.view = view }
+    @objc func tick(_ link: CADisplayLink) {
+      guard let view, !view.frameTick() else { return }
+      view.updateDisplayLink()
+    }
+  }
+
+  /// One frame: the morph and the loading fade advance; `false` once nothing moves.
+  private func frameTick() -> Bool {
     let now = CACurrentMediaTime()
     if engineText != nil { _ = engine.tick(now) }
     let target: CGFloat = loading ? 1 : 0
@@ -356,14 +404,26 @@ final class NitroTextView: UIView {
       let t = CGFloat(min(1, (now - loadingStart) / Self.loadingFade))
       loadingProgress = loadingFrom + (target - loadingFrom) * t
     }
-    updateDisplayLink()
-    setNeedsDisplay()
+    let more = needsFrames
+    // A view scrolled out of sight is not drawn every frame (Core Animation
+    // redraws every layer marked, on screen or not): once when it settles,
+    // and every frame again as soon as it is in sight.
+    if onScreen {
+      setNeedsDisplay()
+      framesSkipped = false
+    } else {
+      framesSkipped = true
+    }
+    if !more, framesSkipped {
+      framesSkipped = false
+      setNeedsDisplay()
+    }
+    return more
   }
 
-  private final class DisplayLinkProxy: NSObject {
-    weak var view: NitroTextView?
-    init(_ view: NitroTextView) { self.view = view }
-    @objc func tick(_ link: CADisplayLink) { view?.step() }
+  private var onScreen: Bool {
+    guard let window, !isHidden else { return false }
+    return convert(bounds, to: window).intersects(window.bounds)
   }
 
   // MARK: - Drawing

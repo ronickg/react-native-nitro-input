@@ -75,7 +75,11 @@ export function TextMountScreen({ route }: NativeStackScreenProps<RootStackParam
         // Rotated per round: each variant follows each other one's clearing.
         const order = (['nitro', 'text', 'plain'] as Variant[]).map((_, i, all) => all[(i + round) % all.length]!)
         for (const v of order) {
+          // Cleared together with the update flag: the labels leave showing
+          // the updated text (no morph back), so the next mount reuses views
+          // whose last text differs from the one they are given.
           setVariant(null)
+          setUpdated(false)
           await wait(1500)
           forceGc()
           await wait(200)
@@ -128,8 +132,7 @@ export function TextMountScreen({ route }: NativeStackScreenProps<RootStackParam
             maxFrame: uFrames?.max ?? 0,
             dropped: uFrames?.dropped ?? 0,
           })
-          setUpdated(false)
-          await wait(300)
+
         }
       }
       setVariant(null)
