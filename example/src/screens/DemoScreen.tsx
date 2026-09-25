@@ -573,7 +573,7 @@ function ProportionalDemo() {
     />
   )
   return (
-    <Section title="Proportional digits" hint="The same value twice. Tabular (the default) gives every digit the widest digit's width, so nothing shifts as it rolls; tabularNums={false} sets each digit at its own width, as body text does, and a column's width eases between the digits it passes. Compare the 1s.">
+    <Section title="Proportional digits" hint="The same value twice. Tabular (the default) gives every digit the widest digit's width, so nothing shifts as it rolls; tabularNums={false} sets each digit at its own width, as body text does, and a changing column eases once from the old digit's width to the new one's. Compare the 1s.">
       <Text style={styles.sectionHint}>tabularNums (default)</Text>
       {number(true)}
       <Text style={styles.sectionHint}>tabularNums={'{false}'}</Text>
