@@ -151,6 +151,8 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
     set(v) { field = v; markConfigDirty() }
   override var suffixOffset: Double? = null
     set(v) { field = v; markConfigDirty() }
+  override var tabularNums: Boolean? = null
+    set(v) { field = v; markConfigDirty() }
   override var adjustsFontSizeToFit: Boolean? = null
     set(v) { field = v; markConfigDirty() }
   override var minimumFontScale: Double? = null
@@ -324,6 +326,7 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
     suffixSpacing = null
     prefixOffset = null
     suffixOffset = null
+    tabularNums = null
     adjustsFontSizeToFit = null
     minimumFontScale = null
     allowFontScaling = null
@@ -397,6 +400,7 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
       suffixSpacing = suffixSpacing?.takeIf { it.isFinite() }?.toFloat(),
       prefixOffset = (prefixOffset ?: 0.0).takeIf { it.isFinite() }?.toFloat() ?: 0f,
       suffixOffset = (suffixOffset ?: 0.0).takeIf { it.isFinite() }?.toFloat() ?: 0f,
+      tabularNums = tabularNums ?: true,
       adjustsFontSizeToFit = adjustsFontSizeToFit ?: false,
       minimumFontScale = (minimumFontScale ?: 0.5).coerceIn(0.05, 1.0).toFloat(),
       allowFontScaling = allowFontScaling ?: false,

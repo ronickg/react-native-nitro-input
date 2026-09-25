@@ -93,6 +93,8 @@ class NitroNumberView(context: Context) : View(context) {
     /** Dp an affix is moved down (negative: up) after its alignment. */
     val prefixOffset: Float = 0f,
     val suffixOffset: Float = 0f,
+    /** Every digit as wide as the widest (tabular figures, the default), or each at its own width. */
+    val tabularNums: Boolean = true,
     val adjustsFontSizeToFit: Boolean = false,
     val minimumFontScale: Float = 0.5f,
     val allowFontScaling: Boolean = false,
@@ -284,6 +286,10 @@ class NitroNumberView(context: Context) : View(context) {
     val numericBlur: Float = NUMERIC_BLUR
     /** Width of the widest digit glyph, in px. */
     val digitWidth: Float
+    /** Each digit at its own advance instead of the widest's (`tabularNums={false}`). */
+    val proportional = !t.tabularNums
+    /** The advance of each digit 0…9, in px. */
+    val digitWidths = FloatArray(10)
     private val widthCache = Array(GlyphRole.entries.size) { java.util.concurrent.ConcurrentHashMap<String, Float>() }
     /**
      * A wheel's whole digit strip, per blank-zero variant: 12 slots for index
@@ -306,7 +312,7 @@ class NitroNumberView(context: Context) : View(context) {
      * typography (see [StripCache]).
      */
     private val stripKey: String =
-      "${t.fontFamily}|${t.fontWeight}|${digit.textSize}|${digit.color}|${digit.typeface?.hashCode()}"
+      "${t.fontFamily}|${t.fontWeight}|${digit.textSize}|${digit.color}|${digit.typeface?.hashCode()}|${digit.fontFeatureSettings}"
 
     /**
      * This font set's digit masks by digit and level, filled from the shared
@@ -439,7 +445,8 @@ class NitroNumberView(context: Context) : View(context) {
     private val inkDescentCache = HashMap<String, Float>()
 
     init {
-      digitWidth = (0..9).maxOf { width(it.toString(), GlyphRole.DIGIT) }
+      for (d in 0..9) digitWidths[d] = width(d.toString(), GlyphRole.DIGIT)
+      digitWidth = digitWidths.max()
     }
 
     fun paint(role: GlyphRole): TextPaint = when (role) {
@@ -565,7 +572,8 @@ class NitroNumberView(context: Context) : View(context) {
     paint.typeface = makeTypeface(t)
     paint.textSize = sizeDp * density
     paint.color = t.color ?: defaultTextColor()
-    paint.fontFeatureSettings = "tnum"
+    // Tabular figures unless each digit is laid out at its own width.
+    paint.fontFeatureSettings = if (t.tabularNums) "tnum" else "pnum"
     return paint
   }
 
@@ -1049,15 +1057,19 @@ class NitroNumberView(context: Context) : View(context) {
       addGlyph("-", GlyphRole.DIGIT, signFactor)
       addGlyph(prefixInk, GlyphRole.PREFIX, 1.0, TEXT_PREFIX, anchor = 1)
     }
+    // Settled, and throughout a reveal (whose layout is the target's from the
+    // first frame), a proportional digit takes its target digit's width.
+    val targetWidths = fonts.proportional && (!animated || engine.isRevealing())
     for (power in wheels.indices.reversed()) {
       val wheel = wheels[power]
       if (wheel.width > 0.0) {
         val e = out.next()
+        val advance = digitAdvance(wheel, power, fonts, targetWidths)
         e.wheelIndex = power
         e.text = null
         e.role = GlyphRole.DIGIT
-        e.width = (fonts.digitWidth * wheel.width).toFloat()
-        e.fullWidth = fonts.digitWidth
+        e.width = (advance * wheel.width).toFloat()
+        e.fullWidth = advance
         e.factor = wheel.width
         e.slot = -1
         e.fromText = null
@@ -1073,6 +1085,40 @@ class NitroNumberView(context: Context) : View(context) {
       addGlyph(suffixInk, GlyphRole.SUFFIX, 1.0, TEXT_SUFFIX, anchor = -1)
     }
     applySpacing(fonts, out)
+  }
+
+  /**
+   * A wheel's cell width at full size: the widest digit's with tabular
+   * figures; otherwise its digit's own advance, blended between the two digits
+   * it is passing through (a roll between them, or a swap), or the target
+   * digit's when [target] is set.
+   */
+  private fun digitAdvance(wheel: Wheel, power: Int, fonts: FontSet, target: Boolean): Float {
+    if (!fonts.proportional) return fonts.digitWidth
+    val widths = fonts.digitWidths
+    if (target) return widths[engine.targetDigit(power).coerceIn(0, 9)]
+    // A blank slot (an emerging wheel) takes the width of the digit it turns into.
+    fun width(glyph: Int, other: Int): Float = when {
+      glyph >= 0 -> widths[glyph % 10]
+      other >= 0 -> widths[other % 10]
+      else -> widths[0]
+    }
+    val from: Int
+    val to: Int
+    val t: Float
+    if (wheel.blend < 1.0) {
+      from = wheel.fromGlyph.toInt()
+      to = wheel.toGlyph.toInt()
+      t = wheel.blend.toFloat().coerceIn(0f, 1f)
+    } else {
+      val position = if (wheel.linear) wheel.position else wrap10(wheel.position)
+      val base = floor(position)
+      from = base.toInt()
+      to = from + 1
+      t = (position - base).toFloat()
+    }
+    val a = width(from, to)
+    return a + (width(to, from) - a) * t
   }
 
   /**
@@ -1311,7 +1357,7 @@ class NitroNumberView(context: Context) : View(context) {
       val element = elements[i]
       val text = element.text
       if (element.wheelIndex >= 0) {
-        drawWheel(canvas, fonts, wheels[element.wheelIndex], x, element.width, originX, originY, scale)
+        drawWheel(canvas, fonts, wheels[element.wheelIndex], x, element.width, element.fullWidth, originX, originY, scale)
       } else if (element.fromText != null) {
         drawTextSwap(canvas, fonts, element, x)
       } else if (text != null) {
@@ -1399,11 +1445,14 @@ class NitroNumberView(context: Context) : View(context) {
    * [originX], [originY] and [scale] are the content transform already on the
    * canvas, so the strip window can be landed on whole device pixels.
    */
-  private fun drawWheel(canvas: Canvas, fonts: FontSet, wheel: Wheel, x: Float, width: Float, originX: Float, originY: Float, scale: Float) {
+  private fun drawWheel(canvas: Canvas, fonts: FontSet, wheel: Wheel, x: Float, width: Float, advance: Float, originX: Float, originY: Float, scale: Float) {
     if (width <= 0f) return
     val lineHeight = fonts.lineHeight
+    // The digit column, the widest digit wide, centred on the digit's own cell
+    // (with tabular figures the two are the same, right-aligned in the cell).
+    val columnLeft = x + width - (advance + fonts.digitWidth) / 2f
     if (wheel.blend < 1.0 || wheel.focus < 1.0 || wheel.grow < 1.0) {
-      drawSwap(canvas, fonts, wheel, x, width, originX, originY, scale)
+      drawSwap(canvas, fonts, wheel, columnLeft, originX, originY, scale)
       return
     }
     // A settled-width wheel is a window onto the shared strip (the strip has
@@ -1417,7 +1466,7 @@ class NitroNumberView(context: Context) : View(context) {
         // through 0 shows 9); a linear wheel never wraps and uses -1 for the
         // blank slot. Either way the window lands inside the strip.
         val position = if (wheel.linear) wheel.position.coerceIn(-1.0, 10.0) else wrap10(wheel.position)
-        var tx = x + width - fonts.digitWidth
+        var tx = columnLeft
         var ty = (-(position + 1) * lineHeight).toFloat()
         if (scale == 1f && position == floor(position)) {
           // At rest, land the window on whole device pixels: composited at a
@@ -1451,7 +1500,7 @@ class NitroNumberView(context: Context) : View(context) {
           return
         }
         canvas.save()
-        canvas.clipRect(x, 0f, x + width, lineHeight)
+        canvas.clipRect(columnLeft, 0f, columnLeft + fonts.digitWidth, lineHeight)
         canvas.translate(tx, ty)
         if (strip.node != null) canvas.drawRenderNode(strip.node) else canvas.drawBitmap(strip.bitmap, 0f, 0f, stripPaint)
         // The change flash rides the roll: the strip once more, in the tint, at the same offset.
@@ -1472,11 +1521,10 @@ class NitroNumberView(context: Context) : View(context) {
     // The roll's window, the whole digit wide: a column still opening or
     // closing is not cut to its width (the glyph read as a sliver of its right
     // edge, a ")" of a 0 rolling past), it overhangs the cell's far side, faded.
-    canvas.clipRect(x + width - fonts.digitWidth, 0f, x + width, lineHeight)
+    canvas.clipRect(columnLeft, 0f, columnLeft + fonts.digitWidth, lineHeight)
     val base = floor(wheel.position)
     val fraction = (wheel.position - base).toFloat()
     val index = base.toInt()
-    val columnLeft = x + width - fonts.digitWidth
     fun glyphs(paint: TextPaint, alpha: Float) {
       // Scaled from the ink colour's alpha and put back (see [drawGlyph]).
       val ink = paint.alpha
@@ -1507,9 +1555,9 @@ class NitroNumberView(context: Context) : View(context) {
    * around the digit. With a change flash on, the pair is drawn again in
    * the tint at the flash's opacity: the ink mixed towards the tint.
    */
-  private fun drawSwap(canvas: Canvas, fonts: FontSet, wheel: Wheel, x: Float, width: Float, originX: Float, originY: Float, scale: Float) {
-    drawSwapPair(canvas, fonts, wheel, x, width, fonts.digit, 1f, originX, originY, scale)
-    flashColor(wheel)?.let { color -> drawSwapPair(canvas, fonts, wheel, x, width, fonts.tinted(color), wheel.flash.toFloat(), originX, originY, scale) }
+  private fun drawSwap(canvas: Canvas, fonts: FontSet, wheel: Wheel, columnLeft: Float, originX: Float, originY: Float, scale: Float) {
+    drawSwapPair(canvas, fonts, wheel, columnLeft, fonts.digit, 1f, originX, originY, scale)
+    flashColor(wheel)?.let { color -> drawSwapPair(canvas, fonts, wheel, columnLeft, fonts.tinted(color), wheel.flash.toFloat(), originX, originY, scale) }
   }
 
   /**
@@ -1520,7 +1568,7 @@ class NitroNumberView(context: Context) : View(context) {
    * blurred copy hides and a lightly blurred one does not. Landed, the last
    * swap frame is pixel for pixel the strip that takes over from it.
    */
-  private fun drawSwapPair(canvas: Canvas, fonts: FontSet, wheel: Wheel, x: Float, width: Float, paint: TextPaint, opacity: Float, originX: Float, originY: Float, scale: Float) {
+  private fun drawSwapPair(canvas: Canvas, fonts: FontSet, wheel: Wheel, columnLeft: Float, paint: TextPaint, opacity: Float, originX: Float, originY: Float, scale: Float) {
     val lineHeight = fonts.lineHeight
     // The position clock overshoots 1 (a spring); only the offsets follow it there.
     val b = wheel.blend.toFloat()
@@ -1531,7 +1579,7 @@ class NitroNumberView(context: Context) : View(context) {
     val f = wheel.focus.toFloat().coerceIn(0f, 1f)
     val d = if (wheel.fromAbove) 1f else -1f
     val offset = lineHeight * NUMERIC_OFFSET
-    val cx = x + width - fonts.digitWidth / 2f
+    val cx = columnLeft + fonts.digitWidth / 2f
     val cy = lineHeight / 2f
     val column = wheel.width.toFloat().coerceIn(0f, 1f) * opacity
     val from = wheel.fromGlyph.toInt()

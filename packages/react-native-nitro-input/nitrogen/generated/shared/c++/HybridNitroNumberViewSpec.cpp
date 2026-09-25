@@ -92,6 +92,8 @@ namespace margelo::nitro::nitroinput {
       prototype.registerHybridSetter("prefixOffset", &HybridNitroNumberViewSpec::setPrefixOffset);
       prototype.registerHybridGetter("suffixOffset", &HybridNitroNumberViewSpec::getSuffixOffset);
       prototype.registerHybridSetter("suffixOffset", &HybridNitroNumberViewSpec::setSuffixOffset);
+      prototype.registerHybridGetter("tabularNums", &HybridNitroNumberViewSpec::getTabularNums);
+      prototype.registerHybridSetter("tabularNums", &HybridNitroNumberViewSpec::setTabularNums);
       prototype.registerHybridGetter("adjustsFontSizeToFit", &HybridNitroNumberViewSpec::getAdjustsFontSizeToFit);
       prototype.registerHybridSetter("adjustsFontSizeToFit", &HybridNitroNumberViewSpec::setAdjustsFontSizeToFit);
       prototype.registerHybridGetter("minimumFontScale", &HybridNitroNumberViewSpec::getMinimumFontScale);
