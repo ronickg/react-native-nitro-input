@@ -55,6 +55,7 @@ enum class RoundingPriority { Auto, MorePrecision, LessPrecision };
 enum class SignDisplay { Auto, Never, Always, ExceptZero, Negative };
 enum class Grouping { Off, Min2, Auto, Always };
 enum class TrailingZeroDisplay { Auto, StripIfInteger };
+enum class Notation { Standard, Scientific, Engineering };
 
 /// How a number is rounded and padded: the digit options of `Intl.NumberFormat`, resolved.
 struct Rounding {
@@ -93,6 +94,9 @@ struct LocaleFormat {
   std::string infinity = "∞";
   /// Powers of ten the value is scaled by before formatting (2 for percent).
   int scale = 0;
+  /// Scientific notation: the "E" and the minus sign of a negative exponent.
+  std::string exponentSeparator = "E";
+  std::string exponentMinusSign = "-";
 };
 
 /// A number as decimal digits: `digits` with the decimal point after `point`
@@ -117,7 +121,7 @@ struct Decimal {
 class NumberFormatCore final {
 public:
   NumberFormatCore() = default;
-  NumberFormatCore(LocaleFormat format, Rounding rounding, Grouping grouping, SignDisplay signDisplay);
+  NumberFormatCore(LocaleFormat format, Rounding rounding, Grouping grouping, SignDisplay signDisplay, Notation notation = Notation::Standard);
 
   std::vector<Part> formatToParts(const Decimal& value) const;
   std::string format(const Decimal& value) const;
@@ -134,11 +138,15 @@ private:
   Rounding rounding_;
   Grouping grouping_ = Grouping::Auto;
   SignDisplay signDisplay_ = SignDisplay::Auto;
+  Notation notation_ = Notation::Standard;
 };
 
 /// Rounds `value` as `rounding` asks; the result's `point` and `digits` give the kept digits.
 /// Exposed for tests. `fractionDigits` receives how many fraction digits to show (with padding).
 Decimal roundDecimal(const Decimal& value, const Rounding& rounding, int& fractionDigits);
+
+/// The power of ten of a decimal's leading digit (0 for zero).
+int decimalMagnitude(const Decimal& value);
 
 /// ISO 4217 minor-unit digits, as ECMA-402's CurrencyDigits: 2 unless listed.
 int currencyDigits(std::string_view currencyCode);

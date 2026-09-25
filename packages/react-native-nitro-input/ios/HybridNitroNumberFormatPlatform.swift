@@ -36,7 +36,7 @@ enum NumberFormatLocales {
   }
 
   static func match(_ requested: String) -> Match? {
-    let lowered = requested.replacingOccurrences(of: "_", with: "-")
+    let lowered = requested.replacingOccurrences(of: "_", with: "-").lowercased()
     // "de-DE-u-nu-latn": the base tag and the numbering system of its Unicode extension.
     var base = lowered
     var numberingSystem: String?
@@ -45,7 +45,21 @@ enum NumberFormatLocales {
       let keys = lowered[range.upperBound...].split(separator: "-")
       if let nu = keys.firstIndex(of: "nu"), nu + 1 < keys.endIndex { numberingSystem = String(keys[nu + 1]) }
     }
-    var subtags = base.split(separator: "-").map(String.init)
+    // Canonical case: language lower, script title, region upper ("zh-hant-tw" → zh_Hant_TW).
+    var subtags = base.split(separator: "-").enumerated().map { index, tag -> String in
+      let tag = String(tag)
+      if index == 0 { return tag }
+      if tag.count == 4 { return tag.prefix(1).uppercased() + tag.dropFirst() }
+      if tag.count == 2 || (tag.count == 3 && tag.allSatisfy(\.isNumber)) { return tag.uppercased() }
+      return tag
+    }
+    // Foundation lists some locales with their script only ("zh_Hant_TW" for zh-TW): try the full form too.
+    if #available(iOS 16.0, *), subtags.count > 1 {
+      let maximal = Locale.Language(identifier: subtags.joined(separator: "-")).maximalIdentifier.replacingOccurrences(of: "-", with: "_")
+      if !available.contains(subtags.joined(separator: "_")), available.contains(maximal) {
+        return Match(tag: subtags.joined(separator: "-"), identifier: maximal, numberingSystem: numberingSystem)
+      }
+    }
     while !subtags.isEmpty {
       let identifier = subtags.joined(separator: "_")
       if available.contains(identifier) {
@@ -71,18 +85,30 @@ final class HybridNitroPlatformNumberFormatter: HybridNitroPlatformNumberFormatt
   private let formatter = NumberFormatter()
   /// Compact notation, which `NumberFormatter` does not have (iOS 16+).
   private var compact: ((Double) -> String)?
+  /// Units, through `MeasurementFormatter` with this formatter for the number.
+  private var measure: ((Double) -> String)?
   let symbols: NumberFormatPlatformSymbols
 
   init(options o: NumberFormatPlatformOptions) throws {
     let match = NumberFormatLocales.resolve(o.locales)
-    let numberingSystem = o.numberingSystem ?? match.numberingSystem
+    // Foundation knows numbering systems only in lower case, and one it does not
+    // know leaves the formatter without symbols; Intl ignores those, so drop it.
+    var numberingSystem = (o.numberingSystem ?? match.numberingSystem)?.lowercased()
     // The currency goes into the locale too: Foundation otherwise takes some
     // patterns (accounting in tr_TR) from the locale's own currency.
-    var keywords: [String] = []
-    if o.style == .currency, let code = o.currency { keywords.append("currency=\(code)") }
-    if let numberingSystem { keywords.append("numbers=\(numberingSystem)") }
-    let locale = Locale(identifier: keywords.isEmpty ? match.identifier : "\(match.identifier)@\(keywords.joined(separator: ";"))")
+    func makeLocale() -> Locale {
+      var keywords: [String] = []
+      if o.style == .currency, let code = o.currency { keywords.append("currency=\(code)") }
+      if let numberingSystem { keywords.append("numbers=\(numberingSystem)") }
+      return Locale(identifier: keywords.isEmpty ? match.identifier : "\(match.identifier)@\(keywords.joined(separator: ";"))")
+    }
+    var locale = makeLocale()
     formatter.locale = locale
+    if numberingSystem != nil, (formatter.minusSign as String?) == nil {
+      numberingSystem = nil
+      locale = makeLocale()
+      formatter.locale = locale
+    }
 
     var currencyShown = ""
     switch o.style {
@@ -103,9 +129,9 @@ final class HybridNitroPlatformNumberFormatter: HybridNitroPlatformNumberFormatt
       if o.currencyDisplay == .narrowsymbol, let narrow = Self.narrowSymbol(o.currency ?? "USD", locale: locale) {
         formatter.currencySymbol = narrow
       }
-      currencyShown = o.currencyDisplay == .code ? formatter.internationalCurrencySymbol : formatter.currencySymbol
+      currencyShown = (o.currencyDisplay == .code ? formatter.internationalCurrencySymbol as String? : formatter.currencySymbol as String?) ?? (o.currency ?? "")
     case .unit:
-      throw RuntimeError.error(withMessage: "NumberFormat: style 'unit' is not supported on iOS yet.")
+      formatter.numberStyle = .decimal
     }
 
     switch o.notation {
@@ -127,7 +153,7 @@ final class HybridNitroPlatformNumberFormatter: HybridNitroPlatformNumberFormatt
     formatter.roundingMode = Self.roundingMode(o.roundingMode)
     switch o.signDisplay {
     case .always, .exceptzero:
-      formatter.positivePrefix = formatter.plusSign + formatter.positivePrefix
+      formatter.positivePrefix = ((formatter.plusSign as String?) ?? "+") + ((formatter.positivePrefix as String?) ?? "")
     case .never:
       formatter.negativePrefix = formatter.positivePrefix
       formatter.negativeSuffix = formatter.positiveSuffix
@@ -147,19 +173,25 @@ final class HybridNitroPlatformNumberFormatter: HybridNitroPlatformNumberFormatt
       compact = { style.format($0) }
     }
 
+    if o.style == .unit, let unit = o.unit {
+      measure = try Self.unitFormatter(unit, display: o.unitDisplay, locale: locale, number: formatter)
+    }
+
     symbols = NumberFormatPlatformSymbols(
       locale: match.tag,
       numberingSystem: Self.numberingSystem(of: locale),
-      minusSign: formatter.minusSign,
-      plusSign: formatter.plusSign,
-      percentSign: formatter.percentSymbol,
+      minusSign: (formatter.minusSign as String?) ?? "-",
+      plusSign: (formatter.plusSign as String?) ?? "+",
+      percentSign: (formatter.percentSymbol as String?) ?? "%",
       currency: currencyShown,
-      nan: formatter.notANumberSymbol,
-      infinity: formatter.positiveInfinitySymbol
+      nan: (formatter.notANumberSymbol as String?) ?? "NaN",
+      infinity: (formatter.positiveInfinitySymbol as String?) ?? "∞",
+      exponentSeparator: (formatter.exponentSymbol as String?) ?? "E"
     )
   }
 
   func format(value: Double) throws -> String {
+    if let measure { return measure(value) }
     if let compact { return compact(value) }
     return formatter.string(from: NSNumber(value: value)) ?? ""
   }
@@ -168,9 +200,121 @@ final class HybridNitroPlatformNumberFormatter: HybridNitroPlatformNumberFormatt
     if value.hasSuffix("Infinity") || value == "NaN" {
       return try format(value: value == "NaN" ? .nan : value.hasPrefix("-") ? -.infinity : .infinity)
     }
-    if compact != nil { return try format(value: Double(value) ?? .nan) }
+    if compact != nil || measure != nil { return try format(value: Double(value) ?? .nan) }
     let number = NSDecimalNumber(string: value, locale: Locale(identifier: "en_US_POSIX"))
     return formatter.string(from: number) ?? ""
+  }
+
+  /// ECMA-402's sanctioned units as Foundation units.
+  private static func dimension(_ unit: String) -> Dimension? {
+    switch unit {
+    case "acre": return UnitArea.acres
+    case "hectare": return UnitArea.hectares
+    case "bit": return UnitInformationStorage.bits
+    case "byte": return UnitInformationStorage.bytes
+    case "kilobit": return UnitInformationStorage.kilobits
+    case "kilobyte": return UnitInformationStorage.kilobytes
+    case "megabit": return UnitInformationStorage.megabits
+    case "megabyte": return UnitInformationStorage.megabytes
+    case "gigabit": return UnitInformationStorage.gigabits
+    case "gigabyte": return UnitInformationStorage.gigabytes
+    case "terabit": return UnitInformationStorage.terabits
+    case "terabyte": return UnitInformationStorage.terabytes
+    case "petabyte": return UnitInformationStorage.petabytes
+    case "celsius": return UnitTemperature.celsius
+    case "fahrenheit": return UnitTemperature.fahrenheit
+    case "centimeter": return UnitLength.centimeters
+    case "foot": return UnitLength.feet
+    case "inch": return UnitLength.inches
+    case "kilometer": return UnitLength.kilometers
+    case "meter": return UnitLength.meters
+    case "mile": return UnitLength.miles
+    case "mile-scandinavian": return UnitLength.scandinavianMiles
+    case "millimeter": return UnitLength.millimeters
+    case "yard": return UnitLength.yards
+    case "degree": return UnitAngle.degrees
+    case "fluid-ounce": return UnitVolume.fluidOunces
+    case "gallon": return UnitVolume.gallons
+    case "liter": return UnitVolume.liters
+    case "milliliter": return UnitVolume.milliliters
+    case "gram": return UnitMass.grams
+    case "kilogram": return UnitMass.kilograms
+    case "ounce": return UnitMass.ounces
+    case "pound": return UnitMass.pounds
+    case "stone": return UnitMass.stones
+    case "hour": return UnitDuration.hours
+    case "minute": return UnitDuration.minutes
+    case "second": return UnitDuration.seconds
+    case "millisecond": return UnitDuration.milliseconds
+    case "microsecond": return UnitDuration.microseconds
+    case "nanosecond": return UnitDuration.nanoseconds
+    case "kilometer-per-hour": return UnitSpeed.kilometersPerHour
+    case "meter-per-second": return UnitSpeed.metersPerSecond
+    case "mile-per-hour": return UnitSpeed.milesPerHour
+    case "mile-per-gallon": return UnitFuelEfficiency.milesPerGallon
+    case "liter-per-kilometer": return nil
+    default: return nil
+    }
+  }
+
+  /// A unit formatter: Foundation's for the units it has; days to years and
+  /// other compound units through DateComponentsFormatter or "x/y".
+  private static func unitFormatter(_ unit: String, display: NumberFormatUnitDisplay, locale: Locale, number: NumberFormatter) throws -> (Double) -> String {
+    if unit == "percent" {
+      let percent = number.copy() as! NumberFormatter
+      percent.numberStyle = .percent
+      percent.multiplier = 1
+      percent.minimumFractionDigits = number.minimumFractionDigits
+      percent.maximumFractionDigits = number.maximumFractionDigits
+      return { percent.string(from: NSNumber(value: $0)) ?? "" }
+    }
+    let formatter = MeasurementFormatter()
+    formatter.locale = locale
+    formatter.unitOptions = .providedUnit
+    formatter.numberFormatter = number
+    formatter.unitStyle = display == .long ? .long : display == .narrow ? .short : .medium
+    if let dimension = dimension(unit) {
+      return { (value: Double) -> String in
+        let measurement: Measurement<Dimension> = Measurement(value: value, unit: dimension)
+        return formatter.string(from: measurement)
+      }
+    }
+    let durations: [String: NSCalendar.Unit] = ["day": .day, "week": .weekOfMonth, "month": .month, "year": .year]
+    if let calendarUnit = durations[unit] {
+      let components = DateComponentsFormatter()
+      components.allowedUnits = [calendarUnit]
+      components.unitsStyle = display == .long ? .full : display == .narrow ? .abbreviated : .short
+      var calendar = Calendar(identifier: .gregorian)
+      calendar.locale = locale
+      components.calendar = calendar
+      return { value in
+        var parts = DateComponents()
+        let whole = Int(value.rounded(.towardZero))
+        switch calendarUnit {
+        case .day: parts.day = whole
+        case .weekOfMonth: parts.weekOfMonth = whole
+        case .month: parts.month = whole
+        default: parts.year = whole
+        }
+        return value == value.rounded(.towardZero) ? (components.string(from: parts) ?? "") : "\(number.string(from: NSNumber(value: value)) ?? "") \(unit)"
+      }
+    }
+    if let per = unit.range(of: "-per-") {
+      let first = String(unit[..<per.lowerBound])
+      let second = String(unit[per.upperBound...])
+      // "x-per-y" as "x/y", with Foundation's symbol for y where it has one.
+      let head = try unitFormatter(first, display: display, locale: locale, number: number)
+      var suffix = second
+      if let b = dimension(second) {
+        let symbols = MeasurementFormatter()
+        symbols.locale = locale
+        symbols.unitStyle = .short
+        let unitB: Unit = b
+        suffix = symbols.string(from: unitB)
+      }
+      return { (value: Double) -> String in head(value) + "/" + suffix }
+    }
+    throw RuntimeError.error(withMessage: "NumberFormat: the unit '\(unit)' is not available on iOS.")
   }
 
   private static func roundingMode(_ mode: NumberFormatRoundingMode) -> NumberFormatter.RoundingMode {

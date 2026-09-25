@@ -31,6 +31,13 @@ public:
   HybridNitroNumberFormat(ResolvedNumberFormatOptions resolved, std::shared_ptr<HybridNitroPlatformNumberFormatterSpec> platform,
                           numberformat::LocaleFormat format, numberformat::ProbeSymbols symbols, numberformat::TextKind words, bool scientific);
 
+  /// Compact notation: the value is rounded here, the platform only prints it.
+  void setCompactRounding(numberformat::Rounding rounding, std::array<int, 16> exponents, numberformat::NumberFormatCore nonFinite) {
+    compactRounding_ = rounding;
+    compactExponents_ = exponents;
+    nonFinite_ = std::move(nonFinite);
+  }
+
   std::string format(const std::variant<int64_t, double, std::string>& value) override;
   std::vector<NumberFormatPart> formatToParts(const std::variant<int64_t, double, std::string>& value) override;
   ResolvedNumberFormatOptions resolvedOptions() override { return resolved_; }
@@ -50,6 +57,10 @@ private:
   numberformat::ProbeSymbols platformSymbols_;
   numberformat::TextKind words_ = numberformat::TextKind::Literal;
   bool scientific_ = false;
+  std::optional<numberformat::Rounding> compactRounding_;
+  std::array<int, 16> compactExponents_{};
+  /// NaN and infinities in compact notation, which the platform prints badly ("-NaN").
+  std::optional<numberformat::NumberFormatCore> nonFinite_;
 };
 
 class HybridNitroNumberFormatFactory final : public HybridNitroNumberFormatFactorySpec {

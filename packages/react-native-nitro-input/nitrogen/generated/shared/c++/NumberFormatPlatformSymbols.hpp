@@ -47,10 +47,11 @@ namespace margelo::nitro::nitroinput {
     std::string currency     SWIFT_PRIVATE;
     std::string nan     SWIFT_PRIVATE;
     std::string infinity     SWIFT_PRIVATE;
+    std::string exponentSeparator     SWIFT_PRIVATE;
 
   public:
     NumberFormatPlatformSymbols() = default;
-    explicit NumberFormatPlatformSymbols(std::string locale, std::string numberingSystem, std::string minusSign, std::string plusSign, std::string percentSign, std::string currency, std::string nan, std::string infinity): locale(locale), numberingSystem(numberingSystem), minusSign(minusSign), plusSign(plusSign), percentSign(percentSign), currency(currency), nan(nan), infinity(infinity) {}
+    explicit NumberFormatPlatformSymbols(std::string locale, std::string numberingSystem, std::string minusSign, std::string plusSign, std::string percentSign, std::string currency, std::string nan, std::string infinity, std::string exponentSeparator): locale(locale), numberingSystem(numberingSystem), minusSign(minusSign), plusSign(plusSign), percentSign(percentSign), currency(currency), nan(nan), infinity(infinity), exponentSeparator(exponentSeparator) {}
 
   public:
     friend bool operator==(const NumberFormatPlatformSymbols& lhs, const NumberFormatPlatformSymbols& rhs) = default;
@@ -73,7 +74,8 @@ namespace margelo::nitro {
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "percentSign"))),
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "currency"))),
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "nan"))),
-        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "infinity")))
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "infinity"))),
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "exponentSeparator")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::nitroinput::NumberFormatPlatformSymbols& arg) {
@@ -86,6 +88,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "currency"), JSIConverter<std::string>::toJSI(runtime, arg.currency));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "nan"), JSIConverter<std::string>::toJSI(runtime, arg.nan));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "infinity"), JSIConverter<std::string>::toJSI(runtime, arg.infinity));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "exponentSeparator"), JSIConverter<std::string>::toJSI(runtime, arg.exponentSeparator));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -104,6 +107,7 @@ namespace margelo::nitro {
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "currency")))) return false;
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "nan")))) return false;
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "infinity")))) return false;
+      if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "exponentSeparator")))) return false;
       return true;
     }
   };

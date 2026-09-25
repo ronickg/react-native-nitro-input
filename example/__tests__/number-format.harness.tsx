@@ -177,11 +177,18 @@ describe('NumberFormat', () => {
     expect(f.format('1.005')).toBe('$1.01')
   })
 
-  it('returns one shared formatter for the same locales and options', () => {
+  it('is shaped like Intl.NumberFormat', () => {
     const a = new NumberFormat('en-US', { style: 'currency', currency: 'USD' })
-    const b = new NumberFormat('en-US', { style: 'currency', currency: 'USD' })
-    expect(a).toBe(b)
     expect(a instanceof NumberFormat).toBe(true)
+    expect(Object.prototype.toString.call(a)).toBe('[object Intl.NumberFormat]')
+    // Callable without new, and `format` is bound.
+    const b = (NumberFormat as unknown as (l: string) => typeof a)('en-US')
+    expect([1234.5, 2].map(b.format)).toEqual(['1,234.5', '2'])
+    expect(b.formatRange(3, 5)).toBe('3–5')
+    expect(a.formatRange(3, 5)).toBe('$3.00 – $5.00')
+    expect(a.formatRange(2.999, 3.001)).toBe('~$3.00')
+    // Options are coerced as Intl coerces them.
+    expect(new NumberFormat('en-US', { maximumFractionDigits: '1' as unknown as number }).format(1.25)).toBe('1.3')
   })
 
   it('rejects what Intl.NumberFormat rejects', () => {

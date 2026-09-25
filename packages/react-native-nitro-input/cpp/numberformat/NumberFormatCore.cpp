@@ -397,6 +397,8 @@ Decimal roundDecimal(const Decimal& value, const Rounding& r, int& fractionDigit
   return result.value;
 }
 
+int decimalMagnitude(const Decimal& value) { return magnitudeOf(value); }
+
 int currencyDigits(std::string_view code) {
   struct Entry {
     const char* code;
@@ -419,8 +421,8 @@ int currencyDigits(std::string_view code) {
 
 // MARK: - Formatting
 
-NumberFormatCore::NumberFormatCore(LocaleFormat format, Rounding rounding, Grouping grouping, SignDisplay signDisplay)
-    : format_(std::move(format)), rounding_(rounding), grouping_(grouping), signDisplay_(signDisplay) {}
+NumberFormatCore::NumberFormatCore(LocaleFormat format, Rounding rounding, Grouping grouping, SignDisplay signDisplay, Notation notation)
+    : format_(std::move(format)), rounding_(rounding), grouping_(grouping), signDisplay_(signDisplay), notation_(notation) {}
 
 namespace {
 
@@ -490,7 +492,35 @@ std::vector<Part> NumberFormatCore::formatToParts(const Decimal& input) const {
 
   int fractionDigits = 0;
   Decimal rounded = value;
-  if (value.kind == Decimal::Kind::Finite) rounded = roundDecimal(value, rounding_, fractionDigits);
+  int exponent = 0;
+  const bool scientific = notation_ != Notation::Standard;
+  if (value.kind == Decimal::Kind::Finite) {
+    if (scientific && !value.digits.empty()) {
+      // ECMA-402 ComputeExponent: the exponent of the magnitude (a multiple of
+      // three for engineering), again if rounding the mantissa carried (9.99 → 10).
+      auto exponentFor = [&](int magnitude) {
+        if (notation_ == Notation::Scientific) return magnitude;
+        return magnitude >= 0 ? magnitude / 3 * 3 : -((-magnitude + 2) / 3) * 3;
+      };
+      const int magnitude = magnitudeOf(value);
+      exponent = exponentFor(magnitude);
+      Decimal mantissa = value;
+      mantissa.point -= exponent;
+      rounded = roundDecimal(mantissa, rounding_, fractionDigits);
+      if (!rounded.digits.empty() && magnitudeOf(rounded) + exponent > magnitude) {
+        const int carried = exponentFor(magnitudeOf(rounded) + exponent);
+        if (carried != exponent) {
+          exponent = carried;
+          mantissa = value;
+          mantissa.point -= exponent;
+          rounded = roundDecimal(mantissa, rounding_, fractionDigits);
+        }
+      }
+      if (rounded.digits.empty()) exponent = 0;
+    } else {
+      rounded = roundDecimal(value, rounding_, fractionDigits);
+    }
+  }
   const bool isZero = rounded.kind == Decimal::Kind::Finite && rounded.digits.empty();
   const bool negative = value.kind != Decimal::Kind::NaN && value.negative;
 
@@ -550,7 +580,7 @@ std::vector<Part> NumberFormatCore::formatToParts(const Decimal& input) const {
         minimumGrouping = 1;
         break;
     }
-    const bool group = !format_.groupingSeparator.empty() && format_.primaryGroupingSize > 0 && length >= primary + minimumGrouping;
+    const bool group = !scientific && !format_.groupingSeparator.empty() && format_.primaryGroupingSize > 0 && length >= primary + minimumGrouping;
 
     std::string run;
     auto flushRun = [&] {
@@ -576,6 +606,13 @@ std::vector<Part> NumberFormatCore::formatToParts(const Decimal& input) const {
         fraction += format_.digits[static_cast<size_t>(c - '0')];
       }
       parts.push_back({PartType::Fraction, std::move(fraction)});
+    }
+    if (scientific) {
+      parts.push_back({PartType::ExponentSeparator, format_.exponentSeparator});
+      if (exponent < 0) parts.push_back({PartType::ExponentMinusSign, format_.exponentMinusSign});
+      std::string digits;
+      for (char c : std::to_string(exponent < 0 ? -exponent : exponent)) digits += format_.digits[static_cast<size_t>(c - '0')];
+      parts.push_back({PartType::ExponentInteger, std::move(digits)});
     }
   }
 

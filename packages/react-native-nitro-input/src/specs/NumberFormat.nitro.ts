@@ -128,6 +128,8 @@ export interface NumberFormatPlatformSymbols {
   nan: string
   /** The locale's symbol for infinity, without a sign. */
   infinity: string
+  /** The "E" of scientific notation. */
+  exponentSeparator: string
 }
 
 export interface NitroPlatformNumberFormatter extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {

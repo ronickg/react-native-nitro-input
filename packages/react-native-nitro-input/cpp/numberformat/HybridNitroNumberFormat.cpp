@@ -176,6 +176,11 @@ HybridNitroNumberFormat::HybridNitroNumberFormat(ResolvedNumberFormatOptions res
       platformSymbols_(std::move(symbols)), words_(words), scientific_(scientific) {}
 
 std::string HybridNitroNumberFormat::formatWithPlatform(const std::variant<int64_t, double, std::string>& value) {
+  if (compactRounding_) {
+    const Decimal d = toDecimal(value);
+    if (d.kind != Decimal::Kind::Finite && nonFinite_) return nonFinite_->format(d);
+    return platform_->formatDecimal(decimalString(roundCompact(d, *compactRounding_, compactExponents_)));
+  }
   if (std::holds_alternative<double>(value)) return platform_->format(std::get<double>(value));
   return platform_->formatDecimal(decimalString(toDecimal(value)));
 }
@@ -187,6 +192,10 @@ std::string HybridNitroNumberFormat::format(const std::variant<int64_t, double, 
 
 std::vector<NumberFormatPart> HybridNitroNumberFormat::formatToParts(const std::variant<int64_t, double, std::string>& value) {
   if (core_) return toParts(core_->formatToParts(toDecimal(value)));
+  if (compactRounding_ && nonFinite_) {
+    const Decimal d = toDecimal(value);
+    if (d.kind != Decimal::Kind::Finite) return toParts(nonFinite_->formatToParts(d));
+  }
   return toParts(partsOfFormatted(formatWithPlatform(value), platformFormat_, platformSymbols_, words_, scientific_));
 }
 
@@ -195,10 +204,25 @@ std::vector<NumberFormatPart> HybridNitroNumberFormat::formatToParts(const std::
 std::shared_ptr<HybridNitroNumberFormatSpec> HybridNitroNumberFormatFactory::create(const std::vector<std::string>& locales,
                                                                                     const NumberFormatOptions& options) {
   // ECMA-402 InitializeNumberFormat, in its order.
+  // A Unicode `type`: parts of 3-8 letters or digits, lowercased.
+  std::optional<std::string> numberingSystem;
   if (options.numberingSystem) {
-    for (char c : *options.numberingSystem) {
-      if (!isAsciiLetter(c) && !(c >= '0' && c <= '9')) rangeError("Invalid numberingSystem: " + *options.numberingSystem);
+    std::string ns = *options.numberingSystem;
+    size_t part = 0;
+    bool valid = !ns.empty();
+    for (char& c : ns) {
+      if (c == '-') {
+        valid = valid && part >= 3 && part <= 8;
+        part = 0;
+      } else if (isAsciiLetter(c) || (c >= '0' && c <= '9')) {
+        c = static_cast<char>(c >= 'A' && c <= 'Z' ? c + 32 : c);
+        part++;
+      } else {
+        valid = false;
+      }
     }
+    if (!valid || part < 3 || part > 8) rangeError("Invalid numberingSystem: " + *options.numberingSystem);
+    numberingSystem = ns;
   }
   const NumberFormatStyle style = options.style.value_or(NumberFormatStyle::DECIMAL);
   std::optional<std::string> currency;
@@ -327,7 +351,7 @@ std::shared_ptr<HybridNitroNumberFormatSpec> HybridNitroNumberFormatFactory::cre
   const auto signDisplay = options.signDisplay.value_or(NumberFormatSignDisplay::AUTO);
 
   // The same request twice returns the same formatter.
-  const std::string key = join(locales) + "|" + options.numberingSystem.value_or("") + "|" + std::to_string(static_cast<int>(style)) + "|" +
+  const std::string key = join(locales) + "|" + numberingSystem.value_or("") + "|" + std::to_string(static_cast<int>(style)) + "|" +
                           currency.value_or("") + "|" + std::to_string(static_cast<int>(currencyDisplay)) +
                           std::to_string(static_cast<int>(currencySign)) + "|" + options.unit.value_or("") +
                           std::to_string(static_cast<int>(unitDisplay)) + "|" + std::to_string(static_cast<int>(notation)) +
@@ -346,21 +370,21 @@ std::shared_ptr<HybridNitroNumberFormatSpec> HybridNitroNumberFormatFactory::cre
   auto shared = platform();
 
   // What the probes depend on: locales, numbering system, style and currency display.
-  const std::string learnKey = join(locales) + "|" + options.numberingSystem.value_or("") + "|" + std::to_string(static_cast<int>(style)) + "|" +
+  const std::string learnKey = join(locales) + "|" + numberingSystem.value_or("") + "|" + std::to_string(static_cast<int>(style)) + "|" +
                                currency.value_or("") + "|" + std::to_string(static_cast<int>(currencyDisplay)) +
                                std::to_string(static_cast<int>(currencySign));
   auto learned = gLearned.find(learnKey);
   if (learned == gLearned.end()) {
-    const std::string digitsKey = join(locales) + "|" + options.numberingSystem.value_or("");
+    const std::string digitsKey = join(locales) + "|" + numberingSystem.value_or("");
     auto digits = gDigits.find(digitsKey);
     if (digits == gDigits.end()) {
-      auto o = platformOptions(locales, options.numberingSystem);
+      auto o = platformOptions(locales, numberingSystem);
       o.useGrouping = false;
       o.maximumFractionDigits = 0;
       const auto formatter = shared->create(o);
       digits = gDigits.emplace(digitsKey, learnDigits(formatter->format(1234567890))).first;
     }
-    auto o = platformOptions(locales, options.numberingSystem);
+    auto o = platformOptions(locales, numberingSystem);
     // Units and names are drawn by the platform; their structure is a plain decimal's.
     o.style = style == NumberFormatStyle::UNIT ? NumberFormatStyle::DECIMAL : style;
     o.currency = currency;
@@ -376,6 +400,7 @@ std::shared_ptr<HybridNitroNumberFormatSpec> HybridNitroNumberFormatFactory::cre
     symbols.percentSign = s.percentSign;
     symbols.nan = s.nan;
     symbols.infinity = s.infinity;
+    symbols.exponentSeparator = s.exponentSeparator;
     if (style == NumberFormatStyle::CURRENCY) symbols.currency = s.currency;
     const int scale = style == NumberFormatStyle::PERCENT ? 2 : 0;
     Learned l{learnLocaleFormat([&](double v) { return formatter->format(v); }, digits->second, symbols, scale), symbols, s.locale, s.numberingSystem};
@@ -414,12 +439,16 @@ std::shared_ptr<HybridNitroNumberFormatSpec> HybridNitroNumberFormatFactory::cre
   resolved.trailingZeroDisplay = trailingZeroDisplay;
 
   std::shared_ptr<HybridNitroNumberFormat> result;
-  const bool platformDraws = notation != NumberFormatNotation::STANDARD || style == NumberFormatStyle::UNIT ||
+  const bool platformDraws = notation == NumberFormatNotation::COMPACT || style == NumberFormatStyle::UNIT ||
                              (style == NumberFormatStyle::CURRENCY && currencyDisplay == NumberFormatCurrencyDisplay::NAME);
   if (!platformDraws) {
-    result = std::make_shared<HybridNitroNumberFormat>(std::move(resolved), NumberFormatCore(learned->second.format, rounding, grouping, toCore(signDisplay)));
+    const Notation coreNotation = notation == NumberFormatNotation::SCIENTIFIC    ? Notation::Scientific
+                                  : notation == NumberFormatNotation::ENGINEERING ? Notation::Engineering
+                                                                                  : Notation::Standard;
+    result = std::make_shared<HybridNitroNumberFormat>(std::move(resolved),
+                                                       NumberFormatCore(learned->second.format, rounding, grouping, toCore(signDisplay), coreNotation));
   } else {
-    auto o = platformOptions(locales, options.numberingSystem);
+    auto o = platformOptions(locales, numberingSystem);
     o.style = style;
     o.currency = currency;
     o.currencyDisplay = currencyDisplay;
@@ -434,6 +463,11 @@ std::shared_ptr<HybridNitroNumberFormatSpec> HybridNitroNumberFormatFactory::cre
     o.maximumFractionDigits = rounding.useFraction ? rounding.maximumFractionDigits : 20;
     o.minimumSignificantDigits = rounding.useSignificant ? rounding.minimumSignificantDigits : 0;
     o.maximumSignificantDigits = rounding.useSignificant ? rounding.maximumSignificantDigits : 0;
+    if (notation == NumberFormatNotation::COMPACT) {
+      // C++ rounds (roundCompact); the platform prints every digit it is given.
+      o.minimumSignificantDigits = 1;
+      o.maximumSignificantDigits = 21;
+    }
     o.roundingMode = roundingMode;
     o.signDisplay = signDisplay;
     TextKind words = notation == NumberFormatNotation::COMPACT ? TextKind::Compact
@@ -441,8 +475,15 @@ std::shared_ptr<HybridNitroNumberFormatSpec> HybridNitroNumberFormatFactory::cre
                      : style == NumberFormatStyle::CURRENCY && currencyDisplay == NumberFormatCurrencyDisplay::NAME ? TextKind::CurrencyName
                                                                                                                      : TextKind::Literal;
     const bool scientific = notation == NumberFormatNotation::SCIENTIFIC || notation == NumberFormatNotation::ENGINEERING;
-    result = std::make_shared<HybridNitroNumberFormat>(std::move(resolved), shared->create(o), learned->second.format, learned->second.symbols,
-                                                       words, scientific);
+    auto platformFormatter = shared->create(o);
+    ProbeSymbols partSymbols = learned->second.symbols;
+    if (style == NumberFormatStyle::UNIT) partSymbols.percentSign.clear(); // `unit: 'percent'` prints its "%" as the unit
+    result = std::make_shared<HybridNitroNumberFormat>(std::move(resolved), platformFormatter, learned->second.format, partSymbols, words,
+                                                       scientific);
+    if (notation == NumberFormatNotation::COMPACT) {
+      result->setCompactRounding(rounding, learnCompactExponents([&](double v) { return platformFormatter->format(v); }, learned->second.format),
+                                 NumberFormatCore(learned->second.format, rounding, grouping, toCore(signDisplay)));
+    }
   }
   if (gFormatters.size() >= kMaxFormatters) gFormatters.clear();
   gFormatters.emplace(key, result);

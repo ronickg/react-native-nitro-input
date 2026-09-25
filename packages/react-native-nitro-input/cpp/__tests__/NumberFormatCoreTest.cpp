@@ -280,6 +280,24 @@ int main() {
     CHECK_EQ_STR(fmt(pct, fraction(0, 0), -0.5), "-50%");
   }
 
+  // Scientific and engineering notation (test262's expectations, en-US).
+  {
+    auto sci = [&](Notation n, double v) { return NumberFormatCore(plain, decimal, Grouping::Auto, SignDisplay::Auto, n).format(Decimal::fromDouble(v)); };
+    const std::pair<double, std::pair<const char*, const char*>> cases[] = {
+        {0.000345, {"345E-6", "3.45E-4"}}, {0.345, {"345E-3", "3.45E-1"}}, {3.45, {"3.45E0", "3.45E0"}},  {34.5, {"34.5E0", "3.45E1"}},
+        {543, {"543E0", "5.43E2"}},        {5430, {"5.43E3", "5.43E3"}},   {543000, {"543E3", "5.43E5"}}, {543211.1, {"543.211E3", "5.432E5"}},
+        {-0.000345, {"-345E-6", "-3.45E-4"}}, {0, {"0E0", "0E0"}},         {999.9999, {"1E3", "1E3"}},
+    };
+    for (const auto& [v, expected] : cases) {
+      CHECK_EQ_STR(sci(Notation::Engineering, v), expected.first);
+      CHECK_EQ_STR(sci(Notation::Scientific, v), expected.second);
+    }
+    CHECK_EQ_STR(sci(Notation::Scientific, INFINITY), "\u221E");
+    std::string out;
+    for (const auto& p : NumberFormatCore(plain, decimal, Grouping::Auto, SignDisplay::Auto, Notation::Scientific).formatToParts(Decimal::fromDouble(-0.000345))) out += std::string(partTypeName(p.type)) + ":" + p.value + " ";
+    CHECK_EQ_STR(out, "minusSign:- integer:3 decimal:. fraction:45 exponentSeparator:E exponentMinusSign:- exponentInteger:4 ");
+  }
+
   // Parts.
   CHECK_EQ_STR(parts(usd, cents, -1234.5), "minusSign:- currency:$ integer:1 group:, integer:234 decimal:. fraction:50 ");
   CHECK_EQ_STR(parts(deDE(" €", "€"), cents, 5), "integer:5 decimal:, fraction:00 literal:  currency:€ ");

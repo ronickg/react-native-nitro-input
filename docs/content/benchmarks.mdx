@@ -49,7 +49,7 @@ Per call on the JS thread, against Hermes' `Intl.NumberFormat`, six locale and c
 
 | | iPhone 11 Pro, Hermes | iPhone 11 Pro, `NumberFormat` | Galaxy A22, Hermes | Galaxy A22, `NumberFormat` |
 | --- | --- | --- | --- | --- |
-| Building a formatter | 44 µs | 3.3 µs | 3,476 µs | 9.3 µs |
-| `format()` | 1.6 µs | 1.0 µs | 10.5 µs | 2.7 µs |
-| `formatToParts()` | not implemented | 2.8 µs | 99 µs | 7.6 µs |
-| A formatter per call (`toLocaleString`) | 90 µs | 4.0 µs | 1,983 µs | 11 µs |
+| Building a formatter | 42 µs | 4.9 µs | 3,319 µs | 9.2 µs |
+| `format()` | 1.6 µs | 1.2 µs | 10.0 µs | 2.8 µs |
+| `formatToParts()` | not implemented | 3.4 µs | 93 µs | 7.6 µs |
+| A formatter per call (`toLocaleString`) | 85 µs | 6.2 µs | 2,035 µs | 11 µs |

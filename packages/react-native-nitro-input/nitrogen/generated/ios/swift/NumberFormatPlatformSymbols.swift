@@ -18,8 +18,8 @@ public extension NumberFormatPlatformSymbols {
   /**
    * Create a new instance of `NumberFormatPlatformSymbols`.
    */
-  init(locale: String, numberingSystem: String, minusSign: String, plusSign: String, percentSign: String, currency: String, nan: String, infinity: String) {
-    self.init(std.string(locale), std.string(numberingSystem), std.string(minusSign), std.string(plusSign), std.string(percentSign), std.string(currency), std.string(nan), std.string(infinity))
+  init(locale: String, numberingSystem: String, minusSign: String, plusSign: String, percentSign: String, currency: String, nan: String, infinity: String, exponentSeparator: String) {
+    self.init(std.string(locale), std.string(numberingSystem), std.string(minusSign), std.string(plusSign), std.string(percentSign), std.string(currency), std.string(nan), std.string(infinity), std.string(exponentSeparator))
   }
 
   @inline(__always)
@@ -60,5 +60,10 @@ public extension NumberFormatPlatformSymbols {
   @inline(__always)
   var infinity: String {
     return String(self.__infinity)
+  }
+  
+  @inline(__always)
+  var exponentSeparator: String {
+    return String(self.__exponentSeparator)
   }
 }

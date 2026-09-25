@@ -62,3 +62,5 @@ bench/android/local.properties
 bench/ios/build-device/
 bench/ios/build-sim/
 scripts/bench/results/local/
+scripts/test262/.cache/
+example/__tests__/test262/*.generated.js

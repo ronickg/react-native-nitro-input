@@ -180,7 +180,7 @@ Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inp
 
 ## NumberFormat
 
-`NumberFormat` is `Intl.NumberFormat`, formatted natively. It learns a locale's format once from the platform's own formatter (Foundation on iOS, ICU on Android, the data Hermes' `Intl` uses too) and formats every number after that in C++, so the output matches Hermes' `Intl` while building a formatter and formatting stop costing milliseconds. It also brings what Hermes leaves out on iOS: `formatToParts`, `signDisplay`, rounding modes and increments, and ECMA-402's rounding of ties (`1.005` → `1.01`).
+`NumberFormat` is `Intl.NumberFormat`, formatted natively. It learns a locale's format once from the platform's own formatter (Foundation on iOS, ICU on Android, the data Hermes' `Intl` uses too) and formats every number after that in C++, so the output matches Hermes' `Intl` while building a formatter and formatting stop costing milliseconds. It also brings what Hermes leaves out on iOS: `formatToParts`, `formatRange`, `signDisplay`, engineering notation, rounding modes and increments, and ECMA-402's rounding of ties (`1.005` → `1.01`). Against test262's `intl402/NumberFormat` suite it passes 242 of 251 tests on iOS and 244 on Android, where Hermes' own `Intl` passes 121 and 101.
 
 ```ts
 import { NumberFormat } from 'react-native-nitro-input'
@@ -194,10 +194,10 @@ Per call, Release builds, against Hermes' `Intl.NumberFormat`:
 
 | | iPhone 11 Pro | Galaxy A22 |
 | --- | --- | --- |
-| Building a formatter | 3.3 µs (Hermes 44 µs) | 9.3 µs (Hermes 3.5 ms) |
-| `format()` | 1.0 µs (Hermes 1.6 µs) | 2.7 µs (Hermes 10.5 µs) |
-| `formatToParts()` | 2.8 µs (Hermes: not implemented) | 7.6 µs (Hermes 99 µs) |
-| A formatter per call (`toLocaleString`) | 4.0 µs (Hermes 90 µs) | 11 µs (Hermes 2.0 ms) |
+| Building a formatter | 4.9 µs (Hermes 42 µs) | 9.2 µs (Hermes 3.3 ms) |
+| `format()` | 1.2 µs (Hermes 1.6 µs) | 2.8 µs (Hermes 10.0 µs) |
+| `formatToParts()` | 3.4 µs (Hermes: not implemented) | 7.6 µs (Hermes 93 µs) |
+| A formatter per call (`toLocaleString`) | 6.2 µs (Hermes 85 µs) | 11 µs (Hermes 2.0 ms) |
 
 [Guide →](https://ronickg.github.io/react-native-nitro-input/docs/number-format)
 

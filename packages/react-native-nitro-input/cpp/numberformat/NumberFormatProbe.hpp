@@ -28,6 +28,7 @@ struct ProbeSymbols {
   std::string currency;
   std::string nan = "NaN";
   std::string infinity = "\u221E";
+  std::string exponentSeparator = "E";
 };
 
 /// Formats a number with the platform formatter being probed.
@@ -46,6 +47,15 @@ LocaleFormat learnLocaleFormat(const ProbeFormat& format, const std::array<std::
 enum class TextKind { Literal, Compact, Unit, CurrencyName };
 std::vector<Part> partsOfFormatted(const std::string& text, const LocaleFormat& format, const ProbeSymbols& symbols, TextKind words,
                                    bool scientific);
+
+/// Compact notation: for each magnitude 0…15, the power of ten the platform
+/// divides by ("1K" for 10^3 → 3, "1万" for 10^4 → 4, "1000" → 0), read off its
+/// formatting of 10^magnitude.
+std::array<int, 16> learnCompactExponents(const ProbeFormat& format, const LocaleFormat& locale);
+
+/// A value rounded the way ECMA-402 rounds a compact number (the digit options
+/// applied to the value divided by its compact power of ten), still undivided.
+Decimal roundCompact(const Decimal& value, const Rounding& rounding, const std::array<int, 16>& exponents);
 
 /// Splits UTF-8 into code points (as strings); invalid bytes stand alone.
 std::vector<std::string> codePoints(const std::string& text);

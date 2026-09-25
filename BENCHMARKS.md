@@ -894,44 +894,13 @@ fr-FR decimal) and a fixed set of 512 amounts. Each row is the median of
 seven 120 ms batches, three runs; *first call* is the scenario's first call
 in a fresh process. `--plan format` runs it.
 
-Building an `Intl.NumberFormat` is Hermes' expensive step: 44 µs on the
-iPhone 11 Pro and 3.5 ms on the Galaxy A22, where every call also crosses
-JNI into ICU. `NumberFormat` asks the platform once per locale and currency
-and hands out cached, immutable formatters after that (3.3 µs and 9.3 µs,
-most of it reading the options object), and formats in C++: 1.0 µs and
-2.7 µs against Hermes' 1.6 µs and 10.5 µs. Hermes has no `formatToParts` on
-iOS.
-
-### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
-
-#### building a formatter
-
-| Implementation | µs per call | fastest batch | slowest batch | first call ms | runs |
-| --- | --- | --- | --- | --- | --- |
-| Intl.NumberFormat (Hermes) | 44.25 | 43.86 | 62.88 | 0.5 | 3 |
-| **NumberFormat (native)** | 3.32 | 3.32 | 4.55 | 0.1 | 3 |
-
-#### format() with a built formatter
-
-| Implementation | µs per call | fastest batch | slowest batch | first call ms | runs |
-| --- | --- | --- | --- | --- | --- |
-| Intl.NumberFormat (Hermes) | 1.61 | 1.60 | 2.14 | 1.6 | 3 |
-| **NumberFormat (native)** | 1.02 | 1.01 | 1.38 | 0.2 | 3 |
-
-#### formatToParts() with a built formatter
-
-| Implementation | µs per call | fastest batch | slowest batch | first call ms | runs |
-| --- | --- | --- | --- | --- | --- |
-| Intl.NumberFormat (Hermes) | failed: formatToParts is not implemented | | | | |
-| **NumberFormat (native)** | 2.78 | 2.78 | 3.77 | 0.2 | 3 |
-
-#### toLocaleString(), a formatter per call
-
-| Implementation | µs per call | fastest batch | slowest batch | first call ms | runs |
-| --- | --- | --- | --- | --- | --- |
-| Intl.NumberFormat (Hermes) | 90.32 | 90.16 | 126 | 0.9 | 3 |
-| **NumberFormat (native)** | 3.96 | 3.96 | 5.50 | 0.1 | 3 |
-
+Building an `Intl.NumberFormat` is Hermes' expensive step: 42 µs on the
+iPhone 11 Pro and 3.3 ms on the Galaxy A22, where every call also crosses
+JNI into ICU. `NumberFormat` reads its options in JavaScript the way
+ECMA-402 specifies, asks the platform once per locale and currency, and
+reuses the native formatter after that (4.9 µs and 9.2 µs), and formats in
+C++: 1.2 µs and 2.8 µs against Hermes' 1.6 µs and 10.0 µs. Hermes has no
+`formatToParts` on iOS.
 
 ### Samsung Galaxy A22 (SM-A225F, Android 13 (API 33), 90 Hz)
 
@@ -939,29 +908,60 @@ iOS.
 
 | Implementation | µs per call | fastest batch | slowest batch | first call ms | runs |
 | --- | --- | --- | --- | --- | --- |
-| Intl.NumberFormat (Hermes) | 3476 | 2528 | 5168 | 6.2 | 3 |
-| **NumberFormat (native)** | 9.27 | 9.11 | 12.66 | 0.1 | 3 |
+| Intl.NumberFormat (Hermes) | 3319 | 2836 | 4484 | 6.6 | 3 |
+| **NumberFormat (native)** | 9.21 | 9.04 | 11.22 | 0.1 | 3 |
 
 #### format() with a built formatter
 
 | Implementation | µs per call | fastest batch | slowest batch | first call ms | runs |
 | --- | --- | --- | --- | --- | --- |
-| Intl.NumberFormat (Hermes) | 10.46 | 10.15 | 11.66 | 13.3 | 3 |
-| **NumberFormat (native)** | 2.73 | 2.70 | 3.19 | 0.2 | 3 |
+| Intl.NumberFormat (Hermes) | 9.95 | 9.67 | 11.33 | 20.2 | 3 |
+| **NumberFormat (native)** | 2.79 | 2.76 | 3.36 | 0.2 | 3 |
 
 #### formatToParts() with a built formatter
 
 | Implementation | µs per call | fastest batch | slowest batch | first call ms | runs |
 | --- | --- | --- | --- | --- | --- |
-| Intl.NumberFormat (Hermes) | 99.22 | 90.37 | 117 | 15.1 | 3 |
-| **NumberFormat (native)** | 7.60 | 7.48 | 8.98 | 0.2 | 3 |
+| Intl.NumberFormat (Hermes) | 93.34 | 89.17 | 104 | 18.5 | 3 |
+| **NumberFormat (native)** | 7.62 | 7.55 | 8.81 | 0.2 | 3 |
 
 #### toLocaleString(), a formatter per call
 
 | Implementation | µs per call | fastest batch | slowest batch | first call ms | runs |
 | --- | --- | --- | --- | --- | --- |
-| Intl.NumberFormat (Hermes) | 1983 | 1911 | 2684 | 2.9 | 3 |
-| **NumberFormat (native)** | 11.13 | 11.02 | 11.91 | 0.1 | 3 |
+| Intl.NumberFormat (Hermes) | 2035 | 1920 | 2814 | 5.1 | 3 |
+| **NumberFormat (native)** | 11.22 | 11.10 | 14.83 | 0.2 | 3 |
+
+
+### iPhone 11 Pro (iPhone12,3, iOS 26.6.1, 60 Hz)
+
+#### building a formatter
+
+| Implementation | µs per call | fastest batch | slowest batch | first call ms | runs |
+| --- | --- | --- | --- | --- | --- |
+| Intl.NumberFormat (Hermes) | 41.99 | 40.85 | 59.91 | 0.5 | 3 |
+| **NumberFormat (native)** | 4.85 | 4.83 | 6.69 | 0.1 | 3 |
+
+#### format() with a built formatter
+
+| Implementation | µs per call | fastest batch | slowest batch | first call ms | runs |
+| --- | --- | --- | --- | --- | --- |
+| Intl.NumberFormat (Hermes) | 1.60 | 1.60 | 2.17 | 1.4 | 3 |
+| **NumberFormat (native)** | 1.23 | 1.23 | 1.68 | 0.2 | 3 |
+
+#### formatToParts() with a built formatter
+
+| Implementation | µs per call | fastest batch | slowest batch | first call ms | runs |
+| --- | --- | --- | --- | --- | --- |
+| Intl.NumberFormat (Hermes) | failed: formatToParts is not implemented | | | | |
+| **NumberFormat (native)** | 3.40 | 3.39 | 4.61 | 0.2 | 3 |
+
+#### toLocaleString(), a formatter per call
+
+| Implementation | µs per call | fastest batch | slowest batch | first call ms | runs |
+| --- | --- | --- | --- | --- | --- |
+| Intl.NumberFormat (Hermes) | 85.45 | 85.30 | 120 | 0.8 | 3 |
+| **NumberFormat (native)** | 6.19 | 6.18 | 8.75 | 0.2 | 3 |
 
 ## Earlier measurements
 

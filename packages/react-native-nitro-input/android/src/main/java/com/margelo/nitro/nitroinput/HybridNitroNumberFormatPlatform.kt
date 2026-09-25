@@ -46,6 +46,11 @@ internal object NumberFormatLocales {
     }
     val numberingSystem = locale.getKeywordValue("numbers")
     var tag = locale.toLanguageTag().substringBefore("-u-").substringBefore("-x-")
+    // ICU lists some locales with their script only ("zh-Hant-TW" for zh-TW): try the likely form too.
+    if (!available.contains(tag)) {
+      val likely = ULocale.addLikelySubtags(ULocale.forLanguageTag(tag)).toLanguageTag()
+      if (available.contains(likely)) return Match(tag, ULocale.forLanguageTag(likely), numberingSystem)
+    }
     while (tag.isNotEmpty() && tag != "und") {
       if (available.contains(tag)) return Match(tag, ULocale.forLanguageTag(tag), numberingSystem)
       tag = tag.substringBeforeLast('-', "")
@@ -64,6 +69,8 @@ class HybridNitroPlatformNumberFormatter(o: NumberFormatPlatformOptions) : Hybri
   private val format: NumberFormat
   private val unit: MeasureUnit?
   private val measureFormat: MeasureFormat?
+  /** `unit: 'percent'`, which MeasureFormat prints without its sign: a percent formatter that does not multiply. */
+  private val percentUnit: NumberFormat?
   override val symbols: NumberFormatPlatformSymbols
 
   init {
@@ -134,9 +141,28 @@ class HybridNitroPlatformNumberFormatter(o: NumberFormatPlatformOptions) : Hybri
       }
     }
 
-    if (o.style == NumberFormatStyle.UNIT) {
+    if (o.style == NumberFormatStyle.UNIT && o.unit == "percent") {
+      percentUnit = (NumberFormat.getInstance(locale, NumberFormat.PERCENTSTYLE) as DecimalFormat).also { p ->
+        p.multiplier = 1
+        p.isGroupingUsed = format.isGroupingUsed
+        p.minimumIntegerDigits = format.minimumIntegerDigits
+        p.minimumFractionDigits = format.minimumFractionDigits
+        p.maximumFractionDigits = format.maximumFractionDigits
+        p.roundingMode = format.roundingMode
+        if (decimal != null && decimal.areSignificantDigitsUsed()) {
+          p.setSignificantDigitsUsed(true)
+          p.minimumSignificantDigits = decimal.minimumSignificantDigits
+          p.maximumSignificantDigits = decimal.maximumSignificantDigits
+        }
+      }
+    } else {
+      percentUnit = null
+    }
+    if (o.style == NumberFormatStyle.UNIT && percentUnit == null) {
       val id = o.unit ?: throw IllegalArgumentException("NumberFormat: a unit is required with style 'unit'.")
       unit = MeasureUnit.getAvailable().firstOrNull { it.subtype == id }
+        // A compound unit ("acre-per-day") is built from its identifier (Android 11+).
+        ?: (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) try { MeasureUnit.forIdentifier(id) } catch (e: Exception) { null } else null)
         ?: throw IllegalArgumentException("NumberFormat: unknown unit '$id'.")
       val width = when (o.unitDisplay) {
         NumberFormatUnitDisplay.LONG -> MeasureFormat.FormatWidth.WIDE
@@ -160,11 +186,13 @@ class HybridNitroPlatformNumberFormatter(o: NumberFormatPlatformOptions) : Hybri
       currency = currencyShown,
       nan = dfs.naN,
       infinity = dfs.infinity,
+      exponentSeparator = dfs.exponentSeparator,
     )
   }
 
   @Synchronized
   override fun format(value: Double): String {
+    percentUnit?.let { return it.format(value) }
     val measure = measureFormat
     return if (measure != null) measure.format(Measure(value, unit)) else format.format(value)
   }
@@ -174,6 +202,7 @@ class HybridNitroPlatformNumberFormatter(o: NumberFormatPlatformOptions) : Hybri
     if (value == "NaN") return format(Double.NaN)
     if (value.endsWith("Infinity")) return format(if (value.startsWith("-")) Double.NEGATIVE_INFINITY else Double.POSITIVE_INFINITY)
     val number = BigDecimal(value)
+    percentUnit?.let { return it.format(number) }
     val measure = measureFormat
     return if (measure != null) measure.format(Measure(number, unit)) else format.format(number)
   }

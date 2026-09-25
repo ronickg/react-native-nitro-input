@@ -119,6 +119,40 @@ int main() {
     CHECK_EQ_STR(fmt(f, 0, 3, -1234.5), "؜-١٬٢٣٤٫٥");
   }
 
+  // Compact notation: the powers of ten from the platform, the rounding from ECMA-402 (test262's en-US and ja-JP).
+  {
+    LocaleFormat f;
+    const auto en = learnCompactExponents([](double v) {
+      const char* out[] = {"1", "10", "100", "1K", "10K", "100K", "1M", "10M", "100M", "1B", "10B", "100B", "1T", "10T", "100T", "1000T"};
+      return std::string(out[static_cast<int>(std::lround(std::log10(v)))]);
+    }, f);
+    Rounding r; // compact's default: morePrecision of 0 fraction digits and 2 significant digits
+    r.minimumFractionDigits = 0;
+    r.maximumFractionDigits = 0;
+    r.useSignificant = true;
+    r.minimumSignificantDigits = 1;
+    r.maximumSignificantDigits = 2;
+    r.priority = RoundingPriority::MorePrecision;
+    auto compact = [&](const std::array<int, 16>& e, double v) {
+      Decimal d = roundCompact(Decimal::fromDouble(v), r, e);
+      std::string s = d.digits;
+      return s + "@" + std::to_string(d.point);
+    };
+    CHECK_EQ_STR(compact(en, 987654321), "988@9");
+    CHECK_EQ_STR(compact(en, 98765), "99@5");
+    CHECK_EQ_STR(compact(en, 9876), "99@4");
+    CHECK_EQ_STR(compact(en, 159), "159@3");
+    CHECK_EQ_STR(compact(en, 15.9), "16@2");
+    CHECK_EQ_STR(compact(en, 0.00159), "16@-2");
+    CHECK_EQ_STR(compact(en, 999999), "1@7");
+    const auto ja = learnCompactExponents([](double v) {
+      const char* out[] = {"1", "10", "100", "1000", "1万", "10万", "100万", "1000万", "1億", "10億", "100億", "1000億", "1兆", "10兆", "100兆", "1000兆"};
+      return std::string(out[static_cast<int>(std::lround(std::log10(v)))]);
+    }, f);
+    CHECK_EQ_STR(compact(ja, 98765432), "9877@8");
+    CHECK_EQ_STR(compact(ja, 9876), "9876@4");
+  }
+
   // Parts of platform output (compact notation).
   {
     ProbeSymbols s;

@@ -47,6 +47,8 @@ namespace margelo::nitro::nitroinput {
       jni::local_ref<jni::JString> nan = this->getFieldValue(fieldNan);
       static const auto fieldInfinity = clazz->getField<jni::JString>("infinity");
       jni::local_ref<jni::JString> infinity = this->getFieldValue(fieldInfinity);
+      static const auto fieldExponentSeparator = clazz->getField<jni::JString>("exponentSeparator");
+      jni::local_ref<jni::JString> exponentSeparator = this->getFieldValue(fieldExponentSeparator);
       return NumberFormatPlatformSymbols(
         locale->toStdString(),
         numberingSystem->toStdString(),
@@ -55,7 +57,8 @@ namespace margelo::nitro::nitroinput {
         percentSign->toStdString(),
         currency->toStdString(),
         nan->toStdString(),
-        infinity->toStdString()
+        infinity->toStdString(),
+        exponentSeparator->toStdString()
       );
     }
 
@@ -65,7 +68,7 @@ namespace margelo::nitro::nitroinput {
      */
     [[maybe_unused]]
     static jni::local_ref<JNumberFormatPlatformSymbols::javaobject> fromCpp(const NumberFormatPlatformSymbols& value) {
-      using JSignature = JNumberFormatPlatformSymbols(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>);
+      using JSignature = JNumberFormatPlatformSymbols(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
@@ -77,7 +80,8 @@ namespace margelo::nitro::nitroinput {
         jni::make_jstring(value.percentSign),
         jni::make_jstring(value.currency),
         jni::make_jstring(value.nan),
-        jni::make_jstring(value.infinity)
+        jni::make_jstring(value.infinity),
+        jni::make_jstring(value.exponentSeparator)
       );
     }
   };

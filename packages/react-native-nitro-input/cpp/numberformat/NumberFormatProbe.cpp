@@ -5,6 +5,7 @@
 
 #include "NumberFormatProbe.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 
@@ -174,7 +175,54 @@ LocaleFormat learnLocaleFormat(const ProbeFormat& format, const std::array<std::
     if (!sign.empty() && infinity.size() > sign.size() && infinity.compare(0, sign.size(), sign) == 0) infinity.erase(0, sign.size());
   }
   if (!infinity.empty()) out.infinity = infinity;
+  if (!symbols.exponentSeparator.empty()) out.exponentSeparator = symbols.exponentSeparator;
+  // The exponent's minus sign is the bare sign, without the direction marks around it.
+  std::string exponentMinus = symbols.minusSign;
+  for (const auto& mark : {std::string("\u200E"), std::string("\u200F"), std::string("\u061C")}) {
+    for (size_t at; (at = exponentMinus.find(mark)) != std::string::npos;) exponentMinus.erase(at, mark.size());
+  }
+  if (!exponentMinus.empty()) out.exponentMinusSign = exponentMinus;
   return out;
+}
+
+std::array<int, 16> learnCompactExponents(const ProbeFormat& format, const LocaleFormat& locale) {
+  std::array<int, 16> exponents{};
+  for (int k = 0; k < 16; k++) {
+    // Digits before the decimal separator in the platform's "1K", "10K", "100K"…
+    int integerDigits = 0;
+    const std::string decimal = locale.decimalSeparator;
+    std::string text = format(std::pow(10.0, k));
+    const size_t at = decimal.empty() ? std::string::npos : text.find(decimal);
+    if (at != std::string::npos) text.erase(at);
+    for (const auto& cp : codePoints(text)) {
+      if (digitValue(cp, locale.digits) >= 0) integerDigits++;
+    }
+    exponents[static_cast<size_t>(k)] = integerDigits > 0 ? std::max(0, k - (integerDigits - 1)) : (k > 0 ? exponents[static_cast<size_t>(k - 1)] : 0);
+  }
+  return exponents;
+}
+
+Decimal roundCompact(const Decimal& value, const Rounding& rounding, const std::array<int, 16>& exponents) {
+  if (value.kind != Decimal::Kind::Finite || value.digits.empty()) return value;
+  auto exponentFor = [&](int magnitude) { return exponents[static_cast<size_t>(std::clamp(magnitude, 0, 15))]; };
+  const int magnitude = decimalMagnitude(value);
+  int exponent = exponentFor(magnitude);
+  int fractionDigits = 0;
+  Decimal scaled = value;
+  scaled.point -= exponent;
+  Decimal rounded = roundDecimal(scaled, rounding, fractionDigits);
+  // Rounding up can reach the next compact magnitude (999.9K → 1M).
+  if (!rounded.digits.empty() && decimalMagnitude(rounded) + exponent > magnitude) {
+    const int carried = exponentFor(decimalMagnitude(rounded) + exponent);
+    if (carried != exponent) {
+      exponent = carried;
+      scaled = value;
+      scaled.point -= exponent;
+      rounded = roundDecimal(scaled, rounding, fractionDigits);
+    }
+  }
+  if (!rounded.digits.empty()) rounded.point += exponent;
+  return rounded;
 }
 
 std::vector<Part> partsOfFormatted(const std::string& text, const LocaleFormat& format, const ProbeSymbols& symbols, TextKind words,

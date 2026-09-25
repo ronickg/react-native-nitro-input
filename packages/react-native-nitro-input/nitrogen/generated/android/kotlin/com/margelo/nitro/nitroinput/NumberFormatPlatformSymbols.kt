@@ -41,7 +41,10 @@ data class NumberFormatPlatformSymbols(
   val nan: String,
   @DoNotStrip
   @Keep
-  val infinity: String
+  val infinity: String,
+  @DoNotStrip
+  @Keep
+  val exponentSeparator: String
 ) {
   /* primary constructor */
 
@@ -56,6 +59,7 @@ data class NumberFormatPlatformSymbols(
       && Objects.deepEquals(this.currency, other.currency)
       && Objects.deepEquals(this.nan, other.nan)
       && Objects.deepEquals(this.infinity, other.infinity)
+      && Objects.deepEquals(this.exponentSeparator, other.exponentSeparator)
   }
 
   override fun hashCode(): Int {
@@ -67,7 +71,8 @@ data class NumberFormatPlatformSymbols(
       percentSign,
       currency,
       nan,
-      infinity
+      infinity,
+      exponentSeparator
     ).contentDeepHashCode()
   }
 
@@ -79,8 +84,8 @@ data class NumberFormatPlatformSymbols(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(locale: String, numberingSystem: String, minusSign: String, plusSign: String, percentSign: String, currency: String, nan: String, infinity: String): NumberFormatPlatformSymbols {
-      return NumberFormatPlatformSymbols(locale, numberingSystem, minusSign, plusSign, percentSign, currency, nan, infinity)
+    private fun fromCpp(locale: String, numberingSystem: String, minusSign: String, plusSign: String, percentSign: String, currency: String, nan: String, infinity: String, exponentSeparator: String): NumberFormatPlatformSymbols {
+      return NumberFormatPlatformSymbols(locale, numberingSystem, minusSign, plusSign, percentSign, currency, nan, infinity, exponentSeparator)
     }
   }
 }

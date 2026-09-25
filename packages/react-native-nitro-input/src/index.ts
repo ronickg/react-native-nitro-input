@@ -68,7 +68,7 @@ export type {
   NitroNumberView,
 } from './specs/NitroNumber.nitro'
 
-export { NumberFormat, type NumberFormatConstructor } from './NumberFormat'
+export { NumberFormat, type NumberFormatConstructor, type NumberFormatRangePart } from './NumberFormat'
 export type {
   NumberFormatOptions,
   NumberFormatPart,
