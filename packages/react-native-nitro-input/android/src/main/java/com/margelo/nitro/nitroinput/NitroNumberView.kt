@@ -60,6 +60,8 @@ private const val TEXT_SUFFIX = 1
 private const val TEXT_GROUPING = 2
 private const val TEXT_DECIMAL = 3
 private const val TEXT_SLOTS = 4
+/** Doubles per wheel in the engine's frame buffer (`RollingEngine.frameInto`). */
+private const val WHEEL_FIELDS = 14
 
 class NitroNumberView(context: Context) : View(context) {
 
@@ -626,6 +628,7 @@ class NitroNumberView(context: Context) : View(context) {
     var focus: Double = 1.0,
     var grow: Double = 1.0,
     var blurOut: Double = 1.0,
+    var progress: Double = 1.0,
   )
 
   private val engine = RollingEngine()
@@ -732,6 +735,7 @@ class NitroNumberView(context: Context) : View(context) {
     shimmer = Shimmer()
     alignment = Alignment.AUTO
     revealMilestones = DoubleArray(0)
+    cellWidths.clear()
     // onIntrinsicSizeChange, onRevealEnd and onRevealMilestone are the hybrid's
     // wiring, not the element's props: they stay across recycling (the hybrid
     // clears its own callback props).
@@ -858,7 +862,7 @@ class NitroNumberView(context: Context) : View(context) {
   }
 
   /** Reused per frame so the JNI hop never allocates (room for far more wheels than the engine's 18), then the text slots. */
-  private val frameBuffer = DoubleArray(4 + 13 * 32 + 4 * TEXT_SLOTS + 2)
+  private val frameBuffer = DoubleArray(4 + WHEEL_FIELDS * 32 + 4 * TEXT_SLOTS + 2)
 
   // The decimal columns laid out now (more than the format's while dropped
   // ones close) and the decimal separator's factor.
@@ -884,7 +888,7 @@ class NitroNumberView(context: Context) : View(context) {
     while (wheels.size < count) wheels.add(Wheel())
     while (wheels.size > count) wheels.removeAt(wheels.size - 1)
     for (i in 0 until count) {
-      val base = 4 + i * 13
+      val base = 4 + i * WHEEL_FIELDS
       val w = wheels[i]
       w.position = f[base]
       w.width = f[base + 1]
@@ -899,8 +903,9 @@ class NitroNumberView(context: Context) : View(context) {
       w.focus = f[base + 10]
       w.grow = f[base + 11]
       w.blurOut = f[base + 12]
+      w.progress = f[base + 13]
     }
-    val text = 4 + count * 13
+    val text = 4 + count * WHEEL_FIELDS
     for (slot in 0 until TEXT_SLOTS) {
       textGrow[slot] = f[text + slot * 4]
       textFocus[slot] = f[text + slot * 4 + 1]
@@ -918,6 +923,7 @@ class NitroNumberView(context: Context) : View(context) {
 
   private fun rebuildFonts() {
     fonts = FontSet(typography)
+    cellWidths.clear()
     warmSwapMasks()
     fontScale = 1f
     if (engine.hasShownValue()) reportIntrinsicSize()
@@ -1096,30 +1102,45 @@ class NitroNumberView(context: Context) : View(context) {
   private fun digitAdvance(wheel: Wheel, power: Int, fonts: FontSet, target: Boolean): Float {
     if (!fonts.proportional) return fonts.digitWidth
     val widths = fonts.digitWidths
-    if (target) return widths[engine.targetDigit(power).coerceIn(0, 9)]
-    // A blank slot (an emerging wheel) takes the width of the digit it turns into.
-    fun width(glyph: Int, other: Int): Float = when {
-      glyph >= 0 -> widths[glyph % 10]
-      other >= 0 -> widths[other % 10]
-      else -> widths[0]
+    val digit = engine.targetDigit(power).coerceIn(0, 9)
+    val goal = widths[digit]
+    if (target) return goal
+    // The width eases once, from where the column was to its target digit's,
+    // on the wheel's own progress: following the digits it rolled past made
+    // every column pulse as a narrow 1 went by.
+    var cell = cellWidths[power]
+    if (cell == null) {
+      cell = CellWidth()
+      cellWidths[power] = cell
+      cell.progress = 1.0
+      cell.digit = -1
     }
-    val from: Int
-    val to: Int
-    val t: Float
-    if (wheel.blend < 1.0) {
-      from = wheel.fromGlyph.toInt()
-      to = wheel.toGlyph.toInt()
-      t = wheel.blend.toFloat().coerceIn(0f, 1f)
+    if (cell.digit != digit || wheel.progress < cell.progress) {
+      // Interrupted mid-change, it carries on from what it showed; from rest,
+      // from the digit the wheel is leaving.
+      cell.from = if (cell.digit >= 0 && cell.progress < 1.0) cell.shown else restingWidth(wheel, widths, goal)
+      cell.digit = digit
+    }
+    cell.progress = wheel.progress
+    cell.shown = cell.from + (goal - cell.from) * wheel.progress.toFloat().coerceIn(0f, 1f)
+    return cell.shown
+  }
+
+  /** The width of the digit a wheel shows at the start of a change (blank takes the target's). */
+  private fun restingWidth(wheel: Wheel, widths: FloatArray, goal: Float): Float {
+    val glyph = if (wheel.blend < 1.0) {
+      wheel.fromGlyph.toInt()
     } else {
       val position = if (wheel.linear) wheel.position else wrap10(wheel.position)
-      val base = floor(position)
-      from = base.toInt()
-      to = from + 1
-      t = (position - base).toFloat()
+      Math.round(position).toInt()
     }
-    val a = width(from, to)
-    return a + (width(to, from) - a) * t
+    return if (glyph >= 0) widths[glyph % 10] else goal
   }
+
+  /** A proportional column's width through a change, by place value. */
+  private class CellWidth(var from: Float = 0f, var shown: Float = 0f, var digit: Int = -1, var progress: Double = 1.0)
+
+  private val cellWidths = HashMap<Int, CellWidth>()
 
   /**
    * Letter spacing after every cell, and the affix seams: the space between

@@ -157,8 +157,8 @@ int JRollingEngine::frameInto(jni::alias_ref<jni::JArrayDouble> out) {
   // blurOut, active.
   // Then the decimal columns laid out and the decimal separator's factor.
   constexpr size_t kText = RollingEngine::kTextSlots * 4 + 2;
-  double data[4 + kMaxWheels * 13 + kText];
-  const size_t needed = 4 + count * 13 + kText;
+  double data[4 + kMaxWheels * 14 + kText];
+  const size_t needed = 4 + count * 14 + kText;
   if (count > kMaxWheels || static_cast<size_t>(out->size()) < needed) {
     return -1;
   }
@@ -181,6 +181,7 @@ int JRollingEngine::frameInto(jni::alias_ref<jni::JArrayDouble> out) {
     data[i++] = w.focus;
     data[i++] = w.grow;
     data[i++] = w.blurOut;
+    data[i++] = w.progress;
   }
   for (int slot = 0; slot < RollingEngine::kTextSlots; slot++) {
     const RollingEngine::TextChange t = engine_.textChange(slot);

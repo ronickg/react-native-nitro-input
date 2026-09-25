@@ -64,6 +64,12 @@ public:
     /// or the down colour by this much. `flashUp`: the value grew.
     double flash = 0;
     bool flashUp = true;
+    /// How far this wheel is through its change, 0 → 1: the roll's easing, or
+    /// a swap's `grow` clock. 1 while settled or not part of the change. A
+    /// renderer that sizes a column by its digit (proportional figures) eases
+    /// the width from where it was to the target digit's on this, rather than
+    /// following the digits the wheel passes (which made the number pulse).
+    double progress = 1;
   };
 
   // The numeric transition as the renderers draw it, in line heights, so all

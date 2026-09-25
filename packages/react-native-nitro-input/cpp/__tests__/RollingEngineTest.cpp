@@ -1221,9 +1221,49 @@ static void shortestRollsEachWheelItsOwnWay() {
   CHECK(near(a.wheelAt(0).position, 6.5));
 }
 
+static void progressRunsOnceThroughAChange() {
+  // A renderer eases a proportional column's width on this, so it must run
+  // 0 → 1 once however many digits the wheel rolls past: 12 → 91 rolls the
+  // tens eight steps, and progress rises with the easing, never back.
+  RollingEngine e;
+  e.setFormat(0, 1);
+  e.setTiming(0.5, /* linear */ 0, 0.15, 0, 0);
+  e.animateTo(12, 0);
+  CHECK(near(e.wheelAt(1).progress, 1));
+  e.animateTo(91, 0);
+  double last = -1;
+  for (int i = 0; i <= 10; i++) {
+    e.tick(0.05 * i);
+    const double p = e.wheelAt(1).progress;
+    CHECK(p >= last - 1e-9 && p >= 0 && p <= 1);
+    last = p;
+  }
+  CHECK(near(e.wheelAt(1).progress, 1));
+  e.tick(0.25 + 0.5);
+  CHECK(near(e.wheelAt(1).progress, 1));
+
+  // Halfway through a linear roll it is halfway, whatever digit is passing.
+  e.animateTo(12, 1);
+  e.tick(1.25);
+  CHECK(near(e.wheelAt(1).progress, 0.5));
+
+  // A swap (numeric transition) runs on its grow clock; a wheel that does not change stays at 1.
+  RollingEngine n;
+  n.setFormat(0, 1);
+  n.setTiming(0.5, 3, 0.15, 0, 0);
+  n.setTransition(1);
+  n.animateTo(12, 0);
+  n.animateTo(15, 0);
+  n.tick(0.05);
+  CHECK(n.wheelAt(0).progress > 0 && n.wheelAt(0).progress < 1);
+  CHECK(near(n.wheelAt(0).progress, n.wheelAt(0).grow));
+  CHECK(near(n.wheelAt(1).progress, 1));
+}
+
 int main() {
   odometerPositions();
   shortestRollsEachWheelItsOwnWay();
+  progressRunsOnceThroughAChange();
   tickerRollsShortestPathInDirection();
   wheelsAppearAndDisappear();
   staggerDoesNotStarveOnRetarget();
