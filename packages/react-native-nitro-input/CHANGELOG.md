@@ -29,8 +29,12 @@
 - **`NitroText`**: a single line of text that morphs natively, shared
   characters gliding to their new places ("Sign in" → "Signing in…",
   "$1,204" → "$1,318"), as Torph does on the web. Its own native view: one
-  draw at rest like a label, sized by a synchronous native measurement in
-  the render that mounts it, with the loading shimmer and its options.
+  draw of cached glyphs at rest like a label, sized by a synchronous native
+  measurement in the render that mounts it, with the loading shimmer and its
+  options. Only the props you set cross to native, a static label never
+  touches the reflow engine, and a reused view keeps its drawn line: 1000
+  labels mount in 54 ms of main thread on an iPhone 11 Pro and ~450 ms on a
+  Galaxy A22 (`Text`: 149 and ~720, `react-native-plain-text`: 50 and ~590).
 - **Shimmer options**: `shimmerAngle`, `shimmerWidth`, `shimmerBaseColor`
   (a skeleton), `shimmerDirection` (following the layout direction by
   default, so a right-to-left layout now sweeps right to left) and
@@ -41,6 +45,9 @@
 - Fixed: `NumberFormat` with `notation: 'compact'` dropped the currency and
   the percent sign ("950" for "$950"; Android printed a compact currency in
   full) and signDisplay's plus. It prints them as V8 does now.
+- Android: `NitroText` crosses JNI to the reflow engine once per text
+  change and once per frame, rather than once per character and several
+  times a frame.
 
 ## 0.3.0
 

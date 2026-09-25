@@ -541,6 +541,13 @@ ticker), or SwiftUI's `.contentTransition(.numericText())`, or a scramble.
 - A currency switch plays as one change: prefix, suffix and separators blur
   across, decimal columns open and close, the digits swap or roll.
 - `animateTo` / `jumpTo` on the Nitro object work from a Reanimated worklet.
+- Signs (`signDisplay`: a plus on gains that swaps into the minus), styled
+  affixes and cents (`prefixColor`, `fractionFontSize`, superscript
+  `fractionAlign`), native digits and grouping (`ar-EG`'s ٠١٢٣, `en-IN`'s
+  12,34,567), compact figures that roll ("950" → "1.5K"), `continuous` rolls,
+  and `onAnimationStart` / `onAnimationEnd`.
+- `NitroTime` shows seconds as a clock, timer or countdown whose tens wrap
+  after 5, as a clock's wheels do.
 
 Guide: **https://ronickg.github.io/react-native-nitro-input/docs/nitro-number**
 
@@ -726,6 +733,24 @@ Hand the final value back to React when the feed stops (`scheduleOnRN`) so the
 `value` prop matches the screen; posting every tick queues them up while JS is
 busy and replays them afterwards.
 
+### Clocks and timers
+
+`NitroTime` is a `NitroNumber` with a number of seconds as its figure. The tens
+of seconds and of minutes wrap after 5, so 0:59 → 1:00 turns them one step
+instead of rolling back through 4, 3, 2, 1.
+
+```tsx
+import { NitroTime } from 'react-native-nitro-input'
+
+<NitroTime seconds={elapsed} />                          // 12:07
+<NitroTime seconds={remaining} timeFormat="h:mm:ss" />    // 1:00:05
+```
+
+`timeFormat` is `'m:ss'` (the default; minutes run past 59), `'mm:ss'`,
+`'h:mm:ss'` or `'hh:mm:ss'`; `separator` defaults to `':'`. Every other
+`NitroNumber` prop applies. The wheels are open to any figure through `digits`
+(a position's highest digit) and `groupingSizes`.
+
 ## NitroNumber props
 
 | Prop | Type | Default | Description |
@@ -799,6 +824,44 @@ The view reports its intrinsic size from native and sizes itself. Give it an
 explicit `width` in `style` plus `textAlign="right"` if you don't want the layout
 to reflow while digits appear (e.g. a counter that grows past `999`).
 
+## NitroText
+
+A single line of text that morphs to the next, natively: the characters two
+strings share glide to their new places and the rest fade, as
+[Torph](https://torph.lochie.me) does on the web. Digits match by place, so
+"Total $1,204" → "Total $1,318" rolls the hundreds and tens.
+
+```tsx
+import { NitroText } from 'react-native-nitro-input'
+
+<NitroText fontSize={17} fontWeight="600">{busy ? 'Signing in…' : 'Sign in'}</NitroText>
+```
+
+It is its own native view, not a text field: at rest it draws its line in one
+pass, like a label, and only a morph draws each character on its own. It
+measures its text natively while it renders, so it lays out in the commit that
+mounts it, and only the props you set cross to native. Mounting 1000 labels
+(Release, warm) costs about what `react-native-plain-text` does and less than
+`Text`: 54 ms of main thread on an iPhone 11 Pro (PlainText 50, Text 149) and
+~450 ms on a Galaxy A22 (PlainText ~590, Text ~720). A label that never
+changes never touches the morph engine.
+
+| Prop | Default | |
+| --- | --- | --- |
+| `children` | – | The text: a string or a number. A change morphs to it. |
+| `fontSize` / `fontWeight` / `fontFamily` | `17` / `'normal'` / system | As `Text`'s. Digits are tabular, so a column keeps its width while it morphs. |
+| `color` | label colour | |
+| `letterSpacing` | `0` | Points after every character. |
+| `textAlign` | `'auto'` | `'left'`, `'center'` or `'right'` in a wider view; `'auto'` is the start edge. |
+| `allowFontScaling` / `maxFontSizeMultiplier` | `false` / none | Scale with the system text size, like `Text`. |
+| `duration` / `easing` / `bounce` / `effect` | `400` / `'expo'` / `0.15` / `'auto'` | The morph's timing, as the [reflow](#how-the-reflow-decides-what-moves)'s. |
+| `respectReduceMotion` | `true` | Snap while Reduce Motion (iOS) or "Remove animations" (Android) is on. |
+| `loading` and `shimmer*` | `false` | The loading glint, with every option of `NitroNumber`'s. |
+
+It is one line (no wrapping). Scripts that shape by context (Arabic, Indic)
+and characters from fallback fonts (emoji, CJK) are drawn as strings, so they
+render correctly, but they are laid out character by character.
+
 ## Accessibility and threading
 
 ### NitroInput
@@ -813,6 +876,14 @@ to reflow while digits appear (e.g. a counter that grows past `999`).
   the user sees waits for it. A `value` prop carrying a stale
   `mostRecentEventCount` (the user typed since) is ignored, like React
   Native's own `TextInput`.
+
+### NitroText
+
+- The view is the accessibility element, read as text with its string (and
+  "loading" while the shimmer runs); an `accessibilityLabel` replaces it.
+- Reduce Motion (iOS) and "Remove animations" (Android) snap a morph.
+- The view implements `RecyclableView`: a reused view keeps its drawn line, so
+  an element with the same text and style draws nothing.
 
 ### NitroNumber
 

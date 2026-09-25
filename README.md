@@ -178,6 +178,18 @@ Typed into at eight keys a second by the benchmark probe, the way a keyboard typ
 
 Full tables, focus latency and mount cost: [BENCHMARKS.md](BENCHMARKS.md#the-inputs); as charts: [the input benchmarks page](https://ronickg.github.io/react-native-nitro-input/docs/benchmarks).
 
+## NitroText
+
+A single line of text that morphs to the next, natively, as [Torph](https://torph.lochie.me) does on the web: the characters two strings share glide to their new places and the rest fade ("Sign in" → "Signing in…"), digits matched by place ("$1,204" → "$1,318" rolls the hundreds and tens). At rest it is one draw, like a label, with the loading shimmer when you need a skeleton.
+
+```tsx
+import { NitroText } from 'react-native-nitro-input'
+
+<NitroText fontSize={17} fontWeight="600">{busy ? 'Signing in…' : 'Sign in'}</NitroText>
+```
+
+Mounting 1000 of them (Release, warm) costs 54 ms of main thread on an iPhone 11 Pro and ~450 ms on a Galaxy A22, against `react-native-plain-text`'s 50 and ~590 and `Text`'s 149 and ~720. [Guide →](https://ronickg.github.io/react-native-nitro-input/docs/reflow#any-text-nitrotext)
+
 ## NumberFormat
 
 `NumberFormat` is `Intl.NumberFormat`, formatted natively. It learns a locale's format once from the platform's own formatter (Foundation on iOS, ICU on Android, the data Hermes' `Intl` uses too) and formats every number after that in C++, so the output matches Hermes' `Intl` while building a formatter and formatting stop costing milliseconds. It also brings what Hermes leaves out on iOS: `formatToParts`, `formatRange`, `signDisplay`, engineering notation, rounding modes and increments, and ECMA-402's rounding of ties (`1.005` → `1.01`). Against test262's `intl402/NumberFormat` suite it passes 242 of 251 tests on iOS and 244 on Android, where Hermes' own `Intl` passes 121 and 101.
