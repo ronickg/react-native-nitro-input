@@ -278,6 +278,36 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.suffixAlign.hasSameValue(oldViewProps->suffixAlign)) {
       swiftPart.setSuffixAlign(static_cast<int>(newViewProps.suffixAlign.get()));
     }
+    // letterSpacing: number
+    if (oldViewProps == nullptr
+          ? newViewProps.letterSpacing.isProvided()
+          : !newViewProps.letterSpacing.hasSameValue(oldViewProps->letterSpacing)) {
+      swiftPart.setLetterSpacing(newViewProps.letterSpacing.get());
+    }
+    // prefixSpacing: number
+    if (oldViewProps == nullptr
+          ? newViewProps.prefixSpacing.isProvided()
+          : !newViewProps.prefixSpacing.hasSameValue(oldViewProps->prefixSpacing)) {
+      swiftPart.setPrefixSpacing(newViewProps.prefixSpacing.get());
+    }
+    // suffixSpacing: number
+    if (oldViewProps == nullptr
+          ? newViewProps.suffixSpacing.isProvided()
+          : !newViewProps.suffixSpacing.hasSameValue(oldViewProps->suffixSpacing)) {
+      swiftPart.setSuffixSpacing(newViewProps.suffixSpacing.get());
+    }
+    // prefixOffset: number
+    if (oldViewProps == nullptr
+          ? newViewProps.prefixOffset.isProvided()
+          : !newViewProps.prefixOffset.hasSameValue(oldViewProps->prefixOffset)) {
+      swiftPart.setPrefixOffset(newViewProps.prefixOffset.get());
+    }
+    // suffixOffset: number
+    if (oldViewProps == nullptr
+          ? newViewProps.suffixOffset.isProvided()
+          : !newViewProps.suffixOffset.hasSameValue(oldViewProps->suffixOffset)) {
+      swiftPart.setSuffixOffset(newViewProps.suffixOffset.get());
+    }
     // placeholder: string
     if (oldViewProps == nullptr
           ? newViewProps.placeholder.isProvided()

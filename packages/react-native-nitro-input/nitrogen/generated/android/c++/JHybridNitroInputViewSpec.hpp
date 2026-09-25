@@ -110,6 +110,16 @@ namespace margelo::nitro::nitroinput {
     void setPrefixAlign(NitroInputAffixAlign prefixAlign) override;
     NitroInputAffixAlign getSuffixAlign() override;
     void setSuffixAlign(NitroInputAffixAlign suffixAlign) override;
+    double getLetterSpacing() override;
+    void setLetterSpacing(double letterSpacing) override;
+    double getPrefixSpacing() override;
+    void setPrefixSpacing(double prefixSpacing) override;
+    double getSuffixSpacing() override;
+    void setSuffixSpacing(double suffixSpacing) override;
+    double getPrefixOffset() override;
+    void setPrefixOffset(double prefixOffset) override;
+    double getSuffixOffset() override;
+    void setSuffixOffset(double suffixOffset) override;
     std::string getPlaceholder() override;
     void setPlaceholder(const std::string& placeholder) override;
     double getPlaceholderColor() override;

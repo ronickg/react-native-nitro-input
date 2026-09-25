@@ -118,6 +118,14 @@ final class NitroInputView: UIView {
     var placeholderColor: UIColor = .placeholderText
     var prefixAlign: AffixAlign = .baseline
     var suffixAlign: AffixAlign = .baseline
+    /// Points added after every glyph, as `Text`'s letterSpacing; an affix gets it in proportion to its size.
+    var letterSpacing: CGFloat = 0
+    /// Points between the prefix and the text, and between the text and the suffix, in place of the letter spacing there.
+    var prefixSpacing: CGFloat? = nil
+    var suffixSpacing: CGFloat? = nil
+    /// Points an affix is moved down (negative: up) after its alignment.
+    var prefixOffset: CGFloat = 0
+    var suffixOffset: CGFloat = 0
     var adjustsFontSizeToFit: Bool = false
     var minimumFontScale: CGFloat = 0.5
     var allowFontScaling: Bool = false
@@ -337,6 +345,14 @@ final class NitroInputView: UIView {
     let placeholderColor: UIColor
     let prefixAlign: AffixAlign
     let suffixAlign: AffixAlign
+    /// Letter spacing after a body / prefix / suffix glyph, the spacing at the affix seams (nil: the letter spacing) and the affix offsets, scaled with the fonts.
+    let bodySpacing: CGFloat
+    let prefixLetterSpacing: CGFloat
+    let suffixLetterSpacing: CGFloat
+    let prefixSeam: CGFloat?
+    let suffixSeam: CGFloat?
+    let prefixOffset: CGFloat
+    let suffixOffset: CGFloat
     /// Height of the line box (the body font's line height).
     let lineHeight: CGFloat
     /// Pixel density the glyph images are rendered at.
@@ -396,7 +412,33 @@ final class NitroInputView: UIView {
       placeholderColor = t.placeholderColor.resolvedColor(with: traits)
       prefixAlign = t.prefixAlign
       suffixAlign = t.suffixAlign
+      bodySpacing = t.letterSpacing * scale
+      prefixLetterSpacing = t.letterSpacing * scale * (prefix.pointSize / body.pointSize)
+      suffixLetterSpacing = t.letterSpacing * scale * (suffix.pointSize / body.pointSize)
+      prefixSeam = t.prefixSpacing.map { $0 * scale }
+      suffixSeam = t.suffixSpacing.map { $0 * scale }
+      prefixOffset = t.prefixOffset * scale
+      suffixOffset = t.suffixOffset * scale
       lineHeight = ceil(body.lineHeight)
+    }
+
+    /// Letter spacing after a glyph of `role`.
+    func spacing(for role: GlyphRole) -> CGFloat {
+      switch role {
+      case .body: return bodySpacing
+      case .prefix: return prefixLetterSpacing
+      case .suffix: return suffixLetterSpacing
+      }
+    }
+
+    /// The room an affix takes beside the text: its glyphs, their spacing and the seam.
+    func affixRoom(_ affix: String, role: GlyphRole) -> CGFloat {
+      guard !affix.isEmpty else { return 0 }
+      let glyphs = affix.unicodeScalars.reduce(CGFloat(0)) { $0 + width(of: String($1), role: role) }
+      let count = CGFloat(affix.unicodeScalars.count)
+      if role == .prefix { return glyphs + prefixLetterSpacing * (count - 1) + (prefixSeam ?? prefixLetterSpacing) }
+      // The field's own kerning already spaces its last glyph by the body spacing.
+      return glyphs + suffixLetterSpacing * count + ((suffixSeam ?? bodySpacing) - bodySpacing)
     }
 
     func font(for role: GlyphRole) -> UIFont {
@@ -461,6 +503,10 @@ final class NitroInputView: UIView {
     /// Top of the glyph's line box for `role` drawing `text`, given the top of the body line box.
     func top(for role: GlyphRole, text: String, lineTop: CGFloat) -> CGFloat {
       guard role != .body else { return lineTop }
+      return alignedTop(for: role, text: text, lineTop: lineTop) + (role == .prefix ? prefixOffset : suffixOffset)
+    }
+
+    private func alignedTop(for role: GlyphRole, text: String, lineTop: CGFloat) -> CGFloat {
       let f = font(for: role)
       switch role == .prefix ? prefixAlign : suffixAlign {
       case .baseline:
@@ -1000,7 +1046,8 @@ final class NitroInputView: UIView {
   private func applyFonts() {
     field.font = fonts.body
     var attributes = field.defaultTextAttributes
-    attributes[.kern] = 0
+    // The hidden field spaces its glyphs like the overlay, so the caret and the selection line up with them.
+    attributes[.kern] = fonts.bodySpacing
     attributes[.font] = fonts.body
     attributes[.foregroundColor] = traits.plain ? typography.color : UIColor.clear
     field.defaultTextAttributes = attributes
@@ -1036,8 +1083,8 @@ final class NitroInputView: UIView {
       field.rightView = nil
       field.leftViewMode = .never
       field.rightViewMode = .never
-      let prefixRoom = affixWidth(format.prefix, role: .prefix)
-      let suffixRoom = affixWidth(format.suffix, role: .suffix)
+      let prefixRoom = fonts.affixRoom(format.prefix, role: .prefix)
+      let suffixRoom = fonts.affixRoom(format.suffix, role: .suffix)
       field.leftInset = side + (rtl ? suffixRoom : prefixRoom)
       field.rightInset = side + (rtl ? prefixRoom : suffixRoom)
     }
@@ -1047,15 +1094,20 @@ final class NitroInputView: UIView {
   private func affixLabel(_ affix: String, role: GlyphRole, reusing existing: UILabel?) -> UILabel? {
     guard !affix.isEmpty else { return nil }
     let label = existing ?? UILabel()
-    label.font = fonts.font(for: role)
-    label.textColor = typography.color
-    if label.text != affix { label.text = affix }
+    let text = NSAttributedString(string: affix, attributes: [
+      .font: fonts.font(for: role),
+      .foregroundColor: typography.color,
+      .kern: fonts.spacing(for: role),
+    ])
+    if label.attributedText != text { label.attributedText = text }
     label.sizeToFit()
+    // The seam against the text: after a prefix, before a suffix (the label hugs the text's side).
+    let room = fonts.affixRoom(affix, role: role)
+    label.frame.size.width = room
+    label.textAlignment = role == .prefix ? .left : .right
+    let offset = role == .prefix ? fonts.prefixOffset : fonts.suffixOffset
+    label.transform = offset == 0 ? .identity : CGAffineTransform(translationX: 0, y: offset)
     return label
-  }
-
-  private func affixWidth(_ affix: String, role: GlyphRole) -> CGFloat {
-    affix.unicodeScalars.reduce(CGFloat(0)) { $0 + fonts.width(of: String($1), role: role) }
   }
 
   /// Swaps which backing view is showing, and mirrors onto the text view the
@@ -1371,19 +1423,26 @@ final class NitroInputView: UIView {
         && rest.first.map(Self.isSign) == true
         ? rest.removeFirst()
         : nil
+    // Advances carry the letter spacing; the last prefix glyph and the last
+    // body glyph before a suffix carry the seams instead.
+    let fonts = self.fonts
     if let sign {
       let kind = numberKinds ? formatter.kindOf(sign.value) : Kind.text
-      engine.addGlyph(sign.value, Role.body, kind, Double(fonts.width(of: String(sign), role: .body)), false)
+      engine.addGlyph(sign.value, Role.body, kind, Double(fonts.width(of: String(sign), role: .body) + fonts.bodySpacing), false)
     }
-    for scalar in format.prefix.unicodeScalars {
-      engine.addGlyph(scalar.value, Role.prefix, Kind.text, Double(fonts.width(of: String(scalar), role: .prefix)), false)
+    let prefixScalars = Array(format.prefix.unicodeScalars)
+    for (i, scalar) in prefixScalars.enumerated() {
+      let after = i == prefixScalars.count - 1 ? (fonts.prefixSeam ?? fonts.prefixLetterSpacing) : fonts.prefixLetterSpacing
+      engine.addGlyph(scalar.value, Role.prefix, Kind.text, Double(fonts.width(of: String(scalar), role: .prefix) + after), false)
     }
-    for scalar in rest {
+    let hasSuffix = !format.suffix.isEmpty
+    for (i, scalar) in rest.enumerated() {
       let kind = numberKinds ? formatter.kindOf(scalar.value) : Kind.text
-      engine.addGlyph(scalar.value, Role.body, kind, Double(fonts.width(of: String(scalar), role: .body)), showPlaceholder)
+      let after = hasSuffix && i == rest.count - 1 ? (fonts.suffixSeam ?? fonts.bodySpacing) : fonts.bodySpacing
+      engine.addGlyph(scalar.value, Role.body, kind, Double(fonts.width(of: String(scalar), role: .body) + after), showPlaceholder)
     }
     for scalar in format.suffix.unicodeScalars {
-      engine.addGlyph(scalar.value, Role.suffix, Kind.text, Double(fonts.width(of: String(scalar), role: .suffix)), false)
+      engine.addGlyph(scalar.value, Role.suffix, Kind.text, Double(fonts.width(of: String(scalar), role: .suffix) + fonts.suffixLetterSpacing), false)
     }
     engine.commitText(Int32(caret), CACurrentMediaTime())
     reportIntrinsicSize()
@@ -1571,9 +1630,10 @@ final class NitroInputView: UIView {
     let body = text.isEmpty
       ? effectivePlaceholder
       : traits.secureTextEntry ? String(repeating: "\u{2022}", count: text.unicodeScalars.count) : text
-    return fonts.width(of: format.prefix, role: .prefix)
-      + fonts.width(of: body, role: .body)
-      + fonts.width(of: format.suffix, role: .suffix)
+    // The field's own kerning follows every glyph; the affixes take their room with their seams.
+    return fonts.affixRoom(format.prefix, role: .prefix)
+      + fonts.width(of: body, role: .body) + fonts.bodySpacing * CGFloat(body.unicodeScalars.count)
+      + fonts.affixRoom(format.suffix, role: .suffix)
   }
 
   private func reportIntrinsicSize() {

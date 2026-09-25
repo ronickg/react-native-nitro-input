@@ -84,6 +84,11 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<std::optional<NitroNumberAffixAlign>> affixAlign;
     nitro::ReactProp<std::optional<NitroNumberAffixAlign>> prefixAlign;
     nitro::ReactProp<std::optional<NitroNumberAffixAlign>> suffixAlign;
+    nitro::ReactProp<std::optional<double>> letterSpacing;
+    nitro::ReactProp<std::optional<double>> prefixSpacing;
+    nitro::ReactProp<std::optional<double>> suffixSpacing;
+    nitro::ReactProp<std::optional<double>> prefixOffset;
+    nitro::ReactProp<std::optional<double>> suffixOffset;
     nitro::ReactProp<std::optional<bool>> adjustsFontSizeToFit;
     nitro::ReactProp<std::optional<double>> minimumFontScale;
     nitro::ReactProp<std::optional<bool>> allowFontScaling;
@@ -134,6 +139,11 @@ namespace margelo::nitro::nitroinput::views {
              affixAlign.hasSameValue(other.affixAlign) &&
              prefixAlign.hasSameValue(other.prefixAlign) &&
              suffixAlign.hasSameValue(other.suffixAlign) &&
+             letterSpacing.hasSameValue(other.letterSpacing) &&
+             prefixSpacing.hasSameValue(other.prefixSpacing) &&
+             suffixSpacing.hasSameValue(other.suffixSpacing) &&
+             prefixOffset.hasSameValue(other.prefixOffset) &&
+             suffixOffset.hasSameValue(other.suffixOffset) &&
              adjustsFontSizeToFit.hasSameValue(other.adjustsFontSizeToFit) &&
              minimumFontScale.hasSameValue(other.minimumFontScale) &&
              allowFontScaling.hasSameValue(other.allowFontScaling) &&
@@ -185,6 +195,11 @@ namespace margelo::nitro::nitroinput::views {
              affixAlign.isProvided() ||
              prefixAlign.isProvided() ||
              suffixAlign.isProvided() ||
+             letterSpacing.isProvided() ||
+             prefixSpacing.isProvided() ||
+             suffixSpacing.isProvided() ||
+             prefixOffset.isProvided() ||
+             suffixOffset.isProvided() ||
              adjustsFontSizeToFit.isProvided() ||
              minimumFontScale.isProvided() ||
              allowFontScaling.isProvided() ||

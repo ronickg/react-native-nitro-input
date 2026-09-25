@@ -151,6 +151,16 @@ namespace margelo::nitro::nitroinput {
       virtual void setPrefixAlign(NitroInputAffixAlign prefixAlign) = 0;
       virtual NitroInputAffixAlign getSuffixAlign() = 0;
       virtual void setSuffixAlign(NitroInputAffixAlign suffixAlign) = 0;
+      virtual double getLetterSpacing() = 0;
+      virtual void setLetterSpacing(double letterSpacing) = 0;
+      virtual double getPrefixSpacing() = 0;
+      virtual void setPrefixSpacing(double prefixSpacing) = 0;
+      virtual double getSuffixSpacing() = 0;
+      virtual void setSuffixSpacing(double suffixSpacing) = 0;
+      virtual double getPrefixOffset() = 0;
+      virtual void setPrefixOffset(double prefixOffset) = 0;
+      virtual double getSuffixOffset() = 0;
+      virtual void setSuffixOffset(double suffixOffset) = 0;
       virtual std::string getPlaceholder() = 0;
       virtual void setPlaceholder(const std::string& placeholder) = 0;
       virtual double getPlaceholderColor() = 0;

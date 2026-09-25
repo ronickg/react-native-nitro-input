@@ -44,6 +44,11 @@ public protocol HybridNitroNumberViewSpec_protocol: HybridObject, HybridView {
   var affixAlign: NitroNumberAffixAlign? { get set }
   var prefixAlign: NitroNumberAffixAlign? { get set }
   var suffixAlign: NitroNumberAffixAlign? { get set }
+  var letterSpacing: Double? { get set }
+  var prefixSpacing: Double? { get set }
+  var suffixSpacing: Double? { get set }
+  var prefixOffset: Double? { get set }
+  var suffixOffset: Double? { get set }
   var adjustsFontSizeToFit: Bool? { get set }
   var minimumFontScale: Double? { get set }
   var allowFontScaling: Bool? { get set }

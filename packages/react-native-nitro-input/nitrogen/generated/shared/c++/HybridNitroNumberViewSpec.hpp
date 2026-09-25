@@ -132,6 +132,16 @@ namespace margelo::nitro::nitroinput {
       virtual void setPrefixAlign(std::optional<NitroNumberAffixAlign> prefixAlign) = 0;
       virtual std::optional<NitroNumberAffixAlign> getSuffixAlign() = 0;
       virtual void setSuffixAlign(std::optional<NitroNumberAffixAlign> suffixAlign) = 0;
+      virtual std::optional<double> getLetterSpacing() = 0;
+      virtual void setLetterSpacing(std::optional<double> letterSpacing) = 0;
+      virtual std::optional<double> getPrefixSpacing() = 0;
+      virtual void setPrefixSpacing(std::optional<double> prefixSpacing) = 0;
+      virtual std::optional<double> getSuffixSpacing() = 0;
+      virtual void setSuffixSpacing(std::optional<double> suffixSpacing) = 0;
+      virtual std::optional<double> getPrefixOffset() = 0;
+      virtual void setPrefixOffset(std::optional<double> prefixOffset) = 0;
+      virtual std::optional<double> getSuffixOffset() = 0;
+      virtual void setSuffixOffset(std::optional<double> suffixOffset) = 0;
       virtual std::optional<bool> getAdjustsFontSizeToFit() = 0;
       virtual void setAdjustsFontSizeToFit(std::optional<bool> adjustsFontSizeToFit) = 0;
       virtual std::optional<double> getMinimumFontScale() = 0;

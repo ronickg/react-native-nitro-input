@@ -85,6 +85,14 @@ class NitroNumberView(context: Context) : View(context) {
     val color: Int? = null,
     val prefixAlign: AffixAlign = AffixAlign.BASELINE,
     val suffixAlign: AffixAlign = AffixAlign.BASELINE,
+    /** Dp added after every glyph, as `Text`'s letterSpacing; an affix gets it in proportion to its size. */
+    val letterSpacing: Float = 0f,
+    /** Dp between the prefix and the digits, and between the digits and the suffix, in place of the letter spacing there. */
+    val prefixSpacing: Float? = null,
+    val suffixSpacing: Float? = null,
+    /** Dp an affix is moved down (negative: up) after its alignment. */
+    val prefixOffset: Float = 0f,
+    val suffixOffset: Float = 0f,
     val adjustsFontSizeToFit: Boolean = false,
     val minimumFontScale: Float = 0.5f,
     val allowFontScaling: Boolean = false,
@@ -261,6 +269,14 @@ class NitroNumberView(context: Context) : View(context) {
     val suffix = makePaint(t, (t.suffixFontSize ?: t.fontSize) * scale)
     private val prefixAlign = t.prefixAlign
     private val suffixAlign = t.suffixAlign
+    /** Letter spacing after a digit / prefix / suffix glyph, the seams (null: the letter spacing) and the affix offsets, in px. */
+    val digitSpacing = t.letterSpacing * scale * density
+    val prefixLetterSpacing = digitSpacing * ((t.prefixFontSize ?: t.fontSize) / t.fontSize)
+    val suffixLetterSpacing = digitSpacing * ((t.suffixFontSize ?: t.fontSize) / t.fontSize)
+    val prefixSeam = t.prefixSpacing?.let { it * scale * density }
+    val suffixSeam = t.suffixSpacing?.let { it * scale * density }
+    private val prefixOffset = t.prefixOffset * scale * density
+    private val suffixOffset = t.suffixOffset * scale * density
     private val digitMetrics: Paint.FontMetrics = digit.fontMetrics
     /** Height of the line box (the digit paint's line height), in px. */
     val lineHeight: Float = ceil(digitMetrics.descent - digitMetrics.ascent)
@@ -453,8 +469,19 @@ class NitroNumberView(context: Context) : View(context) {
 
     /** Baseline y for `role` drawing `text`, given the top of the digit line box. */
     fun baseline(role: GlyphRole, text: String, lineTop: Float): Float {
+      if (role == GlyphRole.DIGIT) return lineTop - digitMetrics.ascent
+      return alignedBaseline(role, text, lineTop) + if (role == GlyphRole.PREFIX) prefixOffset else suffixOffset
+    }
+
+    /** Letter spacing after a glyph of [role], in px. */
+    fun spacing(role: GlyphRole): Float = when (role) {
+      GlyphRole.DIGIT -> digitSpacing
+      GlyphRole.PREFIX -> prefixLetterSpacing
+      GlyphRole.SUFFIX -> suffixLetterSpacing
+    }
+
+    private fun alignedBaseline(role: GlyphRole, text: String, lineTop: Float): Float {
       val digitBaseline = lineTop - digitMetrics.ascent
-      if (role == GlyphRole.DIGIT) return digitBaseline
       val p = paint(role)
       val m = p.fontMetrics
       return when (if (role == GlyphRole.PREFIX) prefixAlign else suffixAlign) {
@@ -937,6 +964,8 @@ class NitroNumberView(context: Context) : View(context) {
     var slot = -1
     var fromText: String? = null
     var anchor = 1
+    /** Space after the cell (letter spacing, or an affix seam), scaled with it; not part of the glyph's box. */
+    var gap = 0f
   }
 
   /** A list of pooled [Element]s: filling it allocates nothing once it has grown to the run's length. */
@@ -958,7 +987,7 @@ class NitroNumberView(context: Context) : View(context) {
 
     fun totalWidth(): Float {
       var total = 0f
-      for (i in 0 until size) total += items[i].width
+      for (i in 0 until size) total += items[i].width + items[i].gap
       return total
     }
   }
@@ -1042,6 +1071,39 @@ class NitroNumberView(context: Context) : View(context) {
       addGlyph("-", GlyphRole.DIGIT, signFactor)
     } else {
       addGlyph(suffixInk, GlyphRole.SUFFIX, 1.0, TEXT_SUFFIX, anchor = -1)
+    }
+    applySpacing(fonts, out)
+  }
+
+  /**
+   * Letter spacing after every cell, and the affix seams: the space between
+   * the prefix and the digits and between the digits and the suffix.
+   */
+  private fun applySpacing(fonts: FontSet, out: ElementList) {
+    for (i in 0 until out.size) out[i].gap = 0f
+    if (fonts.digitSpacing == 0f && fonts.prefixSeam == null && fonts.suffixSeam == null) return
+    fun roleOf(e: Element) = if (e.wheelIndex >= 0) GlyphRole.DIGIT else e.role
+    for (i in 0 until out.size) out[i].gap = fonts.spacing(roleOf(out[i])) * out[i].factor.toFloat()
+    // The seam is the gap at the affix's edge that faces the digits (the far side in RTL).
+    var firstPrefix = -1
+    var lastPrefix = -1
+    var firstSuffix = -1
+    var lastSuffix = -1
+    for (i in 0 until out.size) {
+      when (roleOf(out[i])) {
+        GlyphRole.PREFIX -> { if (firstPrefix < 0) firstPrefix = i; lastPrefix = i }
+        GlyphRole.SUFFIX -> { if (firstSuffix < 0) firstSuffix = i; lastSuffix = i }
+        GlyphRole.DIGIT -> Unit
+      }
+    }
+    val rtl = isRtl
+    fonts.prefixSeam?.let { seam ->
+      if (!rtl && lastPrefix >= 0) out[lastPrefix].gap = seam
+      else if (rtl && firstPrefix > 0) out[firstPrefix - 1].gap = seam
+    }
+    fonts.suffixSeam?.let { seam ->
+      if (!rtl && firstSuffix > 0) out[firstSuffix - 1].gap = seam
+      else if (rtl && lastSuffix >= 0) out[lastSuffix].gap = seam
     }
   }
 
@@ -1161,9 +1223,18 @@ class NitroNumberView(context: Context) : View(context) {
     return sb.toString()
   }
 
+  /** An `accessibilityLabel` the app set, which TalkBack reads instead of the figure. */
+  private var explicitDescription: CharSequence? = null
+
+  override fun setContentDescription(contentDescription: CharSequence?) {
+    explicitDescription = contentDescription
+    super.setContentDescription(contentDescription)
+  }
+
   // TalkBack reads the settled figure when it asks for it, so a value update
   // (which can come every frame) formats nothing.
   override fun getContentDescription(): CharSequence? {
+    explicitDescription?.let { if (it.isNotEmpty()) return it }
     if (!engine.hasShownValue()) return null
     return if (loading) accessibleText() + ", loading" else accessibleText()
   }
@@ -1246,7 +1317,7 @@ class NitroNumberView(context: Context) : View(context) {
       } else if (text != null) {
         drawGlyph(canvas, fonts, text, element.role, x, element.width, element.fullWidth, element.factor)
       }
-      x += element.width
+      x += element.width + element.gap
     }
     if (dim > 0f) {
       drawShimmer(canvas, fonts, total, dim)

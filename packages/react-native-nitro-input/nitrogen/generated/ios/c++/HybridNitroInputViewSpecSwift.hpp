@@ -303,6 +303,36 @@ namespace margelo::nitro::nitroinput {
     inline void setSuffixAlign(NitroInputAffixAlign suffixAlign) noexcept override {
       _swiftPart.setSuffixAlign(static_cast<int>(suffixAlign));
     }
+    inline double getLetterSpacing() noexcept override {
+      return _swiftPart.getLetterSpacing();
+    }
+    inline void setLetterSpacing(double letterSpacing) noexcept override {
+      _swiftPart.setLetterSpacing(std::forward<decltype(letterSpacing)>(letterSpacing));
+    }
+    inline double getPrefixSpacing() noexcept override {
+      return _swiftPart.getPrefixSpacing();
+    }
+    inline void setPrefixSpacing(double prefixSpacing) noexcept override {
+      _swiftPart.setPrefixSpacing(std::forward<decltype(prefixSpacing)>(prefixSpacing));
+    }
+    inline double getSuffixSpacing() noexcept override {
+      return _swiftPart.getSuffixSpacing();
+    }
+    inline void setSuffixSpacing(double suffixSpacing) noexcept override {
+      _swiftPart.setSuffixSpacing(std::forward<decltype(suffixSpacing)>(suffixSpacing));
+    }
+    inline double getPrefixOffset() noexcept override {
+      return _swiftPart.getPrefixOffset();
+    }
+    inline void setPrefixOffset(double prefixOffset) noexcept override {
+      _swiftPart.setPrefixOffset(std::forward<decltype(prefixOffset)>(prefixOffset));
+    }
+    inline double getSuffixOffset() noexcept override {
+      return _swiftPart.getSuffixOffset();
+    }
+    inline void setSuffixOffset(double suffixOffset) noexcept override {
+      _swiftPart.setSuffixOffset(std::forward<decltype(suffixOffset)>(suffixOffset));
+    }
     inline std::string getPlaceholder() noexcept override {
       auto __result = _swiftPart.getPlaceholder();
       return __result;
