@@ -241,6 +241,12 @@ internal class NitroTextGlyphs private constructor(
 
 class NitroTextView(context: Context) : View(context) {
 
+  companion object {
+    /** EXPERIMENT: set before any NitroTextView is created (the bench reads it from its launch intent). */
+    @JvmStatic
+    var useKotlinEngine = false
+  }
+
   data class Style(
     /** In dp. */
     val fontSize: Double = 17.0,
@@ -334,7 +340,8 @@ class NitroTextView(context: Context) : View(context) {
       invalidate()
     }
 
-  private val engine = ReflowEngine()
+  // EXPERIMENT: the C++ engine over JNI, or its Kotlin port (see ReflowEngineKt.kt).
+  private val engine: ReflowFrames = if (useKotlinEngine) ReflowEngineKt() else CppReflowFrames()
   private var shownText = ""
   /**
    * The line the engine holds (its target, while it morphs); null when it is
