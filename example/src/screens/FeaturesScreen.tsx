@@ -1,5 +1,5 @@
 /**
- * The 0.4 features on one screen: signs, styled cents, clocks, compact
+ * The 0.3.1 features on one screen: signs, styled cents, clocks, compact
  * figures, continuous rolls, native digits and Indian grouping, the
  * animation events, NitroText and a figure driven from the UI thread.
  */

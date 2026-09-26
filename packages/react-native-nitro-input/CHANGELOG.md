@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.1
 
 - **Signs**: `signDisplay` (`'auto'`, `'always'`, `'exceptZero'`,
   `'negative'`, `'never'`, as `Intl.NumberFormat`'s) puts a plus on gains,
@@ -33,8 +33,8 @@
   measurement in the render that mounts it, with the loading shimmer and its
   options. Only the props you set cross to native, a static label never
   touches the reflow engine, and a reused view keeps its drawn line: 1000
-  labels mount in 54 ms of main thread on an iPhone 11 Pro and ~450 ms on a
-  Galaxy A22 (`Text`: 149 and ~720, `react-native-plain-text`: 50 and ~590).
+  labels mount in 113 ms of main thread on an iPhone 11 Pro and 510 ms on a
+  Galaxy A22 (`Text`: 140 and 790, `react-native-plain-text`: 112 and 620).
 - **Shimmer options**: `shimmerAngle`, `shimmerWidth`, `shimmerBaseColor`
   (a skeleton), `shimmerDirection` (following the layout direction by
   default, so a right-to-left layout now sweeps right to left) and

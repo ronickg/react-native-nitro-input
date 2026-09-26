@@ -66,8 +66,8 @@ function HomeScreen() {
   const nav = useNavigation<any>()
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Card title="New in 0.4" hint="Signs, styled cents, clocks, compact figures, continuous rolls, native digits, animation events and NitroText.">
-        <Row><Btn testID="home-features" tone="primary" title="Open the 0.4 features" onPress={() => nav.navigate('Features')} /></Row>
+      <Card title="New in 0.3.1" hint="Signs, styled cents, clocks, compact figures, continuous rolls, native digits, animation events and NitroText.">
+        <Row><Btn testID="home-features" tone="primary" title="Open the 0.3.1 features" onPress={() => nav.navigate('Features')} /></Row>
       </Card>
       <Card title="Reflowing NitroInput vs TextInput" hint="Each screen puts the two components side by side under the same conditions.">
         <Row>
@@ -140,7 +140,7 @@ export function RootNavigator() {
         <Stack.Screen name="FlowAmount" component={FlowAmountScreen} options={FLOW_STEP} />
         <Stack.Screen name="FlowForm" component={FlowFormScreen} options={FLOW_STEP} />
         <Stack.Screen name="Demo" component={DemoScreen} options={{ title: 'Demo' }} />
-        <Stack.Screen name="Features" component={FeaturesScreen} options={{ title: 'New in 0.4' }} />
+        <Stack.Screen name="Features" component={FeaturesScreen} options={{ title: 'New in 0.3.1' }} />
         <Stack.Screen name="ViewPropsRepro" component={ViewPropsReproScreen} options={{ title: 'View props' }} />
         <Stack.Screen name="Rtl" component={RtlScreen} options={{ title: 'Right-to-left' }} />
         <Stack.Screen name="RecycleCheck" component={RecycleCheckScreen} options={{ title: 'Recycle check' }} />

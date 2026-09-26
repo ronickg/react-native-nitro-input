@@ -1,8 +1,8 @@
 <h1 align="center">react-native-nitro-input</h1>
 
 <p align="center">
-  Two native components for React Native in one package, built with <a href="https://nitro.margelo.com">Nitro Modules</a>:<br/>
-  a <b>number</b> that animates its changes (rolling wheels, or SwiftUI's numeric transition), and a <b>text input</b> that formats amounts and applies masks natively, with a reflow you can turn on.<br/>
+  Native text components for React Native in one package, built with <a href="https://nitro.margelo.com">Nitro Modules</a>:<br/>
+  a <b>number</b> that animates its changes (rolling wheels, or SwiftUI's numeric transition), a <b>text input</b> that formats amounts and applies masks natively, with a reflow you can turn on, and a <b>label</b> that morphs to its next text.<br/>
   One C++ engine each, iOS and Android, the new architecture.
 </p>
 
@@ -188,7 +188,7 @@ import { NitroText } from 'react-native-nitro-input'
 <NitroText fontSize={17} fontWeight="600">{busy ? 'Signing in…' : 'Sign in'}</NitroText>
 ```
 
-Mounting 1000 of them (Release, warm) costs 54 ms of main thread on an iPhone 11 Pro and ~450 ms on a Galaxy A22, against `react-native-plain-text`'s 50 and ~590 and `Text`'s 149 and ~720. [Guide →](https://ronickg.github.io/react-native-nitro-input/docs/reflow#any-text-nitrotext)
+Mounting 1000 of them (Release, into reused views) costs 113 ms of main thread on an iPhone 11 Pro and 510 ms on a Galaxy A22, against `react-native-plain-text`'s 112 and 620 and `Text`'s 140 and 790. [Guide →](https://ronickg.github.io/react-native-nitro-input/docs/nitro-text)
 
 ## NumberFormat
 

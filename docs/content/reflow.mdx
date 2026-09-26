@@ -33,39 +33,7 @@ In `mode="text"` characters fade and scale, and a run that persists keeps its sh
 
 ## Any text: NitroText
 
-`NitroText` is the reflow on a label: give it a new string and the characters the two share glide to their new places while the rest fade, as Torph does on the web: "Sign in" → "Signing in…", "Total $1,204" → "Total $1,318" (digits match by place, so the hundreds and tens roll).
-
-```tsx
-import { NitroText } from 'react-native-nitro-input'
-
-<NitroText fontSize={17} fontWeight="600">{busy ? 'Signing in…' : 'Sign in'}</NitroText>
-```
-
-It is its own native view, not a field: at rest it draws its line in one pass, like a label, and only a morph draws each character on its own. It measures its text natively while it renders, so it lays out in the commit that mounts it, and only the props you set cross to native. A label that never changes never touches the reflow engine, and a view Fabric reuses keeps its drawn line, so an element with the same text draws nothing.
-
-Mounting 1000 labels, Release, warm, main-thread time:
-
-| | iPhone 11 Pro | Galaxy A22 |
-| --- | --- | --- |
-| `NitroText` | 54 ms | ~450 ms |
-| [`react-native-plain-text`](https://github.com/mdjastrzebski/react-native-plain-text) | 50 ms | ~590 ms |
-| `Text` | 149 ms | ~720 ms |
-
-It is one line (no wrapping), screen readers read it as text (and "loading" while it shimmers), and `loading` runs the same shimmer as [`NitroNumber`'s](/docs/loading-and-reveal#loading), with every `shimmer*` option.
-
-| Prop | Default | |
-| --- | --- | --- |
-| `children` | – | The text: a string or a number. A change morphs to it. |
-| `fontSize` / `fontWeight` / `fontFamily` | `17` / `'normal'` / system | As `Text`'s. Digits are tabular, so a column keeps its width while it morphs. |
-| `color` | label colour | |
-| `letterSpacing` | `0` | Points after every character. |
-| `textAlign` | `'auto'` | `'left'`, `'center'` or `'right'` in a wider view; `'auto'` is the start edge. |
-| `allowFontScaling` / `maxFontSizeMultiplier` | `false` / none | Scale with the system text size, like `Text`. |
-| `duration` / `easing` / `bounce` / `effect` | as below | The morph's timing, the reflow's props. |
-| `respectReduceMotion` | `true` | Snap while Reduce Motion or "Remove animations" is on. |
-| `loading`, `shimmer*` | `false` | The loading glint. |
-
-Scripts that shape by context (Arabic, Indic) and characters from fallback fonts (emoji, CJK) are drawn as strings, so they render correctly, but they are laid out character by character.
+The same reflow on a read-only label is [`NitroText`](/docs/nitro-text): "Sign in" → "Signing in…", "Total $1,204" → "Total $1,318".
 
 ## Tuning it
 

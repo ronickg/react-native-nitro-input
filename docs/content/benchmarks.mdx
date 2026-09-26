@@ -1,6 +1,6 @@
 ---
 title: Benchmarks
-description: Release-build measurements of both components against the other libraries on npm, and of NumberFormat against Hermes' Intl, on an iPhone 11 Pro and a Samsung Galaxy A22.
+description: Release-build measurements of the components against the other libraries on npm, and of NumberFormat against Hermes' Intl, on an iPhone 11 Pro and a Samsung Galaxy A22.
 ---
 
 import BenchChart from '@site/src/components/BenchChart';
@@ -42,6 +42,18 @@ NitroNumber is measured with both of its transitions: the roll (the `value` prop
 **Mounting 20 fields.** A Nitro view costs more to create than a `TextInput`: 35–73 ms against 26 on the 11 Pro, 213–296 against 144 on the A22. Unmounting costs about the same for every field.
 
 <BenchChart group="mount|20" metrics={['mountMs.p50']} />
+
+## NitroText
+
+1000 one-line labels ("Label number 1" to "Label number 1000", 16 pt) mounted at once, against `react-native-plain-text`'s `PlainText` and React Native's `Text`. The bench app's text screen runs by itself when launched with `{"textMount":{"rounds":N}}`: each round mounts the three in turn and reports the JS slice, the main thread's CPU over the next second and its longest frame. The first round creates the views; the figures below are the median of the later rounds, which mount into views Fabric reuses and which last showed other text.
+
+| | iPhone 11 Pro main thread | commit | longest frame | Galaxy A22 main thread | commit |
+| --- | --- | --- | --- | --- | --- |
+| `NitroText` | 113 ms | 66 ms | 50 ms | 510 ms | 192 ms |
+| `PlainText` | 112 ms | 73 ms | 55 ms | 620 ms | 214 ms |
+| `Text` | 140 ms | 126 ms | 107 ms | 790 ms | 319 ms |
+
+A reused view that already shows the same text draws nothing, as a `UILabel` does: then it is 54 ms on the iPhone, against 50 for `PlainText` and 149 for `Text`. The A22 spreads a mount over several frames, so its longest frame says little and is left out.
 
 ## NumberFormat
 
