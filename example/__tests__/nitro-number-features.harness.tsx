@@ -1,5 +1,5 @@
 /**
- * On-device checks of what 0.4 added to `NitroNumber`, and of `NitroTime`
+ * On-device checks of what 0.3.1 added to `NitroNumber`, and of `NitroTime`
  * and `NitroText`: signs, native digits and grouping sizes, styled
  * fractions, compact formats, the animation events, clock wheels and the
  * morphing label, through what an app can observe (layout, callbacks, the
@@ -33,7 +33,7 @@ async function widthsOf(layouts: ReturnType<typeof layoutOf>[]) {
   return layouts.map((l) => l.state.current!.width)
 }
 
-describe('NitroNumber 0.4', () => {
+describe('NitroNumber 0.3.1', () => {
   it('draws a plus where signDisplay asks for one, and none on zero with exceptZero', async () => {
     const plain = layoutOf()
     const always = layoutOf()

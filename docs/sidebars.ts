@@ -1,6 +1,6 @@
 import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 
-/** The one sidebar: the two components, NumberFormat, their references and the benchmarks. */
+/** The one sidebar: the components, NumberFormat, their references and the benchmarks. */
 const sidebars: SidebarsConfig = {
   docs: [
     'getting-started',
@@ -16,6 +16,7 @@ const sidebars: SidebarsConfig = {
       collapsed: false,
       items: ['nitro-number', 'formatting', 'loading-and-reveal'],
     },
+    'nitro-text',
     'number-format',
     {
       type: 'category',

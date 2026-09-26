@@ -963,6 +963,18 @@ C++: 1.2 µs and 2.8 µs against Hermes' 1.6 µs and 10.0 µs. Hermes has no
 | Intl.NumberFormat (Hermes) | 85.45 | 85.30 | 120 | 0.8 | 3 |
 | **NumberFormat (native)** | 6.19 | 6.18 | 8.75 | 0.2 | 3 |
 
+## The label: NitroText
+
+1000 one-line labels ("Label number 1" to "Label number 1000", 16 pt) mounted at once, against `react-native-plain-text` 0.9.0's `PlainText` and React Native's `Text`, on the bench app's text screen (`bench/src/bench/TextMountScreen.tsx`). Launched with the plan `{"textMount":{"rounds":N}}` it runs without touches (no UI-test runner loading the main thread): each round mounts the three in turn and reports, per mount, the JS slice (render to layout effect), the main thread's CPU over the next second and its longest frame, as `BENCH` lines. Round 0 creates the views; the medians below are of the later rounds, which mount into views Fabric reuses and which last showed other text (after each mount every label's text changes, and the screen is cleared).
+
+| Warm mount of 1000 | iPhone 11 Pro main thread | commit | longest frame | Galaxy A22 main thread | commit |
+| --- | --- | --- | --- | --- | --- |
+| `NitroText` | 113 ms | 66 ms | 50 ms | 510 ms | 192 ms |
+| `PlainText` | 112 ms | 73 ms | 55 ms | 620 ms | 214 ms |
+| `Text` | 140 ms | 126 ms | 107 ms | 790 ms | 319 ms |
+
+A reused view that already shows the same text redraws nothing, as a `UILabel` does; with the same 1000 strings mounted again the iPhone measures 54 ms for `NitroText`, 50 for `PlainText` and 149 for `Text`. On the A22 Fabric spreads a mount across frames, so the longest frame is not a useful figure there. Changing every label's text at once is not compared: `NitroText` animates 1000 morphs for 400 ms where the others swap their text once.
+
 ## Earlier measurements
 
 The tables this file carried before 2026‑09‑22 (an iPhone 17 Pro simulator,

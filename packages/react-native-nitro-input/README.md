@@ -841,10 +841,10 @@ It is its own native view, not a text field: at rest it draws its line in one
 pass, like a label, and only a morph draws each character on its own. It
 measures its text natively while it renders, so it lays out in the commit that
 mounts it, and only the props you set cross to native. Mounting 1000 labels
-(Release, warm) costs about what `react-native-plain-text` does and less than
-`Text`: 54 ms of main thread on an iPhone 11 Pro (PlainText 50, Text 149) and
-~450 ms on a Galaxy A22 (PlainText ~590, Text ~720). A label that never
-changes never touches the morph engine.
+(Release, into reused views) costs about what `react-native-plain-text` does
+and less than `Text`: 113 ms of main thread on an iPhone 11 Pro (PlainText
+112, Text 140) and 510 ms on a Galaxy A22 (PlainText 620, Text 790). A label
+that never changes never touches the morph engine.
 
 | Prop | Default | |
 | --- | --- | --- |
