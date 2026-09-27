@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
 
 - **`keepPlaceholder`**: the rest of a mask's placeholder stays visible,
   greyed, after what has been typed ("1234 5" then "678 9012"); without a
