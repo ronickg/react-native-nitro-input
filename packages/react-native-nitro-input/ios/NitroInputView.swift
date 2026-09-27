@@ -627,6 +627,8 @@ final class NitroInputView: UIView {
   }()
   /// True once `textView` has been built; reading the lazy var would build it.
   private var didBuildTextView = false
+  /// The return key the number-pad bar shows, or nil when there is no bar.
+  private var returnAccessoryKey: UIReturnKeyType?
   /// The width the multiline height was last measured against.
   private var lastMeasuredWidth: CGFloat = 0
   /// Scaled and aligned container for the content (font space).
@@ -1357,6 +1359,7 @@ final class NitroInputView: UIView {
     applyMultiline()
     field.keyboardType = traits.keyboardType
     field.returnKeyType = traits.returnKeyType
+    applyReturnAccessory()
     field.isEnabled = traits.editable && !traits.multiline
     field.isUserInteractionEnabled = traits.editable
     // `tintColor` is both the caret and the selection on a UITextField. The
@@ -1431,6 +1434,53 @@ final class NitroInputView: UIView {
     case .left: return .left
     case .center: return .center
     case .right: return .right
+    }
+  }
+
+  /// The number pads (number, phone, decimal) have no return key, so a form
+  /// chained with `returnKeyType="next"` would stop at its first numeric field.
+  /// As React Native's `TextInput` does, a field on one of them with a return
+  /// key type set gets a bar above the keyboard with that key: "Next", "Go",
+  /// "Done"... It is the return key, submit behaviour and all.
+  private func applyReturnAccessory() {
+    let pads: [UIKeyboardType] = [.numberPad, .phonePad, .decimalPad, .asciiCapableNumberPad]
+    let returnKey = traits.returnKeyType
+    let wanted = pads.contains(traits.keyboardType) && returnKey != .default
+    if !wanted {
+      guard returnAccessoryKey != nil else { return }
+      returnAccessoryKey = nil
+      field.inputAccessoryView = nil
+    } else {
+      guard returnAccessoryKey != returnKey else { return }
+      returnAccessoryKey = returnKey
+      let bar = UIToolbar()
+      bar.sizeToFit()
+      let button = returnKey == .done
+        ? UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(returnAccessoryTapped))
+        : UIBarButtonItem(title: Self.returnKeyTitle(returnKey), style: .plain, target: self, action: #selector(returnAccessoryTapped))
+      bar.items = [UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil), button]
+      field.inputAccessoryView = bar
+    }
+    if didBuildTextView { textView.inputAccessoryView = field.inputAccessoryView }
+    if editor.isFirstResponder { editor.reloadInputViews() }
+  }
+
+  @objc private func returnAccessoryTapped() {
+    handleReturnKey()
+  }
+
+  /// The return key's own label, as React Native names it for the same bar.
+  private static func returnKeyTitle(_ key: UIReturnKeyType) -> String {
+    switch key {
+    case .go: return "Go"
+    case .next: return "Next"
+    case .search: return "Search"
+    case .send: return "Send"
+    case .route: return "Route"
+    case .join: return "Join"
+    case .emergencyCall: return "Emergency Call"
+    case .continue: return "Continue"
+    default: return "Done"
     }
   }
 

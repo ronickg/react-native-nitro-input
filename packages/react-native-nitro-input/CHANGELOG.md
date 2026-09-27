@@ -10,6 +10,12 @@
   to, refocusing its field before it is shown again) now focuses it as soon
   as it is, while the keyboard is still up. On Android this alone keeps the
   keyboard up across a stack pop.
+- **iOS number pads get a return key**: a field on the number, phone or
+  decimal pad with a `returnKeyType` set shows a bar above the keyboard with
+  that key ("Next", "Go", "Done"...), as `TextInput` does. The pads have no
+  return key of their own, so a form chained with Next stopped at its first
+  numeric field. The bar is the return key: `submitBehavior`,
+  `onSubmitEditing` and worklets run as for the real one.
 - **Changed**: a controlled field whose parent keeps its `value` while the
   user types (a rejected edit, a digits-only filter) puts the value back, as
   `TextInput` does. It used to keep showing what was typed.
@@ -25,7 +31,11 @@
 - **Fixed (iOS)**: React Native's `focus` / `blur` view commands now go
   through the field's own `focus()` / `blur()` (retrying a declined focus).
 - An on-device keyboard suite measures each of these: no keyboard hide when
-  focus moves, a field unmounts as the next autofocuses, or a stack pops.
+  focus moves, a field unmounts as the next autofocuses, a stack pops, a
+  search list filters under the field, or a scroll moves it out of sight.
+  The example app has an input lab (a search list and a form chained with
+  Next, each with NitroInput or TextInput), and
+  `example/e2e/keyboard-lab-android.sh` drives it with real touches over adb.
 
 ## 0.3.2
 

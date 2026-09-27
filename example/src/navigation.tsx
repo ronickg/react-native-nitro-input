@@ -20,6 +20,7 @@ import {
   FlowSheetScreen,
   type Impl,
 } from './screens/KeyboardFlow'
+import { LabDetailScreen, LabFormScreen, LabSearchScreen } from './screens/InputLab'
 
 export type RootStackParamList = {
   Home: undefined
@@ -38,6 +39,9 @@ export type RootStackParamList = {
   ViewPropsRepro: undefined
   Rtl: undefined
   RecycleCheck: undefined
+  LabSearch: { impl: Impl }
+  LabForm: { impl: Impl }
+  LabDetail: { title: string }
 }
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
@@ -85,6 +89,19 @@ function HomeScreen() {
           <Btn testID="home-repro" title="Nitro view props (Android)" onPress={() => nav.navigate('ViewPropsRepro')} />
           <Btn testID="home-flow-ours" tone="primary" title="Run flow (NitroInput)" onPress={() => nav.navigate('FlowEmail', { impl: 'ours' })} />
           <Btn testID="home-flow-rn" tone="primary" title="Run flow (RN TextInput)" onPress={() => nav.navigate('FlowEmail', { impl: 'rn' })} />
+        </Row>
+      </Card>
+      <Card
+        title="Input lab"
+        hint="The flows of the platform apps: a search over a list, a form chained with Next, a push while a field has the keyboard. The status line says which field has focus and whether the keyboard is up."
+      >
+        <Row>
+          <Btn testID="home-lab-search-ours" tone="primary" title="Search list (NitroInput)" onPress={() => nav.navigate('LabSearch', { impl: 'ours' })} />
+          <Btn testID="home-lab-search-rn" title="Search list (TextInput)" onPress={() => nav.navigate('LabSearch', { impl: 'rn' })} />
+        </Row>
+        <Row>
+          <Btn testID="home-lab-form-ours" tone="primary" title="Form (NitroInput)" onPress={() => nav.navigate('LabForm', { impl: 'ours' })} />
+          <Btn testID="home-lab-form-rn" title="Form (TextInput)" onPress={() => nav.navigate('LabForm', { impl: 'rn' })} />
         </Row>
       </Card>
       <Card
@@ -144,6 +161,9 @@ export function RootNavigator() {
         <Stack.Screen name="ViewPropsRepro" component={ViewPropsReproScreen} options={{ title: 'View props' }} />
         <Stack.Screen name="Rtl" component={RtlScreen} options={{ title: 'Right-to-left' }} />
         <Stack.Screen name="RecycleCheck" component={RecycleCheckScreen} options={{ title: 'Recycle check' }} />
+        <Stack.Screen name="LabSearch" component={LabSearchScreen} options={{ title: 'Search list' }} />
+        <Stack.Screen name="LabForm" component={LabFormScreen} options={{ title: 'Form' }} />
+        <Stack.Screen name="LabDetail" component={LabDetailScreen} options={{ title: 'Detail' }} />
         <Stack.Screen
           name="FlowSheet"
           component={FlowSheetScreen}
