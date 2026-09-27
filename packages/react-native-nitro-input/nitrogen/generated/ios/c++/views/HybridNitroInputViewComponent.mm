@@ -158,6 +158,42 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.maskAutoSkip.hasSameValue(oldViewProps->maskAutoSkip)) {
       swiftPart.setMaskAutoSkip(newViewProps.maskAutoSkip.get());
     }
+    // maskAffinityFormats: array
+    if (oldViewProps == nullptr
+          ? newViewProps.maskAffinityFormats.isProvided()
+          : !newViewProps.maskAffinityFormats.hasSameValue(oldViewProps->maskAffinityFormats)) {
+      swiftPart.setMaskAffinityFormats(newViewProps.maskAffinityFormats.get());
+    }
+    // maskAffinityStrategy: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.maskAffinityStrategy.isProvided()
+          : !newViewProps.maskAffinityStrategy.hasSameValue(oldViewProps->maskAffinityStrategy)) {
+      swiftPart.setMaskAffinityStrategy(static_cast<int>(newViewProps.maskAffinityStrategy.get()));
+    }
+    // maskTextCase: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.maskTextCase.isProvided()
+          : !newViewProps.maskTextCase.hasSameValue(oldViewProps->maskTextCase)) {
+      swiftPart.setMaskTextCase(static_cast<int>(newViewProps.maskTextCase.get()));
+    }
+    // maskCharacterMap: array
+    if (oldViewProps == nullptr
+          ? newViewProps.maskCharacterMap.isProvided()
+          : !newViewProps.maskCharacterMap.hasSameValue(oldViewProps->maskCharacterMap)) {
+      swiftPart.setMaskCharacterMap(newViewProps.maskCharacterMap.get());
+    }
+    // maskSlotPlaceholder: string
+    if (oldViewProps == nullptr
+          ? newViewProps.maskSlotPlaceholder.isProvided()
+          : !newViewProps.maskSlotPlaceholder.hasSameValue(oldViewProps->maskSlotPlaceholder)) {
+      swiftPart.setMaskSlotPlaceholder(newViewProps.maskSlotPlaceholder.get());
+    }
+    // keepPlaceholder: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.keepPlaceholder.isProvided()
+          : !newViewProps.keepPlaceholder.hasSameValue(oldViewProps->keepPlaceholder)) {
+      swiftPart.setKeepPlaceholder(newViewProps.keepPlaceholder.get());
+    }
     // groupingSeparator: string
     if (oldViewProps == nullptr
           ? newViewProps.groupingSeparator.isProvided()

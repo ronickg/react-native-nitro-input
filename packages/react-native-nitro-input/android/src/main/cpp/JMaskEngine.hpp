@@ -27,6 +27,14 @@ public:
   void clearNotations();
   void addNotation(jni::alias_ref<jni::JString> character, jni::alias_ref<jni::JString> characterSet, bool isOptional);
   bool setFormat(jni::alias_ref<jni::JString> format);
+  void clearAffinityFormats();
+  void addAffinityFormat(jni::alias_ref<jni::JString> format);
+  void setAffinityStrategy(int strategy);
+  void setTextCase(int textCase);
+  void clearCharacterMap();
+  void addCharacterMapping(jni::alias_ref<jni::JString> from, jni::alias_ref<jni::JString> to);
+  void setSlotPlaceholder(jni::alias_ref<jni::JString> character);
+  bool isActive();
 
   /// Replaces code points [start, end) of `current` with `replacement`.
   jni::local_ref<jni::JString> applyEdit(jni::alias_ref<jni::JString> current, int start, int end,
@@ -39,6 +47,7 @@ public:
   jni::local_ref<jni::JString> lastExtracted();
   jni::local_ref<jni::JString> lastTailPlaceholder();
   bool lastComplete();
+  int lastFormatIndex();
 
 private:
   friend HybridBase;

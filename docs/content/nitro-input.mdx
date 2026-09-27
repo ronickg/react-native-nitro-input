@@ -91,13 +91,49 @@ Keep the field uncontrolled and read the callbacks, or pass `value` to drive it.
 | | |
 | --- | --- |
 | `[0]` / `[9]` | A mandatory / optional digit. |
-| `[A]` / `[a]` | A mandatory / optional letter. |
+| `[A]` / `[a]` | A mandatory / optional letter, in Latin, Greek, Cyrillic and the other common scripts. |
 | `[_]` / `[-]` | A mandatory / optional alphanumeric. |
 | `[0…]` | An unbounded run of the preceding slot. |
 | `{…}` | Literal characters that count towards the extracted value, e.g. `{+1}`. |
 | `\` | Escapes the next character. |
 
 `maskNotations` adds your own slot characters, e.g. `{ character: 'H', characterSet: '0123456789ABCDEFabcdef', isOptional: false }` for `#[HHHHHH]`. `maskAutocomplete` (default on) inserts literals as soon as the slot before them fills, while the caret is at the end; `maskAutoSkip` lets a backspace walk back over them. An invalid pattern leaves the field unmasked rather than breaking it. For a rule a pattern cannot express, such as libphonenumber-js, use a [`transform` worklet](/docs/worklets). The algorithm follows RedMadRobot's input-mask, in code points rather than UTF-16 units.
+
+### Keeping the placeholder
+
+`keepPlaceholder` keeps what is still to come in view as the user types, greyed after the text:
+
+```tsx
+<NitroInput mode="mask" mask="[0000] [0000] [0000]" placeholder="1234 5678 9012" keepPlaceholder />
+// typing 12345 shows: 1234 5 678 9012   (the tail in the placeholder colour)
+
+<NitroInput mode="mask" mask="+1 ([000]) [000]-[0000]" keepPlaceholder />
+// empty: +1 (___) ___-____    after 5551: +1 (555) 1__-____
+```
+
+With no `placeholder` the mask is its own placeholder, its empty slots drawn as `maskSlotPlaceholder` (`_` by default). The field keeps the width of the whole value while it fills, so a layout sized to it does not jump.
+
+### Several formats
+
+A value that can take more than one shape - a card number, an IBAN whose length depends on its country, a phone number with or without an area code - gives the other shapes as `maskAffinityFormats`. Each edit is masked with every format and the best one kept:
+
+```tsx
+<NitroInput
+  mode="mask"
+  mask="[0000] [0000] [0000] [0000]"
+  maskAffinityFormats={['{34}[00] [000000] [00000]', '{37}[00] [000000] [00000]']}
+/>
+// 4111111111111111 → 4111 1111 1111 1111
+// 378282246310005  → 3782 822463 10005
+```
+
+The formats are compared on the value characters alone, so the separators one of them inserted never count against another, and a tie keeps whichever format is showing. `maskAffinityStrategy` picks what "best" means; `onChangeMask` reports the text of the winner.
+
+### Case, look-alikes and pasting
+
+`maskTextCase="upper"` uppercases letters as they arrive, caret and all. `maskCharacterMap` replaces characters before masking: `{ 'С': 'C' }` for Cyrillic look-alikes in a Latin code, `{ ',': '.' }` so a decimal mask takes a comma.
+
+A paste that repeats the mask's own leading constants - `+639123456789` into `+63 [000] [000] [0000]`, which already shows `+63 ` - loses the repeat, but only when keeping it would overflow the mask; a value that merely starts with the same digits and fits is left alone.
 
 ## Frames
 

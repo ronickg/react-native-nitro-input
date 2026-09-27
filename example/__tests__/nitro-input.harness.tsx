@@ -6,7 +6,7 @@
  * the manual QA screens.
  */
 import React, { createRef, useEffect, useRef } from 'react'
-import { View, type LayoutRectangle } from 'react-native'
+import { FlatList, Keyboard, View, type LayoutRectangle } from 'react-native'
 import { describe, expect, it } from 'react-native-harness'
 import {
   NitroInput,
@@ -331,6 +331,238 @@ describe('NitroInput', () => {
     await waitFor(() => expect(reports.length).toBe(4), { timeout: 5000 })
     expect(reports[3]).toEqual(['', '', '+1 (000) 000-0000', false])
   })
+
+  it('masks with the best of several formats, a text case and a character map', async () => {
+    const card = createRef<NitroInputHandle>()
+    const bic = createRef<NitroInputHandle>()
+    const decimal = createRef<NitroInputHandle>()
+    await render(
+      <View>
+        <NitroInput
+          ref={card}
+          mode="mask"
+          mask="[0000] [0000] [0000] [0000]"
+          maskAffinityFormats={['{34}[00] [000000] [00000]', '{37}[00] [000000] [00000]']}
+        />
+        <NitroInput ref={bic} mode="mask" mask="[AAAA][AA][__][___]" maskTextCase="upper" />
+        <NitroInput ref={decimal} mode="mask" mask="[099999].[99]" maskCharacterMap={{ ',': '.' }} />
+      </View>
+    )
+    await waitFor(() => expect(decimal.current?.native).not.toBeNull())
+
+    card.current!.setText('4111111111111111')
+    await waitFor(() => expect(card.current!.getText()).toBe('4111 1111 1111 1111'))
+    // Amex digits take the 4-6-5 grouping.
+    card.current!.setText('378282246310005')
+    await waitFor(() => expect(card.current!.getText()).toBe('3782 822463 10005'))
+
+    bic.current!.setText('deutdeff500')
+    await waitFor(() => expect(bic.current!.getText()).toBe('DEUTDEFF500'))
+
+    decimal.current!.setText('123,45')
+    await waitFor(() => expect(decimal.current!.getText()).toBe('123.45'))
+  })
+
+  // The next few are the bugs reported against react-native-advanced-input-mask,
+  // checked here so NitroInput never grows the same ones.
+
+  it('survives onChangeText dismissing the keyboard on the last digit (their #157)', async () => {
+    const ref = createRef<NitroInputHandle>()
+    const seen: string[] = []
+    await render(
+      <NitroInput
+        ref={ref}
+        mode="mask"
+        mask="([00]) [00000]-[0000]"
+        keyboardType="phone-pad"
+        onChangeText={(text) => {
+          seen.push(text)
+          if (text.replace(/\D/g, '').length >= 11) Keyboard.dismiss()
+        }}
+      />
+    )
+    await waitFor(() => expect(ref.current?.native).not.toBeNull())
+    ref.current!.focus()
+    await waitFor(() => expect(ref.current!.isFocused()).toBe(true))
+    ref.current!.setText('1198765432')
+    await waitFor(() => expect(ref.current!.getText()).toBe('(11) 98765-432'))
+    // The digit that completes it, and the dismissal it triggers.
+    ref.current!.setText('11987654321')
+    await waitFor(() => expect(ref.current!.getText()).toBe('(11) 98765-4321'))
+    await waitFor(() => expect(ref.current!.isFocused()).toBe(false), { timeout: 5000 })
+    // Still alive and still masking.
+    ref.current!.setText('2')
+    await waitFor(() => expect(ref.current!.getText()).toBe('(2'))
+    expect(seen).toContain('(11) 98765-4321')
+  })
+
+  it('does not change a masked value by focusing and blurring it (their #140)', async () => {
+    const ref = createRef<NitroInputHandle>()
+    const changes: string[] = []
+    await render(<NitroInput ref={ref} mode="mask" mask="[000]" onChangeText={(t) => changes.push(t)} />)
+    await waitFor(() => expect(ref.current?.native).not.toBeNull())
+    ref.current!.setText('123')
+    await waitFor(() => expect(ref.current!.getText()).toBe('123'))
+    for (let i = 0; i < 3; i++) {
+      ref.current!.focus()
+      await waitFor(() => expect(ref.current!.isFocused()).toBe(true))
+      ref.current!.blur()
+      await waitFor(() => expect(ref.current!.isFocused()).toBe(false))
+    }
+    expect(ref.current!.getText()).toBe('123')
+    ref.current!.setText('125')
+    await waitFor(() => expect(ref.current!.getText()).toBe('125'))
+    ref.current!.focus()
+    await waitFor(() => expect(ref.current!.isFocused()).toBe(true))
+    ref.current!.blur()
+    await sleep(200)
+    expect(ref.current!.getText()).toBe('125')
+    expect(changes).toEqual(['123', '125'])
+  })
+
+  it('reports no change when only the placeholder or the style changes (their #147, #101)', async () => {
+    const ref = createRef<NitroInputHandle>()
+    const changes: string[] = []
+    const onChangeText = (t: string) => changes.push(t)
+    const { rerender } = await render(
+      <NitroInput ref={ref} mode="mask" mask="[0000] [0000]" onChangeText={onChangeText} />
+    )
+    await waitFor(() => expect(ref.current?.native).not.toBeNull())
+    await rerender(<NitroInput ref={ref} mode="mask" mask="[0000] [0000]" placeholder="1234 5678" onChangeText={onChangeText} />)
+    await sleep(200)
+    expect(changes).toEqual([])
+
+    ref.current!.setText('12345')
+    await waitFor(() => expect(ref.current!.getText()).toBe('1234 5'))
+    // A style that changes with the value (an "over the limit" colour) keeps the text.
+    await rerender(
+      <NitroInput
+        ref={ref}
+        mode="mask"
+        mask="[0000] [0000]"
+        placeholder="1234 5678"
+        color="red"
+        style={{ opacity: 0.9, zIndex: 2 }}
+        onChangeText={onChangeText}
+      />
+    )
+    await sleep(300)
+    expect(ref.current!.getText()).toBe('1234 5')
+    expect(changes).toEqual(['1234 5'])
+  })
+
+  it('re-masks its text when the mask itself changes (their #108)', async () => {
+    const ref = createRef<NitroInputHandle>()
+    const { rerender } = await render(<NitroInput ref={ref} mode="mask" mask="[000]-[000]" />)
+    await waitFor(() => expect(ref.current?.native).not.toBeNull())
+    ref.current!.setText('123456')
+    await waitFor(() => expect(ref.current!.getText()).toBe('123-456'))
+    const changes: string[] = []
+    await rerender(<NitroInput ref={ref} mode="mask" mask="[00] [00] [00]" onChangeText={(t) => changes.push(t)} />)
+    await waitFor(() => expect(ref.current!.getText()).toBe('12 34 56'))
+    // The new text reaches JS too, so a controlled parent does not hold the old one.
+    await waitFor(() => expect(changes).toEqual(['12 34 56']))
+  })
+
+  it('masks a field that mounts hidden and is shown later (their #132)', async () => {
+    const ref = createRef<NitroInputHandle>()
+    const { rerender } = await render(
+      <View style={{ display: 'none' }}>
+        <NitroInput ref={ref} mode="mask" mask="[00]/[00]" defaultValue="1225" />
+      </View>
+    )
+    // Fabric builds no native view under `display: 'none'` (iOS); shown, the
+    // field starts masked.
+    await sleep(300)
+    await rerender(
+      <View>
+        <NitroInput ref={ref} mode="mask" mask="[00]/[00]" defaultValue="1225" />
+      </View>
+    )
+    await waitFor(() => expect(ref.current?.native).not.toBeNull())
+    await waitFor(() => expect(ref.current!.getText()).toBe('12/25'))
+    ref.current!.setText('0130')
+    await waitFor(() => expect(ref.current!.getText()).toBe('01/30'))
+  })
+
+  it('keeps each recycled row its own masked value in a FlatList (their #142)', async () => {
+    const refs = Array.from({ length: 40 }, () => createRef<NitroInputHandle>())
+    const values = refs.map((_, i) => String(1000 + i * 7).padStart(4, '0'))
+    await render(
+      <FlatList
+        style={{ height: 300 }}
+        data={values}
+        keyExtractor={(v) => v}
+        renderItem={({ item, index }) => (
+          <NitroInput ref={refs[index]} mode="mask" mask="[00]-[00]" defaultValue={item} style={{ height: 30 }} />
+        )}
+      />
+    )
+    await waitFor(() => expect(refs[0]!.current?.native).not.toBeNull())
+    await waitFor(() => expect(refs[0]!.current!.getText()).toBe('10-00'))
+    for (let i = 0; i < 5; i++) {
+      const v = values[i]!
+      expect(refs[i]!.current!.getText()).toBe(`${v.slice(0, 2)}-${v.slice(2)}`)
+    }
+  })
+
+  it('keeps astral characters whole and refuses them where a slot does not take them', async () => {
+    const letters = createRef<NitroInputHandle>()
+    const any = createRef<NitroInputHandle>()
+    await render(
+      <View>
+        <NitroInput ref={letters} mode="mask" mask="[A…]" />
+        <NitroInput
+          ref={any}
+          mode="mask"
+          mask="[E][E][E]"
+          maskNotations={[{ character: 'E', characterSet: '😀😃😄a', isOptional: false }]}
+        />
+      </View>
+    )
+    await waitFor(() => expect(any.current?.native).not.toBeNull())
+    letters.current!.setText('ab😀c1')
+    await waitFor(() => expect(letters.current!.getText()).toBe('abc'))
+    any.current!.setText('😀a😃x')
+    await waitFor(() => expect(any.current!.getText()).toBe('😀a😃'))
+  })
+
+  for (const transition of ['none', 'reflow'] as const) {
+    it(`keeps the rest of the mask in view after the text (${transition})`, async () => {
+      const ref = createRef<NitroInputHandle>()
+      const tails: string[] = []
+      const { state, onLayout } = layoutOf()
+      await render(
+        <View style={{ alignItems: 'flex-start' }}>
+          <NitroInput
+            ref={ref}
+            transition={transition}
+            mode="mask"
+            mask="+1 ([000]) [000]-[0000]"
+            keepPlaceholder
+            autoWidth
+            fontSize={18}
+            onLayout={onLayout}
+            onChangeMask={(_formatted, _extracted, tail) => tails.push(tail)}
+          />
+        </View>
+      )
+      await waitFor(() => expect(ref.current?.native).not.toBeNull())
+      // Empty, the whole mask is the placeholder, sized like the full number.
+      await waitFor(() => expect(state.current?.width ?? 0).toBeGreaterThan(0))
+      const empty = state.current!.width
+
+      ref.current!.setText('555')
+      await waitFor(() => expect(ref.current!.getText()).toBe('+1 (555) '))
+      await waitFor(() => expect(tails.length).toBe(1), { timeout: 5000 })
+      // Empty slots show as `_` (the default with keepPlaceholder).
+      expect(tails[0]).toBe('___-____')
+      // Still as wide as the whole mask - the tail takes the room the typed
+      // text does not - rather than shrinking to "+1 (555) ".
+      await sleep(600)
+      expect(state.current!.width).toBeGreaterThan(empty * 0.8)
+    })
+  }
 
   it('caps the text at maxLength in text mode', async () => {
     const ref = createRef<NitroInputHandle>()

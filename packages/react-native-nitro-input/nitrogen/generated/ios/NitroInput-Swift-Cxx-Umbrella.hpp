@@ -24,6 +24,8 @@ namespace margelo::nitro::nitroinput { class HybridNitroTextViewSpec; }
 namespace margelo::nitro::nitroinput { enum class NitroInputAffixAlign; }
 // Forward declaration of `NitroInputAutoCapitalize` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputAutoCapitalize; }
+// Forward declaration of `NitroInputCharacterMapping` to properly resolve imports.
+namespace margelo::nitro::nitroinput { struct NitroInputCharacterMapping; }
 // Forward declaration of `NitroInputEasing` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputEasing; }
 // Forward declaration of `NitroInputEffect` to properly resolve imports.
@@ -34,6 +36,8 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardAppearance; 
 namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardType; }
 // Forward declaration of `NitroInputLabelBehavior` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputLabelBehavior; }
+// Forward declaration of `NitroInputMaskAffinity` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputMaskAffinity; }
 // Forward declaration of `NitroInputMode` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputMode; }
 // Forward declaration of `NitroInputNotation` to properly resolve imports.
@@ -48,6 +52,8 @@ namespace margelo::nitro::nitroinput { enum class NitroInputSubmitBehavior; }
 namespace margelo::nitro::nitroinput { enum class NitroInputTextAlignVertical; }
 // Forward declaration of `NitroInputTextAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputTextAlign; }
+// Forward declaration of `NitroInputTextCase` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputTextCase; }
 // Forward declaration of `NitroInputVariant` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputVariant; }
 // Forward declaration of `NitroNumberAffixAlign` to properly resolve imports.
@@ -96,11 +102,13 @@ namespace margelo::nitro::nitroinput { enum class NumberFormatUnitDisplay; }
 #include "HybridNitroTextViewSpec.hpp"
 #include "NitroInputAffixAlign.hpp"
 #include "NitroInputAutoCapitalize.hpp"
+#include "NitroInputCharacterMapping.hpp"
 #include "NitroInputEasing.hpp"
 #include "NitroInputEffect.hpp"
 #include "NitroInputKeyboardAppearance.hpp"
 #include "NitroInputKeyboardType.hpp"
 #include "NitroInputLabelBehavior.hpp"
+#include "NitroInputMaskAffinity.hpp"
 #include "NitroInputMode.hpp"
 #include "NitroInputNotation.hpp"
 #include "NitroInputReturnKeyType.hpp"
@@ -108,6 +116,7 @@ namespace margelo::nitro::nitroinput { enum class NumberFormatUnitDisplay; }
 #include "NitroInputSubmitBehavior.hpp"
 #include "NitroInputTextAlign.hpp"
 #include "NitroInputTextAlignVertical.hpp"
+#include "NitroInputTextCase.hpp"
 #include "NitroInputVariant.hpp"
 #include "NitroNumberAffixAlign.hpp"
 #include "NitroNumberDirection.hpp"

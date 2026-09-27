@@ -237,6 +237,84 @@ open class HybridNitroInputViewSpec_cxx {
     }
   }
   
+  public final var maskAffinityFormats: bridge.std__vector_std__string_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__vector_std__string_ in
+        var __vector = bridge.create_std__vector_std__string_(self.__implementation.maskAffinityFormats.count)
+        for __item in self.__implementation.maskAffinityFormats {
+          __vector.push_back(std.string(__item))
+        }
+        return __vector
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.maskAffinityFormats = newValue.map({ __item in String(__item) })
+    }
+  }
+  
+  public final var maskAffinityStrategy: Int32 {
+    @inline(__always)
+    get {
+      return self.__implementation.maskAffinityStrategy.rawValue
+    }
+    @inline(__always)
+    set {
+      self.__implementation.maskAffinityStrategy = margelo.nitro.nitroinput.NitroInputMaskAffinity(rawValue: newValue)!
+    }
+  }
+  
+  public final var maskTextCase: Int32 {
+    @inline(__always)
+    get {
+      return self.__implementation.maskTextCase.rawValue
+    }
+    @inline(__always)
+    set {
+      self.__implementation.maskTextCase = margelo.nitro.nitroinput.NitroInputTextCase(rawValue: newValue)!
+    }
+  }
+  
+  public final var maskCharacterMap: bridge.std__vector_NitroInputCharacterMapping_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__vector_NitroInputCharacterMapping_ in
+        var __vector = bridge.create_std__vector_NitroInputCharacterMapping_(self.__implementation.maskCharacterMap.count)
+        for __item in self.__implementation.maskCharacterMap {
+          __vector.push_back(__item)
+        }
+        return __vector
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.maskCharacterMap = newValue.map({ __item in __item })
+    }
+  }
+  
+  public final var maskSlotPlaceholder: std.string {
+    @inline(__always)
+    get {
+      return std.string(self.__implementation.maskSlotPlaceholder)
+    }
+    @inline(__always)
+    set {
+      self.__implementation.maskSlotPlaceholder = String(newValue)
+    }
+  }
+  
+  public final var keepPlaceholder: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.keepPlaceholder
+    }
+    @inline(__always)
+    set {
+      self.__implementation.keepPlaceholder = newValue
+    }
+  }
+  
   public final var groupingSeparator: std.string {
     @inline(__always)
     get {

@@ -104,6 +104,36 @@ void JHybridNitroInputViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCla
     hybridView->setMaskAutoSkip(newProps->maskAutoSkip.get());
   }
   if (oldProps == nullptr
+        ? newProps->maskAffinityFormats.isProvided()
+        : !newProps->maskAffinityFormats.hasSameValue(oldProps->maskAffinityFormats)) {
+    hybridView->setMaskAffinityFormats(newProps->maskAffinityFormats.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->maskAffinityStrategy.isProvided()
+        : !newProps->maskAffinityStrategy.hasSameValue(oldProps->maskAffinityStrategy)) {
+    hybridView->setMaskAffinityStrategy(newProps->maskAffinityStrategy.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->maskTextCase.isProvided()
+        : !newProps->maskTextCase.hasSameValue(oldProps->maskTextCase)) {
+    hybridView->setMaskTextCase(newProps->maskTextCase.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->maskCharacterMap.isProvided()
+        : !newProps->maskCharacterMap.hasSameValue(oldProps->maskCharacterMap)) {
+    hybridView->setMaskCharacterMap(newProps->maskCharacterMap.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->maskSlotPlaceholder.isProvided()
+        : !newProps->maskSlotPlaceholder.hasSameValue(oldProps->maskSlotPlaceholder)) {
+    hybridView->setMaskSlotPlaceholder(newProps->maskSlotPlaceholder.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->keepPlaceholder.isProvided()
+        : !newProps->keepPlaceholder.hasSameValue(oldProps->keepPlaceholder)) {
+    hybridView->setKeepPlaceholder(newProps->keepPlaceholder.get());
+  }
+  if (oldProps == nullptr
         ? newProps->groupingSeparator.isProvided()
         : !newProps->groupingSeparator.hasSameValue(oldProps->groupingSeparator)) {
     hybridView->setGroupingSeparator(newProps->groupingSeparator.get());

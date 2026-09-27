@@ -37,6 +37,9 @@ import type {
   NitroInputSignPlacement,
   NitroInputVariant,
   NitroInputNotation,
+  NitroInputMaskAffinity,
+  NitroInputTextCase,
+  NitroInputCharacterMapping,
 } from './specs/NitroInput.nitro'
 import {
   allocateWorkletId,
@@ -152,6 +155,8 @@ function reactTagOf(host: unknown): number {
 }
 
 const EMPTY_NOTATIONS: NitroInputNotation[] = []
+const EMPTY_STRINGS: string[] = []
+const EMPTY_MAPPINGS: NitroInputCharacterMapping[] = []
 
 /** Mounted fields, by the host instance React Native's registry stores. */
 const mountedFields = new WeakMap<object, { focus(): void; blur(): void }>()
@@ -318,6 +323,44 @@ export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' 
   maskAutocomplete?: boolean
   /** `'mask'`: backspace walks back over autocompleted constants. Default: `false`. */
   maskAutoSkip?: boolean
+  /**
+   * `'mask'`: more patterns the text may take, e.g. a 4-6-5 Amex card beside
+   * a 4-4-4-4 `mask`: `['{34}[00] [000000] [00000]', '{37}[00] [000000] [00000]']`.
+   * Every edit is masked with each and the best, by `maskAffinityStrategy`, is
+   * kept; `mask` wins ties.
+   */
+  maskAffinityFormats?: string[]
+  /**
+   * `'mask'`: how the best of `maskAffinityFormats` is chosen. `'wholeString'`
+   * the format that accepts the most characters and inserts the fewest,
+   * `'prefix'` the one whose output starts most like what was typed,
+   * `'capacity'` / `'extractedValueCapacity'` the fullest format that still
+   * holds all of the text / all of its value characters. Default: `'wholeString'`.
+   */
+  maskAffinityStrategy?: NitroInputMaskAffinity
+  /** `'mask'`: uppercases or lowercases letters as they are typed or pasted. Default: `'none'`. */
+  maskTextCase?: NitroInputTextCase
+  /**
+   * `'mask'`: characters replaced before masking, one character each:
+   * `{ 'С': 'C' }` turns a Cyrillic look-alike into a Latin letter,
+   * `{ ',': '.' }` lets a comma through to a dot-decimal mask. An empty
+   * replacement drops the character.
+   */
+  maskCharacterMap?: Record<string, string>
+  /**
+   * `'mask'`: the character each empty slot shows in the kept placeholder and
+   * in `onChangeMask`'s tail. Default: `'_'` with `keepPlaceholder`, otherwise
+   * the slot's own notation character.
+   */
+  maskSlotPlaceholder?: string
+  /**
+   * `'mask'`: keeps the rest of the placeholder visible after what has been
+   * typed: with `placeholder="1234 5678 9012"`, typing "12345" shows
+   * "1234 5" and then "678 9012" greyed. Without a `placeholder` the mask
+   * itself is shown, its empty slots as `maskSlotPlaceholder`:
+   * `+1 (212) ___-____`. Default: `false`.
+   */
+  keepPlaceholder?: boolean
   /**
    * `'mask'` mode: called whenever the text changes, from a keystroke,
    * `setText` / `clear` or the `value` prop alike, with the masked text, the
@@ -698,6 +741,12 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       maskNotations,
       maskAutocomplete,
       maskAutoSkip,
+      maskAffinityFormats,
+      maskAffinityStrategy,
+      maskTextCase,
+      maskCharacterMap,
+      maskSlotPlaceholder,
+      keepPlaceholder,
       returnKeyType,
       autoCapitalize,
       autoCorrect,
@@ -1122,6 +1171,24 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       // eslint-disable-next-line react-hooks/exhaustive-deps
       [notationsKey]
     )
+    // The same for the affinity formats and the character map.
+    const affinityKey =
+      maskAffinityFormats != null && maskAffinityFormats.length > 0 ? JSON.stringify(maskAffinityFormats) : ''
+    const stableAffinityFormats = useMemo(
+      () => (affinityKey !== '' && maskAffinityFormats ? [...maskAffinityFormats] : EMPTY_STRINGS),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [affinityKey]
+    )
+    const characterMapKey =
+      maskCharacterMap != null && Object.keys(maskCharacterMap).length > 0 ? JSON.stringify(maskCharacterMap) : ''
+    const stableCharacterMap = useMemo<NitroInputCharacterMapping[]>(
+      () =>
+        characterMapKey !== '' && maskCharacterMap
+          ? Object.entries(maskCharacterMap).map(([from, to]) => ({ from, to }))
+          : EMPTY_MAPPINGS,
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [characterMapKey]
+    )
     const resolvedFractionDigits = fractionDigits ?? derived?.fractionDigits ?? 2
     const resolvedKeyboardType =
       keyboardType ??
@@ -1275,6 +1342,12 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         maskNotations={stableNotations}
         maskAutocomplete={maskAutocomplete ?? true}
         maskAutoSkip={maskAutoSkip ?? false}
+        maskAffinityFormats={stableAffinityFormats}
+        maskAffinityStrategy={maskAffinityStrategy ?? 'wholeString'}
+        maskTextCase={maskTextCase ?? 'none'}
+        maskCharacterMap={stableCharacterMap}
+        maskSlotPlaceholder={maskSlotPlaceholder ?? (keepPlaceholder ? '_' : '')}
+        keepPlaceholder={keepPlaceholder ?? false}
         onChangeMask={onChangeMaskCallback}
         keyboardType={resolvedKeyboardType}
         returnKeyType={resolvedReturnKeyType}

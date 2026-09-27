@@ -20,6 +20,8 @@ namespace margelo::nitro::nitroinput { class HybridNitroPlatformNumberFormatterS
 namespace margelo::nitro::nitroinput { class HybridNitroTextMeasureSpec; }
 // Forward declaration of `HybridNitroTextViewSpec` to properly resolve imports.
 namespace margelo::nitro::nitroinput { class HybridNitroTextViewSpec; }
+// Forward declaration of `NitroInputCharacterMapping` to properly resolve imports.
+namespace margelo::nitro::nitroinput { struct NitroInputCharacterMapping; }
 // Forward declaration of `NitroInputEasing` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputEasing; }
 // Forward declaration of `NitroInputEffect` to properly resolve imports.
@@ -64,6 +66,7 @@ namespace NitroInput { class HybridNitroTextViewSpec_cxx; }
 #include "HybridNitroPlatformNumberFormatterSpec.hpp"
 #include "HybridNitroTextMeasureSpec.hpp"
 #include "HybridNitroTextViewSpec.hpp"
+#include "NitroInputCharacterMapping.hpp"
 #include "NitroInputEasing.hpp"
 #include "NitroInputEffect.hpp"
 #include "NitroInputNotation.hpp"
@@ -96,6 +99,28 @@ namespace margelo::nitro::nitroinput::bridge::swift {
   using std__vector_NitroInputNotation_ = std::vector<NitroInputNotation>;
   inline std::vector<NitroInputNotation> create_std__vector_NitroInputNotation_(size_t size) noexcept {
     std::vector<NitroInputNotation> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::vector<std::string>
+  /**
+   * Specialized version of `std::vector<std::string>`.
+   */
+  using std__vector_std__string_ = std::vector<std::string>;
+  inline std::vector<std::string> create_std__vector_std__string_(size_t size) noexcept {
+    std::vector<std::string> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::vector<NitroInputCharacterMapping>
+  /**
+   * Specialized version of `std::vector<NitroInputCharacterMapping>`.
+   */
+  using std__vector_NitroInputCharacterMapping_ = std::vector<NitroInputCharacterMapping>;
+  inline std::vector<NitroInputCharacterMapping> create_std__vector_NitroInputCharacterMapping_(size_t size) noexcept {
+    std::vector<NitroInputCharacterMapping> vector;
     vector.reserve(size);
     return vector;
   }
@@ -574,17 +599,6 @@ namespace margelo::nitro::nitroinput::bridge::swift {
   }
   inline NitroNumberSignDisplay get_std__optional_NitroNumberSignDisplay_(const std::optional<NitroNumberSignDisplay>& optional) noexcept {
     return optional.value();
-  }
-  
-  // pragma MARK: std::vector<std::string>
-  /**
-   * Specialized version of `std::vector<std::string>`.
-   */
-  using std__vector_std__string_ = std::vector<std::string>;
-  inline std::vector<std::string> create_std__vector_std__string_(size_t size) noexcept {
-    std::vector<std::string> vector;
-    vector.reserve(size);
-    return vector;
   }
   
   // pragma MARK: std::optional<std::vector<std::string>>

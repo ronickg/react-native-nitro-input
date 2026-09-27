@@ -21,6 +21,9 @@
 #include "NitroInputMode.hpp"
 #include "NitroInputNotation.hpp"
 #include <vector>
+#include "NitroInputMaskAffinity.hpp"
+#include "NitroInputTextCase.hpp"
+#include "NitroInputCharacterMapping.hpp"
 #include "NitroInputVariant.hpp"
 #include "NitroInputLabelBehavior.hpp"
 #include "NitroInputSignPlacement.hpp"
@@ -69,6 +72,12 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<std::vector<NitroInputNotation>> maskNotations;
     nitro::ReactProp<bool> maskAutocomplete;
     nitro::ReactProp<bool> maskAutoSkip;
+    nitro::ReactProp<std::vector<std::string>> maskAffinityFormats;
+    nitro::ReactProp<NitroInputMaskAffinity> maskAffinityStrategy;
+    nitro::ReactProp<NitroInputTextCase> maskTextCase;
+    nitro::ReactProp<std::vector<NitroInputCharacterMapping>> maskCharacterMap;
+    nitro::ReactProp<std::string> maskSlotPlaceholder;
+    nitro::ReactProp<bool> keepPlaceholder;
     nitro::ReactProp<std::string> groupingSeparator;
     nitro::ReactProp<std::string> decimalSeparator;
     nitro::ReactProp<NitroInputVariant> variant;
@@ -170,6 +179,12 @@ namespace margelo::nitro::nitroinput::views {
              maskNotations.hasSameValue(other.maskNotations) &&
              maskAutocomplete.hasSameValue(other.maskAutocomplete) &&
              maskAutoSkip.hasSameValue(other.maskAutoSkip) &&
+             maskAffinityFormats.hasSameValue(other.maskAffinityFormats) &&
+             maskAffinityStrategy.hasSameValue(other.maskAffinityStrategy) &&
+             maskTextCase.hasSameValue(other.maskTextCase) &&
+             maskCharacterMap.hasSameValue(other.maskCharacterMap) &&
+             maskSlotPlaceholder.hasSameValue(other.maskSlotPlaceholder) &&
+             keepPlaceholder.hasSameValue(other.keepPlaceholder) &&
              groupingSeparator.hasSameValue(other.groupingSeparator) &&
              decimalSeparator.hasSameValue(other.decimalSeparator) &&
              variant.hasSameValue(other.variant) &&
@@ -272,6 +287,12 @@ namespace margelo::nitro::nitroinput::views {
              maskNotations.isProvided() ||
              maskAutocomplete.isProvided() ||
              maskAutoSkip.isProvided() ||
+             maskAffinityFormats.isProvided() ||
+             maskAffinityStrategy.isProvided() ||
+             maskTextCase.isProvided() ||
+             maskCharacterMap.isProvided() ||
+             maskSlotPlaceholder.isProvided() ||
+             keepPlaceholder.isProvided() ||
              groupingSeparator.isProvided() ||
              decimalSeparator.isProvided() ||
              variant.isProvided() ||

@@ -70,6 +70,18 @@ namespace margelo::nitro::nitroinput {
     void setMaskAutocomplete(bool maskAutocomplete) override;
     bool getMaskAutoSkip() override;
     void setMaskAutoSkip(bool maskAutoSkip) override;
+    std::vector<std::string> getMaskAffinityFormats() override;
+    void setMaskAffinityFormats(const std::vector<std::string>& maskAffinityFormats) override;
+    NitroInputMaskAffinity getMaskAffinityStrategy() override;
+    void setMaskAffinityStrategy(NitroInputMaskAffinity maskAffinityStrategy) override;
+    NitroInputTextCase getMaskTextCase() override;
+    void setMaskTextCase(NitroInputTextCase maskTextCase) override;
+    std::vector<NitroInputCharacterMapping> getMaskCharacterMap() override;
+    void setMaskCharacterMap(const std::vector<NitroInputCharacterMapping>& maskCharacterMap) override;
+    std::string getMaskSlotPlaceholder() override;
+    void setMaskSlotPlaceholder(const std::string& maskSlotPlaceholder) override;
+    bool getKeepPlaceholder() override;
+    void setKeepPlaceholder(bool keepPlaceholder) override;
     std::string getGroupingSeparator() override;
     void setGroupingSeparator(const std::string& groupingSeparator) override;
     std::string getDecimalSeparator() override;

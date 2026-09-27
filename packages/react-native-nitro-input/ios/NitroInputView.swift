@@ -44,6 +44,12 @@ final class NitroInputView: UIView {
     var isOptional: Bool
   }
 
+  /// One character replaced by another before masking.
+  struct MaskMapping: Equatable {
+    var from: String
+    var to: String
+  }
+
   struct Format: Equatable {
     var mode: Mode = .text
     /// Mask mode: the pattern, e.g. "+1 ([000]) [000]-[0000]".
@@ -51,6 +57,17 @@ final class NitroInputView: UIView {
     var maskNotations: [MaskNotation] = []
     var maskAutocomplete: Bool = true
     var maskAutoSkip: Bool = false
+    /// Mask mode: alternative patterns and how the best is chosen (MaskEngine's
+    /// `kAffinity…` constants).
+    var maskAffinityFormats: [String] = []
+    var maskAffinityStrategy: Int = 0
+    /// Mask mode: MaskEngine's `kTextCase…` constants.
+    var maskTextCase: Int = 0
+    var maskCharacterMap: [MaskMapping] = []
+    /// Mask mode: what an empty slot shows in the tail; empty = its notation.
+    var maskSlotPlaceholder: String = ""
+    /// Mask mode: keep the rest of the placeholder after the typed text.
+    var keepPlaceholder: Bool = false
     var fractionDigits: Int = 2
     var maxIntegerDigits: Int = 15
     var groupingSeparator: String = ","
@@ -755,6 +772,7 @@ final class NitroInputView: UIView {
     }
     field.frame = bounds
     if didBuildTextView { textView.frame = bounds }
+    updateGhostLabel()
     // Where the text wraps - and so how tall the box is - depends on the width,
     // and layout is the first thing to know it. Measuring from inside the pass
     // would re-enter it, so the report goes out after this one lands.
@@ -997,13 +1015,28 @@ final class NitroInputView: UIView {
       formatter.setFormat(Int32(max(0, format.fractionDigits)), Int32(max(1, format.maxIntegerDigits)),
                           std.string(format.groupingSeparator), std.string(format.decimalSeparator))
     }
-    if format.mode == .mask, format.mask != previous.mask || format.maskNotations != previous.maskNotations
-        || previous.mode != .mask {
+    let maskChanged = format.mask != previous.mask || format.maskNotations != previous.maskNotations
+      || format.maskAffinityFormats != previous.maskAffinityFormats
+      || format.maskAffinityStrategy != previous.maskAffinityStrategy
+      || format.maskTextCase != previous.maskTextCase || format.maskCharacterMap != previous.maskCharacterMap
+      || format.maskSlotPlaceholder != previous.maskSlotPlaceholder
+    if format.mode == .mask, maskChanged || previous.mode != .mask {
       maskEngine.clearNotations()
       for notation in format.maskNotations {
         maskEngine.addNotation(std.string(notation.character), std.string(notation.characterSet),
                                notation.isOptional)
       }
+      maskEngine.clearAffinityFormats()
+      for alternative in format.maskAffinityFormats {
+        maskEngine.addAffinityFormat(std.string(alternative))
+      }
+      maskEngine.setAffinityStrategy(Int32(format.maskAffinityStrategy))
+      maskEngine.setTextCase(Int32(format.maskTextCase))
+      maskEngine.clearCharacterMap()
+      for mapping in format.maskCharacterMap {
+        maskEngine.addCharacterMapping(std.string(mapping.from), std.string(mapping.to))
+      }
+      maskEngine.setSlotPlaceholder(std.string(format.maskSlotPlaceholder))
       // A bad pattern leaves the engine inactive; the field then behaves as
       // plain text rather than refusing every keystroke.
       _ = maskEngine.setFormat(std.string(format.mask))
@@ -1014,18 +1047,26 @@ final class NitroInputView: UIView {
     let formatChanged = format.mode != previous.mode || format.fractionDigits != previous.fractionDigits
       || format.maxIntegerDigits != previous.maxIntegerDigits || format.groupingSeparator != previous.groupingSeparator
       || format.decimalSeparator != previous.decimalSeparator || format.maxLength != previous.maxLength
-      || format.mask != previous.mask || format.maskNotations != previous.maskNotations
+      || maskChanged
+    var reformatted = false
     if formatChanged {
       let normalizedText = normalized(text)
       if normalizedText != text {
         isSettingText = true
         field.text = normalizedText
         isSettingText = false
+        reformatted = true
       }
     }
     applyKeyboardTraitsForMode()
-    // A plain field has nothing in the engine and still has a width to report.
-    if engine.hasText() || traits.plain {
+    if reformatted {
+      // The text itself changed ("123-456" is "12 34 56" under a new mask), so
+      // it is reported like `setText`, as Android does: without that, JS -
+      // getText(), onChangeText, onChangeMask and a controlled parent - kept
+      // the old text while the field showed the new one.
+      textDidChange(caret: text.unicodeScalars.count, reason: .method)
+    } else if engine.hasText() || traits.plain {
+      // A plain field has nothing in the engine and still has a width to report.
       feedEngine(caret: -1)
     }
   }
@@ -1400,6 +1441,7 @@ final class NitroInputView: UIView {
     // Plain mode has no overlay to feed: the field draws its own text. Its
     // width still has to reach React for `autoWidth`, and this is the one
     // place every text, font, affix and placeholder change comes through.
+    updateGhostLabel()
     guard !traits.plain else { reportIntrinsicSize(); return }
     engine.setReduceMotion(UIAccessibility.isReduceMotionEnabled)
     engine.beginText()
@@ -1440,6 +1482,14 @@ final class NitroInputView: UIView {
       let kind = numberKinds ? formatter.kindOf(scalar.value) : Kind.text
       let after = hasSuffix && i == rest.count - 1 ? (fonts.suffixSeam ?? fonts.bodySpacing) : fonts.bodySpacing
       engine.addGlyph(scalar.value, Role.body, kind, Double(fonts.width(of: String(scalar), role: .body) + after), showPlaceholder)
+    }
+    // `keepPlaceholder`: the rest of the mask trails the text as placeholder
+    // glyphs. They come after every typed glyph, so the caret - which counts
+    // body glyphs in order - never lands among them.
+    if !showPlaceholder {
+      for scalar in ghostTail.unicodeScalars {
+        engine.addGlyph(scalar.value, Role.body, Kind.text, Double(fonts.width(of: String(scalar), role: .body) + fonts.bodySpacing), true)
+      }
     }
     for scalar in format.suffix.unicodeScalars {
       engine.addGlyph(scalar.value, Role.suffix, Kind.text, Double(fonts.width(of: String(scalar), role: .suffix) + fonts.suffixLetterSpacing), false)
@@ -1625,11 +1675,49 @@ final class NitroInputView: UIView {
   /// The width the content asks for: the engine's layout in reflow mode; in
   /// plain mode, which never feeds the engine, the text (or the placeholder)
   /// and the affixes measured with the same fonts the field draws them in.
+  /// Plain mode has no overlay to draw `keepPlaceholder`'s tail, so it is a
+  /// label pinned inside the field to where the field's own text ends, in the
+  /// same font and kerning and the placeholder colour.
+  private lazy var ghostLabel: UILabel = {
+    let label = UILabel()
+    label.isUserInteractionEnabled = false
+    label.isAccessibilityElement = false
+    label.lineBreakMode = .byClipping
+    return label
+  }()
+
+  private func updateGhostLabel() {
+    let tail = traits.plain ? ghostTail : ""
+    guard !tail.isEmpty, !isRTL else {
+      if ghostLabel.superview != nil { ghostLabel.isHidden = true }
+      return
+    }
+    if ghostLabel.superview !== field { field.addSubview(ghostLabel) }
+    var attributes = field.defaultTextAttributes
+    attributes[.foregroundColor] = typography.placeholderColor.resolvedColor(with: traitCollection)
+    ghostLabel.attributedText = NSAttributedString(string: tail, attributes: attributes)
+    let box = field.textRect(forBounds: field.bounds)
+    let typed = fonts.width(of: text, role: .body) + fonts.bodySpacing * CGFloat(text.unicodeScalars.count)
+    let tailWidth = fonts.width(of: tail, role: .body) + fonts.bodySpacing * CGFloat(tail.unicodeScalars.count)
+    // Where UIKit starts the text: the box's leading edge, or centred / right
+    // aligned without the tail - the tail then trails off the typed text.
+    let start: CGFloat
+    switch field.textAlignment {
+    case .center: start = box.midX - typed / 2
+    case .right: start = box.maxX - typed
+    default: start = box.minX
+    }
+    let end = start + typed
+    // Text wider than the box scrolls inside the field; the tail has no place then.
+    ghostLabel.isHidden = typed > box.width
+    ghostLabel.frame = CGRect(x: end, y: box.minY, width: min(tailWidth + 1, max(0, box.maxX - end)), height: box.height)
+  }
+
   private func contentWidth() -> CGFloat {
     guard traits.plain else { return CGFloat(engine.targetWidth()) }
     let body = text.isEmpty
       ? effectivePlaceholder
-      : traits.secureTextEntry ? String(repeating: "\u{2022}", count: text.unicodeScalars.count) : text
+      : traits.secureTextEntry ? String(repeating: "\u{2022}", count: text.unicodeScalars.count) : text + ghostTail
     // The field's own kerning follows every glyph; the affixes take their room with their seams.
     return fonts.affixRoom(format.prefix, role: .prefix)
       + fonts.width(of: body, role: .body) + fonts.bodySpacing * CGFloat(body.unicodeScalars.count)
@@ -2368,8 +2456,38 @@ extension NitroInputView {
   /// A label resting inside the field already labels it, so the placeholder
   /// waits until the label has floated clear rather than printing over it.
   var effectivePlaceholder: String {
-    guard inputFrame.hasLabel, !labelShouldFloat else { return format.placeholder }
+    guard inputFrame.hasLabel, !labelShouldFloat else { return basePlaceholder }
     return ""
+  }
+
+  /// `keepPlaceholder` without a `placeholder` shows the mask itself, empty
+  /// slots as `maskSlotPlaceholder`: "+1 (___) ___-____".
+  private var basePlaceholder: String {
+    if format.placeholder.isEmpty, format.mode == .mask, format.keepPlaceholder, maskEngine.isActive() {
+      return String(maskEngine.apply(std.string(""), 0, true, false, false).tailPlaceholder)
+    }
+    return format.placeholder
+  }
+
+  /// `keepPlaceholder`: what is still to come after the typed text, drawn in
+  /// the placeholder colour. The caller's placeholder from where the text ends
+  /// - "1234 5" leaves "678 9012" of "1234 5678 9012" - or, without one, the
+  /// rest of the mask. The placeholder is written for `mask`, so when one of
+  /// `maskAffinityFormats` has taken over (a 4-6-5 Amex under a 4-4-4-4
+  /// placeholder) its characters no longer line up, and that format's own
+  /// tail is shown instead. A complete text has nothing to come.
+  var ghostTail: String {
+    guard format.mode == .mask, format.keepPlaceholder, !text.isEmpty, !traits.secureTextEntry,
+          maskEngine.isActive() else { return "" }
+    let typed = text.unicodeScalars.count
+    let result = maskEngine.apply(std.string(text), Int32(typed), true, false, false)
+    if result.complete { return "" }
+    let placeholder = Array(format.placeholder.unicodeScalars)
+    if placeholder.isEmpty || result.formatIndex != 0 { return String(result.tailPlaceholder) }
+    guard typed < placeholder.count else { return "" }
+    var rest = String.UnicodeScalarView()
+    rest.append(contentsOf: placeholder[typed...])
+    return String(rest)
   }
 
   /// The label floats once the field is focused or holds text - or always, if

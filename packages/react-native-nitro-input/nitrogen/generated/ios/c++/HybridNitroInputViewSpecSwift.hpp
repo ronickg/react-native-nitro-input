@@ -16,6 +16,12 @@ namespace NitroInput { class HybridNitroInputViewSpec_cxx; }
 namespace margelo::nitro::nitroinput { enum class NitroInputMode; }
 // Forward declaration of `NitroInputNotation` to properly resolve imports.
 namespace margelo::nitro::nitroinput { struct NitroInputNotation; }
+// Forward declaration of `NitroInputMaskAffinity` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputMaskAffinity; }
+// Forward declaration of `NitroInputTextCase` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputTextCase; }
+// Forward declaration of `NitroInputCharacterMapping` to properly resolve imports.
+namespace margelo::nitro::nitroinput { struct NitroInputCharacterMapping; }
 // Forward declaration of `NitroInputVariant` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputVariant; }
 // Forward declaration of `NitroInputLabelBehavior` to properly resolve imports.
@@ -47,6 +53,9 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardAppearance; 
 #include "NitroInputMode.hpp"
 #include "NitroInputNotation.hpp"
 #include <vector>
+#include "NitroInputMaskAffinity.hpp"
+#include "NitroInputTextCase.hpp"
+#include "NitroInputCharacterMapping.hpp"
 #include "NitroInputVariant.hpp"
 #include "NitroInputLabelBehavior.hpp"
 #include "NitroInputSignPlacement.hpp"
@@ -172,6 +181,47 @@ namespace margelo::nitro::nitroinput {
     }
     inline void setMaskAutoSkip(bool maskAutoSkip) noexcept override {
       _swiftPart.setMaskAutoSkip(std::forward<decltype(maskAutoSkip)>(maskAutoSkip));
+    }
+    inline std::vector<std::string> getMaskAffinityFormats() noexcept override {
+      auto __result = _swiftPart.getMaskAffinityFormats();
+      return __result;
+    }
+    inline void setMaskAffinityFormats(const std::vector<std::string>& maskAffinityFormats) noexcept override {
+      _swiftPart.setMaskAffinityFormats(maskAffinityFormats);
+    }
+    inline NitroInputMaskAffinity getMaskAffinityStrategy() noexcept override {
+      auto __result = _swiftPart.getMaskAffinityStrategy();
+      return static_cast<NitroInputMaskAffinity>(__result);
+    }
+    inline void setMaskAffinityStrategy(NitroInputMaskAffinity maskAffinityStrategy) noexcept override {
+      _swiftPart.setMaskAffinityStrategy(static_cast<int>(maskAffinityStrategy));
+    }
+    inline NitroInputTextCase getMaskTextCase() noexcept override {
+      auto __result = _swiftPart.getMaskTextCase();
+      return static_cast<NitroInputTextCase>(__result);
+    }
+    inline void setMaskTextCase(NitroInputTextCase maskTextCase) noexcept override {
+      _swiftPart.setMaskTextCase(static_cast<int>(maskTextCase));
+    }
+    inline std::vector<NitroInputCharacterMapping> getMaskCharacterMap() noexcept override {
+      auto __result = _swiftPart.getMaskCharacterMap();
+      return __result;
+    }
+    inline void setMaskCharacterMap(const std::vector<NitroInputCharacterMapping>& maskCharacterMap) noexcept override {
+      _swiftPart.setMaskCharacterMap(maskCharacterMap);
+    }
+    inline std::string getMaskSlotPlaceholder() noexcept override {
+      auto __result = _swiftPart.getMaskSlotPlaceholder();
+      return __result;
+    }
+    inline void setMaskSlotPlaceholder(const std::string& maskSlotPlaceholder) noexcept override {
+      _swiftPart.setMaskSlotPlaceholder(maskSlotPlaceholder);
+    }
+    inline bool getKeepPlaceholder() noexcept override {
+      return _swiftPart.getKeepPlaceholder();
+    }
+    inline void setKeepPlaceholder(bool keepPlaceholder) noexcept override {
+      _swiftPart.setKeepPlaceholder(std::forward<decltype(keepPlaceholder)>(keepPlaceholder));
     }
     inline std::string getGroupingSeparator() noexcept override {
       auto __result = _swiftPart.getGroupingSeparator();

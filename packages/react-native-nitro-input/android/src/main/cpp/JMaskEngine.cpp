@@ -29,6 +29,15 @@ void JMaskEngine::registerNatives() {
       makeNativeMethod("lastExtracted", JMaskEngine::lastExtracted),
       makeNativeMethod("lastTailPlaceholder", JMaskEngine::lastTailPlaceholder),
       makeNativeMethod("lastComplete", JMaskEngine::lastComplete),
+      makeNativeMethod("lastFormatIndex", JMaskEngine::lastFormatIndex),
+      makeNativeMethod("clearAffinityFormats", JMaskEngine::clearAffinityFormats),
+      makeNativeMethod("addAffinityFormat", JMaskEngine::addAffinityFormat),
+      makeNativeMethod("setAffinityStrategy", JMaskEngine::setAffinityStrategy),
+      makeNativeMethod("setTextCase", JMaskEngine::setTextCase),
+      makeNativeMethod("clearCharacterMap", JMaskEngine::clearCharacterMap),
+      makeNativeMethod("addCharacterMapping", JMaskEngine::addCharacterMapping),
+      makeNativeMethod("setSlotPlaceholder", JMaskEngine::setSlotPlaceholder),
+      makeNativeMethod("isActive", JMaskEngine::isActive),
   });
 }
 
@@ -76,6 +85,42 @@ jni::local_ref<jni::JString> JMaskEngine::lastTailPlaceholder() {
 
 bool JMaskEngine::lastComplete() {
   return last_.complete;
+}
+
+void JMaskEngine::clearAffinityFormats() {
+  engine_.clearAffinityFormats();
+}
+
+void JMaskEngine::addAffinityFormat(jni::alias_ref<jni::JString> format) {
+  engine_.addAffinityFormat(str(format));
+}
+
+void JMaskEngine::setAffinityStrategy(int strategy) {
+  engine_.setAffinityStrategy(strategy);
+}
+
+void JMaskEngine::setTextCase(int textCase) {
+  engine_.setTextCase(textCase);
+}
+
+void JMaskEngine::clearCharacterMap() {
+  engine_.clearCharacterMap();
+}
+
+void JMaskEngine::addCharacterMapping(jni::alias_ref<jni::JString> from, jni::alias_ref<jni::JString> to) {
+  engine_.addCharacterMapping(str(from), str(to));
+}
+
+void JMaskEngine::setSlotPlaceholder(jni::alias_ref<jni::JString> character) {
+  engine_.setSlotPlaceholder(str(character));
+}
+
+bool JMaskEngine::isActive() {
+  return engine_.isActive();
+}
+
+int JMaskEngine::lastFormatIndex() {
+  return last_.formatIndex;
 }
 
 } // namespace margelo::nitro::nitroinput

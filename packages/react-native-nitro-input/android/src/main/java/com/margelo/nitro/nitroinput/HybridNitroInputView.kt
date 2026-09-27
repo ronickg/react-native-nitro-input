@@ -91,6 +91,18 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     set(value) { field = value; markConfigDirty() }
   override var maskAutoSkip: Boolean = false
     set(value) { field = value; markConfigDirty() }
+  override var maskAffinityFormats: Array<String> = emptyArray()
+    set(value) { field = value; markConfigDirty() }
+  override var maskAffinityStrategy: NitroInputMaskAffinity = NitroInputMaskAffinity.WHOLESTRING
+    set(value) { field = value; markConfigDirty() }
+  override var maskTextCase: NitroInputTextCase = NitroInputTextCase.NONE
+    set(value) { field = value; markConfigDirty() }
+  override var maskCharacterMap: Array<NitroInputCharacterMapping> = emptyArray()
+    set(value) { field = value; markConfigDirty() }
+  override var maskSlotPlaceholder: String = ""
+    set(value) { field = value; markConfigDirty() }
+  override var keepPlaceholder: Boolean = false
+    set(value) { field = value; markConfigDirty() }
   override var mode: NitroInputMode = NitroInputMode.TEXT
     set(v) { field = v; markConfigDirty() }
   override var fractionDigits: Double = 2.0
@@ -373,6 +385,12 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     maskNotations = emptyArray()
     maskAutocomplete = true
     maskAutoSkip = false
+    maskAffinityFormats = emptyArray()
+    maskAffinityStrategy = NitroInputMaskAffinity.WHOLESTRING
+    maskTextCase = NitroInputTextCase.NONE
+    maskCharacterMap = emptyArray()
+    maskSlotPlaceholder = ""
+    keepPlaceholder = false
     mode = NitroInputMode.TEXT
     fractionDigits = 2.0
     maxIntegerDigits = 15.0
@@ -570,6 +588,12 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
       },
       maskAutocomplete = maskAutocomplete,
       maskAutoSkip = maskAutoSkip,
+      maskAffinityFormats = maskAffinityFormats.toList(),
+      maskAffinityStrategy = maskAffinityStrategy.value,
+      maskTextCase = maskTextCase.value,
+      maskCharacterMap = maskCharacterMap.map { NitroInputView.MaskMapping(it.from, it.to) },
+      maskSlotPlaceholder = maskSlotPlaceholder,
+      keepPlaceholder = keepPlaceholder,
       fractionDigits = clampInt(fractionDigits, 0, 9, 2),
       maxIntegerDigits = clampInt(maxIntegerDigits, 1, 30, 15),
       groupingSeparator = groupingSeparator,
