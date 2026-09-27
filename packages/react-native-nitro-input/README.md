@@ -107,8 +107,9 @@ The pattern is compiled once into a linked state machine in C++ and shared by
 both platforms, so the formatting, the caret and the "what is still missing"
 tail all come from one place and cannot drift apart. `[…]` is an editable
 block, `{…}` a literal the engine inserts for you. Built-in slots: `0` a
-required digit, `9` an optional one, `A`/`a` letters, `_` any character, `…`
-repeats the previous slot.
+required digit, `9` an optional one, `A`/`a` letters (Latin, Greek, Cyrillic
+and the other common scripts), `_`/`-` a letter or digit, `…` repeats the
+previous slot.
 
 Add your own with `maskNotations`:
 
@@ -124,6 +125,26 @@ Add your own with `maskNotations`:
 before them is satisfied; `maskAutoSkip` (default `false`) lets a backspace
 step back over them. Autocompletion only runs when the caret is at the end, so
 editing in the middle of a value does not fight you.
+
+Keep what is still to come in view, pick between several shapes, and fix the
+case as the user types:
+
+```tsx
+<NitroInput
+  mode="mask"
+  mask="[0000] [0000] [0000] [0000]"
+  // Amex numbers take the 4-6-5 grouping
+  maskAffinityFormats={['{34}[00] [000000] [00000]', '{37}[00] [000000] [00000]']}
+  placeholder="1234 5678 9012 3456"
+  keepPlaceholder  // "4111 1" then "678 9012 3456" greyed
+/>
+
+<NitroInput mode="mask" mask="[AAAA][AA][__][___]" maskTextCase="upper" />  // a BIC
+<NitroInput mode="mask" mask="[099999].[99]" maskCharacterMap={{ ',': '.' }} />
+```
+
+A paste that repeats the mask's leading constants (`+639123456789` into
+`+63 [000] [000] [0000]`) loses the repeat when it would otherwise overflow.
 
 ### Outlined and filled frames
 
@@ -402,10 +423,16 @@ rather than renumbering the columns.
 | `maxIntegerDigits` | `number` | `15` | `number`: most integer digits accepted; further digits are rejected. |
 | `groupingSeparator` | `string` | `','` | `number`: every three integer digits; `''` disables grouping. |
 | `decimalSeparator` | `string` | `'.'` | `number`: between integer and fraction digits. |
-| `mask` | `string` | `''` | `mask`: the pattern. `[…]` an editable block, `{…}` a literal the engine inserts. Slots: `0` required digit, `9` optional digit, `A`/`a` letter, `_` any, `…` repeat. |
+| `mask` | `string` | `''` | `mask`: the pattern. `[…]` an editable block, `{…}` a literal the engine inserts. Slots: `0` required digit, `9` optional digit, `A`/`a` letter, `_`/`-` letter or digit, `…` repeat. |
 | `maskNotations` | `{ character, characterSet, isOptional }[]` | `[]` | `mask`: caller-defined slots beyond the built-ins. |
 | `maskAutocomplete` | `boolean` | `true` | `mask`: insert literals as soon as the slot before them is filled. Only while the caret is at the end. |
 | `maskAutoSkip` | `boolean` | `false` | `mask`: let a backspace step back over inserted literals. |
+| `keepPlaceholder` | `boolean` | `false` | `mask`: keep the rest of the placeholder (or, without one, the mask) greyed after the typed text. |
+| `maskSlotPlaceholder` | `string` | `'_'` with `keepPlaceholder`, else `''` | `mask`: what an empty slot shows in the kept placeholder and `onChangeMask`'s tail. |
+| `maskAffinityFormats` | `string[]` | `[]` | `mask`: more patterns the text may take; the best one wins each edit, `mask` wins ties. |
+| `maskAffinityStrategy` | `'wholeString' \| 'prefix' \| 'capacity' \| 'extractedValueCapacity'` | `'wholeString'` | `mask`: how the best of `maskAffinityFormats` is chosen. |
+| `maskTextCase` | `'none' \| 'upper' \| 'lower'` | `'none'` | `mask`: fold letters as they are typed or pasted. |
+| `maskCharacterMap` | `Record<string, string>` | `{}` | `mask`: characters replaced before masking (`{ ',': '.' }`); an empty replacement drops one. |
 | `variant` | `'none' \| 'outlined' \| 'filled'` | `'none'` | Draws a frame for itself. The outlined notch is a real hole in the stroke. |
 | `label` | `string` | `''` | Floating label. Also becomes the field's accessible name when nothing else gives it one. |
 | `labelBehavior` | `'float' \| 'always'` | `'float'` | `always` keeps it floated even when empty and blurred. |

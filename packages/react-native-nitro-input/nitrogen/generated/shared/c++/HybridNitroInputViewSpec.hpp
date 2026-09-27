@@ -17,6 +17,12 @@
 namespace margelo::nitro::nitroinput { enum class NitroInputMode; }
 // Forward declaration of `NitroInputNotation` to properly resolve imports.
 namespace margelo::nitro::nitroinput { struct NitroInputNotation; }
+// Forward declaration of `NitroInputMaskAffinity` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputMaskAffinity; }
+// Forward declaration of `NitroInputTextCase` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputTextCase; }
+// Forward declaration of `NitroInputCharacterMapping` to properly resolve imports.
+namespace margelo::nitro::nitroinput { struct NitroInputCharacterMapping; }
 // Forward declaration of `NitroInputVariant` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputVariant; }
 // Forward declaration of `NitroInputLabelBehavior` to properly resolve imports.
@@ -48,6 +54,9 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardAppearance; 
 #include "NitroInputMode.hpp"
 #include "NitroInputNotation.hpp"
 #include <vector>
+#include "NitroInputMaskAffinity.hpp"
+#include "NitroInputTextCase.hpp"
+#include "NitroInputCharacterMapping.hpp"
 #include "NitroInputVariant.hpp"
 #include "NitroInputLabelBehavior.hpp"
 #include "NitroInputSignPlacement.hpp"
@@ -111,6 +120,18 @@ namespace margelo::nitro::nitroinput {
       virtual void setMaskAutocomplete(bool maskAutocomplete) = 0;
       virtual bool getMaskAutoSkip() = 0;
       virtual void setMaskAutoSkip(bool maskAutoSkip) = 0;
+      virtual std::vector<std::string> getMaskAffinityFormats() = 0;
+      virtual void setMaskAffinityFormats(const std::vector<std::string>& maskAffinityFormats) = 0;
+      virtual NitroInputMaskAffinity getMaskAffinityStrategy() = 0;
+      virtual void setMaskAffinityStrategy(NitroInputMaskAffinity maskAffinityStrategy) = 0;
+      virtual NitroInputTextCase getMaskTextCase() = 0;
+      virtual void setMaskTextCase(NitroInputTextCase maskTextCase) = 0;
+      virtual std::vector<NitroInputCharacterMapping> getMaskCharacterMap() = 0;
+      virtual void setMaskCharacterMap(const std::vector<NitroInputCharacterMapping>& maskCharacterMap) = 0;
+      virtual std::string getMaskSlotPlaceholder() = 0;
+      virtual void setMaskSlotPlaceholder(const std::string& maskSlotPlaceholder) = 0;
+      virtual bool getKeepPlaceholder() = 0;
+      virtual void setKeepPlaceholder(bool keepPlaceholder) = 0;
       virtual std::string getGroupingSeparator() = 0;
       virtual void setGroupingSeparator(const std::string& groupingSeparator) = 0;
       virtual std::string getDecimalSeparator() = 0;

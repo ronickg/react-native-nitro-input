@@ -87,6 +87,30 @@ Fill in constants as the caret reaches them. Only with the caret at the end, so 
 Backspace walks back over autocompleted constants.
 </Prop>
 
+<Prop name="keepPlaceholder" type="boolean" default="false">
+Keep the rest of the placeholder visible, greyed, after what has been typed: with `placeholder="1234 5678 9012"`, typing `12345` shows `1234 5` and then `678 9012`. Without a `placeholder` the mask itself is shown, its empty slots as `maskSlotPlaceholder`: `+1 (212) ___-____`. When one of `maskAffinityFormats` has taken over, its own tail is shown, since the placeholder was written for `mask`.
+</Prop>
+
+<Prop name="maskSlotPlaceholder" type="string" default="'_' with keepPlaceholder, else ''">
+The character each empty slot shows in the kept placeholder and in `onChangeMask`'s tail. Empty: the slot's own notation character (`0`, `a`, `-`).
+</Prop>
+
+<Prop name="maskAffinityFormats" type="string[]" default="[]">
+More patterns the text may take, e.g. the Amex 4-6-5 grouping beside a 4-4-4-4 `mask`: `['{34}[00] [000000] [00000]', '{37}[00] [000000] [00000]']`. Every edit is masked with each, and the best by `maskAffinityStrategy` is kept. `mask` wins ties; once another format is showing, it keeps a tie too, so the field does not flip back and forth as you type.
+</Prop>
+
+<Prop name="maskAffinityStrategy" type="'wholeString' | 'prefix' | 'capacity' | 'extractedValueCapacity'" default="'wholeString'">
+How the best of `maskAffinityFormats` is chosen: the format that accepts the most characters and inserts the fewest, the one whose output starts most like what was typed, or the fullest format that still holds all of the text / all of its value characters.
+</Prop>
+
+<Prop name="maskTextCase" type="'none' | 'upper' | 'lower'" default="'none'">
+Uppercase or lowercase letters as they are typed or pasted, without moving the caret: a BIC, an IBAN or a licence plate typed in lowercase comes out right.
+</Prop>
+
+<Prop name="maskCharacterMap" type="Record<string, string>" default="{}">
+Characters replaced before masking, one character each: `{ 'С': 'C' }` turns a Cyrillic look-alike into a Latin letter, `{ ',': '.' }` lets a comma through to a dot-decimal mask. An empty replacement drops the character.
+</Prop>
+
 ## Affixes
 
 Static text around the field's text, drawn at their own sizes. See [An amount field](/docs/nitro-input#amounts).

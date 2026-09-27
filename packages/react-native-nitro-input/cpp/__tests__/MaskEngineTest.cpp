@@ -45,11 +45,16 @@ static MaskEngine make(const std::string& format, const std::vector<MaskEngine::
   return engine;
 }
 
-/// Types `keys` one at a time at the caret, like a keyboard.
+/// Types `keys` one character (code point) at a time at the caret, like a
+/// keyboard.
 static MaskEngine::Result type(const MaskEngine& engine, const std::string& keys, bool autocomplete = true) {
   MaskEngine::Result state;
-  for (char k : keys) {
-    state = engine.applyEdit(state.formattedText, state.caret, state.caret, std::string(1, k), autocomplete, false);
+  for (size_t i = 0; i < keys.size();) {
+    const unsigned char lead = static_cast<unsigned char>(keys[i]);
+    const size_t length = lead < 0x80 ? 1 : lead < 0xE0 ? 2 : lead < 0xF0 ? 3 : 4;
+    state = engine.applyEdit(state.formattedText, state.caret, state.caret, keys.substr(i, length), autocomplete,
+                             false);
+    i += length;
   }
   return state;
 }
@@ -381,6 +386,158 @@ static void emptyInputStaysEmpty() {
   CHECK(engine.applyEdit("+1 (5", 4, 5, "", true, true).formattedText.empty());
 }
 
+// MARK: - Text case and character map
+
+static MaskEngine withOptions(const std::string& format, int textCase,
+                              const std::vector<std::pair<std::string, std::string>>& mappings = {}) {
+  MaskEngine engine;
+  engine.setTextCase(textCase);
+  for (const auto& [from, to] : mappings) engine.addCharacterMapping(from, to);
+  CHECK(engine.setFormat(format, {}));
+  return engine;
+}
+
+static void textCaseFoldsInput() {
+  const MaskEngine upper = withOptions("[AA]-[000]", MaskEngine::kTextCaseUpper);
+  CHECK_EQ_STR(type(upper, "ab123").formattedText, "AB-123");
+  CHECK_EQ_STR(type(upper, "ab123").extractedValue, "AB123");
+
+  const MaskEngine lower = withOptions("[a…]", MaskEngine::kTextCaseLower);
+  CHECK_EQ_STR(type(lower, "HeLLo").formattedText, "hello");
+
+  // Beyond ASCII: Latin-1, Cyrillic, Greek.
+  const MaskEngine words = withOptions("[A…]", MaskEngine::kTextCaseUpper);
+  CHECK_EQ_STR(words.apply("éжλ", 3, true, false, false).formattedText, "ÉЖΛ");
+
+  // Folding does not move the caret: an edit in the middle stays in the middle.
+  const MaskEngine middle = withOptions("[AAAA]", MaskEngine::kTextCaseUpper);
+  const MaskEngine::Result edited = middle.applyEdit("ABD", 2, 2, "c", true, false);
+  CHECK_EQ_STR(edited.formattedText, "ABCD");
+  CHECK_EQ_INT(edited.caret, 3);
+}
+
+static void characterMapReplacesAndDrops() {
+  // Cyrillic look-alikes typed into a Latin plate number.
+  const MaskEngine plate = withOptions("[AAA] [000]", MaskEngine::kTextCaseNone,
+                                       {{"С", "C"}, {"А", "A"}, {"В", "B"}});
+  CHECK_EQ_STR(type(plate, "САВ123").formattedText, "CAB 123");
+
+  // A comma pasted into a dot-decimal mask (their issue #35).
+  const MaskEngine decimal = withOptions("[099999].[99]", MaskEngine::kTextCaseNone, {{",", "."}});
+  CHECK_EQ_STR(decimal.applyEdit("", 0, 0, "123,45", true, false).formattedText, "123.45");
+
+  // An empty target drops the character, and the caret moves with the text.
+  const MaskEngine noSpaces = withOptions("[0…]", MaskEngine::kTextCaseNone, {{" ", ""}});
+  const MaskEngine::Result dropped = noSpaces.apply("12 34", 5, true, false, false);
+  CHECK_EQ_STR(dropped.formattedText, "1234");
+  CHECK_EQ_INT(dropped.caret, 4);
+}
+
+static void letterSlotsTakeOtherScripts() {
+  const MaskEngine name = make("[AAA]");
+  CHECK_EQ_STR(type(name, "Жук").formattedText, "Жук");
+  CHECK_EQ_STR(type(name, "Ñoñ").formattedText, "Ñoñ");
+  // Digits and punctuation are still no letters.
+  CHECK_EQ_STR(type(name, "a1-b").formattedText, "ab");
+}
+
+// MARK: - Affinity
+
+static MaskEngine cards(int strategy) {
+  MaskEngine engine;
+  engine.addAffinityFormat("{34}[00] [000000] [00000]");
+  engine.addAffinityFormat("{37}[00] [000000] [00000]");
+  engine.setAffinityStrategy(strategy);
+  CHECK(engine.setFormat("[0000] [0000] [0000] [0000]", {}));
+  return engine;
+}
+
+static void affinityPicksTheBestFormat() {
+  const MaskEngine engine = cards(MaskEngine::kAffinityWholeString);
+
+  const MaskEngine::Result visa = type(engine, "4111111111111111");
+  CHECK_EQ_STR(visa.formattedText, "4111 1111 1111 1111");
+  CHECK_EQ_INT(visa.formatIndex, 0);
+
+  // Typed one key at a time, so the text carries the 4-4-4-4 spaces until Amex
+  // takes over - which it must, or the grouping never changes.
+  const MaskEngine::Result amex = type(engine, "378282246310005");
+  CHECK_EQ_STR(amex.formattedText, "3782 822463 10005");
+  CHECK_EQ_INT(amex.formatIndex, 2);
+
+  // Once Amex has taken over it keeps the field digit by digit: at 11 and 12
+  // digits both formats score the same, and the field must not flip back.
+  const std::string digits = "378282246310005";
+  MaskEngine::Result typed;
+  for (size_t i = 0; i < digits.size(); ++i) {
+    typed = engine.applyEdit(typed.formattedText, typed.caret, typed.caret, digits.substr(i, 1), true, false);
+    if (i + 1 >= 9) CHECK_EQ_INT(typed.formatIndex, 2);
+  }
+
+  // Pasted whole, same answer.
+  CHECK_EQ_STR(engine.applyEdit("", 0, 0, "3782-8224-6310-005", true, false).formattedText, "3782 822463 10005");
+}
+
+static void affinityTiesKeepThePrimary() {
+  const MaskEngine engine = cards(MaskEngine::kAffinityWholeString);
+  // "37" fits both equally; the primary shows until the input decides.
+  CHECK_EQ_INT(type(engine, "37").formatIndex, 0);
+}
+
+static void affinityStrategies() {
+  // Capacity: the fullest format that still holds the input.
+  MaskEngine phones;
+  phones.addAffinityFormat("[000] [000] [0000]");
+  phones.setAffinityStrategy(MaskEngine::kAffinityExtractedValueCapacity);
+  CHECK(phones.setFormat("[000] [0000]", {}));
+  CHECK_EQ_STR(type(phones, "5551234").formattedText, "555 1234");
+  CHECK_EQ_STR(type(phones, "5551234567").formattedText, "555 123 4567");
+
+  // Prefix: the format whose output starts like the input.
+  MaskEngine prefixed;
+  prefixed.addAffinityFormat("+1 ([000]) [000]-[0000]");
+  prefixed.setAffinityStrategy(MaskEngine::kAffinityPrefix);
+  CHECK(prefixed.setFormat("+44 [0000] [000000]", {}));
+  CHECK_EQ_INT(prefixed.apply("+1 212", 6, true, false, false).formatIndex, 1);
+  CHECK_EQ_INT(prefixed.apply("+44 7911", 8, true, false, false).formatIndex, 0);
+
+  // A malformed alternative is skipped, not fatal.
+  MaskEngine partial;
+  partial.addAffinityFormat("[00");
+  CHECK(partial.setFormat("[000]", {}));
+  CHECK_EQ_STR(type(partial, "123").formattedText, "123");
+}
+
+// MARK: - Tail placeholder character
+
+static void slotPlaceholderIsConfigurable() {
+  MaskEngine engine;
+  engine.setSlotPlaceholder("_");
+  CHECK(engine.setFormat("+1 ([000]) [000]-[00]-[00]", {}));
+  // (A typed "1" would be taken by the "+1" literal itself.)
+  const MaskEngine::Result partial = type(engine, "45", false);
+  CHECK_EQ_STR(partial.formattedText, "+1 (45");
+  CHECK_EQ_STR(partial.tailPlaceholder, "_) ___-__-__");
+  // Unset, the notation characters stay (the old behaviour).
+  CHECK_EQ_STR(type(make("[00]-[00]"), "1", false).tailPlaceholder, "0-00");
+}
+
+// MARK: - Paste
+
+static void pasteDropsARepeatedPrefix() {
+  const MaskEngine ph = make("+63 [000] [000] [0000]");
+  // The field already shows "+63 " (autocompleted) and the paste repeats it.
+  CHECK_EQ_STR(ph.applyEdit("+63 ", 4, 4, "+639123456789", true, false).formattedText, "+63 912 345 6789");
+  CHECK_EQ_STR(ph.applyEdit("", 0, 0, "639123456789", true, false).formattedText, "+63 912 345 6789");
+  // Fits without dropping: a number that merely starts with 63 is kept.
+  CHECK_EQ_STR(ph.applyEdit("+63 ", 4, 4, "6312345678", true, false).formattedText, "+63 631 234 5678");
+  // Their #111: "+380 [00] [000] [00] [00]" with "380123456789".
+  const MaskEngine ua = make("+380 [00] [000] [00] [00]");
+  CHECK_EQ_STR(ua.applyEdit("+380 ", 5, 5, "380123456789", true, false).formattedText, "+380 12 345 67 89");
+  // A paste after the prefix region is never touched.
+  CHECK_EQ_STR(ph.applyEdit("+63 912 ", 8, 8, "63", true, false).formattedText, "+63 912 63");
+}
+
 int main() {
   copiesShareTheCompiledMask();
   stagedNotationsMatchTheVectorForm();
@@ -403,6 +560,14 @@ int main() {
   customNotations();
   astralCharactersAreNotSplit();
   cookbookPatterns();
+  textCaseFoldsInput();
+  characterMapReplacesAndDrops();
+  letterSlotsTakeOtherScripts();
+  affinityPicksTheBestFormat();
+  affinityTiesKeepThePrimary();
+  affinityStrategies();
+  slotPlaceholderIsConfigurable();
+  pasteDropsARepeatedPrefix();
   if (failures == 0) {
     std::printf("MaskEngine: all checks passed\n");
     return 0;

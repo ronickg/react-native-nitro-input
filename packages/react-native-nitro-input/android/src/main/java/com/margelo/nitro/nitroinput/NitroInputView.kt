@@ -79,6 +79,9 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   /** A caller-defined slot character for [Format.mask]. */
   data class MaskNotation(val character: String, val characterSet: String, val isOptional: Boolean)
 
+  /** One character replaced by another before masking. */
+  data class MaskMapping(val from: String, val to: String)
+
   /**
    * The frame the view draws for itself: the outline (or fill) and the floating
    * label. Separate from [Format] because it changes independently. Lengths are
@@ -110,6 +113,16 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val maskNotations: List<MaskNotation> = emptyList(),
     val maskAutocomplete: Boolean = true,
     val maskAutoSkip: Boolean = false,
+    /** Mask mode: alternative patterns and how the best is chosen (`NitroInputMaskAffinity.value`). */
+    val maskAffinityFormats: List<String> = emptyList(),
+    val maskAffinityStrategy: Int = 0,
+    /** Mask mode: `NitroInputTextCase.value`. */
+    val maskTextCase: Int = 0,
+    val maskCharacterMap: List<MaskMapping> = emptyList(),
+    /** Mask mode: what an empty slot shows in the tail; empty = its notation. */
+    val maskSlotPlaceholder: String = "",
+    /** Mask mode: keep the rest of the placeholder after the typed text. */
+    val keepPlaceholder: Boolean = false,
     val fractionDigits: Int = 2,
     val maxIntegerDigits: Int = 15,
     val groupingSeparator: String = ",",
@@ -218,11 +231,20 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       val old = field
       field = value
       formatter.setFormat(value.fractionDigits, value.maxIntegerDigits, value.groupingSeparator, value.decimalSeparator)
-      if (value.mode == Mode.MASK &&
-        (old.mode != Mode.MASK || old.mask != value.mask || old.maskNotations != value.maskNotations)
-      ) {
+      val maskChanged = old.mask != value.mask || old.maskNotations != value.maskNotations ||
+        old.maskAffinityFormats != value.maskAffinityFormats || old.maskAffinityStrategy != value.maskAffinityStrategy ||
+        old.maskTextCase != value.maskTextCase || old.maskCharacterMap != value.maskCharacterMap ||
+        old.maskSlotPlaceholder != value.maskSlotPlaceholder
+      if (value.mode == Mode.MASK && (old.mode != Mode.MASK || maskChanged)) {
         maskEngine.clearNotations()
         value.maskNotations.forEach { maskEngine.addNotation(it.character, it.characterSet, it.isOptional) }
+        maskEngine.clearAffinityFormats()
+        value.maskAffinityFormats.forEach { maskEngine.addAffinityFormat(it) }
+        maskEngine.setAffinityStrategy(value.maskAffinityStrategy)
+        maskEngine.setTextCase(value.maskTextCase)
+        maskEngine.clearCharacterMap()
+        value.maskCharacterMap.forEach { maskEngine.addCharacterMapping(it.from, it.to) }
+        maskEngine.setSlotPlaceholder(value.maskSlotPlaceholder)
         // A bad pattern leaves the engine inactive; the field then behaves as
         // plain text rather than refusing every keystroke.
         maskEngine.setFormat(value.mask)
@@ -380,6 +402,23 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       // engine there found a single boundary and put every tap at index 0.)
       if (!ready || keyboard.plain) return super.getOffsetForPosition(x, y)
       return offsetForTap(x)
+    }
+
+    private val ghostPaint = android.text.TextPaint()
+
+    override fun onDraw(canvas: Canvas) {
+      super.onDraw(canvas)
+      // Plain mode has no overlay, so `keepPlaceholder`'s tail is drawn here:
+      // from where the field's own text ends, on its baseline, in its paint
+      // and the hint colour. (onDraw's canvas is already scrolled.)
+      if (!ready || !keyboard.plain || layoutDirection == LAYOUT_DIRECTION_RTL) return
+      val tail = ghostTail
+      val textLayout = layout ?: return
+      if (tail.isEmpty()) return
+      ghostPaint.set(paint)
+      ghostPaint.color = currentHintTextColor
+      val x = compoundPaddingLeft + textLayout.getPrimaryHorizontal(length())
+      canvas.drawText(tail, x, baseline.toFloat(), ghostPaint)
     }
 
     override fun onSelectionChanged(selStart: Int, selEnd: Int) {
@@ -1528,7 +1567,12 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     // A plain field draws its own text and never feeds the engine, but its
     // width still has to reach React for `autoWidth`; every text, font, affix
     // and hint change comes through here.
-    if (keyboard.plain) { reportIntrinsicSize(); return }
+    if (keyboard.plain) {
+      // The EditText draws the kept placeholder's tail itself (HiddenEditText.onDraw).
+      editText.invalidate()
+      reportIntrinsicSize()
+      return
+    }
     val f = fonts
     engine.setReduceMotion(animationsDisabled())
     engine.beginText()
@@ -1549,7 +1593,13 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     // body glyph before a suffix carry the seams instead.
     if (signed) addRun(shown.substring(0, 1), Role.BODY, f, placeholder = false)
     addRun(format.prefix, Role.PREFIX, f, placeholder = false, lastSpacing = f.prefixSeam)
+    val tail = if (showPlaceholder) "" else ghostTail
     addRun(if (signed) shown.substring(1) else shown, Role.BODY, f, placeholder = showPlaceholder,
+           lastSpacing = if (format.suffix.isNotEmpty() && tail.isEmpty()) f.suffixSeam else null)
+    // `keepPlaceholder`: the rest of the mask trails the text as placeholder
+    // glyphs. They come after every typed glyph, so the caret - which counts
+    // body glyphs in order - never lands among them.
+    addRun(tail, Role.BODY, f, placeholder = true,
            lastSpacing = if (format.suffix.isNotEmpty()) f.suffixSeam else null)
     addRun(format.suffix, Role.SUFFIX, f, placeholder = false)
     engine.commitText(caret, now())
@@ -1720,7 +1770,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val body = when {
       text.isEmpty() -> effectivePlaceholder
       keyboard.secureTextEntry -> "\u2022".repeat(text.codePointCount(0, text.length))
-      else -> text
+      else -> text + ghostTail
     }
     // The edit text's own letter spacing follows every glyph; the affixes take their room with their seams.
     val f = fonts
@@ -1940,7 +1990,47 @@ class NitroInputView(context: Context) : FrameLayout(context) {
    * waits until the label has floated clear rather than printing over it.
    */
   private val effectivePlaceholder: String
-    get() = if (inputFrame.hasLabel && !labelShouldFloat) "" else format.placeholder
+    get() = if (inputFrame.hasLabel && !labelShouldFloat) "" else basePlaceholder
+
+  /**
+   * `keepPlaceholder` without a `placeholder` shows the mask itself, empty
+   * slots as `maskSlotPlaceholder`: "+1 (___) ___-____".
+   */
+  private val basePlaceholder: String
+    get() {
+      if (format.placeholder.isEmpty() && format.mode == Mode.MASK && format.keepPlaceholder && maskEngine.isActive()) {
+        maskEngine.applyAll("", 0, true, false, false)
+        return maskEngine.lastTailPlaceholder()
+      }
+      return format.placeholder
+    }
+
+  /**
+   * `keepPlaceholder`: what is still to come after the typed text, drawn in the
+   * placeholder colour. The caller's placeholder from where the text ends -
+   * "1234 5" leaves "678 9012" of "1234 5678 9012" - or, without one, the rest
+   * of the mask. The placeholder is written for `mask`, so when one of
+   * `maskAffinityFormats` has taken over (a 4-6-5 Amex under a 4-4-4-4
+   * placeholder) its characters no longer line up, and that format's own tail
+   * is shown instead. A complete text has nothing to come.
+   */
+  private val ghostTail: String
+    get() {
+      if (format.mode != Mode.MASK || !format.keepPlaceholder || text.isEmpty() || keyboard.secureTextEntry ||
+        !maskEngine.isActive()
+      ) {
+        return ""
+      }
+      val typed = text.codePointCount(0, text.length)
+      maskEngine.applyAll(text, typed, true, false, false)
+      if (maskEngine.lastComplete()) return ""
+      val placeholder = format.placeholder
+      if (placeholder.isNotEmpty() && maskEngine.lastFormatIndex() == 0) {
+        val total = placeholder.codePointCount(0, placeholder.length)
+        return if (typed < total) placeholder.substring(placeholder.offsetByCodePoints(0, typed)) else ""
+      }
+      return maskEngine.lastTailPlaceholder()
+    }
 
   private fun resolvedStrokeColor(): Int {
     val base = inputFrame.strokeColor ?: mutedTextColor

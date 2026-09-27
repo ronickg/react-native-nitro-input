@@ -25,6 +25,20 @@ class MaskEngine {
   external fun addNotation(character: String, characterSet: String, isOptional: Boolean)
   /** False when the pattern is malformed; the engine then passes text through. */
   external fun setFormat(format: String): Boolean
+  /** Stages alternative patterns for the next [setFormat]; the best one wins each edit. */
+  external fun clearAffinityFormats()
+  external fun addAffinityFormat(format: String)
+  /** `NitroInputMaskAffinity.value`: how the best alternative is chosen. */
+  external fun setAffinityStrategy(strategy: Int)
+  /** `NitroInputTextCase.value`: letters folded before masking. */
+  external fun setTextCase(textCase: Int)
+  /** Characters replaced before masking; an empty [to] drops [from]. */
+  external fun clearCharacterMap()
+  external fun addCharacterMapping(from: String, to: String)
+  /** What each empty slot shows in the tail placeholder; empty = its notation character. */
+  external fun setSlotPlaceholder(character: String)
+  /** False until a valid pattern is set. */
+  external fun isActive(): Boolean
 
   /** Replaces code points `[start, end)` of [current] with [replacement]. */
   external fun applyEdit(
@@ -47,4 +61,6 @@ class MaskEngine {
   external fun lastTailPlaceholder(): String
   /** Whether every mandatory slot is filled. */
   external fun lastComplete(): Boolean
+  /** Which pattern produced the last result: 0 the primary, 1… the alternatives. */
+  external fun lastFormatIndex(): Int
 }

@@ -12,6 +12,24 @@ import type {
 export type NitroInputMode = 'text' | 'number' | 'mask'
 
 /**
+ * How the best of `maskAffinityFormats` is chosen for the text in the field:
+ * `'wholeString'` the format that accepts the most characters and inserts the
+ * fewest, `'prefix'` the one whose output starts most like what was typed,
+ * `'capacity'` / `'extractedValueCapacity'` the fullest format that still
+ * holds all of the text / all of its value characters.
+ */
+export type NitroInputMaskAffinity = 'wholeString' | 'prefix' | 'capacity' | 'extractedValueCapacity'
+
+/** How letters are cased as they are typed into a mask. */
+export type NitroInputTextCase = 'none' | 'upper' | 'lower'
+
+/** One character replaced by another before masking; an empty `to` drops it. */
+export interface NitroInputCharacterMapping {
+  from: string
+  to: string
+}
+
+/**
  * A caller-defined slot character for `mask`, beyond the built-in
  * `0 9 A a _ - …`. `characterSet` lists every character the slot accepts.
  */
@@ -175,6 +193,34 @@ export interface NitroInputProps extends HybridViewProps {
    * Default: `false`.
    */
   maskAutoSkip: boolean
+  /**
+   * `'mask'`: more patterns the text may take, e.g. a 4-6-5 Amex card beside
+   * a 4-4-4-4 `mask`. Every edit is masked with each and the best, by
+   * `maskAffinityStrategy`, is kept; `mask` wins ties. Default: none.
+   */
+  maskAffinityFormats: string[]
+  /** `'mask'`: how the best of `maskAffinityFormats` is chosen. Default: `'wholeString'`. */
+  maskAffinityStrategy: NitroInputMaskAffinity
+  /** `'mask'`: uppercases or lowercases letters as they are typed or pasted. Default: `'none'`. */
+  maskTextCase: NitroInputTextCase
+  /**
+   * `'mask'`: characters replaced before masking, e.g. a Cyrillic "С" with a
+   * Latin "C", or "," with "." for a decimal mask. Default: none.
+   */
+  maskCharacterMap: NitroInputCharacterMapping[]
+  /**
+   * `'mask'`: the character each empty slot shows in the kept placeholder and
+   * in `onChangeMask`'s tail, e.g. `'_'`. Empty: the slot's own notation
+   * character. Default: `''`.
+   */
+  maskSlotPlaceholder: string
+  /**
+   * `'mask'`: keeps the rest of the placeholder visible after what has been
+   * typed, so "1234 5" shows "678 9012" greyed after it. Without a
+   * `placeholder`, the mask itself is shown, empty slots as
+   * `maskSlotPlaceholder`: `+1 (212) ___-____`. Default: `false`.
+   */
+  keepPlaceholder: boolean
   /** `'number'`: inserted between every three integer digits; empty disables grouping. Default: `','`. */
   groupingSeparator: string
   /** `'number'`: between the integer and fraction digits. Default: `'.'`. */

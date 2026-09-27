@@ -8,6 +8,7 @@
 #include "AmountFormatter.hpp"
 
 #include <algorithm>
+#include <climits>
 #include <optional>
 
 namespace margelo::nitro::nitroinput {
@@ -20,8 +21,67 @@ bool isDigit(uint32_t c) {
   return c >= '0' && c <= '9';
 }
 
+/// Letters a `[A]`/`[a]` slot takes: ASCII and the alphabetic blocks of the
+/// scripts people type into forms (Latin with its diacritics, Greek,
+/// Cyrillic, Armenian, Hebrew, Arabic, Devanagari, Thai, Hangul, kana and CJK
+/// ideographs). Not a full Unicode letter table - that would outweigh the
+/// engine - but no longer ASCII only, which refused every Cyrillic name.
 bool isLetter(uint32_t c) {
-  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+  if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) return true;
+  if (c < 0xC0) return false;
+  if (c <= 0x24F) return c != 0xD7 && c != 0xF7;  // Latin-1 letters, Latin Extended-A/B
+  if (c >= 0x370 && c <= 0x3FF) return c >= 0x386 && c != 0x387 && c != 0x3F6;  // Greek
+  if (c >= 0x400 && c <= 0x52F) return (c < 0x482 || c > 0x489);  // Cyrillic (+ supplement)
+  if (c >= 0x531 && c <= 0x587) return c <= 0x556 || c >= 0x561;  // Armenian
+  if (c >= 0x5D0 && c <= 0x5EA) return true;                      // Hebrew
+  if (c >= 0x620 && c <= 0x64A) return true;                      // Arabic
+  if (c >= 0x904 && c <= 0x939) return true;                      // Devanagari
+  if (c >= 0xE01 && c <= 0xE30) return true;                      // Thai
+  if (c >= 0x1E00 && c <= 0x1EFF) return true;                    // Latin Extended Additional (Vietnamese)
+  if (c >= 0x3041 && c <= 0x30FA) return c != 0x30A0;             // Hiragana, Katakana
+  if (c >= 0x4E00 && c <= 0x9FFF) return true;                    // CJK ideographs
+  if (c >= 0xAC00 && c <= 0xD7A3) return true;                    // Hangul syllables
+  return false;
+}
+
+/// Upper- and lower-case counterparts for the cased scripts `isLetter` knows.
+/// Anything else maps to itself.
+uint32_t toUpper(uint32_t c) {
+  if (c >= 'a' && c <= 'z') return c - 32;
+  if (c < 0xE0) return c;
+  if (c == 0xFF) return 0x178;                                     // ÿ → Ÿ
+  if (c <= 0xFE) return c == 0xF7 ? c : c - 32;                    // Latin-1
+  if (c >= 0x100 && c <= 0x17F) {                                  // Latin Extended-A
+    if ((c >= 0x139 && c <= 0x148) || (c >= 0x179 && c <= 0x17E)) return (c % 2 == 0) ? c - 1 : c;
+    if (c == 0x131 || c == 0x138 || c == 0x149 || c == 0x17F) return c;
+    return (c % 2 == 1) ? c - 1 : c;
+  }
+  if (c >= 0x3B1 && c <= 0x3C9) return c == 0x3C2 ? 0x3A3 : c - 32;  // Greek (final sigma → Σ)
+  if (c >= 0x430 && c <= 0x44F) return c - 32;                     // Cyrillic
+  if (c >= 0x450 && c <= 0x45F) return c - 80;
+  if ((c >= 0x460 && c <= 0x481) || (c >= 0x48A && c <= 0x4BF)) return (c % 2 == 1) ? c - 1 : c;
+  if (c >= 0x561 && c <= 0x586) return c - 48;                     // Armenian
+  if (c >= 0x1E00 && c <= 0x1EFF) return (c % 2 == 1) ? c - 1 : c;  // Vietnamese and co.
+  return c;
+}
+
+uint32_t toLower(uint32_t c) {
+  if (c >= 'A' && c <= 'Z') return c + 32;
+  if (c < 0xC0) return c;
+  if (c <= 0xDE) return c == 0xD7 ? c : c + 32;                    // Latin-1
+  if (c == 0x178) return 0xFF;                                     // Ÿ → ÿ
+  if (c >= 0x100 && c <= 0x17F) {                                  // Latin Extended-A
+    if ((c >= 0x139 && c <= 0x148) || (c >= 0x179 && c <= 0x17E)) return (c % 2 == 1) ? c + 1 : c;
+    if (c == 0x130 || c == 0x131 || c == 0x138 || c == 0x149 || c == 0x17F) return c;
+    return (c % 2 == 0) ? c + 1 : c;
+  }
+  if (c >= 0x391 && c <= 0x3A9 && c != 0x3A2) return c + 32;       // Greek
+  if (c >= 0x410 && c <= 0x42F) return c + 32;                     // Cyrillic
+  if (c >= 0x400 && c <= 0x40F) return c + 80;
+  if ((c >= 0x460 && c <= 0x481) || (c >= 0x48A && c <= 0x4BF)) return (c % 2 == 0) ? c + 1 : c;
+  if (c >= 0x531 && c <= 0x556) return c + 48;                     // Armenian
+  if (c >= 0x1E00 && c <= 0x1EFF) return (c % 2 == 0) ? c + 1 : c;
+  return c;
 }
 
 constexpr uint32_t kEllipsis = 0x2026; // …
@@ -244,8 +304,12 @@ void normalizeBlock(const CodePoints& block, std::vector<CodePoints>* out) {
   if (!run.empty()) runs.push_back(run);
 
   for (CodePoints& piece : runs) {
-    // Mandatory before optional, order otherwise preserved.
-    std::stable_partition(piece.begin(), piece.end(), [](uint32_t c) { return !isOptionalSlot(c); });
+    // Mandatory before optional, order otherwise preserved - and an ellipsis
+    // always last: it repeats the slot in front of it, so `[9…]` moved to
+    // `[…9]` would repeat nothing and take letters (upstream sorts by code,
+    // which leaves `…` last for the same reason).
+    const auto rank = [](uint32_t c) { return c == kEllipsis ? 2 : isOptionalSlot(c) ? 1 : 0; };
+    std::stable_sort(piece.begin(), piece.end(), [&](uint32_t a, uint32_t b) { return rank(a) < rank(b); });
     CodePoints wrapped;
     wrapped.reserve(piece.size() + 2);
     wrapped.push_back('[');
@@ -396,29 +460,89 @@ bool MaskEngine::setFormat(const std::string& format) {
   return setFormat(format, staged_);
 }
 
-bool MaskEngine::setFormat(const std::string& format, const std::vector<Notation>& notations) {
-  compiled_.reset();
-  if (format.empty()) return false;
+std::shared_ptr<const MaskEngine::Compiled> MaskEngine::compileFormat(const std::string& format,
+                                                                     const std::vector<Notation>& notations) {
+  if (format.empty()) return nullptr;
 
-  auto next = std::make_unique<Compiled>();
+  auto next = std::make_shared<Compiled>();
   next->notations = notations;
 
   // A notation may not redefine a built-in slot character - the compiler would
   // never reach it, so the caller's intent could not be honoured.
   for (const Notation& notation : next->notations) {
-    if (isReservedSlot(notation.character) || notation.characterSet.empty()) return false;
+    if (isReservedSlot(notation.character) || notation.characterSet.empty()) return nullptr;
   }
 
   CodePoints sanitized;
-  if (!sanitize(AmountFormatter::decode(format), &sanitized)) return false;
+  if (!sanitize(AmountFormatter::decode(format), &sanitized)) return nullptr;
 
   bool ok = true;
   const State* initial = compile(*next, sanitized, 0, false, false, 0, &ok);
-  if (!ok || initial == nullptr) return false;
-
+  if (!ok || initial == nullptr) return nullptr;
   next->initial = initial;
-  compiled_ = std::move(next);
+
+  // What the format can hold, for the capacity strategies and the paste rule.
+  bool leading = true;
+  for (const State* s = initial; s != nullptr && s->slot != Slot::EndOfLine; s = s->child) {
+    if (s->elliptical) {
+      next->textCapacity = kUnbounded;
+      next->valueCapacity = kUnbounded;
+      break;
+    }
+    if (s->slot == Slot::Free || s->slot == Slot::Fixed) {
+      if (leading) next->leadingConstants.push_back(s->ownCharacter);
+      next->textCapacity += 1;
+      if (s->slot == Slot::Fixed) next->valueCapacity += 1;
+    } else {
+      leading = false;
+      next->textCapacity += 1;
+      next->valueCapacity += 1;
+    }
+  }
+  return next;
+}
+
+bool MaskEngine::setFormat(const std::string& format, const std::vector<Notation>& notations) {
+  compiled_.reset();
+  alternatives_.clear();
+  compiled_ = compileFormat(format, notations);
+  if (compiled_ == nullptr) return false;
+  for (const std::string& alternative : stagedAffinityFormats_) {
+    if (auto compiled = compileFormat(alternative, notations)) alternatives_.push_back(std::move(compiled));
+  }
   return true;
+}
+
+void MaskEngine::clearAffinityFormats() {
+  stagedAffinityFormats_.clear();
+}
+
+void MaskEngine::addAffinityFormat(const std::string& format) {
+  stagedAffinityFormats_.push_back(format);
+}
+
+void MaskEngine::setAffinityStrategy(int strategy) {
+  affinityStrategy_ = std::clamp(strategy, kAffinityWholeString, kAffinityExtractedValueCapacity);
+}
+
+void MaskEngine::setTextCase(int textCase) {
+  textCase_ = std::clamp(textCase, kTextCaseNone, kTextCaseLower);
+}
+
+void MaskEngine::clearCharacterMap() {
+  characterMap_.clear();
+}
+
+void MaskEngine::addCharacterMapping(const std::string& from, const std::string& to) {
+  const CodePoints source = AmountFormatter::decode(from);
+  if (source.empty()) return;
+  const CodePoints target = AmountFormatter::decode(to);
+  characterMap_.emplace_back(source[0], target.empty() ? 0 : target[0]);
+}
+
+void MaskEngine::setSlotPlaceholder(const std::string& character) {
+  const CodePoints decoded = AmountFormatter::decode(character);
+  slotPlaceholder_ = decoded.empty() ? 0 : decoded[0];
 }
 
 // MARK: - Applying
@@ -443,11 +567,123 @@ MaskEngine::Result MaskEngine::apply(const std::string& text, int caret, bool ca
     return apply(text, caret, caretForward, false, autoSkip);
   }
 
-  const CodePoints input = AmountFormatter::decode(text);
-  const int caretPosition = std::clamp(caret, 0, static_cast<int>(input.size()));
+  int caretPosition = std::clamp(caret, 0, AmountFormatter::codePointCount(text));
+  CodePoints input = prepareInput(AmountFormatter::decode(text), &caretPosition);
 
+  if (alternatives_.empty()) {
+    return applyCompiled(*compiled_, input, caretPosition, caretForward, autocomplete, autoSkip);
+  }
+
+  // With several formats the text still carries the separators whichever one
+  // won last time inserted: "3782 8224 6" typed under 4-4-4-4 would count its
+  // spaces against the Amex 4-6-5 format and never let it take over. So every
+  // format re-masks the value characters alone; each puts its own literals back.
+  const std::vector<Notation>& notations = compiled_->notations;
+  const auto isValueCharacter = [&](uint32_t c) {
+    if (isDigit(c) || isLetter(c)) return true;
+    return std::any_of(notations.begin(), notations.end(), [c](const Notation& n) {
+      return std::find(n.characterSet.begin(), n.characterSet.end(), c) != n.characterSet.end();
+    });
+  };
+  CodePoints values;
+  values.reserve(input.size());
+  const int originalCaret = caretPosition;
+  for (size_t i = 0; i < input.size(); ++i) {
+    if (isValueCharacter(input[i])) {
+      values.push_back(input[i]);
+    } else if (static_cast<int>(i) < originalCaret) {
+      caretPosition -= 1;
+    }
+  }
+
+  // Ties go to the format that keeps more of what the field already shows -
+  // the one whose output shares the longer prefix with the text. The text
+  // still carries the separators of whichever format is showing, so that is
+  // the incumbent: a 4-6-5 card does not flip back to 4-4-4-4 at the 11th and
+  // 12th digit, where the two score the same. With nothing to tell them apart
+  // (an empty field, or text both lay out alike) the primary keeps it.
+  const auto sharedPrefix = [&](const Result& result) {
+    const CodePoints formatted = AmountFormatter::decode(result.formattedText);
+    size_t shared = 0;
+    while (shared < formatted.size() && shared < input.size() && formatted[shared] == input[shared]) shared++;
+    return static_cast<int>(shared);
+  };
+  Result best = applyCompiled(*compiled_, values, caretPosition, caretForward, autocomplete, autoSkip);
+  int bestScore = score(*compiled_, best, input, values);
+  int bestShared = sharedPrefix(best);
+  for (size_t i = 0; i < alternatives_.size(); ++i) {
+    Result candidate = applyCompiled(*alternatives_[i], values, caretPosition, caretForward, autocomplete, autoSkip);
+    const int candidateScore = score(*alternatives_[i], candidate, input, values);
+    const int candidateShared = sharedPrefix(candidate);
+    if (candidateScore > bestScore || (candidateScore == bestScore && candidateShared > bestShared)) {
+      bestScore = candidateScore;
+      bestShared = candidateShared;
+      best = std::move(candidate);
+      best.formatIndex = static_cast<int>(i) + 1;
+    }
+  }
+  return best;
+}
+
+std::vector<uint32_t> MaskEngine::prepareInput(const std::vector<uint32_t>& input, int* caret) const {
+  if (textCase_ == kTextCaseNone && characterMap_.empty()) return input;
+  CodePoints out;
+  out.reserve(input.size());
+  const int originalCaret = *caret;
+  for (size_t i = 0; i < input.size(); ++i) {
+    uint32_t c = input[i];
+    for (const auto& [from, to] : characterMap_) {
+      if (c == from) {
+        c = to;
+        break;
+      }
+    }
+    if (c == 0) {
+      // Dropped: everything after it moves left, the caret with it.
+      if (static_cast<int>(i) < originalCaret) *caret -= 1;
+      continue;
+    }
+    if (textCase_ == kTextCaseUpper) c = toUpper(c);
+    if (textCase_ == kTextCaseLower) c = toLower(c);
+    out.push_back(c);
+  }
+  return out;
+}
+
+/// `text` is the input as typed (case-folded and mapped), `values` the same
+/// with its separators taken out. Prefix and capacity measure what was typed;
+/// value capacity counts what would have to fit, which the result itself
+/// cannot tell - it has already dropped whatever overflowed.
+int MaskEngine::score(const Compiled& compiled, const Result& result, const std::vector<uint32_t>& text,
+                      const std::vector<uint32_t>& values) const {
+  switch (affinityStrategy_) {
+    case kAffinityPrefix: {
+      const CodePoints formatted = AmountFormatter::decode(result.formattedText);
+      size_t shared = 0;
+      while (shared < formatted.size() && shared < text.size() && formatted[shared] == text[shared]) shared++;
+      return static_cast<int>(shared);
+    }
+    case kAffinityCapacity: {
+      const int length = static_cast<int>(text.size());
+      return length > compiled.textCapacity ? INT_MIN : length - compiled.textCapacity;
+    }
+    case kAffinityExtractedValueCapacity: {
+      const int length = static_cast<int>(values.size());
+      return length > compiled.valueCapacity ? INT_MIN : length - compiled.valueCapacity;
+    }
+    default:
+      return result.affinity;
+  }
+}
+
+MaskEngine::Result MaskEngine::applyCompiled(const Compiled& compiled, const std::vector<uint32_t>& input,
+                                             int caretPosition, bool caretForward, bool autocomplete,
+                                             bool autoSkip) const {
   const auto insertionAffectsCaret = [&](size_t at) {
-    return caretForward ? static_cast<int>(at) < caretPosition : static_cast<int>(at) <= caretPosition;
+    // RedMadRobot's gravity: typing (forward) moves the caret past a constant
+    // inserted right at it, so "11|" + "1" under "[00]{.}[00]" lands after the
+    // dot; deleting (backward) leaves the caret in front of it.
+    return caretForward ? static_cast<int>(at) <= caretPosition : static_cast<int>(at) < caretPosition;
   };
   const auto deletionAffectsCaret = [&](size_t at) { return static_cast<int>(at) < caretPosition; };
 
@@ -455,7 +691,7 @@ MaskEngine::Result MaskEngine::apply(const std::string& text, int caret, bool ca
   CodePoints extracted;
   int modifiedCaret = caretPosition;
   int affinity = 0;
-  const State* state = compiled_->initial;
+  const State* state = compiled.initial;
   std::vector<Step> autocompletionStack;
 
   size_t at = 0;
@@ -502,21 +738,9 @@ MaskEngine::Result MaskEngine::apply(const std::string& text, int caret, bool ca
 
   // Trailing constants are filled in once the caret has reached the end of the
   // input - typing "212" into "+1 ([000]) [000]" leaves "+1 (212) " with the
-  // caret after the space, ready for the next digit.
-  //
-  // The engine this is modelled on gates this on `insertionAffectsCaret`, which
-  // is `index < caret` under forward gravity. The walk only ends when the index
-  // has reached the end of the input, and the caret can never be past that, so
-  // that test is always false and its loop is unreachable: constants only turn
-  // up retroactively, when the next value character arrives. Running both side
-  // by side on "+1 ([000]) [000]-[0000]":
-  //
-  //     typed     reference        here
-  //     212       "+1 (212"        "+1 (212) "
-  //     212555    "+1 (212) 555"   "+1 (212) 555-"
-  //
-  // Gate it on the caret instead, which is the behaviour that was always
-  // described (and their issues #148 and #31).
+  // caret after the space, ready for the next digit. That is RedMadRobot's
+  // `insertionAffectsCaret` at the end of the input (`index <= caret` under
+  // forward gravity), spelled out.
   const bool caretAtEnd = caretPosition >= static_cast<int>(input.size());
   while (autocomplete && caretAtEnd) {
     const std::optional<Step> step = autocompleteOf(state);
@@ -566,7 +790,7 @@ MaskEngine::Result MaskEngine::apply(const std::string& text, int caret, bool ca
     } else if (s->elliptical) {
       break;
     } else {
-      placeholderTail.push_back(s->placeholderCharacter());
+      placeholderTail.push_back(slotPlaceholder_ != 0 ? slotPlaceholder_ : s->placeholderCharacter());
     }
     s = s->child;
   }
@@ -580,7 +804,8 @@ MaskEngine::Result MaskEngine::applyEdit(const std::string& current, int start, 
   const int count = static_cast<int>(text.size());
   start = std::clamp(start, 0, count);
   end = std::clamp(end, start, count);
-  const CodePoints inserted = AmountFormatter::decode(replacement);
+  CodePoints inserted = AmountFormatter::decode(replacement);
+  if (inserted.size() > 1 && isActive()) inserted = withoutRepeatedPrefix(text, start, end, inserted);
 
   CodePoints spliced(text.begin(), text.begin() + start);
   spliced.insert(spliced.end(), inserted.begin(), inserted.end());
@@ -591,6 +816,42 @@ MaskEngine::Result MaskEngine::applyEdit(const std::string& current, int start, 
   // auto-skip. Doing both at once would fight itself.
   const bool deleting = inserted.empty();
   return apply(AmountFormatter::encode(spliced), caret, !deleting, !deleting && autocomplete, deleting && autoSkip);
+}
+
+std::vector<uint32_t> MaskEngine::withoutRepeatedPrefix(const std::vector<uint32_t>& text, int start, int end,
+                                                       const std::vector<uint32_t>& inserted) const {
+  // A paste or autofill that repeats the mask's own leading constants -
+  // "+63 912 345 6789" into "+63 [000] [000] [0000]", whose "+63 " the field
+  // already shows - would have its "63" taken as the first two digits and its
+  // last two cut off. Drop the repeat, but only when the paste lands inside
+  // those constants and keeping it would overflow the mask: a value that
+  // merely starts with the same digits, and fits, is left alone.
+  const auto isValueCharacter = [](uint32_t c) { return isDigit(c) || isLetter(c); };
+  const CodePoints& leading = compiled_->leadingConstants;
+  if (start > static_cast<int>(leading.size())) return inserted;
+
+  CodePoints repeated;
+  for (uint32_t c : leading) {
+    if (isValueCharacter(c)) repeated.push_back(c);
+  }
+  if (repeated.empty()) return inserted;
+
+  const auto countValue = [&](auto from, auto to) {
+    return static_cast<int>(std::count_if(from, to, isValueCharacter));
+  };
+  const int incoming = countValue(inserted.begin(), inserted.end()) + countValue(text.begin() + end, text.end());
+  if (incoming <= compiled_->valueCapacity) return inserted;
+
+  size_t matched = 0;
+  for (size_t i = 0; i < inserted.size(); ++i) {
+    const uint32_t c = inserted[i];
+    if (!isValueCharacter(c)) continue;  // "+", spaces, brackets
+    if (c != repeated[matched]) return inserted;
+    if (++matched == repeated.size()) {
+      return CodePoints(inserted.begin() + static_cast<long>(i) + 1, inserted.end());
+    }
+  }
+  return inserted;
 }
 
 } // namespace margelo::nitro::nitroinput

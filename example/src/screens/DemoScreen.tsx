@@ -709,6 +709,89 @@ function RevealDemo() {
 
 type Showcase = 'balance' | 'reveal' | 'morph' | 'edges' | null
 
+/** The Amex 4-6-5 grouping, chosen over the 4-4-4-4 `mask` when the digits fit it better. */
+const AMEX_FORMATS = ['{34}[00] [000000] [00000]', '{37}[00] [000000] [00000]']
+const DECIMAL_COMMA = { ',': '.' }
+
+function MaskFeaturesDemo() {
+  const [card, setCard] = useState(EMPTY_MASK)
+  const [phone, setPhone] = useState(EMPTY_MASK)
+  const [bic, setBic] = useState(EMPTY_MASK)
+  const [decimal, setDecimal] = useState(EMPTY_MASK)
+  return (
+    <Section
+      title="Mask features"
+      hint="keepPlaceholder keeps the rest of the placeholder (or the mask) greyed after what you typed. The card picks the Amex grouping on 34/37 (maskAffinityFormats). The BIC uppercases as you type (maskTextCase); the amount takes a comma for its dot (maskCharacterMap)."
+    >
+      <View style={styles.morphTextBox}>
+        <NitroInput
+          testID="mask-card"
+          mode="mask"
+          mask="[0000] [0000] [0000] [0000]"
+          maskAffinityFormats={AMEX_FORMATS}
+          placeholder="1234 5678 9012 3456"
+          keepPlaceholder
+          fontSize={20}
+          keyboardType="number-pad"
+          style={styles.morphText}
+          onChangeMask={(formatted, extracted, tail, complete) => setCard({ formatted, extracted, tail, complete })}
+        />
+      </View>
+      <Text style={styles.morphReadout} testID="mask-card-readout">
+        "{card.formatted}" · extracted "{card.extracted}" · {card.complete ? 'complete' : 'incomplete'}
+      </Text>
+      <View style={styles.morphTextBox}>
+        <NitroInput
+          transition="reflow"
+          testID="mask-phone-kept"
+          mode="mask"
+          mask="+1 ([000]) [000]-[0000]"
+          keepPlaceholder
+          fontSize={20}
+          keyboardType="number-pad"
+          style={styles.morphText}
+          onChangeMask={(formatted, extracted, tail, complete) => setPhone({ formatted, extracted, tail, complete })}
+        />
+      </View>
+      <Text style={styles.morphReadout} testID="mask-phone-kept-readout">
+        reflow · tail "{phone.tail}"
+      </Text>
+      <View style={styles.morphTextBox}>
+        <NitroInput
+          testID="mask-bic"
+          mode="mask"
+          mask="[AAAA][AA][__][___]"
+          maskTextCase="upper"
+          placeholder="DEUTDEFF500"
+          keepPlaceholder
+          fontSize={20}
+          style={styles.morphText}
+          onChangeMask={(formatted, extracted, tail, complete) => setBic({ formatted, extracted, tail, complete })}
+        />
+      </View>
+      <Text style={styles.morphReadout} testID="mask-bic-readout">
+        "{bic.formatted}" · {bic.complete ? 'complete' : 'incomplete'}
+      </Text>
+      <View style={styles.morphTextBox}>
+        <NitroInput
+          testID="mask-decimal"
+          mode="mask"
+          mask="[099999].[99]"
+          maskCharacterMap={DECIMAL_COMMA}
+          placeholder="0.00"
+          fontSize={20}
+          keyboardType="decimal-pad"
+          style={styles.morphText}
+          onChangeMask={(formatted, extracted, tail, complete) => setDecimal({ formatted, extracted, tail, complete })}
+        />
+      </View>
+      <Text style={styles.morphReadout} testID="mask-decimal-readout">
+        "{decimal.formatted}"
+      </Text>
+    </Section>
+  )
+}
+
 export function DemoScreen() {
   const dark = useColorScheme() === 'dark'
   const [showing, setShowing] = useState<Showcase>(null)
@@ -731,6 +814,7 @@ export function DemoScreen() {
             <Button title="Showcase: Transfer" testID="showcase-morph" onPress={() => setShowing('morph')} />
             <Button title="Edge cases" testID="showcase-edges" onPress={() => setShowing('edges')} />
           </View>
+          <MaskFeaturesDemo />
           <ProportionalDemo />
           <ReflowInputDemo />
           <MorphWorkletDemo />

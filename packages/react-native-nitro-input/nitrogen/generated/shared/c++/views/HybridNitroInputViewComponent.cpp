@@ -30,6 +30,12 @@ namespace margelo::nitro::nitroinput::views {
     maskNotations(nitro::ReactProp<std::vector<NitroInputNotation>>::fromRawValue("NitroInputView", "maskNotations", rawProps, sourceProps.maskNotations)),
     maskAutocomplete(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "maskAutocomplete", rawProps, sourceProps.maskAutocomplete)),
     maskAutoSkip(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "maskAutoSkip", rawProps, sourceProps.maskAutoSkip)),
+    maskAffinityFormats(nitro::ReactProp<std::vector<std::string>>::fromRawValue("NitroInputView", "maskAffinityFormats", rawProps, sourceProps.maskAffinityFormats)),
+    maskAffinityStrategy(nitro::ReactProp<NitroInputMaskAffinity>::fromRawValue("NitroInputView", "maskAffinityStrategy", rawProps, sourceProps.maskAffinityStrategy)),
+    maskTextCase(nitro::ReactProp<NitroInputTextCase>::fromRawValue("NitroInputView", "maskTextCase", rawProps, sourceProps.maskTextCase)),
+    maskCharacterMap(nitro::ReactProp<std::vector<NitroInputCharacterMapping>>::fromRawValue("NitroInputView", "maskCharacterMap", rawProps, sourceProps.maskCharacterMap)),
+    maskSlotPlaceholder(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "maskSlotPlaceholder", rawProps, sourceProps.maskSlotPlaceholder)),
+    keepPlaceholder(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "keepPlaceholder", rawProps, sourceProps.keepPlaceholder)),
     groupingSeparator(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "groupingSeparator", rawProps, sourceProps.groupingSeparator)),
     decimalSeparator(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "decimalSeparator", rawProps, sourceProps.decimalSeparator)),
     variant(nitro::ReactProp<NitroInputVariant>::fromRawValue("NitroInputView", "variant", rawProps, sourceProps.variant)),
@@ -131,6 +137,12 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("maskNotations"): return true;
       case hashString("maskAutocomplete"): return true;
       case hashString("maskAutoSkip"): return true;
+      case hashString("maskAffinityFormats"): return true;
+      case hashString("maskAffinityStrategy"): return true;
+      case hashString("maskTextCase"): return true;
+      case hashString("maskCharacterMap"): return true;
+      case hashString("maskSlotPlaceholder"): return true;
+      case hashString("keepPlaceholder"): return true;
       case hashString("groupingSeparator"): return true;
       case hashString("decimalSeparator"): return true;
       case hashString("variant"): return true;

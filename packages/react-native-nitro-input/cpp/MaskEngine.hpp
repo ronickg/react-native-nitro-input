@@ -21,6 +21,14 @@
 //    \   escapes the next character
 //  plus any number of caller-supplied `Notation`s.
 //
+//  Around the walk
+//    - Input is case-folded and character-mapped first (`setTextCase`,
+//      `addCharacterMapping`), so the caret never moves because of it.
+//    - Alternative formats (`addAffinityFormat`) are each tried and the one
+//      the `AffinityStrategy` scores best wins; the primary wins ties.
+//    - A paste that repeats the mask's own leading constants ("+63…" into
+//      "+63 [000]…") loses them, when keeping them would overflow the mask.
+//
 //  The algorithm follows RedMadRobot's input-mask (MIT), by way of
 //  react-native-advanced-input-mask. It differs from both in three ways that
 //  matter: it works in code points rather than UTF-16 units (so an astral
@@ -62,7 +70,25 @@ public:
     bool complete = false;
     /// How well the input fitted: +1 per accepted character, -1 per rejected.
     int affinity = 0;
+    /// Which format produced this: 0 the primary, 1… the affinity formats in
+    /// the order they were added.
+    int formatIndex = 0;
   };
+
+  /// How input letters are cased before masking.
+  static constexpr int kTextCaseNone = 0;
+  static constexpr int kTextCaseUpper = 1;
+  static constexpr int kTextCaseLower = 2;
+
+  /// How the best of several formats is chosen (RedMadRobot's strategies).
+  /// Whole string: accepted minus rejected characters.
+  static constexpr int kAffinityWholeString = 0;
+  /// Prefix: how many leading characters the input and the result share.
+  static constexpr int kAffinityPrefix = 1;
+  /// Capacity: fits the formatted text into the format, best the fullest.
+  static constexpr int kAffinityCapacity = 2;
+  /// Extracted value capacity: the same for the extracted value.
+  static constexpr int kAffinityExtractedValueCapacity = 3;
 
   /// Freely copyable: a compiled mask is immutable and shared, so a copy is a
   /// refcount bump. That also lets Swift and Kotlin hold one as a plain value.
@@ -89,6 +115,25 @@ public:
   /// `character` is a slot character (its first code point is used);
   /// `characterSet` is every character that slot accepts.
   void addNotation(const std::string& character, const std::string& characterSet, bool isOptional);
+
+  /// Stages alternative formats for the next `setFormat`, compiled with the
+  /// same notations. A malformed one is skipped rather than failing the rest.
+  void clearAffinityFormats();
+  void addAffinityFormat(const std::string& format);
+  /// One of the `kAffinity…` constants. Default: whole string.
+  void setAffinityStrategy(int strategy);
+
+  /// One of the `kTextCase…` constants, applied to input before masking.
+  void setTextCase(int textCase);
+  /// Replaces `from` with `to` in the input before masking, e.g. a Cyrillic
+  /// "С" with a Latin "C", or "," with "." for a decimal mask. Each is one
+  /// character (its first code point); an empty `to` drops the character.
+  void clearCharacterMap();
+  void addCharacterMapping(const std::string& from, const std::string& to);
+
+  /// The character the tail placeholder shows for each empty slot, e.g. "_".
+  /// Empty (the default): the slot's own notation character ("0", "a", "-").
+  void setSlotPlaceholder(const std::string& character);
 
   /// False until a valid format has been set; `apply` then passes text through.
   bool isActive() const;
@@ -121,7 +166,24 @@ private:
     std::vector<std::unique_ptr<State>> arena;
     const State* initial = nullptr;
     std::vector<Notation> notations;
+    /// Characters the format can hold at most (literals included), and value
+    /// characters; `kUnbounded` with an ellipsis.
+    int textCapacity = 0;
+    int valueCapacity = 0;
+    /// The constants before the first slot, e.g. "+63 " for "+63 [000]".
+    std::vector<uint32_t> leadingConstants;
   };
+  static constexpr int kUnbounded = 1 << 30;
+
+  static std::shared_ptr<const Compiled> compileFormat(const std::string& format,
+                                                        const std::vector<Notation>& notations);
+  Result applyCompiled(const Compiled& compiled, const std::vector<uint32_t>& input, int caret, bool caretForward,
+                       bool autocomplete, bool autoSkip) const;
+  std::vector<uint32_t> prepareInput(const std::vector<uint32_t>& input, int* caret) const;
+  int score(const Compiled& compiled, const Result& result, const std::vector<uint32_t>& text,
+            const std::vector<uint32_t>& values) const;
+  std::vector<uint32_t> withoutRepeatedPrefix(const std::vector<uint32_t>& text, int start, int end,
+                                              const std::vector<uint32_t>& inserted) const;
 
   static const State* compile(Compiled& out, const std::vector<uint32_t>& format, size_t index, bool valuable,
                               bool fixed, uint32_t lastCharacter, bool* ok);
@@ -130,7 +192,13 @@ private:
                              const Notation** notation);
 
   std::shared_ptr<const Compiled> compiled_;
+  std::vector<std::shared_ptr<const Compiled>> alternatives_;
   std::vector<Notation> staged_;
+  std::vector<std::string> stagedAffinityFormats_;
+  int affinityStrategy_ = kAffinityWholeString;
+  int textCase_ = kTextCaseNone;
+  std::vector<std::pair<uint32_t, uint32_t>> characterMap_; // to == 0: drop
+  uint32_t slotPlaceholder_ = 0;
 };
 
 } // namespace margelo::nitro::nitroinput

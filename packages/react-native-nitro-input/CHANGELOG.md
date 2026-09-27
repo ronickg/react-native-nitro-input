@@ -1,5 +1,36 @@
 # Changelog
 
+## Unreleased
+
+- **`keepPlaceholder`**: the rest of a mask's placeholder stays visible,
+  greyed, after what has been typed ("1234 5" then "678 9012"); without a
+  `placeholder` the mask itself is shown, empty slots as
+  `maskSlotPlaceholder` (`_`): `+1 (212) ___-____`. Plain and reflowing
+  fields, both platforms.
+- **`maskAffinityFormats`** and **`maskAffinityStrategy`**: several patterns
+  for one field, the best kept on every edit (a 4-6-5 Amex card beside
+  4-4-4-4). Compared on the value characters, and a tie keeps the format that
+  is showing, so the grouping does not flip back and forth while typing.
+- **`maskTextCase`** uppercases or lowercases letters as they arrive, and
+  **`maskCharacterMap`** replaces characters before masking (Cyrillic
+  look-alikes, a comma for a dot).
+- Letter slots (`[A]`, `[a]`) take letters beyond ASCII: Latin with
+  diacritics, Greek, Cyrillic, Armenian, Hebrew, Arabic, Devanagari, Thai,
+  Hangul, kana and CJK.
+- A paste that repeats a mask's leading constants ("+63…" into
+  `+63 [000] [000] [0000]`) loses the repeat when it would otherwise overflow.
+- **Fixed**: a constant the mask inserts right at the caret now puts the
+  caret after it when typing and before it when deleting (the gravity was the
+  wrong way round), as RedMadRobot's input-mask does.
+- **Fixed**: an ellipsis after an optional slot (`[9…]`, `[a…]`) repeats that
+  slot; the format sanitizer used to move it to the front, where it took any
+  character.
+- **Fixed (iOS)**: changing `mask` (or a number format) re-masks the text and
+  reports it through `onChangeText` / `onChangeMask` / `getText()`, as Android
+  does; the field showed the new text while JS kept the old one.
+- The mask engine is checked against ~1,900 cases ported from RedMadRobot's
+  input-mask (Android and iOS), maska and react-native-advanced-input-mask.
+
 ## 0.3.1
 
 - **Signs**: `signDisplay` (`'auto'`, `'always'`, `'exceptZero'`,

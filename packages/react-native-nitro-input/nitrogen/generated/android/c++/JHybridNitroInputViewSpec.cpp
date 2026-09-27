@@ -11,6 +11,12 @@
 namespace margelo::nitro::nitroinput { enum class NitroInputMode; }
 // Forward declaration of `NitroInputNotation` to properly resolve imports.
 namespace margelo::nitro::nitroinput { struct NitroInputNotation; }
+// Forward declaration of `NitroInputMaskAffinity` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputMaskAffinity; }
+// Forward declaration of `NitroInputTextCase` to properly resolve imports.
+namespace margelo::nitro::nitroinput { enum class NitroInputTextCase; }
+// Forward declaration of `NitroInputCharacterMapping` to properly resolve imports.
+namespace margelo::nitro::nitroinput { struct NitroInputCharacterMapping; }
 // Forward declaration of `NitroInputVariant` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputVariant; }
 // Forward declaration of `NitroInputLabelBehavior` to properly resolve imports.
@@ -44,6 +50,12 @@ namespace margelo::nitro::nitroinput { enum class NitroInputKeyboardAppearance; 
 #include "NitroInputNotation.hpp"
 #include <vector>
 #include "JNitroInputNotation.hpp"
+#include "NitroInputMaskAffinity.hpp"
+#include "JNitroInputMaskAffinity.hpp"
+#include "NitroInputTextCase.hpp"
+#include "JNitroInputTextCase.hpp"
+#include "NitroInputCharacterMapping.hpp"
+#include "JNitroInputCharacterMapping.hpp"
 #include "NitroInputVariant.hpp"
 #include "JNitroInputVariant.hpp"
 #include "NitroInputLabelBehavior.hpp"
@@ -217,6 +229,96 @@ namespace margelo::nitro::nitroinput {
   void JHybridNitroInputViewSpec::setMaskAutoSkip(bool maskAutoSkip) {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jboolean /* maskAutoSkip */)>("setMaskAutoSkip");
     method(_javaPart, maskAutoSkip);
+  }
+  std::vector<std::string> JHybridNitroInputViewSpec::getMaskAffinityFormats() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JArrayClass<jni::JString>>()>("getMaskAffinityFormats");
+    auto __result = method(_javaPart);
+    return [&](auto&& __input) {
+      size_t __size = __input->size();
+      std::vector<std::string> __vector;
+      __vector.reserve(__size);
+      for (size_t __i = 0; __i < __size; __i++) {
+        auto __element = __input->getElement(__i);
+        __vector.push_back(__element->toStdString());
+      }
+      return __vector;
+    }(__result);
+  }
+  void JHybridNitroInputViewSpec::setMaskAffinityFormats(const std::vector<std::string>& maskAffinityFormats) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JArrayClass<jni::JString>> /* maskAffinityFormats */)>("setMaskAffinityFormats");
+    method(_javaPart, [&](auto&& __input) {
+      size_t __size = __input.size();
+      jni::local_ref<jni::JArrayClass<jni::JString>> __array = jni::JArrayClass<jni::JString>::newArray(__size);
+      for (size_t __i = 0; __i < __size; __i++) {
+        const auto& __element = __input[__i];
+        auto __elementJni = jni::make_jstring(__element);
+        __array->setElement(__i, *__elementJni);
+      }
+      return __array;
+    }(maskAffinityFormats));
+  }
+  NitroInputMaskAffinity JHybridNitroInputViewSpec::getMaskAffinityStrategy() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JNitroInputMaskAffinity>()>("getMaskAffinityStrategy");
+    auto __result = method(_javaPart);
+    return __result->toCpp();
+  }
+  void JHybridNitroInputViewSpec::setMaskAffinityStrategy(NitroInputMaskAffinity maskAffinityStrategy) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroInputMaskAffinity> /* maskAffinityStrategy */)>("setMaskAffinityStrategy");
+    method(_javaPart, JNitroInputMaskAffinity::fromCpp(maskAffinityStrategy));
+  }
+  NitroInputTextCase JHybridNitroInputViewSpec::getMaskTextCase() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JNitroInputTextCase>()>("getMaskTextCase");
+    auto __result = method(_javaPart);
+    return __result->toCpp();
+  }
+  void JHybridNitroInputViewSpec::setMaskTextCase(NitroInputTextCase maskTextCase) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroInputTextCase> /* maskTextCase */)>("setMaskTextCase");
+    method(_javaPart, JNitroInputTextCase::fromCpp(maskTextCase));
+  }
+  std::vector<NitroInputCharacterMapping> JHybridNitroInputViewSpec::getMaskCharacterMap() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JArrayClass<JNitroInputCharacterMapping>>()>("getMaskCharacterMap");
+    auto __result = method(_javaPart);
+    return [&](auto&& __input) {
+      size_t __size = __input->size();
+      std::vector<NitroInputCharacterMapping> __vector;
+      __vector.reserve(__size);
+      for (size_t __i = 0; __i < __size; __i++) {
+        auto __element = __input->getElement(__i);
+        __vector.push_back(__element->toCpp());
+      }
+      return __vector;
+    }(__result);
+  }
+  void JHybridNitroInputViewSpec::setMaskCharacterMap(const std::vector<NitroInputCharacterMapping>& maskCharacterMap) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JArrayClass<JNitroInputCharacterMapping>> /* maskCharacterMap */)>("setMaskCharacterMap");
+    method(_javaPart, [&](auto&& __input) {
+      size_t __size = __input.size();
+      jni::local_ref<jni::JArrayClass<JNitroInputCharacterMapping>> __array = jni::JArrayClass<JNitroInputCharacterMapping>::newArray(__size);
+      for (size_t __i = 0; __i < __size; __i++) {
+        const auto& __element = __input[__i];
+        auto __elementJni = JNitroInputCharacterMapping::fromCpp(__element);
+        __array->setElement(__i, *__elementJni);
+      }
+      return __array;
+    }(maskCharacterMap));
+  }
+  std::string JHybridNitroInputViewSpec::getMaskSlotPlaceholder() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("getMaskSlotPlaceholder");
+    auto __result = method(_javaPart);
+    return __result->toStdString();
+  }
+  void JHybridNitroInputViewSpec::setMaskSlotPlaceholder(const std::string& maskSlotPlaceholder) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JString> /* maskSlotPlaceholder */)>("setMaskSlotPlaceholder");
+    method(_javaPart, jni::make_jstring(maskSlotPlaceholder));
+  }
+  bool JHybridNitroInputViewSpec::getKeepPlaceholder() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean()>("getKeepPlaceholder");
+    auto __result = method(_javaPart);
+    return static_cast<bool>(__result);
+  }
+  void JHybridNitroInputViewSpec::setKeepPlaceholder(bool keepPlaceholder) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jboolean /* keepPlaceholder */)>("setKeepPlaceholder");
+    method(_javaPart, keepPlaceholder);
   }
   std::string JHybridNitroInputViewSpec::getGroupingSeparator() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("getGroupingSeparator");

@@ -94,6 +94,12 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var maskNotations: [NitroInputNotation] = [] { didSet { markConfigDirty() } }
   var maskAutocomplete: Bool = true { didSet { markConfigDirty() } }
   var maskAutoSkip: Bool = false { didSet { markConfigDirty() } }
+  var maskAffinityFormats: [String] = [] { didSet { markConfigDirty() } }
+  var maskAffinityStrategy: NitroInputMaskAffinity = .wholestring { didSet { markConfigDirty() } }
+  var maskTextCase: NitroInputTextCase = .none { didSet { markConfigDirty() } }
+  var maskCharacterMap: [NitroInputCharacterMapping] = [] { didSet { markConfigDirty() } }
+  var maskSlotPlaceholder: String = "" { didSet { markConfigDirty() } }
+  var keepPlaceholder: Bool = false { didSet { markConfigDirty() } }
   var plain: Bool = false { didSet { markConfigDirty() } }
   var fractionDigits: Double = 2 { didSet { markConfigDirty() } }
   var maxIntegerDigits: Double = 15 { didSet { markConfigDirty() } }
@@ -296,6 +302,12 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     maskNotations = []
     maskAutocomplete = true
     maskAutoSkip = false
+    maskAffinityFormats = []
+    maskAffinityStrategy = .wholestring
+    maskTextCase = .none
+    maskCharacterMap = []
+    maskSlotPlaceholder = ""
+    keepPlaceholder = false
     fractionDigits = 2
     maxIntegerDigits = 15
     groupingSeparator = ","
@@ -498,6 +510,12 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     }
     format.maskAutocomplete = maskAutocomplete
     format.maskAutoSkip = maskAutoSkip
+    format.maskAffinityFormats = maskAffinityFormats
+    format.maskAffinityStrategy = Int(maskAffinityStrategy.rawValue)
+    format.maskTextCase = Int(maskTextCase.rawValue)
+    format.maskCharacterMap = maskCharacterMap.map { NitroInputView.MaskMapping(from: $0.from, to: $0.to) }
+    format.maskSlotPlaceholder = maskSlotPlaceholder
+    format.keepPlaceholder = keepPlaceholder
     format.fractionDigits = Self.clampInt(fractionDigits, 0, 9, fallback: 2)
     format.maxIntegerDigits = Self.clampInt(maxIntegerDigits, 1, 30, fallback: 15)
     format.groupingSeparator = groupingSeparator

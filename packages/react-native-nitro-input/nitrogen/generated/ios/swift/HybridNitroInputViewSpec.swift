@@ -20,6 +20,12 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   var maskNotations: [NitroInputNotation] { get set }
   var maskAutocomplete: Bool { get set }
   var maskAutoSkip: Bool { get set }
+  var maskAffinityFormats: [String] { get set }
+  var maskAffinityStrategy: NitroInputMaskAffinity { get set }
+  var maskTextCase: NitroInputTextCase { get set }
+  var maskCharacterMap: [NitroInputCharacterMapping] { get set }
+  var maskSlotPlaceholder: String { get set }
+  var keepPlaceholder: Bool { get set }
   var groupingSeparator: String { get set }
   var decimalSeparator: String { get set }
   var variant: NitroInputVariant { get set }

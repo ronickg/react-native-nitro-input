@@ -34,6 +34,18 @@ namespace margelo::nitro::nitroinput {
       prototype.registerHybridSetter("maskAutocomplete", &HybridNitroInputViewSpec::setMaskAutocomplete);
       prototype.registerHybridGetter("maskAutoSkip", &HybridNitroInputViewSpec::getMaskAutoSkip);
       prototype.registerHybridSetter("maskAutoSkip", &HybridNitroInputViewSpec::setMaskAutoSkip);
+      prototype.registerHybridGetter("maskAffinityFormats", &HybridNitroInputViewSpec::getMaskAffinityFormats);
+      prototype.registerHybridSetter("maskAffinityFormats", &HybridNitroInputViewSpec::setMaskAffinityFormats);
+      prototype.registerHybridGetter("maskAffinityStrategy", &HybridNitroInputViewSpec::getMaskAffinityStrategy);
+      prototype.registerHybridSetter("maskAffinityStrategy", &HybridNitroInputViewSpec::setMaskAffinityStrategy);
+      prototype.registerHybridGetter("maskTextCase", &HybridNitroInputViewSpec::getMaskTextCase);
+      prototype.registerHybridSetter("maskTextCase", &HybridNitroInputViewSpec::setMaskTextCase);
+      prototype.registerHybridGetter("maskCharacterMap", &HybridNitroInputViewSpec::getMaskCharacterMap);
+      prototype.registerHybridSetter("maskCharacterMap", &HybridNitroInputViewSpec::setMaskCharacterMap);
+      prototype.registerHybridGetter("maskSlotPlaceholder", &HybridNitroInputViewSpec::getMaskSlotPlaceholder);
+      prototype.registerHybridSetter("maskSlotPlaceholder", &HybridNitroInputViewSpec::setMaskSlotPlaceholder);
+      prototype.registerHybridGetter("keepPlaceholder", &HybridNitroInputViewSpec::getKeepPlaceholder);
+      prototype.registerHybridSetter("keepPlaceholder", &HybridNitroInputViewSpec::setKeepPlaceholder);
       prototype.registerHybridGetter("groupingSeparator", &HybridNitroInputViewSpec::getGroupingSeparator);
       prototype.registerHybridSetter("groupingSeparator", &HybridNitroInputViewSpec::setGroupingSeparator);
       prototype.registerHybridGetter("decimalSeparator", &HybridNitroInputViewSpec::getDecimalSeparator);
