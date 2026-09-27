@@ -192,6 +192,50 @@ describe('NitroInput keyboard handoff', () => {
     })
   }
 
+  // What the platform apps do when you come back to a screen whose field had the
+  // keyboard: iOS (UIKit) gives the field its focus and the keyboard back, with
+  // the pop; Android leaves the keyboard down. Native-stack gets both for free as
+  // long as `keyboardHandlingEnabled` (react-native-screens' hideKeyboardOnSwipe)
+  // stays off: on, it resigns the field as the screen starts to leave, and UIKit
+  // has nothing to give back.
+  it(`${Platform.OS === 'ios' ? 'gives the keyboard back to' : 'leaves the keyboard down for'} the field that had it when its screen is popped back to`, async () => {
+    const Stack = createNativeStackNavigator()
+    const navigation = createNavigationContainerRef<Record<string, undefined>>()
+    const home = createRef<NitroInputHandle>()
+    function Home() {
+      return <NitroInput ref={home} defaultValue="home" style={{ margin: 20 }} />
+    }
+    function Detail() {
+      return <View style={{ flex: 1 }} />
+    }
+    await render(
+      <View style={{ flex: 1, height: 500 }}>
+        <NavigationContainer ref={navigation}>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="home" component={Home} />
+            <Stack.Screen name="detail" component={Detail} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </View>
+    )
+    try {
+      await waitFor(() => expect(home.current).not.toBeNull())
+      if (!(await openKeyboard(home.current))) return
+      navigation.navigate('detail')
+      await sleep(1200)
+      navigation.goBack()
+      await sleep(1500)
+      if (Platform.OS === 'ios') {
+        expect(home.current!.isFocused()).toBe(true)
+        expect(Keyboard.isVisible()).toBe(true)
+      } else {
+        expect(Keyboard.isVisible()).toBe(false)
+      }
+    } finally {
+      await closeKeyboard()
+    }
+  })
+
   it('keeps focus and the keyboard while a search list filters under the field', async () => {
     // A search screen: every keystroke re-renders the list below the field.
     const field = createRef<NitroInputHandle>()

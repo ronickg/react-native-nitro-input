@@ -412,6 +412,37 @@ place. Typing uses **caret matching**: the characters on either side of the
 caret keep their identity, so inserting a `9` into `12|34` slides `34` over
 rather than renumbering the columns.
 
+### The keyboard across screens and lists
+
+Held against iOS Contacts and Samsung's Settings and Contacts, a NitroInput
+screen behaves like theirs with these settings:
+
+- **Coming back to a screen whose field had the keyboard**: on iOS the field
+  gets its focus and the keyboard back with the back animation (swipe-back
+  too); on Android the keyboard stays down. Native-stack does both by itself
+  as long as `keyboardHandlingEnabled` stays off, its default. Turned on
+  (react-native-screens' `hideKeyboardOnSwipe`), it takes the focus away as
+  the screen starts to leave, and there is nothing to give back.
+- **The keyboard's Next key**: `returnKeyType="next"` with
+  `submitBehavior="submit"`, and `onSubmitEditing` focusing the next field.
+  The keyboard stays up between fields. On iOS's number, phone and decimal
+  pads, which have no return key, the field shows a bar with that key.
+- **Lists and forms**: `keyboardShouldPersistTaps="handled"`, so a tap on a
+  row works while the keyboard is up (React Native's default spends the first
+  tap on closing it), and `keyboardDismissMode="on-drag"` to close the
+  keyboard when the list is dragged.
+- **A field that leaves while it has the keyboard** (its step replaced, a
+  screen popped back to one that focuses its own field): `keyboardHandoffMs`
+  keeps the keyboard up for the next field instead of dropping and raising it.
+
+```tsx
+<Stack.Navigator>{/* keyboardHandlingEnabled left off */}</Stack.Navigator>
+
+<FlatList keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" … />
+
+<NitroInput returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => next.current?.focus()} />
+```
+
 ## NitroInput props
 
 | Prop | Type | Default | Description |

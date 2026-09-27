@@ -19,6 +19,14 @@
 - **Changed**: a controlled field whose parent keeps its `value` while the
   user types (a rejected edit, a digits-only filter) puts the value back, as
   `TextInput` does. It used to keep showing what was typed.
+- **Fixed (Android)**: `keyboardHandoffMs` on a field that unmounts could lose
+  the race with the frame that removes it (about two runs in three on a
+  Galaxy A22), and the keyboard dropped anyway. The handoff now runs on the
+  UI thread just before Fabric applies that frame's view changes.
+- **Docs**: "The keyboard across screens and lists" in the README: the
+  settings that make a NitroInput screen behave like the platform apps, back
+  navigation included (iOS gives the field its keyboard back as long as
+  native-stack's `keyboardHandlingEnabled` stays off).
 - **Fixed (Android)**: a field on a screen react-native-screens covered and
   uncovered came back still flagged as focused, and `focus()` did nothing.
 - **Fixed (Android)**: keyboard-controller saw no focused input for a

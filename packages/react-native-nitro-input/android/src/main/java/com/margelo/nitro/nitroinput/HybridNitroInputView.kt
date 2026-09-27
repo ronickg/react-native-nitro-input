@@ -294,7 +294,14 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
 
   override fun blur() = onMain { inputView.blur() }
 
-  override fun prepareForUnmount() = onMain { inputView.handOffKeyboardIfFocused() }
+  override fun prepareForUnmount() {
+    if (Looper.myLooper() == Looper.getMainLooper()) {
+      inputView.handOffKeyboardIfFocused()
+      return
+    }
+    // Before the frame that removes the view (see UnmountHandoffs).
+    if (!UnmountHandoffs.request(context, inputView)) onMain { inputView.handOffKeyboardIfFocused() }
+  }
 
   override fun clear() = onMain {
     flushConfigIfNeeded()

@@ -161,8 +161,8 @@ export function RootNavigator() {
         <Stack.Screen name="ViewPropsRepro" component={ViewPropsReproScreen} options={{ title: 'View props' }} />
         <Stack.Screen name="Rtl" component={RtlScreen} options={{ title: 'Right-to-left' }} />
         <Stack.Screen name="RecycleCheck" component={RecycleCheckScreen} options={{ title: 'Recycle check' }} />
-        <Stack.Screen name="LabSearch" component={LabSearchScreen} options={{ title: 'Search list' }} />
-        <Stack.Screen name="LabForm" component={LabFormScreen} options={{ title: 'Form' }} />
+        <Stack.Screen name="LabSearch" component={LabSearchScreen} options={{ title: 'Search list', keyboardHandlingEnabled: false }} />
+        <Stack.Screen name="LabForm" component={LabFormScreen} options={{ title: 'Form', keyboardHandlingEnabled: false }} />
         <Stack.Screen name="LabDetail" component={LabDetailScreen} options={{ title: 'Detail' }} />
         <Stack.Screen
           name="FlowSheet"
