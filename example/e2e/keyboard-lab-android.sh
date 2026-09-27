@@ -96,7 +96,10 @@ search_flow() {
   adb shell input text an; sleep 1
   expect_ime true "typed"; expect_status "focus: search" "typed"
   drag
+  # As on iOS: the drag closes the keyboard and the field lets go of focus
+  # (Samsung's own apps keep the focus; this app follows iOS on purpose).
   expect_ime false "dragged the list (keyboardDismissMode on-drag)"
+  expect_status "focus: none · keyboard: down" "dragged the list"
   tap lab-search
   expect_ime true "refocused"
   tap lab-row-
@@ -134,6 +137,7 @@ form_flow() {
   expect_ime true "tapped a field again"
   drag
   expect_ime false "dragged the form (keyboardDismissMode on-drag)"
+  expect_status "focus: none · keyboard: down" "dragged the form"
   back
 }
 
