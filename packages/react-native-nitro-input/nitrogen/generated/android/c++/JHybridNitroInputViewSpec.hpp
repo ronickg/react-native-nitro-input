@@ -212,6 +212,8 @@ namespace margelo::nitro::nitroinput {
     void setSelectTextOnFocus(bool selectTextOnFocus) override;
     bool getClearTextOnFocus() override;
     void setClearTextOnFocus(bool clearTextOnFocus) override;
+    double getKeyboardHandoffMs() override;
+    void setKeyboardHandoffMs(double keyboardHandoffMs) override;
     bool getContextMenuHidden() override;
     void setContextMenuHidden(bool contextMenuHidden) override;
     bool getSpellCheck() override;
@@ -268,6 +270,7 @@ namespace margelo::nitro::nitroinput {
     double getValue() override;
     bool isFocused() override;
     void setSelection(double start, double end) override;
+    void prepareForUnmount() override;
 
   private:
     jni::global_ref<JHybridNitroInputViewSpec::JavaPart> _javaPart;

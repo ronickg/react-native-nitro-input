@@ -185,6 +185,9 @@ final class NitroInputView: UIView {
     var showSoftInputOnFocus: Bool = true
     var selectTextOnFocus: Bool = false
     var clearTextOnFocus: Bool = false
+    /// How long a focused field that is leaving its window keeps the keyboard
+    /// up for the next field (see `KeyboardHandoff`); 0 is off.
+    var keyboardHandoffMs: Double = 0
     var contextMenuHidden: Bool = false
     var spellCheck: Bool = true
     /// `testID` and `accessibilityLabel`, forwarded from JS so the hidden
@@ -599,6 +602,10 @@ final class NitroInputView: UIView {
   /// A narrower settled size waiting for the current reflow to finish before it is reported.
   private var pendingSizeReport = false
   private var didAutoFocus = false
+  /// `focus()` arrived while the view had no window (a screen coming back on a
+  /// pop is re-added only as the transition starts): taken the moment the view
+  /// is back, unless it has gone stale.
+  private var pendingFocusUntil: CFTimeInterval = 0
   /// Set while this view writes the field's text itself, so the change handler
   /// can tell a programmatic set from a user edit.
   private var isSettingText = false
@@ -657,6 +664,8 @@ final class NitroInputView: UIView {
 
   override init(frame: CGRect) {
     super.init(frame: frame)
+    // Starts it tracking the keyboard before any field needs to ask.
+    _ = KeyboardHandoff.shared
     isOpaque = false
     backgroundColor = .clear
     clipsToBounds = false
@@ -816,7 +825,40 @@ final class NitroInputView: UIView {
     // The fonts were built against whatever traits the view had when it was
     // made; the window's are the ones that count.
     if window != nil { syncWithTraits(appearanceChanged: false) }
+    if window != nil, pendingFocusUntil > 0 {
+      // Only while the keyboard is still up (held for this field, or another
+      // field has it): a keyboard dismissed during the transition stays down.
+      let handoff = KeyboardHandoff.shared
+      let wanted = CACurrentMediaTime() < pendingFocusUntil && (handoff.isHolding || handoff.keyboardVisible)
+      pendingFocusUntil = 0
+      if wanted, traits.editable { claimFirstResponder() }
+    }
     maybeAutoFocus()
+  }
+
+  override func willMove(toWindow newWindow: UIWindow?) {
+    // Before UIKit resigns the field on its way out, so the keyboard never
+    // starts to hide.
+    if newWindow == nil { handOffKeyboardIfFocused() }
+    super.willMove(toWindow: newWindow)
+  }
+
+  /// A focused field leaving the screen hands the keyboard to a stand-in field
+  /// instead of dropping it, so the next field to focus takes it over in place.
+  func handOffKeyboardIfFocused() {
+    guard traits.keyboardHandoffMs > 0, traits.showSoftInputOnFocus,
+          let window, editor.isFirstResponder else { return }
+    KeyboardHandoff.shared.hold(like: editor, in: window, for: traits.keyboardHandoffMs)
+  }
+
+  /// `becomeFirstResponder`, retried next turn if UIKit declines because the
+  /// view is in a window but not ready to accept it yet.
+  private func claimFirstResponder() {
+    if editor.becomeFirstResponder() { return }
+    DispatchQueue.main.async { [weak self] in
+      guard let self, self.window != nil else { return }
+      self.editor.becomeFirstResponder()
+    }
   }
 
   override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -863,11 +905,7 @@ final class NitroInputView: UIView {
   private func maybeAutoFocus() {
     guard window != nil, traits.autoFocus, traits.editable, !didAutoFocus else { return }
     didAutoFocus = true
-    if editor.becomeFirstResponder() { return }
-    DispatchQueue.main.async { [weak self] in
-      guard let self, self.window != nil else { return }
-      self.editor.becomeFirstResponder()
-    }
+    claimFirstResponder()
   }
 
   @objc private func contentSizeCategoryDidChange() {
@@ -885,6 +923,7 @@ final class NitroInputView: UIView {
   func resetForRecycle() {
     worklets = Worklets()
     if editor.isFirstResponder { editor.resignFirstResponder() }
+    pendingFocusUntil = 0
     stopDisplayLink()
     stopBlink()
     engine.reset()
@@ -914,13 +953,29 @@ final class NitroInputView: UIView {
 
   // MARK: - Public API
 
-  func focus() {
+  @objc(nitroFocus) func focus() {
     guard traits.editable else { return }
-    editor.becomeFirstResponder()
+    // Not in a window: nothing can take first responder there. A screen being
+    // popped back to is re-added only as its transition starts, so hold the
+    // request for that moment - claiming it the same turn the view arrives is
+    // what swaps the keyboard in place rather than hiding and showing it.
+    guard window != nil else {
+      pendingFocusUntil = CACurrentMediaTime() + 1
+      return
+    }
+    pendingFocusUntil = 0
+    claimFirstResponder()
   }
 
-  func blur() {
-    editor.resignFirstResponder()
+  @objc(nitroBlur) func blur() {
+    pendingFocusUntil = 0
+    if editor.isFirstResponder {
+      editor.resignFirstResponder()
+    } else {
+      // `Keyboard.dismiss()` while a field that just left the screen holds the
+      // keyboard for the next one: nothing is focused, so let it go now.
+      KeyboardHandoff.shared.letGo()
+    }
   }
 
   /// Moves the caret/selection to `start`..`end`, in code points.
@@ -1163,7 +1218,13 @@ final class NitroInputView: UIView {
     textView.isUserInteractionEnabled = on && traits.editable
     field.isHidden = on
     field.isUserInteractionEnabled = !on && traits.editable
-    guard on else { return }
+    // The hidden twin must not count as an input: keyboard-controller's
+    // next/previous and its toolbar walk every enabled field and editable view.
+    field.isEnabled = !on && traits.editable
+    guard on else {
+      textView.isEditable = false
+      return
+    }
 
     textView.frame = bounds
     textView.keyboardType = traits.keyboardType
@@ -1296,7 +1357,7 @@ final class NitroInputView: UIView {
     applyMultiline()
     field.keyboardType = traits.keyboardType
     field.returnKeyType = traits.returnKeyType
-    field.isEnabled = traits.editable
+    field.isEnabled = traits.editable && !traits.multiline
     field.isUserInteractionEnabled = traits.editable
     // `tintColor` is both the caret and the selection on a UITextField. The
     // overlay draws its own caret, so only `plain` has a caret colour to honour
@@ -2026,7 +2087,10 @@ final class NitroInputView: UIView {
     override func caretRect(for position: UITextPosition) -> CGRect {
       let rect = super.caretRect(for: position)
       guard hidesNativeCaret else { return rect }
-      return CGRect(origin: rect.origin, size: .zero)
+      // Zero width hides it; the full height is what keyboard-controller
+      // scrolls to (the caret's bottom edge), so the whole line clears the
+      // keyboard rather than only its top.
+      return CGRect(x: rect.minX, y: rect.minY, width: 0, height: rect.height)
     }
 
     var hidesNativeCaret = false {
@@ -2112,7 +2176,10 @@ final class NitroInputView: UIView {
     override func caretRect(for position: UITextPosition) -> CGRect {
       let rect = super.caretRect(for: position)
       guard hidesNativeCaret else { return rect }
-      return CGRect(origin: rect.origin, size: .zero)
+      // Zero width hides it; the full height is what keyboard-controller
+      // scrolls to (the caret's bottom edge), so the whole line clears the
+      // keyboard rather than only its top.
+      return CGRect(x: rect.minX, y: rect.minY, width: 0, height: rect.height)
     }
 
     override func textRect(forBounds bounds: CGRect) -> CGRect {
@@ -2800,3 +2867,109 @@ extension NitroInputView {
   }
 }
 
+
+
+/// Keeps the keyboard up while a focused field is taken off screen (its screen
+/// popped or unmounted), for the next field to take over.
+///
+/// UIKit hides the keyboard as soon as nothing is first responder and shows it
+/// again when a field claims it, even a moment later: a pop from one field's
+/// screen back to another's drops the keyboard and raises it again. A hidden
+/// stand-in field configured like the leaving one takes first responder in the
+/// same turn, so the keyboard stays; the next field to focus takes it from the
+/// stand-in in place. If none does within the hold, the stand-in lets it go.
+///
+/// The stand-in must stay invisible to anything tracking the focused input:
+/// keyboard-controller reads the first responder's superview `tag` as the
+/// focused input and swaps its own delegate into that field. So each hold
+/// builds a fresh field with no delegate inside a 1x1 container tagged `-1`,
+/// which keyboard-controller reads as "no focused input", and throws both away
+/// as soon as the stand-in stops being first responder.
+final class KeyboardHandoff {
+  static let shared = KeyboardHandoff()
+
+  private var container: UIView?
+  private var holder: UITextField?
+  private var release: DispatchWorkItem?
+  private var endObserver: NSObjectProtocol?
+  /// Whether the system keyboard is up or on its way up.
+  private(set) var keyboardVisible = false
+
+  var isHolding: Bool { holder?.isFirstResponder == true }
+
+  private init() {
+    let center = NotificationCenter.default
+    center.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { [weak self] _ in
+      self?.keyboardVisible = true
+    }
+    center.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { [weak self] _ in
+      self?.keyboardVisible = false
+    }
+  }
+
+  /// Takes the keyboard from `editor` (the leaving field's system field) for up
+  /// to `milliseconds`.
+  func hold(like editor: UIView, in window: UIWindow, for milliseconds: Double) {
+    letGo()
+    let box = UIView(frame: CGRect(x: -1000, y: -1000, width: 1, height: 1))
+    box.tag = -1
+    box.isUserInteractionEnabled = false
+    box.accessibilityElementsHidden = true
+    let field = UITextField(frame: box.bounds)
+    field.alpha = 0.01
+    field.isAccessibilityElement = false
+    // The leaving field's own keyboard, as configured for its mode (a number
+    // or mask field turns autocorrect and suggestions off): any difference
+    // would re-lay the keyboard, and a suggestion bar that comes or goes
+    // changes its height mid-hold.
+    if let source = editor as? UITextInputTraits {
+      field.keyboardType = source.keyboardType ?? .default
+      field.keyboardAppearance = source.keyboardAppearance ?? .default
+      field.returnKeyType = source.returnKeyType ?? .default
+      field.autocapitalizationType = source.autocapitalizationType ?? .sentences
+      field.autocorrectionType = source.autocorrectionType ?? .default
+      field.spellCheckingType = source.spellCheckingType ?? .default
+      field.smartQuotesType = source.smartQuotesType ?? .default
+      field.smartDashesType = source.smartDashesType ?? .default
+      field.smartInsertDeleteType = source.smartInsertDeleteType ?? .default
+      field.textContentType = source.textContentType ?? nil
+      field.isSecureTextEntry = source.isSecureTextEntry ?? false
+      if #available(iOS 17.0, *) { field.inlinePredictionType = source.inlinePredictionType ?? .default }
+    }
+    field.inputAccessoryView = editor.inputAccessoryView
+    box.addSubview(field)
+    window.addSubview(box)
+    guard field.becomeFirstResponder() else {
+      box.removeFromSuperview()
+      return
+    }
+    container = box
+    holder = field
+    // Another field took the keyboard: the hold is over.
+    endObserver = NotificationCenter.default.addObserver(
+      forName: UITextField.textDidEndEditingNotification, object: field, queue: .main
+    ) { [weak self, weak field] _ in
+      guard let self, let field, self.holder === field else { return }
+      self.drop()
+    }
+    let item = DispatchWorkItem { [weak self] in self?.letGo() }
+    release = item
+    DispatchQueue.main.asyncAfter(deadline: .now() + milliseconds / 1000, execute: item)
+  }
+
+  /// Nothing claimed the keyboard in time, or `Keyboard.dismiss()`: let it hide.
+  func letGo() {
+    if let holder, holder.isFirstResponder { holder.resignFirstResponder() }
+    drop()
+  }
+
+  private func drop() {
+    release?.cancel()
+    release = nil
+    if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
+    endObserver = nil
+    holder = nil
+    container?.removeFromSuperview()
+    container = nil
+  }
+}

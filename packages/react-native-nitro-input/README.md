@@ -491,6 +491,7 @@ rather than renumbering the columns.
 | `showSoftInputOnFocus` | `boolean` | `true` | `false` focuses, with the caret, but shows no keyboard. |
 | `selectTextOnFocus` | `boolean` | `false` | Select everything when the field gains focus. |
 | `clearTextOnFocus` | `boolean` | `false` | Empty the field when it gains focus. |
+| `keyboardHandoffMs` | `number` | `0` | When the focused field is popped or unmounted, keep the keyboard up this long for the next field to take over, instead of it dropping and rising again. 300-500 covers a stack pop. |
 | `contextMenuHidden` | `boolean` | `false` | Hides the Cut / Copy / Paste menu. |
 | `editable` | `boolean` | `true` | |
 | `readOnly` | `boolean` | `false` | Alias of `editable={false}`, as on `TextInput`. |

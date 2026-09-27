@@ -241,6 +241,8 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     set(v) { field = v; markConfigDirty() }
   override var clearTextOnFocus: Boolean = false
     set(v) { field = v; markConfigDirty() }
+  override var keyboardHandoffMs: Double = 0.0
+    set(v) { field = v; markConfigDirty() }
   override var contextMenuHidden: Boolean = false
     set(v) { field = v; markConfigDirty() }
   override var spellCheck: Boolean = true
@@ -291,6 +293,8 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
   override fun focus() = onMain { inputView.focus() }
 
   override fun blur() = onMain { inputView.blur() }
+
+  override fun prepareForUnmount() = onMain { inputView.handOffKeyboardIfFocused() }
 
   override fun clear() = onMain {
     flushConfigIfNeeded()
@@ -460,6 +464,7 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     showSoftInputOnFocus = true
     selectTextOnFocus = false
     clearTextOnFocus = false
+    keyboardHandoffMs = 0.0
     contextMenuHidden = false
     spellCheck = true
     selectionStart = -1.0
@@ -555,16 +560,21 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
   }
 
   /**
-   * The `text` / `mostRecentEventCount` handshake: a new `text` is applied only
-   * once JS has seen every native edit (a stale count means the user typed
-   * since, and the field already shows what they typed).
+   * The `text` / `mostRecentEventCount` handshake: `text` is applied only once
+   * JS has seen every native edit (a stale count means the user typed since,
+   * and the field already shows what they typed). Compared with what the field
+   * shows, not just the last value applied: a controlled parent that keeps its
+   * value while the user types (a rejected edit) puts its text back, as
+   * `TextInput` does; `applyText` leaves the field alone when the conformed
+   * value is already there. An uncontrolled field sends a count of 0, so its
+   * initial text is never re-applied over what the user typed.
    */
   private fun flushTextIfNeeded() {
     if (!textDirty) return
     textDirty = false
     val value = text
-    if (lastAppliedText == value) return
     if (mostRecentEventCount < eventCount) return
+    if (lastAppliedText == value && inputView.text == value) return
     lastAppliedText = value
     inputView.applyText(value)
     cachedText = inputView.text
@@ -698,6 +708,7 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
         NitroInputSubmitBehavior.NEWLINE -> NitroInputView.SubmitBehavior.NEWLINE
       },
       secureTextEntry = secureTextEntry,
+      keyboardHandoffMs = if (keyboardHandoffMs.isFinite()) keyboardHandoffMs.coerceAtLeast(0.0) else 0.0,
       autofillHint = autofillHintFor(textContentType),
       showSoftInputOnFocus = showSoftInputOnFocus,
       selectTextOnFocus = selectTextOnFocus,

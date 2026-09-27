@@ -1030,6 +1030,17 @@ open class HybridNitroInputViewSpec_cxx {
     }
   }
   
+  public final var keyboardHandoffMs: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.keyboardHandoffMs
+    }
+    @inline(__always)
+    set {
+      self.__implementation.keyboardHandoffMs = newValue
+    }
+  }
+  
   public final var contextMenuHidden: Bool {
     @inline(__always)
     get {
@@ -1557,6 +1568,17 @@ open class HybridNitroInputViewSpec_cxx {
   public final func setSelection(start: Double, end: Double) -> bridge.Result_void_ {
     do {
       try self.__implementation.setSelection(start: start, end: end)
+      return bridge.create_Result_void_()
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_void_(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func prepareForUnmount() -> bridge.Result_void_ {
+    do {
+      try self.__implementation.prepareForUnmount()
       return bridge.create_Result_void_()
     } catch (let __error) {
       let __exceptionPtr = __error.toCpp()

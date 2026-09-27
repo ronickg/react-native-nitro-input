@@ -637,6 +637,12 @@ namespace margelo::nitro::nitroinput {
     inline void setClearTextOnFocus(bool clearTextOnFocus) noexcept override {
       _swiftPart.setClearTextOnFocus(std::forward<decltype(clearTextOnFocus)>(clearTextOnFocus));
     }
+    inline double getKeyboardHandoffMs() noexcept override {
+      return _swiftPart.getKeyboardHandoffMs();
+    }
+    inline void setKeyboardHandoffMs(double keyboardHandoffMs) noexcept override {
+      _swiftPart.setKeyboardHandoffMs(std::forward<decltype(keyboardHandoffMs)>(keyboardHandoffMs));
+    }
     inline bool getContextMenuHidden() noexcept override {
       return _swiftPart.getContextMenuHidden();
     }
@@ -837,6 +843,12 @@ namespace margelo::nitro::nitroinput {
     }
     inline void setSelection(double start, double end) override {
       auto __result = _swiftPart.setSelection(std::forward<decltype(start)>(start), std::forward<decltype(end)>(end));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+    }
+    inline void prepareForUnmount() override {
+      auto __result = _swiftPart.prepareForUnmount();
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

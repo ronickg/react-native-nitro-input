@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased
+
+- **`keyboardHandoffMs`**: when the focused field is popped or unmounted,
+  the keyboard stays up this long for the next field to take over (the
+  screen you return to, the next step's field), instead of dropping and
+  rising again. Both platforms; `Keyboard.dismiss()` ends the hold at once.
+- **`focus()` on a field that is not on screen yet** (a screen navigated back
+  to, refocusing its field before it is shown again) now focuses it as soon
+  as it is, while the keyboard is still up. On Android this alone keeps the
+  keyboard up across a stack pop.
+- **Changed**: a controlled field whose parent keeps its `value` while the
+  user types (a rejected edit, a digits-only filter) puts the value back, as
+  `TextInput` does. It used to keep showing what was typed.
+- **Fixed (Android)**: a field on a screen react-native-screens covered and
+  uncovered came back still flagged as focused, and `focus()` did nothing.
+- **Fixed (Android)**: keyboard-controller saw no focused input for a
+  NitroInput, so `KeyboardAwareScrollView` never scrolled to it.
+- **Fixed (Android)**: changing `clearTextOnFocus` after mount had no effect.
+- **Fixed (iOS)**: `KeyboardAwareScrollView` scrolled a reflowing field only
+  far enough to show the top of its line.
+- **Fixed (iOS)**: a multiline field counted twice for keyboard-controller's
+  next / previous and its toolbar.
+- **Fixed (iOS)**: React Native's `focus` / `blur` view commands now go
+  through the field's own `focus()` / `blur()` (retrying a declined focus).
+- An on-device keyboard suite measures each of these: no keyboard hide when
+  focus moves, a field unmounts as the next autofocuses, or a stack pops.
+
 ## 0.3.2
 
 - **`keepPlaceholder`**: the rest of a mask's placeholder stays visible,

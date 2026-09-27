@@ -50,6 +50,16 @@ static BOOL NitroInputEditorIsEditable(UIView *editor)
 
 - (void)handleCommand:(const NSString *)commandName args:(const NSArray *)args
 {
+  // The field's own focus()/blur(): they retry a declined focus, hold a focus
+  // asked for while the view has no window, and let a held keyboard go.
+  UIView *host = self.contentView;
+  SEL own = [(NSString *)commandName isEqualToString:@"focus"] ? NSSelectorFromString(@"nitroFocus")
+          : [(NSString *)commandName isEqualToString:@"blur"]  ? NSSelectorFromString(@"nitroBlur")
+                                                                 : nil;
+  if (own != nil && [host respondsToSelector:own]) {
+    ((void (*)(id, SEL))[host methodForSelector:own])(host, own);
+    return;
+  }
   UIView *editor = NitroInputFindEditor(self.contentView);
   if (editor == nil) {
     return;

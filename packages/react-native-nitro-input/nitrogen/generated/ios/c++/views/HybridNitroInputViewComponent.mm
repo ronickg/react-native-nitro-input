@@ -584,6 +584,12 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.clearTextOnFocus.hasSameValue(oldViewProps->clearTextOnFocus)) {
       swiftPart.setClearTextOnFocus(newViewProps.clearTextOnFocus.get());
     }
+    // keyboardHandoffMs: number
+    if (oldViewProps == nullptr
+          ? newViewProps.keyboardHandoffMs.isProvided()
+          : !newViewProps.keyboardHandoffMs.hasSameValue(oldViewProps->keyboardHandoffMs)) {
+      swiftPart.setKeyboardHandoffMs(newViewProps.keyboardHandoffMs.get());
+    }
     // contextMenuHidden: boolean
     if (oldViewProps == nullptr
           ? newViewProps.contextMenuHidden.isProvided()

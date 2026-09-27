@@ -517,6 +517,12 @@ abstract class HybridNitroInputViewSpec: HybridView() {
   @get:Keep
   @set:DoNotStrip
   @set:Keep
+  abstract var keyboardHandoffMs: Double
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
   abstract var contextMenuHidden: Boolean
   
   @get:DoNotStrip
@@ -753,6 +759,10 @@ abstract class HybridNitroInputViewSpec: HybridView() {
   @DoNotStrip
   @Keep
   abstract fun setSelection(start: Double, end: Double): Unit
+  
+  @DoNotStrip
+  @Keep
+  abstract fun prepareForUnmount(): Unit
 
   // Default implementation of `HybridObject.toString()`
   override fun toString(): String {

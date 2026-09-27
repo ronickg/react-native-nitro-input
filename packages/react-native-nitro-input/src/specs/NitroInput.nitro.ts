@@ -398,6 +398,14 @@ export interface NitroInputProps extends HybridViewProps {
   selectTextOnFocus: boolean
   /** Empty the field when it gains focus. Default: `false`. */
   clearTextOnFocus: boolean
+  /**
+   * iOS: when this field loses its window while it has the keyboard (its
+   * screen is popped or unmounted), keep the keyboard up for this many
+   * milliseconds so the next field to focus takes it over in place, instead
+   * of the keyboard dropping and rising again. `0` lets it go at once.
+   * Default: `0`.
+   */
+  keyboardHandoffMs: number
   /** Hides the Cut/Copy/Paste menu. Default: `false`. */
   contextMenuHidden: boolean
   /** Spell checking (`'text'` mode). Defaults to `autoCorrect`. */
@@ -487,6 +495,13 @@ export interface NitroInputMethods extends HybridViewMethods {
    * `end` defaults to `start` for a plain caret move; both are clamped.
    */
   setSelection(start: number, end: number): void
+  /**
+   * The field is about to be unmounted: if it has the keyboard and
+   * `keyboardHandoffMs` is set, hand the keyboard to the stand-in now, while
+   * the field is still first responder (by the time its view is removed,
+   * UIKit has already taken that away). Called by `NitroInput` itself.
+   */
+  prepareForUnmount(): void
 }
 
 export type NitroInputView = HybridView<NitroInputProps, NitroInputMethods>

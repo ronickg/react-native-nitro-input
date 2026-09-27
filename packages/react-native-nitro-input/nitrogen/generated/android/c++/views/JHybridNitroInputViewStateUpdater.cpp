@@ -459,6 +459,11 @@ void JHybridNitroInputViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCla
     hybridView->setClearTextOnFocus(newProps->clearTextOnFocus.get());
   }
   if (oldProps == nullptr
+        ? newProps->keyboardHandoffMs.isProvided()
+        : !newProps->keyboardHandoffMs.hasSameValue(oldProps->keyboardHandoffMs)) {
+    hybridView->setKeyboardHandoffMs(newProps->keyboardHandoffMs.get());
+  }
+  if (oldProps == nullptr
         ? newProps->contextMenuHidden.isProvided()
         : !newProps->contextMenuHidden.hasSameValue(oldProps->contextMenuHidden)) {
     hybridView->setContextMenuHidden(newProps->contextMenuHidden.get());
