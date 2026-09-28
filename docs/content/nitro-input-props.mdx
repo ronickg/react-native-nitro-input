@@ -357,6 +357,22 @@ Select all the text when the field gains focus.
 Empty the field when it gains focus.
 </Prop>
 
+<Prop name="returnKeyBar" type="boolean" default="true">
+iOS: on the number, phone and decimal pads, which have no return key, a bar
+over the keyboard with the `returnKeyType` key ("Next", "Done"...), as
+`TextInput` shows. `false` leaves the pad bare, for a screen whose own button
+rides the keyboard.
+</Prop>
+
+<Prop name="keyboardHandoffMs" type="number" default="0">
+When this field is popped or unmounted while it has the keyboard, keep the
+keyboard up this many milliseconds so the next field to focus (the screen you
+return to, the next step's field) takes it over in place, instead of the
+keyboard dropping and rising again. If no field does, the keyboard hides when
+the time runs out; `Keyboard.dismiss()` hides it at once. 300-500 covers a
+stack pop.
+</Prop>
+
 <Prop name="contextMenuHidden" type="boolean" default="false">
 Hides the Cut / Copy / Paste menu.
 </Prop>

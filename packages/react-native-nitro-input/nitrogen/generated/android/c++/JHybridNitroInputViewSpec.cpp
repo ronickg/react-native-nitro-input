@@ -905,6 +905,24 @@ namespace margelo::nitro::nitroinput {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jboolean /* clearTextOnFocus */)>("setClearTextOnFocus");
     method(_javaPart, clearTextOnFocus);
   }
+  double JHybridNitroInputViewSpec::getKeyboardHandoffMs() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getKeyboardHandoffMs");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setKeyboardHandoffMs(double keyboardHandoffMs) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* keyboardHandoffMs */)>("setKeyboardHandoffMs");
+    method(_javaPart, keyboardHandoffMs);
+  }
+  bool JHybridNitroInputViewSpec::getReturnKeyBar() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean()>("getReturnKeyBar");
+    auto __result = method(_javaPart);
+    return static_cast<bool>(__result);
+  }
+  void JHybridNitroInputViewSpec::setReturnKeyBar(bool returnKeyBar) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jboolean /* returnKeyBar */)>("setReturnKeyBar");
+    method(_javaPart, returnKeyBar);
+  }
   bool JHybridNitroInputViewSpec::getContextMenuHidden() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean()>("getContextMenuHidden");
     auto __result = method(_javaPart);
@@ -1215,6 +1233,10 @@ namespace margelo::nitro::nitroinput {
   void JHybridNitroInputViewSpec::setSelection(double start, double end) {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* start */, double /* end */)>("setSelection");
     method(_javaPart, start, end);
+  }
+  void JHybridNitroInputViewSpec::prepareForUnmount() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void()>("prepareForUnmount");
+    method(_javaPart);
   }
 
 } // namespace margelo::nitro::nitroinput

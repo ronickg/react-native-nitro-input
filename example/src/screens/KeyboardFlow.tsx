@@ -51,6 +51,11 @@ interface FlowFieldProps {
   onSubmitEditing?: () => void
   onFocus?: () => void
   onBlur?: () => void
+  /** Ours only: keep the keyboard up this long when the field leaves with it. */
+  keyboardHandoffMs?: number
+  multiline?: boolean
+  /** Ours only: the return key bar over the number pads (TextInput always shows it). */
+  returnKeyBar?: boolean
 }
 
 /**
@@ -78,6 +83,9 @@ export const FlowField = forwardRef<FlowFieldHandle, FlowFieldProps>(function Fl
     onSubmitEditing,
     onFocus,
     onBlur,
+    keyboardHandoffMs,
+    multiline,
+    returnKeyBar,
   },
   ref,
 ) {
@@ -112,6 +120,9 @@ export const FlowField = forwardRef<FlowFieldHandle, FlowFieldProps>(function Fl
         onSubmitEditing={onSubmitEditing}
         onFocus={onFocus}
         onBlur={onBlur}
+        keyboardHandoffMs={keyboardHandoffMs}
+        multiline={multiline}
+        returnKeyBar={returnKeyBar}
       />
     )
   }
@@ -135,6 +146,7 @@ export const FlowField = forwardRef<FlowFieldHandle, FlowFieldProps>(function Fl
       onSubmitEditing={onSubmitEditing}
       onFocus={onFocus}
       onBlur={onBlur}
+      multiline={multiline}
     />
   )
 })

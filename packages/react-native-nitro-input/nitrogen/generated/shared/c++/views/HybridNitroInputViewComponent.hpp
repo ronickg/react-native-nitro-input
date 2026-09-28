@@ -143,6 +143,8 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<bool> showSoftInputOnFocus;
     nitro::ReactProp<bool> selectTextOnFocus;
     nitro::ReactProp<bool> clearTextOnFocus;
+    nitro::ReactProp<double> keyboardHandoffMs;
+    nitro::ReactProp<bool> returnKeyBar;
     nitro::ReactProp<bool> contextMenuHidden;
     nitro::ReactProp<bool> spellCheck;
     nitro::ReactProp<double> selectionStart;
@@ -250,6 +252,8 @@ namespace margelo::nitro::nitroinput::views {
              showSoftInputOnFocus.hasSameValue(other.showSoftInputOnFocus) &&
              selectTextOnFocus.hasSameValue(other.selectTextOnFocus) &&
              clearTextOnFocus.hasSameValue(other.clearTextOnFocus) &&
+             keyboardHandoffMs.hasSameValue(other.keyboardHandoffMs) &&
+             returnKeyBar.hasSameValue(other.returnKeyBar) &&
              contextMenuHidden.hasSameValue(other.contextMenuHidden) &&
              spellCheck.hasSameValue(other.spellCheck) &&
              selectionStart.hasSameValue(other.selectionStart) &&
@@ -358,6 +362,8 @@ namespace margelo::nitro::nitroinput::views {
              showSoftInputOnFocus.isProvided() ||
              selectTextOnFocus.isProvided() ||
              clearTextOnFocus.isProvided() ||
+             keyboardHandoffMs.isProvided() ||
+             returnKeyBar.isProvided() ||
              contextMenuHidden.isProvided() ||
              spellCheck.isProvided() ||
              selectionStart.isProvided() ||

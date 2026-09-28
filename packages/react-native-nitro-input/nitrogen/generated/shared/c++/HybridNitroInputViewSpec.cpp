@@ -176,6 +176,10 @@ namespace margelo::nitro::nitroinput {
       prototype.registerHybridSetter("selectTextOnFocus", &HybridNitroInputViewSpec::setSelectTextOnFocus);
       prototype.registerHybridGetter("clearTextOnFocus", &HybridNitroInputViewSpec::getClearTextOnFocus);
       prototype.registerHybridSetter("clearTextOnFocus", &HybridNitroInputViewSpec::setClearTextOnFocus);
+      prototype.registerHybridGetter("keyboardHandoffMs", &HybridNitroInputViewSpec::getKeyboardHandoffMs);
+      prototype.registerHybridSetter("keyboardHandoffMs", &HybridNitroInputViewSpec::setKeyboardHandoffMs);
+      prototype.registerHybridGetter("returnKeyBar", &HybridNitroInputViewSpec::getReturnKeyBar);
+      prototype.registerHybridSetter("returnKeyBar", &HybridNitroInputViewSpec::setReturnKeyBar);
       prototype.registerHybridGetter("contextMenuHidden", &HybridNitroInputViewSpec::getContextMenuHidden);
       prototype.registerHybridSetter("contextMenuHidden", &HybridNitroInputViewSpec::setContextMenuHidden);
       prototype.registerHybridGetter("spellCheck", &HybridNitroInputViewSpec::getSpellCheck);
@@ -229,6 +233,7 @@ namespace margelo::nitro::nitroinput {
       prototype.registerHybridMethod("getValue", &HybridNitroInputViewSpec::getValue);
       prototype.registerHybridMethod("isFocused", &HybridNitroInputViewSpec::isFocused);
       prototype.registerHybridMethod("setSelection", &HybridNitroInputViewSpec::setSelection);
+      prototype.registerHybridMethod("prepareForUnmount", &HybridNitroInputViewSpec::prepareForUnmount);
     });
   }
 

@@ -183,6 +183,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val showSoftInputOnFocus: Boolean = true,
     val selectTextOnFocus: Boolean = false,
     val clearTextOnFocus: Boolean = false,
+    /** How long a focused field leaving the screen keeps the IME up for the next one; 0 is off. */
+    val keyboardHandoffMs: Double = 0.0,
     val contextMenuHidden: Boolean = false,
     val spellCheck: Boolean = true,
     /**
@@ -457,7 +459,23 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     override fun onDestroyActionMode(mode: android.view.ActionMode?) {}
   }
 
-  private val editText = HiddenEditText(context)
+  private val editText = HiddenEditText(context).apply {
+    // Its id mirrors the host's React tag (see `setId`); saved state would
+    // then restore the text by id, which the props own instead.
+    isSaveEnabled = false
+  }
+
+  /**
+   * The React tag, mirrored onto the focusable `EditText`: keyboard-controller
+   * identifies the focused input by that view's id, and without it sees none,
+   * so its KeyboardAwareScrollView never scrolls to this field.
+   */
+  override fun setId(id: Int) {
+    super.setId(id)
+    // `setId` can run from the superclass constructor, before `editText` exists.
+    @Suppress("SENSELESS_COMPARISON")
+    if (editText != null) editText.id = id
+  }
   private val overlay = object : View(context) {
     override fun onDraw(canvas: Canvas) {
       super.onDraw(canvas)
@@ -521,6 +539,14 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   private var pendingSizeReport = false
   private var frameScheduled = false
   private var applying = false
+  /** Clearing a stale focus flag in `focus()`: not a blur anyone should hear of. */
+  private var resyncingFocus = false
+  /**
+   * A `focus()` asked for while the view was off the window (uptime ms it
+   * stays good until; 0 = none), as a screen that is navigated back to
+   * refocuses its field before react-native-screens puts it back.
+   */
+  private var pendingFocusUntil = 0L
   private var batchDepth = 0
   private var feedPending = false
   private var feedCaret = -1
@@ -580,10 +606,13 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     defaultHighlightColor = editText.highlightColor
     editText.addTextChangedListener(Watcher())
     editText.setOnFocusChangeListener { _, focused ->
+      if (resyncingFocus) return@setOnFocusChangeListener
       restartBlink()
       syncLabelProgress(animated = true)
       syncFocusProgress(animated = true)
       if (focused) {
+        // This field took the keyboard over from a stand-in, if one held it.
+        KeyboardHandoff.claimed()
         if (keyboard.clearTextOnFocus) {
           clear()
         } else if (keyboard.selectTextOnFocus) {
@@ -988,6 +1017,11 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       editText.maxLines = 1
       editText.minLines = 1
     }
+    // setSingleLine swaps the transformation the password input type installed
+    // for a single-line one, and a plain field draws the EditText's own text.
+    if (k.secureTextEntry) {
+      editText.transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
+    }
     editText.imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI or when (k.returnKeyType) {
       ReturnKeyType.DEFAULT -> EditorInfo.IME_ACTION_UNSPECIFIED
       ReturnKeyType.DONE -> EditorInfo.IME_ACTION_DONE
@@ -1182,7 +1216,31 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
   fun focus() {
     if (!keyboard.editable) return
+    if (!isAttachedToWindow) {
+      // Focus taken off the window is lost again when the view is attached;
+      // honour it then instead.
+      pendingFocusUntil = SystemClock.uptimeMillis() + 1000
+      return
+    }
+    pendingFocusUntil = 0
     editText.isFocusableInTouchMode = true
+    val focusedInWindow = editText.rootView?.findFocus()
+    if (editText.isFocused && focusedInWindow !== editText) {
+      // Flagged focused while another view has the window's focus: a screen
+      // container (react-native-screens' ScreensFrameLayout) skips
+      // `clearFocus()` while a screen is invisible mid-transition, so a field
+      // on a screen that was covered comes back still flagged. `requestFocus()`
+      // is a no-op on it then, and the IME ignores it. The view that really
+      // has focus lets go first (clearing ours alone would cut its focus chain
+      // and leave it flagged in turn), then the stale flag is dropped quietly.
+      focusedInWindow?.clearFocus()
+      resyncingFocus = true
+      try {
+        editText.clearFocus()
+      } finally {
+        resyncingFocus = false
+      }
+    }
     if (!editText.hasFocus()) editText.requestFocus()
     // `showSoftInputOnFocus: false` keeps focus and the caret but no keyboard;
     // the EditText honours it on its own, so only the explicit ask is guarded.
@@ -1223,8 +1281,24 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   }
 
   fun blur() {
-    if (editText.hasFocus()) editText.clearFocus()
+    pendingFocusUntil = 0
+    if (!editText.hasFocus()) {
+      // `Keyboard.dismiss()` while a field that just left the screen holds the
+      // keyboard for the next one: nothing is focused, so let it go now.
+      KeyboardHandoff.letGo()
+      return
+    }
+    editText.clearFocus()
     inputMethodManager()?.hideSoftInputFromWindow(editText.windowToken, 0)
+  }
+
+  /**
+   * About to be unmounted (`NitroInput` calls this before the view is removed):
+   * hand the IME to a stand-in so it stays up for the next field to focus.
+   */
+  fun handOffKeyboardIfFocused() {
+    if (keyboard.keyboardHandoffMs <= 0 || !keyboard.showSoftInputOnFocus || !editText.hasFocus()) return
+    KeyboardHandoff.hold(editText, keyboard.keyboardHandoffMs)
   }
 
   /** Empties the field, reflowing the characters away. */
@@ -1280,6 +1354,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
    */
   fun resetForRecycle() {
     worklets = Worklets()
+    pendingFocusUntil = 0
     inputFrame = Frame()
     labelProgress = 0f
     notchProgress = 0f
@@ -1327,7 +1402,18 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     restartBlink()
     syncAccessibilityFromHost()
     maybeAutoFocus()
+    if (pendingFocusUntil > 0) {
+      // Only while the keyboard is still up (held for this field, or another
+      // field has it): a keyboard dismissed during the transition stays down.
+      val wanted = SystemClock.uptimeMillis() < pendingFocusUntil && (KeyboardHandoff.isHolding || imeVisible())
+      pendingFocusUntil = 0
+      if (wanted) post { focus() }
+    }
   }
+
+  private fun imeVisible(): Boolean =
+    androidx.core.view.ViewCompat.getRootWindowInsets(this)
+      ?.isVisible(androidx.core.view.WindowInsetsCompat.Type.ime()) == true
 
   override fun onDetachedFromWindow() {
     stopAnimation()
@@ -2343,5 +2429,77 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     /** Material's standard decelerate, the same curve the iOS side uses. */
     private val DECELERATE = PathInterpolator(0f, 0f, 0.2f, 1f)
     private val ROLES = Role.values()
+  }
+}
+
+/**
+ * Keeps the IME up while a focused field is removed (its screen popped or its
+ * element unmounted), for the next field to take over.
+ *
+ * Android hides the IME when the focused editor is removed from the window,
+ * and shows it again when the next field asks: a pop from one field's screen
+ * back to another's drops the keyboard and raises it. Moving focus to another
+ * editor keeps it up instead, so a 1x1 stand-in `EditText` configured like the
+ * leaving field takes focus first; the next field to focus takes the IME from
+ * it in place. If none does within the hold, the stand-in hides the IME.
+ * It has no id, which keyboard-controller reads as "no focused input".
+ */
+internal object KeyboardHandoff {
+  private val handler = Handler(Looper.getMainLooper())
+  private var holder: android.widget.EditText? = null
+  private val timeout = Runnable { letGo() }
+
+  val isHolding: Boolean get() = holder != null
+
+  fun hold(from: android.widget.EditText, milliseconds: Double) {
+    val content = from.rootView?.findViewById<android.view.ViewGroup>(android.R.id.content) ?: return
+    drop()
+    val field = android.widget.EditText(from.context).apply {
+      inputType = from.inputType
+      imeOptions = from.imeOptions
+      alpha = 0f
+      translationX = -10000f
+      background = null
+      isSaveEnabled = false
+      isFocusableInTouchMode = true
+      importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+    }
+    content.addView(field, FrameLayout.LayoutParams(1, 1))
+    if (!field.requestFocus()) {
+      content.removeView(field)
+      return
+    }
+    holder = field
+    handler.postDelayed(timeout, milliseconds.toLong())
+  }
+
+  /** A field took the IME over: the stand-in can go, without hiding it. */
+  fun claimed() {
+    val field = holder ?: return
+    if (field.hasFocus()) return
+    handler.removeCallbacks(timeout)
+    holder = null
+    // Not in the middle of the focus change that got us here.
+    handler.post { (field.parent as? android.view.ViewGroup)?.removeView(field) }
+  }
+
+  /** Nothing claimed the IME in time, or `Keyboard.dismiss()`: hide it. */
+  fun letGo() {
+    handler.removeCallbacks(timeout)
+    val field = holder ?: return
+    holder = null
+    if (field.hasFocus()) {
+      val imm = field.context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+      imm?.hideSoftInputFromWindow(field.windowToken, 0)
+      field.clearFocus()
+    }
+    (field.parent as? android.view.ViewGroup)?.removeView(field)
+  }
+
+  private fun drop() {
+    handler.removeCallbacks(timeout)
+    val field = holder ?: return
+    holder = null
+    (field.parent as? android.view.ViewGroup)?.removeView(field)
   }
 }

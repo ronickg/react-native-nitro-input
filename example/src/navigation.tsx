@@ -20,6 +20,8 @@ import {
   FlowSheetScreen,
   type Impl,
 } from './screens/KeyboardFlow'
+import { LabDetailScreen, LabFormScreen, LabSearchScreen } from './screens/InputLab'
+import { LabMotionScreen, LabRowsScreen, LabSheetScreen, LabStepScreen } from './screens/InputLabMotion'
 
 export type RootStackParamList = {
   Home: undefined
@@ -38,6 +40,13 @@ export type RootStackParamList = {
   ViewPropsRepro: undefined
   Rtl: undefined
   RecycleCheck: undefined
+  LabSearch: { impl: Impl }
+  LabForm: { impl: Impl }
+  LabDetail: { title: string }
+  LabMotion: { impl: Impl; cta?: 'sticky' | 'morph'; autorun?: boolean }
+  LabStep: { impl: Impl }
+  LabSheet: { impl: Impl }
+  LabRows: { impl: Impl }
 }
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
@@ -64,6 +73,12 @@ const FLOW_STEP = {
 
 function HomeScreen() {
   const nav = useNavigation<any>()
+  // For a device nothing can tap on: `globalThis.__lab.run('morph')` from the
+  // debugger opens the motion lab and runs its keyboard script.
+  ;(globalThis as any).__lab = {
+    run: (cta: 'sticky' | 'morph' = 'sticky', impl: Impl = 'ours') => nav.push('LabMotion', { impl, cta, autorun: true }),
+    go: (name: keyof RootStackParamList, params?: object) => nav.navigate(name, params),
+  }
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Card title="New in 0.3.1" hint="Signs, styled cents, clocks, compact figures, continuous rolls, native digits, animation events and NitroText.">
@@ -85,6 +100,27 @@ function HomeScreen() {
           <Btn testID="home-repro" title="Nitro view props (Android)" onPress={() => nav.navigate('ViewPropsRepro')} />
           <Btn testID="home-flow-ours" tone="primary" title="Run flow (NitroInput)" onPress={() => nav.navigate('FlowEmail', { impl: 'ours' })} />
           <Btn testID="home-flow-rn" tone="primary" title="Run flow (RN TextInput)" onPress={() => nav.navigate('FlowEmail', { impl: 'rn' })} />
+        </Row>
+      </Card>
+      <Card
+        title="Input lab"
+        hint="The flows of the platform apps: a search over a list, a form chained with Next, a push while a field has the keyboard. The status line says which field has focus and whether the keyboard is up."
+      >
+        <Row>
+          <Btn testID="home-lab-search-ours" tone="primary" title="Search list (NitroInput)" onPress={() => nav.navigate('LabSearch', { impl: 'ours' })} />
+          <Btn testID="home-lab-search-rn" title="Search list (TextInput)" onPress={() => nav.navigate('LabSearch', { impl: 'rn' })} />
+        </Row>
+        <Row>
+          <Btn testID="home-lab-form-ours" tone="primary" title="Form (NitroInput)" onPress={() => nav.navigate('LabForm', { impl: 'ours' })} />
+          <Btn testID="home-lab-form-rn" title="Form (TextInput)" onPress={() => nav.navigate('LabForm', { impl: 'rn' })} />
+        </Row>
+        <Row>
+          <Btn testID="home-lab-motion-ours" tone="primary" title="Motion (NitroInput)" onPress={() => nav.navigate('LabMotion', { impl: 'ours' })} />
+          <Btn testID="home-lab-motion-rn" title="Motion (TextInput)" onPress={() => nav.navigate('LabMotion', { impl: 'rn' })} />
+        </Row>
+        <Row>
+          <Btn testID="home-lab-morph-ours" tone="primary" title="Morphing CTA (NitroInput)" onPress={() => nav.navigate('LabMotion', { impl: 'ours', cta: 'morph' })} />
+          <Btn testID="home-lab-morph-rn" title="Morphing CTA (TextInput)" onPress={() => nav.navigate('LabMotion', { impl: 'rn', cta: 'morph' })} />
         </Row>
       </Card>
       <Card
@@ -144,6 +180,24 @@ export function RootNavigator() {
         <Stack.Screen name="ViewPropsRepro" component={ViewPropsReproScreen} options={{ title: 'View props' }} />
         <Stack.Screen name="Rtl" component={RtlScreen} options={{ title: 'Right-to-left' }} />
         <Stack.Screen name="RecycleCheck" component={RecycleCheckScreen} options={{ title: 'Recycle check' }} />
+        <Stack.Screen name="LabSearch" component={LabSearchScreen} options={{ title: 'Search list', keyboardHandlingEnabled: false }} />
+        <Stack.Screen name="LabForm" component={LabFormScreen} options={{ title: 'Form', keyboardHandlingEnabled: false }} />
+        <Stack.Screen name="LabDetail" component={LabDetailScreen} options={{ title: 'Detail' }} />
+        <Stack.Screen name="LabMotion" component={LabMotionScreen} options={{ title: 'Motion', keyboardHandlingEnabled: false }} />
+        <Stack.Screen name="LabStep" component={LabStepScreen} options={{ title: 'Next step', keyboardHandlingEnabled: false }} />
+        <Stack.Screen name="LabRows" component={LabRowsScreen} options={{ title: 'Rows', keyboardHandlingEnabled: false }} />
+        <Stack.Screen
+          name="LabSheet"
+          component={LabSheetScreen}
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: [0.5, 0.95],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 20,
+            headerShown: false,
+            keyboardHandlingEnabled: false,
+          }}
+        />
         <Stack.Screen
           name="FlowSheet"
           component={FlowSheetScreen}

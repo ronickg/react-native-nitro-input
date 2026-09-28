@@ -157,6 +157,8 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var showSoftInputOnFocus: Bool = true { didSet { markConfigDirty() } }
   var selectTextOnFocus: Bool = false { didSet { markConfigDirty() } }
   var clearTextOnFocus: Bool = false { didSet { markConfigDirty() } }
+  var keyboardHandoffMs: Double = 0 { didSet { markConfigDirty() } }
+  var returnKeyBar: Bool = true { didSet { markConfigDirty() } }
   var contextMenuHidden: Bool = false { didSet { markConfigDirty() } }
   var spellCheck: Bool = true { didSet { markConfigDirty() } }
   var selectionStart: Double = -1 { didSet { markSelectionDirty() } }
@@ -193,6 +195,10 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
 
   func blur() throws {
     onMain { self.inputView.blur() }
+  }
+
+  func prepareForUnmount() throws {
+    onMain { self.inputView.handOffKeyboardIfFocused() }
   }
 
   func clear() throws {
@@ -364,6 +370,8 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     showSoftInputOnFocus = true
     selectTextOnFocus = false
     clearTextOnFocus = false
+    keyboardHandoffMs = 0
+    returnKeyBar = true
     contextMenuHidden = false
     spellCheck = true
     selectionStart = -1
@@ -436,17 +444,22 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     inputView.setSelection(start: start, end: end)
   }
 
-  /// The `text` prop handshake: apply it when it differs from the last applied
-  /// value and JS has seen every native edit (`mostRecentEventCount` caught up
-  /// with the native count), like React Native's own `TextInput`.
+  /// The `text` prop handshake: once JS has seen every native edit
+  /// (`mostRecentEventCount` caught up with the native count), the field shows
+  /// `text`, like React Native's own `TextInput`. Compared with what the field
+  /// shows, not just the last value applied: a controlled parent that keeps
+  /// its value while the user types (a rejected edit) puts its text back.
+  /// `setText` leaves the field (and the caret) alone when the formatted
+  /// value is already what it shows. An uncontrolled field sends a count of 0,
+  /// so its initial text is never re-applied over what the user typed.
   private func applyTextIfNeeded() {
     guard textDirty else { return }
     textDirty = false
-    guard text != lastAppliedText else { return }
     snapshotLock.lock()
     let nativeCount = snapshot.eventCount
     snapshotLock.unlock()
     guard mostRecentEventCount.isFinite, Int(mostRecentEventCount) >= nativeCount else { return }
+    guard text != lastAppliedText || text != inputView.text else { return }
     lastAppliedText = text
     inputView.setText(text, reason: .prop)
   }
@@ -583,6 +596,8 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     traits.showSoftInputOnFocus = showSoftInputOnFocus
     traits.selectTextOnFocus = selectTextOnFocus
     traits.clearTextOnFocus = clearTextOnFocus
+    traits.keyboardHandoffMs = keyboardHandoffMs.isFinite ? max(0, keyboardHandoffMs) : 0
+    traits.returnKeyBar = returnKeyBar
     traits.contextMenuHidden = contextMenuHidden
     traits.spellCheck = spellCheck && autoCorrect
 

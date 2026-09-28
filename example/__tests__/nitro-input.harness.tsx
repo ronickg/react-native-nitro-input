@@ -5,7 +5,7 @@
  * program can do to the field is covered here, what a finger does stays in
  * the manual QA screens.
  */
-import React, { createRef, useEffect, useRef } from 'react'
+import React, { createRef, useEffect, useRef, useState } from 'react'
 import { FlatList, Keyboard, View, type LayoutRectangle } from 'react-native'
 import { describe, expect, it } from 'react-native-harness'
 import {
@@ -136,6 +136,41 @@ describe('NitroInput', () => {
     await waitFor(() => expect(ref.current?.getText()).toBe('abcd'))
     await sleep(200)
     expect(changes).toBe(0)
+  })
+
+  it('puts a controlled value back when the parent rejects an edit, as TextInput does', async () => {
+    // The value never changes, so the only thing that tells native to revert
+    // is JS catching up with the edit's event count.
+    const ref = createRef<NitroInputHandle>()
+    await render(<NitroInput ref={ref} value="" onChangeText={() => {}} />)
+    await waitFor(() => expect(ref.current?.native).not.toBeNull())
+    ref.current!.setText('a')
+    await waitFor(() => expect(ref.current!.getText()).toBe(''))
+  })
+
+  it('keeps only what a controlled filter lets through', async () => {
+    const ref = createRef<NitroInputHandle>()
+    function DigitsOnly() {
+      const [digits, setDigits] = useState('')
+      return <NitroInput ref={ref} value={digits} onChangeText={(text) => setDigits(text.replace(/\D/g, ''))} />
+    }
+    await render(<DigitsOnly />)
+    await waitFor(() => expect(ref.current?.native).not.toBeNull())
+    ref.current!.setText('12a')
+    await waitFor(() => expect(ref.current!.getText()).toBe('12'))
+    ref.current!.setText('12x3')
+    await waitFor(() => expect(ref.current!.getText()).toBe('123'))
+  })
+
+  it('never puts an uncontrolled field back to its defaultValue on a re-render', async () => {
+    const ref = createRef<NitroInputHandle>()
+    const { rerender } = await render(<NitroInput ref={ref} defaultValue="start" style={{ width: 200 }} />)
+    await waitFor(() => expect(ref.current?.getText()).toBe('start'))
+    ref.current!.setText('typed')
+    await waitFor(() => expect(ref.current!.getText()).toBe('typed'))
+    await rerender(<NitroInput ref={ref} defaultValue="start" style={{ width: 201 }} />)
+    await sleep(300)
+    expect(ref.current!.getText()).toBe('typed')
   })
 
   it('focuses and blurs on request, with the events a TextInput would send', async () => {
@@ -326,7 +361,9 @@ describe('NitroInput', () => {
     expect(reports[2]).toEqual(['+1 (415) 555-0', '4155550', '000', false])
 
     // Emptied, the field shows its placeholder again: no literal is completed into nothing.
-    ref.current!.clear()
+    // (Through `value`: the field is controlled now, so a `clear()` the parent
+    // does not follow is put back, as TextInput does.)
+    await rerender(<NitroInput ref={ref} mode="mask" mask="+1 ([000]) [000]-[0000]" value="" onChangeMask={onChangeMask} />)
     await waitFor(() => expect(ref.current!.getText()).toBe(''))
     await waitFor(() => expect(reports.length).toBe(4), { timeout: 5000 })
     expect(reports[3]).toEqual(['', '', '+1 (000) 000-0000', false])

@@ -1,5 +1,73 @@
 # Changelog
 
+## Unreleased
+
+- **`keyboardHandoffMs`**: when the focused field is popped or unmounted,
+  the keyboard stays up this long for the next field to take over (the
+  screen you return to, the next step's field), instead of dropping and
+  rising again. Both platforms; `Keyboard.dismiss()` ends the hold at once.
+- **`focus()` on a field that is not on screen yet** (a screen navigated back
+  to, refocusing its field before it is shown again) now focuses it as soon
+  as it is, while the keyboard is still up. On Android this alone keeps the
+  keyboard up across a stack pop.
+- **iOS number pads get a return key**: a field on the number, phone or
+  decimal pad with a `returnKeyType` set shows a bar above the keyboard with
+  that key ("Next", "Go", "Done"...), as `TextInput` does. The pads have no
+  return key of their own, so a form chained with Next stopped at its first
+  numeric field. The bar is the return key: `submitBehavior`,
+  `onSubmitEditing` and worklets run as for the real one.
+- **`returnKeyBar`** (iOS, default `true`): `false` leaves a number pad
+  without the return key bar, for a screen whose own button rides the
+  keyboard (a sticky or morphing CTA) and would otherwise be doubled.
+- **Fixed (iOS)**: coming back to a screen whose field had the keyboard, when
+  the field on the leaving screen used `keyboardHandoffMs`, left the keyboard
+  down: the stand-in held it, so UIKit had nothing to give back. The field
+  now takes the keyboard back itself, with the back animation.
+- **Fixed (iOS)**: a multiline field kept drawing its placeholder under the
+  first characters typed.
+- **iOS 26: no dark keyboard on the way back.** When you return to a screen
+  whose field had the keyboard, UIKit gives the field its focus back as the
+  transition starts, and iOS 26 then slides the keyboard in with the screen as
+  a flat dark snapshot. The field now takes its focus back once the screen has
+  settled, so the real keyboard rises from the bottom, as in the system apps
+  (Contacts). Focus the app asks for (`focus()`, `autoFocus`) is unchanged.
+- **Fixed (iOS)**: keyboard-controller's `KeyboardAwareScrollView` did not
+  scroll a field that got its focus back (the caret had not moved, so it got no
+  selection event and waited for one). The field now reports its selection
+  once editing begins.
+- **Changed**: a controlled field whose parent keeps its `value` while the
+  user types (a rejected edit, a digits-only filter) puts the value back, as
+  `TextInput` does. It used to keep showing what was typed.
+- **Fixed (Android)**: `keyboardHandoffMs` on a field that unmounts could lose
+  the race with the frame that removes it (about two runs in three on a
+  Galaxy A22), and the keyboard dropped anyway. The handoff now runs on the
+  UI thread just before Fabric applies that frame's view changes.
+- **Docs**: "The keyboard across screens and lists" in the README: the
+  settings that make a NitroInput screen behave like the platform apps, back
+  navigation included (iOS gives the field its keyboard back as long as
+  native-stack's `keyboardHandlingEnabled` stays off).
+- **Fixed (Android)**: a field on a screen react-native-screens covered and
+  uncovered came back still flagged as focused, and `focus()` did nothing.
+- **Fixed (Android)**: keyboard-controller saw no focused input for a
+  NitroInput, so `KeyboardAwareScrollView` never scrolled to it.
+- **Fixed (Android)**: changing `clearTextOnFocus` after mount had no effect.
+- **Fixed (iOS)**: `KeyboardAwareScrollView` scrolled a reflowing field only
+  far enough to show the top of its line.
+- **Fixed (iOS)**: a multiline field counted twice for keyboard-controller's
+  next / previous and its toolbar.
+- **Fixed (iOS)**: React Native's `focus` / `blur` view commands now go
+  through the field's own `focus()` / `blur()` (retrying a declined focus).
+- An on-device keyboard suite measures each of these: no keyboard hide when
+  focus moves, a field unmounts as the next autofocuses, a stack pops, a
+  search list filters under the field, or a scroll moves it out of sight.
+  The example app has an input lab (a search list and a form chained with
+  Next, each with NitroInput or TextInput), and
+  `example/e2e/keyboard-lab-android.sh` drives it with real touches over adb.
+  The lab also has a form with a sticky and a morphing CTA (keyboard-
+  controller), a push, a form sheet and a list of fields, and a scripted run
+  (`globalThis.__lab.run()`) that records keyboard-controller's events on a
+  device nothing can tap on.
+
 ## 0.3.2
 
 - **`keepPlaceholder`**: the rest of a mask's placeholder stays visible,

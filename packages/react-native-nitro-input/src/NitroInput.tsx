@@ -2,6 +2,7 @@ import React, {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -160,6 +161,8 @@ const EMPTY_MAPPINGS: NitroInputCharacterMapping[] = []
 
 /** Mounted fields, by the host instance React Native's registry stores. */
 const mountedFields = new WeakMap<object, { focus(): void; blur(): void }>()
+/** The same fields, iterable: `Keyboard.dismiss()` with nothing focused reaches one through it. */
+const liveFields = new Set<{ focus(): void; blur(): void }>()
 let patchedRegistry = false
 
 /**
@@ -195,7 +198,12 @@ function patchRegistryOnce() {
     registry.blurTextInput = (input: unknown) => {
       const field = input != null ? mountedFields.get(input as object) : undefined
       if (field) return field.blur()
-      return originalBlur.call(registry, input)
+      const result = originalBlur.call(registry, input)
+      // `Keyboard.dismiss()` with no input focused: a field that just left the
+      // screen may still be holding the keyboard for the next one
+      // (`keyboardHandoffMs`). A native blur on any field lets that go.
+      if (input == null) liveFields.values().next().value?.blur()
+      return result
     }
   }
 }
@@ -546,6 +554,22 @@ export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' 
   selectTextOnFocus?: boolean
   /** Empty the field when it gains focus. Default: `false`. */
   clearTextOnFocus?: boolean
+  /**
+   * When this field is popped or unmounted while it has the keyboard, keep the
+   * keyboard up this many milliseconds so the next field to focus (the screen
+   * you return to, the next step's field) takes it over in place instead of
+   * the keyboard dropping and rising again. If no field does, the keyboard
+   * hides when the time runs out; `Keyboard.dismiss()` hides it at once.
+   * 300-500 covers a stack pop. Default: `0` (off).
+   */
+  keyboardHandoffMs?: number
+  /**
+   * iOS: on the number, phone and decimal pads, which have no return key, a
+   * bar over the keyboard with the `returnKeyType` key ("Next", "Done"...), as
+   * `TextInput` shows. `false` leaves the pad bare - for a screen that has its
+   * own button riding the keyboard. Default: `true`.
+   */
+  returnKeyBar?: boolean
   /** Hides the Cut/Copy/Paste menu. Default: `false`. */
   contextMenuHidden?: boolean
   /** Spell checking in `'text'` mode. Defaults to `autoCorrect`. */
@@ -769,6 +793,8 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       showSoftInputOnFocus,
       selectTextOnFocus,
       clearTextOnFocus,
+      keyboardHandoffMs,
+      returnKeyBar,
       contextMenuHidden,
       spellCheck,
       readOnly,
@@ -792,6 +818,18 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     ref
   ) {
     const nativeRef = useRef<NitroInputRef | null>(null)
+    // `keyboardHandoffMs`: hand the keyboard off while this field still has it.
+    // A layout-effect cleanup runs in React's commit, so the native call is
+    // queued on the main thread before Fabric's removal of the view - by then
+    // UIKit would already have taken first responder away.
+    const handoffRef = useRef(keyboardHandoffMs ?? 0)
+    handoffRef.current = keyboardHandoffMs ?? 0
+    useLayoutEffect(
+      () => () => {
+        if (handoffRef.current > 0) nativeRef.current?.prepareForUnmount()
+      },
+      []
+    )
     // What React Native's registry stores for this field. The React host
     // instance when there is one (iOS), otherwise a stable per-instance token:
     // on Android the Nitro host component hands out no instance, and the
@@ -901,15 +939,18 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       const key = (hostRef.current as object | null) ?? { nitroInput: true }
       registryKeyRef.current = key
       patchRegistryOnce()
-      mountedFields.set(key, {
+      const field = {
         focus: () => nativeRef.current?.focus(),
         blur: () => nativeRef.current?.blur(),
-      })
+      }
+      mountedFields.set(key, field)
+      liveFields.add(field)
       textInputRegistry.registerInput(key)
       return () => {
         if (textInputRegistry.currentlyFocusedInput() === key) textInputRegistry.blurInput(key)
         textInputRegistry.unregisterInput(key)
         mountedFields.delete(key)
+        liveFields.delete(field)
         registryKeyRef.current = null
       }
     }, [])
@@ -1288,7 +1329,9 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         style={[autoSize, style]}
         hybridRef={hybridRef}
         text={value ?? initialText}
-        mostRecentEventCount={eventCountRef.current}
+        // An uncontrolled field's `text` is its initial text: a count of 0 is
+        // never caught up after the first edit, so native never puts it back.
+        mostRecentEventCount={value != null ? eventCountRef.current : 0}
         mode={resolvedMode}
         plain={!reflows}
         fractionDigits={resolvedFractionDigits}
@@ -1380,6 +1423,8 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         showSoftInputOnFocus={resolvedShowSoftInput}
         selectTextOnFocus={selectTextOnFocus ?? false}
         clearTextOnFocus={clearTextOnFocus ?? false}
+        keyboardHandoffMs={keyboardHandoffMs ?? 0}
+        returnKeyBar={returnKeyBar ?? true}
         contextMenuHidden={contextMenuHidden ?? false}
         spellCheck={spellCheck ?? autoCorrect ?? true}
         selectionStart={selection?.start ?? -1}

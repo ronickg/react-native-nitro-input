@@ -262,6 +262,10 @@ namespace margelo::nitro::nitroinput {
       virtual void setSelectTextOnFocus(bool selectTextOnFocus) = 0;
       virtual bool getClearTextOnFocus() = 0;
       virtual void setClearTextOnFocus(bool clearTextOnFocus) = 0;
+      virtual double getKeyboardHandoffMs() = 0;
+      virtual void setKeyboardHandoffMs(double keyboardHandoffMs) = 0;
+      virtual bool getReturnKeyBar() = 0;
+      virtual void setReturnKeyBar(bool returnKeyBar) = 0;
       virtual bool getContextMenuHidden() = 0;
       virtual void setContextMenuHidden(bool contextMenuHidden) = 0;
       virtual bool getSpellCheck() = 0;
@@ -318,6 +322,7 @@ namespace margelo::nitro::nitroinput {
       virtual double getValue() = 0;
       virtual bool isFocused() = 0;
       virtual void setSelection(double start, double end) = 0;
+      virtual void prepareForUnmount() = 0;
 
     protected:
       // Hybrid Setup
