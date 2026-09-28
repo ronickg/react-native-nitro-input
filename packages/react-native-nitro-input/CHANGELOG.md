@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.4
 
 - **iOS: a focused field that took no typing** (with
   react-native-keyboard-controller). keyboard-controller wraps the focused
