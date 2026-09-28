@@ -31,6 +31,14 @@
   a flat dark snapshot. The field now takes its focus back once the screen has
   settled, so the real keyboard rises from the bottom, as in the system apps
   (Contacts). Focus the app asks for (`focus()`, `autoFocus`) is unchanged.
+- **Fixed: `<Activity>`** (React 19.2). A hidden `<Activity>` deletes its
+  native views and creates new ones when shown again, so a NitroInput came
+  back with its first text (an uncontrolled field's text lived only
+  natively), and a handle kept from before hiding reached the pooled view,
+  which another field may have been given: `focus()` on a hidden field's
+  handle focused that other field. The text is now kept across hide and show,
+  and while hidden a field's handle does nothing (`focus()` / `blur()`) or
+  waits (`setText`); `getText()` returns the kept text.
 - **Fixed**: `Keyboard.dismiss()` right after a field with `keyboardHandoffMs`
   unmounted, on a screen with no other field (a questionnaire's tap-only
   question), waited for the hold to run out (about 0.4 s) before the keyboard

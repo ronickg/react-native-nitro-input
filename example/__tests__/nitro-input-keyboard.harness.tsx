@@ -14,7 +14,7 @@
  * keyboard connected never shows one; there every test returns early once the
  * first one has found no keyboard.
  */
-import React, { createRef, useEffect, useMemo, useState } from 'react'
+import React, { Activity, createRef, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { FlatList, Keyboard, Platform, ScrollView, Text, View } from 'react-native'
 import { describe, expect, it } from 'react-native-harness'
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native'
@@ -429,3 +429,135 @@ describe('NitroInput keyboard handoff', () => {
     }
   })
 })
+
+// React 19.2's <Activity> keeps a hidden subtree mounted with its state, but
+// cleans up its effects and refs while hidden. Uno's sign-in keeps a phone
+// form and an email form mounted this way and toggles between them.
+describe('NitroInput under <Activity>', () => {
+  type Mode = 'phone' | 'email'
+  function makeSignIn(onShow?: (mode: Mode, fields: { phone: NitroInputHandle | null; email: NitroInputHandle | null }) => void) {
+    const phone = createRef<NitroInputHandle>()
+    const email = createRef<NitroInputHandle>()
+    let setMode = (_m: Mode) => {}
+    function SignIn() {
+      const [mode, set] = useState<Mode>('phone')
+      setMode = set
+      useLayoutEffect(() => {
+        onShow?.(mode, { phone: phone.current, email: email.current })
+      }, [mode])
+      return (
+        <View style={{ padding: 20, gap: 12 }}>
+          <Activity mode={mode === 'phone' ? 'visible' : 'hidden'}>
+            <NitroInput ref={phone} defaultValue="0612" keyboardType="phone-pad" keyboardHandoffMs={400} />
+          </Activity>
+          <Activity mode={mode === 'email' ? 'visible' : 'hidden'}>
+            <NitroInput ref={email} defaultValue="ada@acme.io" keyboardType="email-address" keyboardHandoffMs={400} />
+          </Activity>
+        </View>
+      )
+    }
+    return { phone, email, setMode: (m: Mode) => setMode(m), SignIn }
+  }
+
+  it('closes the keyboard when the focused field is hidden, and keeps its text for when it is shown', async () => {
+    const { phone, setMode, SignIn } = makeSignIn()
+    await render(<SignIn />)
+    await waitFor(() => expect(phone.current).not.toBeNull())
+    const log = keyboardRecorder()
+    try {
+      if (!(await openKeyboard(phone.current))) return
+      const handle = phone.current!
+      const from = Date.now()
+      setMode('email')
+      // Nothing takes the keyboard: it goes (after the hold), and no hidden
+      // field is left focused to type into.
+      await waitFor(() => expect(Keyboard.isVisible()).toBe(false), 3000)
+      expect(log.hidesSince(from).length).toBeGreaterThan(0)
+      expect(phone.current).toBeNull()
+      // A handle kept from before: focus() on the hidden field does nothing.
+      handle.focus()
+      await sleep(600)
+      expect(Keyboard.isVisible()).toBe(false)
+      setMode('phone')
+      await waitFor(() => expect(phone.current).not.toBeNull())
+      expect(phone.current!.getText()).toBe('0612')
+      expect(phone.current!.isFocused()).toBe(false)
+      phone.current!.focus()
+      await waitFor(() => expect(Keyboard.isVisible()).toBe(true), 3000)
+    } finally {
+      log.stop()
+      await closeKeyboard()
+    }
+  })
+
+  it('keeps the keyboard up when the form that is shown focuses its own field', async () => {
+    // "Use email instead": the phone field has the keyboard, the email form is
+    // shown and its field focused as it appears.
+    const { phone, email, setMode, SignIn } = makeSignIn((mode, fields) => {
+      if (mode === 'email') fields.email?.focus()
+    })
+    await render(<SignIn />)
+    await waitFor(() => expect(phone.current).not.toBeNull())
+    const log = keyboardRecorder()
+    try {
+      if (!(await openKeyboard(phone.current))) return
+      const from = Date.now()
+      setMode('email')
+      await sleep(1000)
+      expect(log.hidesSince(from)).toEqual([])
+      expect(email.current!.isFocused()).toBe(true)
+      expect(Keyboard.isVisible()).toBe(true)
+    } finally {
+      log.stop()
+      await closeKeyboard()
+    }
+  })
+
+  it('keeps text typed before it was hidden', async () => {
+    const { phone, setMode, SignIn } = makeSignIn()
+    await render(<SignIn />)
+    await waitFor(() => expect(phone.current).not.toBeNull())
+    phone.current!.setText('0699')
+    await waitFor(() => expect(phone.current!.getText()).toBe('0699'))
+    setMode('email')
+    await sleep(500)
+    setMode('phone')
+    await waitFor(() => expect(phone.current).not.toBeNull())
+    await waitFor(() => expect(phone.current!.getText()).toBe('0699'))
+  })
+
+  it('never lets a handle kept from before reach the field that got its old view', async () => {
+    // A hidden field's native view goes back to the pool; the email field is
+    // given it when shown. The phone field's old handle must not read or
+    // focus it.
+    const { phone, email, setMode, SignIn } = makeSignIn()
+    await render(<SignIn />)
+    await waitFor(() => expect(phone.current).not.toBeNull())
+    const oldPhone = phone.current!
+    setMode('email')
+    await waitFor(() => expect(email.current).not.toBeNull())
+    await sleep(300)
+    expect(oldPhone.getText()).toBe('0612')
+    oldPhone.focus()
+    await sleep(500)
+    expect(email.current!.isFocused()).toBe(false)
+    expect(email.current!.getText()).toBe('ada@acme.io')
+  })
+
+  it('survives rapid toggling while the text changes', async () => {
+    const { phone, email, setMode, SignIn } = makeSignIn()
+    await render(<SignIn />)
+    await waitFor(() => expect(phone.current).not.toBeNull())
+    for (let i = 0; i < 20; i++) {
+      phone.current?.setText(`06${i}`)
+      setMode(i % 2 === 0 ? 'email' : 'phone')
+      await sleep(40)
+    }
+    setMode('phone')
+    await waitFor(() => expect(phone.current).not.toBeNull())
+    await waitFor(() => expect(phone.current!.getText()).toBe('0618'))
+    setMode('email')
+    await waitFor(() => expect(email.current?.getText()).toBe('ada@acme.io'))
+  })
+})
+

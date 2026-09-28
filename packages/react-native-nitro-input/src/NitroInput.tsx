@@ -927,9 +927,9 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     const [, setEventCountState] = useState(0)
     const controlledRef = useRef(value != null)
     controlledRef.current = value != null
-    // The initial text of an uncontrolled field never changes afterwards, so
-    // native applies it exactly once.
-    const [initialText] = useState(() => defaultValue ?? '')
+    // An uncontrolled field's text for its native view: its initial text, and
+    // what it held when <Activity> last hid it (see the layout effect below).
+    const [uncontrolledText, setUncontrolledText] = useState(() => defaultValue ?? '')
 
     // Nitro callbacks must be wrapped with `callback()` and the wrapper object
     // has to be referentially stable, otherwise every render re-sets the prop.
@@ -950,6 +950,25 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         }),
       []
     )
+    // React's <Activity> hides a subtree by deleting its native views (they go
+    // back to the view pool, and another field may be given one) and creates
+    // new ones when it is shown again, running layout-effect cleanups on hide
+    // and the effects again on show. So on hide: keep the text for the view the
+    // field gets back (an uncontrolled field's text lives only natively), and
+    // let go of the old view, or a handle kept from before would read and
+    // focus whichever field is given it next. While hidden, focus() and blur()
+    // do nothing and text changes wait for the field to be shown.
+    const hiddenRef = useRef(false)
+    useLayoutEffect(() => {
+      hiddenRef.current = false
+      return () => {
+        const native = nativeRef.current
+        if (native != null) textRef.current = native.currentText()
+        nativeRef.current = null
+        hiddenRef.current = true
+        if (!controlledRef.current) setUncontrolledText(textRef.current)
+      }
+    }, [])
     useEffect(() => {
       if (textInputRegistry == null) return
       const key = (hostRef.current as object | null) ?? { nitroInput: true }
@@ -1135,9 +1154,12 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
           if (native != null) command(native)
           else pendingCommands.current.push(command)
         }
+        const unlessHidden = (command: (native: NitroInputRef) => void) => {
+          if (!hiddenRef.current) send(command)
+        }
         return {
-          focus: () => send((native) => native.focus()),
-          blur: () => send((native) => native.blur()),
+          focus: () => unlessHidden((native) => native.focus()),
+          blur: () => unlessHidden((native) => native.blur()),
           clear: () => send((native) => native.clear()),
           setText: (text) => send((native) => native.replaceText(text)),
           setValue: (next) => send((native) => native.setValue(next)),
@@ -1150,10 +1172,12 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
           // registry this field already keeps up to date, which is the same place
           // `TextInput.isFocused()` reads from.
           isFocused: () =>
+            hiddenRef.current ? false :
             nativeRef.current?.isFocused() ??
             (registryKeyRef.current != null &&
               textInputRegistry?.currentlyFocusedInput() === registryKeyRef.current),
-          setSelection: (start: number, end?: number) => send((native) => native.setSelection(start, end ?? start)),
+          setSelection: (start: number, end?: number) =>
+            unlessHidden((native) => native.setSelection(start, end ?? start)),
           get native() {
             return nativeRef.current
           },
@@ -1344,7 +1368,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         ref={hostRef as React.Ref<never>}
         style={[autoSize, style]}
         hybridRef={hybridRef}
-        text={value ?? initialText}
+        text={value ?? uncontrolledText}
         // An uncontrolled field's `text` is its initial text: a count of 0 is
         // never caught up after the first edit, so native never puts it back.
         mostRecentEventCount={value != null ? eventCountRef.current : 0}
