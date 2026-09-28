@@ -547,6 +547,14 @@ class NitroInputView(context: Context) : FrameLayout(context) {
    * refocuses its field before react-native-screens puts it back.
    */
   private var pendingFocusUntil = 0L
+  /**
+   * The pending `focus()` came before the view was ever on a window: a field
+   * focused as it mounts (a step swapped in place, keyed by its question), not
+   * a screen coming back. It is taken whatever the keyboard is doing, as
+   * `autoFocus` is.
+   */
+  private var pendingFocusOnMount = false
+  private var everAttached = false
   private var batchDepth = 0
   private var feedPending = false
   private var feedCaret = -1
@@ -1003,6 +1011,11 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       // inserts a newline rather than submitting.
       textType = textType or InputType.TYPE_TEXT_FLAG_MULTI_LINE
     }
+    // setInputType, setSingleLine and a new transformation each put the caret
+    // back at 0: a secureTextEntry toggle on a focused field moved it
+    // (react-native#38676). Put it back where it was.
+    val selectionStart = editText.selectionStart
+    val selectionEnd = editText.selectionEnd
     editText.inputType = textType
     if (rawType != null) editText.setRawInputType(rawType)
     if (k.multiline) {
@@ -1022,6 +1035,10 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     if (k.secureTextEntry) {
       editText.transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
     }
+    val length = editText.text?.length ?: 0
+    if (selectionStart >= 0 && (editText.selectionStart != selectionStart || editText.selectionEnd != selectionEnd)) {
+      editText.setSelection(minOf(selectionStart, length), minOf(maxOf(selectionStart, selectionEnd), length))
+    }
     editText.imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI or when (k.returnKeyType) {
       ReturnKeyType.DEFAULT -> EditorInfo.IME_ACTION_UNSPECIFIED
       ReturnKeyType.DONE -> EditorInfo.IME_ACTION_DONE
@@ -1034,7 +1051,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     // `setEditable` replaces through the `Editable`, which re-runs the filters:
     // a length filter there clipped the mask's punctuation off the end.
     editText.filters = if (format.mode == Mode.TEXT && k.maxLength > 0) {
-      arrayOf<InputFilter>(InputFilter.LengthFilter(k.maxLength))
+      arrayOf<InputFilter>(CodePointLengthFilter(k.maxLength))
     } else {
       emptyArray<InputFilter>()
     }
@@ -1221,6 +1238,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       // subtree shown in the same commit that asks for focus): an invisible
       // view cannot take focus. Honour it once the view is attached and shown.
       pendingFocusUntil = SystemClock.uptimeMillis() + 1000
+      pendingFocusOnMount = !everAttached
       return
     }
     pendingFocusUntil = 0
@@ -1356,6 +1374,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   fun resetForRecycle() {
     worklets = Worklets()
     pendingFocusUntil = 0
+    pendingFocusOnMount = false
+    everAttached = false
     inputFrame = Frame()
     labelProgress = 0f
     notchProgress = 0f
@@ -1393,6 +1413,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
   override fun onAttachedToWindow() {
     super.onAttachedToWindow()
+    everAttached = true
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
       animatorScale = -1f
       context.contentResolver.registerContentObserver(
@@ -1414,10 +1435,13 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   /** A `focus()` asked for while the view was off the window or hidden. */
   private fun focusIfPending() {
     if (pendingFocusUntil <= 0 || !isAttachedToWindow || !isShown) return
-    // Only while the keyboard is still up (held for this field, or another
-    // field has it): a keyboard dismissed during the transition stays down.
-    val wanted = SystemClock.uptimeMillis() < pendingFocusUntil && (KeyboardHandoff.isHolding || imeVisible())
+    // A screen coming back takes it only while the keyboard is still up (held
+    // for this field, or another field has it): a keyboard dismissed during
+    // the transition stays down. A field focused as it mounts takes it anyway.
+    val wanted = SystemClock.uptimeMillis() < pendingFocusUntil &&
+      (pendingFocusOnMount || KeyboardHandoff.isHolding || imeVisible())
     pendingFocusUntil = 0
+    pendingFocusOnMount = false
     if (wanted) post { focus() }
   }
 
@@ -2511,5 +2535,21 @@ internal object KeyboardHandoff {
     val field = holder ?: return
     holder = null
     (field.parent as? android.view.ViewGroup)?.removeView(field)
+  }
+}
+
+/**
+ * `maxLength` in characters (code points), as everywhere else in the field and
+ * as iOS counts it: `InputFilter.LengthFilter` counts UTF-16 units, so an emoji
+ * took two of the places when typed and one when set by the program. Never
+ * splits a surrogate pair.
+ */
+internal class CodePointLengthFilter(private val max: Int) : InputFilter {
+  override fun filter(source: CharSequence, start: Int, end: Int, dest: android.text.Spanned, dstart: Int, dend: Int): CharSequence? {
+    val kept = Character.codePointCount(dest, 0, dstart) + Character.codePointCount(dest, dend, dest.length)
+    val room = max - kept
+    if (room <= 0) return if (start == end) null else ""
+    if (Character.codePointCount(source, start, end) <= room) return null
+    return source.subSequence(start, Character.offsetByCodePoints(source, start, room))
   }
 }

@@ -608,6 +608,32 @@ final class NitroInputView: UIView {
   /// pop is re-added only as the transition starts): taken the moment the view
   /// is back, unless it has gone stale.
   private var pendingFocusUntil: CFTimeInterval = 0
+  /// The pending `focus()` came before the view was ever in a window: a field
+  /// focused as it mounts (a step swapped in place, keyed by its question), not
+  /// a screen coming back. It is taken whatever the keyboard is doing, as
+  /// `autoFocus` is.
+  private var pendingFocusOnMount = false
+  /// A selection set while the field was not editing, applied once it is.
+  private var selectionForFocus: (Int, Int)?
+  /// Editing began while the screen was still in a transition.
+  private var beganInTransition = false
+  /// A blur held back until the transition that caused it has finished (see
+  /// `textFieldDidEndEditing`).
+  private var withheldBlur = false
+  /// Focused as its screen comes in, until that transition has finished: the
+  /// push's own `endEditing` does not take the focus away (see
+  /// `keepsFocusThroughTransition`).
+  private var holdsFocusThroughTransition = false
+  /// Set while `blur()` resigns the field.
+  private var blurring = false
+  /// An IME composition (Japanese, Chinese, Korean...) is under way in text
+  /// mode: the text and caret before it, and where it started, for applying
+  /// `maxLength` and the transform once it is committed.
+  private var composition: (base: String, start: Int)?
+  /// Set while a NitroInput (or the keyboard handoff's stand-in) takes first
+  /// responder, which must never be refused.
+  fileprivate static var claimInProgress = false
+  private var everInWindow = false
   /// When the field last stopped editing while on screen (media time; 0 = never).
   private var endedEditingAt: CFTimeInterval = 0
   /// Had the keyboard when its screen was covered: take it back on return.
@@ -855,17 +881,23 @@ final class NitroInputView: UIView {
       }
     }
     if window != nil, pendingFocusUntil > 0 {
-      // Only while the keyboard is still up (held for this field, or another
-      // field has it): a keyboard dismissed during the transition stays down.
+      // A screen coming back takes it only while the keyboard is still up
+      // (held for this field, or another field has it): a keyboard dismissed
+      // during the transition stays down. A field focused as it mounts takes
+      // it anyway.
       let handoff = KeyboardHandoff.shared
-      let wanted = CACurrentMediaTime() < pendingFocusUntil && (handoff.isHolding || handoff.keyboardVisible)
+      let wanted = CACurrentMediaTime() < pendingFocusUntil
+        && (pendingFocusOnMount || handoff.isHolding || handoff.keyboardVisible)
       pendingFocusUntil = 0
+      pendingFocusOnMount = false
       if wanted, traits.editable { claimFirstResponder() }
     }
+    if window != nil { everInWindow = true }
     maybeAutoFocus()
   }
 
   override func willMove(toWindow newWindow: UIWindow?) {
+    if newWindow == nil { holdsFocusThroughTransition = false }
     // Before UIKit resigns the field on its way out, so the keyboard never
     // starts to hide.
     if newWindow == nil {
@@ -898,8 +930,24 @@ final class NitroInputView: UIView {
   @discardableResult
   private func claimOnce() -> Bool {
     claimingFocus = true
-    defer { claimingFocus = false }
+    Self.claimInProgress = true
+    defer {
+      claimingFocus = false
+      Self.claimInProgress = false
+    }
     return editor.becomeFirstResponder()
+  }
+
+  /// Whether a resign now should be declined: the field took focus as its
+  /// screen came in, and the push has no slide (`animation: 'none'`, 'fade',
+  /// 'simple_push'), so UINavigationController ends editing in the incoming
+  /// view mid-transition and hands first responder back as it completes. The
+  /// keyboard would start to close and come back (react-navigation#11626),
+  /// and the field would blur and refocus (#11643). `blur()`, another field
+  /// taking the focus and the view leaving the window still resign it.
+  fileprivate func keepsFocusThroughTransition() -> Bool {
+    holdsFocusThroughTransition && !blurring && !Self.claimInProgress && window != nil
+      && hostViewController?.transitionCoordinator != nil
   }
 
   /// Sends the current selection to a delegate someone put in front of ours
@@ -1010,6 +1058,13 @@ final class NitroInputView: UIView {
     worklets = Worklets()
     if editor.isFirstResponder { editor.resignFirstResponder() }
     pendingFocusUntil = 0
+    pendingFocusOnMount = false
+    everInWindow = false
+    selectionForFocus = nil
+    beganInTransition = false
+    withheldBlur = false
+    holdsFocusThroughTransition = false
+    composition = nil
     restoreOnReturn = false
     endedEditingAt = 0
     focusAfterTransition = false
@@ -1050,6 +1105,7 @@ final class NitroInputView: UIView {
     // what swaps the keyboard in place rather than hiding and showing it.
     guard window != nil else {
       pendingFocusUntil = CACurrentMediaTime() + 1
+      pendingFocusOnMount = !everInWindow
       return
     }
     pendingFocusUntil = 0
@@ -1062,7 +1118,9 @@ final class NitroInputView: UIView {
     endedEditingAt = 0
     focusAfterTransition = false
     if editor.isFirstResponder {
+      blurring = true
       editor.resignFirstResponder()
+      blurring = false
     } else {
       // `Keyboard.dismiss()` while a field that just left the screen holds the
       // keyboard for the next one: nothing is focused, so let it go now.
@@ -1075,6 +1133,9 @@ final class NitroInputView: UIView {
     let count = text.unicodeScalars.count
     let lower = min(max(0, start), count)
     let upper = min(max(lower, end), count)
+    // UIKit puts the caret at the end when a field starts editing, so a
+    // selection given while it is not is kept for then (react-native#46943).
+    selectionForFocus = editor.isFirstResponder ? nil : (lower, upper)
     guard let from = field.position(from: field.beginningOfDocument, offset: utf16Offset(ofCodePoint: lower)),
           let to = field.position(from: field.beginningOfDocument, offset: utf16Offset(ofCodePoint: upper)),
           let range = field.textRange(from: from, to: to) else { return }
@@ -1094,6 +1155,11 @@ final class NitroInputView: UIView {
   /// text mode), caret at the end. Returns false when nothing changed.
   @discardableResult
   func setText(_ newText: String, reason: ChangeReason) -> Bool {
+    // A controlled parent echoing a composition back mid-way (a Japanese,
+    // Chinese or Korean IME): it is what the field shows, but cut to
+    // `maxLength` or run through the transform it would replace the marked
+    // text and end the composition. It is conformed once committed.
+    if reason == .prop, newText == text, (editor as? UITextInput)?.markedTextRange != nil { return false }
     var normalized = normalized(newText)
     if worklets.transform != 0 {
       let count = normalized.unicodeScalars.count
@@ -1704,9 +1770,45 @@ final class NitroInputView: UIView {
 
   @objc private func fieldEditingChanged() {
     guard !isSettingText else { return }
+    if let composition, field.markedTextRange == nil {
+      self.composition = nil
+      conformCommittedComposition(base: composition.base, start: composition.start)
+    }
     // Text mode: the field edited itself; number mode edits never reach here
     // (the delegate applies them and returns false).
     textDidChange(caret: caretCodePointIndex(), reason: .user)
+  }
+
+  /// A text-mode composition was committed: cut it to `maxLength` and run the
+  /// transform over it now, as a typed edit would have been, keeping the caret
+  /// after what was committed.
+  private func conformCommittedComposition(base: String, start: Int) {
+    guard format.mode == .text else { return }
+    let committed = text
+    var caret = caretCodePointIndex()
+    var newText = Self.truncated(committed, to: format.maxLength)
+    caret = min(caret, newText.unicodeScalars.count)
+    var selectionEnd = caret
+    if worklets.transform != 0 {
+      let result = margelo.nitro.nitroinput.nitroinputworklets.runTransform(
+        Int32(worklets.transform), std.string(newText), std.string(base), Int32(caret), Int32(caret), Int32(start), Int32(start))
+      if result.applied {
+        newText = String(result.text)
+        let count = newText.unicodeScalars.count
+        caret = Int(result.selectionStart) < 0 ? count : min(Int(result.selectionStart), count)
+        selectionEnd = min(max(caret, Int(result.selectionEnd)), count)
+      }
+    }
+    guard newText != committed else { return }
+    isSettingText = true
+    replaceMinimally(in: field, with: newText)
+    let from = Self.utf16Offset(in: newText, codePoint: caret)
+    let to = Self.utf16Offset(in: newText, codePoint: selectionEnd)
+    if let fromPosition = field.position(from: field.beginningOfDocument, offset: from),
+       let toPosition = field.position(from: field.beginningOfDocument, offset: to) {
+      field.selectedTextRange = field.textRange(from: fromPosition, to: toPosition)
+    }
+    isSettingText = false
   }
 
   /// The selection start in code points (the engine's caret index).
@@ -2212,7 +2314,13 @@ final class NitroInputView: UIView {
 
     override func becomeFirstResponder() -> Bool {
       if owner?.deferFocusWhileTransitioning() == true { return false }
+      if let other = delegate as? NitroInputView, other !== owner { delegate = owner }
       return super.becomeFirstResponder()
+    }
+
+    override func resignFirstResponder() -> Bool {
+      if owner?.keepsFocusThroughTransition() == true { return false }
+      return super.resignFirstResponder()
     }
     var placeholder: String = "" { didSet { setNeedsDisplay() } }
     var placeholderColor: UIColor = .placeholderText { didSet { setNeedsDisplay() } }
@@ -2278,9 +2386,23 @@ final class NitroInputView: UIView {
   fileprivate final class HiddenTextField: UITextField {
     weak var owner: NitroInputView?
 
+    /// keyboard-controller swaps a proxy delegate into the focused field and
+    /// writes the "original" back when focus moves on. When one field takes the
+    /// keyboard from another and loses it again within the same transition (an
+    /// `autoFocus` field on a pushed screen, which the push's own `endEditing`
+    /// then resigns), it can write the other field's delegate back into this
+    /// one. Every edit then goes to the other field - a number field rejects the
+    /// letters - and this field, focused, takes no typing. A field is only ever
+    /// its own owner's, so put that back before editing starts.
     override func becomeFirstResponder() -> Bool {
       if owner?.deferFocusWhileTransitioning() == true { return false }
+      if let other = delegate as? NitroInputView, other !== owner { delegate = owner }
       return super.becomeFirstResponder()
+    }
+
+    override func resignFirstResponder() -> Bool {
+      if owner?.keepsFocusThroughTransition() == true { return false }
+      return super.resignFirstResponder()
     }
     var leftInset: CGFloat = 0
     var rightInset: CGFloat = 0
@@ -2406,18 +2528,42 @@ final class NitroInputView: UIView {
   }
 }
 
+// MARK: - Misrouted delegate callbacks
+
+extension NitroInputView {
+  /// The view a delegate callback really belongs to, when it is not this one.
+  ///
+  /// react-native-keyboard-controller wraps the focused field's delegate in one
+  /// composite it shares between every input, and that composite forwards to
+  /// whichever delegate it stored last. When focus moves on faster than it
+  /// re-wraps (an `autoFocus` field on a pushed screen), a field's callbacks
+  /// can arrive here, at another field's view
+  /// (kirillzyusko/react-native-keyboard-controller#1588). Answering them as
+  /// ours would filter the typing through this field's rules and apply it to
+  /// this field's text: the focused field would take no typing at all. So
+  /// they go to the field's own view instead.
+  fileprivate func rightfulOwner(of input: UIView) -> NitroInputView? {
+    if input === field || input === editor { return nil }
+    let owner = (input as? HiddenTextField)?.owner ?? (input as? HiddenTextView)?.owner
+    return owner === self ? nil : owner
+  }
+}
+
 // MARK: - UITextViewDelegate
 
 extension NitroInputView: UITextViewDelegate {
   func textViewDidBeginEditing(_ textView: UITextView) {
+    if let owner = rightfulOwner(of: textView) { return owner.textViewDidBeginEditing(textView) }
     textFieldDidBeginEditing(field)
   }
 
   func textViewDidEndEditing(_ textView: UITextView) {
+    if let owner = rightfulOwner(of: textView) { return owner.textViewDidEndEditing(textView) }
     textFieldDidEndEditing(field)
   }
 
   func textViewDidChange(_ textView: UITextView) {
+    if let owner = rightfulOwner(of: textView) { return owner.textViewDidChange(textView) }
     // Typing does not go through `text`'s setter, so the drawn placeholder
     // would stay under the first characters typed.
     textView.setNeedsDisplay()
@@ -2433,11 +2579,15 @@ extension NitroInputView: UITextViewDelegate {
   }
 
   func textViewDidChangeSelection(_ textView: UITextView) {
+    if let owner = rightfulOwner(of: textView) { return owner.textViewDidChangeSelection(textView) }
     guard !isSettingText else { return }
     reportSelection()
   }
 
   func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+    if let owner = rightfulOwner(of: textView) {
+      return owner.textView(textView, shouldChangeTextIn: range, replacementText: text)
+    }
     // The return key arrives as a lone line break. Only that one is the key:
     // a pasted line break is text, and goes in whatever the submit behaviour.
     guard text == "\n", (textView as? HiddenTextView)?.isPasting != true else { return true }
@@ -2451,6 +2601,9 @@ extension NitroInputView: UITextViewDelegate {
 extension NitroInputView: UITextFieldDelegate {
 
   func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+    if let owner = rightfulOwner(of: textField) {
+      return owner.textField(textField, shouldChangeCharactersIn: range, replacementString: string)
+    }
     // Like React Native's `onKeyPress`: fires before the text changes, with
     // 'Backspace' for a deletion and the inserted string otherwise.
     if worklets.onKeyPress != 0 {
@@ -2482,6 +2635,19 @@ extension NitroInputView: UITextFieldDelegate {
       // Without a transform or a length limit the field edits itself (keeps
       // marked text / autocorrect intact); `fieldEditingChanged` reports it.
       guard worklets.transform != 0 || format.maxLength > 0, let swiftRange = Range(range, in: current) else { return true }
+      // Mid-composition the marked text is the IME's: replacing it, or holding
+      // its unconverted letters against `maxLength`, loses the composition
+      // (react-native#56463, #52552). Both apply once it is committed.
+      if let marked = textField.markedTextRange {
+        if composition == nil {
+          let from = textField.offset(from: textField.beginningOfDocument, to: marked.start)
+          let to = textField.offset(from: textField.beginningOfDocument, to: marked.end)
+          var base = current
+          if let markedRange = Range(NSRange(location: from, length: to - from), in: base) { base.removeSubrange(markedRange) }
+          composition = (base, Self.codePointOffset(in: current, utf16: from))
+        }
+        return true
+      }
       var replacement = string
       if format.maxLength > 0 {
         // Keep as much of the replacement as fits (a paste), or nothing.
@@ -2554,6 +2720,23 @@ extension NitroInputView: UITextFieldDelegate {
   }
 
   func textFieldDidBeginEditing(_ textField: UITextField) {
+    if let owner = rightfulOwner(of: textField) { return owner.textFieldDidBeginEditing(textField) }
+    let resumed = withheldBlur
+    withheldBlur = false
+    beganInTransition = hostViewController?.transitionCoordinator != nil
+    if !resumed, let coordinator = hostViewController?.transitionCoordinator {
+      holdsFocusThroughTransition = true
+      coordinator.animate(alongsideTransition: nil) { [weak self] _ in self?.holdsFocusThroughTransition = false }
+    }
+    if resumed {
+      // UIKit giving the focus back that its own transition took away a moment
+      // ago: to JS the field never lost it, so nothing is sent.
+      DispatchQueue.main.async { [weak self] in self?.announceSelectionToDelegate() }
+      if contentOverflows { render() }
+      updateCaret(restartBlink: true)
+      if wantsFrameDrawing { layoutFrame(animated: false) }
+      return
+    }
     // keyboard-controller puts its own delegate in front of ours a turn after
     // editing begins, and its KeyboardAwareScrollView waits for a selection
     // event from the newly focused field before it scrolls. A tap or Next
@@ -2564,7 +2747,15 @@ extension NitroInputView: UITextFieldDelegate {
       DispatchQueue.main.async { [weak self] in self?.announceSelectionToDelegate() }
     }
     if traits.clearTextOnFocus {
+      selectionForFocus = nil
       setText("", reason: .user)
+    } else if let (start, end) = selectionForFocus, !traits.selectTextOnFocus {
+      // In the next runloop turn, after UIKit has put its own caret down.
+      selectionForFocus = nil
+      DispatchQueue.main.async { [weak self] in
+        guard let self, self.editor.isFirstResponder else { return }
+        self.setSelection(start: start, end: end)
+      }
     } else if traits.selectTextOnFocus {
       // In the next runloop turn: UIKit sets its own selection as it begins.
       DispatchQueue.main.async { [weak self] in
@@ -2582,9 +2773,49 @@ extension NitroInputView: UITextFieldDelegate {
   }
 
   func textFieldDidEndEditing(_ textField: UITextField) {
+    if let owner = rightfulOwner(of: textField) { return owner.textFieldDidEndEditing(textField) }
     if window != nil { endedEditingAt = CACurrentMediaTime() }
     if contentOverflows { render() }
     updateCaret()
+    // A field that took focus as its screen came in (`autoFocus`) is resigned
+    // by the push itself when it has no slide (`animation: 'none'`, 'fade',
+    // 'simple_push': UINavigationController ends editing in the incoming view)
+    // and handed first responder back as the push completes. Sent as it
+    // happens, that is an onBlur and a second onFocus for a field the user
+    // never left (react-navigation#11643). So the blur waits for the
+    // transition: gone for good by then, it is sent; given back, it never was.
+    if beganInTransition, let window, let coordinator = hostViewController?.transitionCoordinator {
+      withheldBlur = true
+      // Keep the keyboard up across the gap, or it starts to close and comes
+      // back when the push hands the focus back (react-navigation#11626).
+      if traits.showSoftInputOnFocus, KeyboardHandoff.shared.keyboardVisible {
+        KeyboardHandoff.shared.hold(like: editor, in: window, for: 1000)
+      }
+      coordinator.animate(alongsideTransition: nil) { [weak self] _ in
+        DispatchQueue.main.async { self?.releaseWithheldBlur() }
+      }
+      DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in self?.releaseWithheldBlur() }
+      if wantsFrameDrawing { layoutFrame(animated: true) }
+      return
+    }
+    beganInTransition = false
+    emitBlur()
+    if wantsFrameDrawing { layoutFrame(animated: true) }
+  }
+
+  /// Sends a blur held back during a transition, unless the field has the
+  /// focus again.
+  private func releaseWithheldBlur() {
+    guard withheldBlur else { return }
+    withheldBlur = false
+    beganInTransition = false
+    guard !editor.isFirstResponder else { return }
+    // Nothing took the focus back: let a keyboard held for it go.
+    if KeyboardHandoff.shared.isHolding { KeyboardHandoff.shared.letGo() }
+    emitBlur()
+  }
+
+  private func emitBlur() {
     if worklets.onFocusChange != 0 {
       margelo.nitro.nitroinput.nitroinputworklets.runFocusChange(Int32(worklets.onFocusChange), false, std.string(text))
     }
@@ -2593,10 +2824,10 @@ extension NitroInputView: UITextFieldDelegate {
     }
     onFocusChange?(false)
     onEndEditing?(text)
-    if wantsFrameDrawing { layoutFrame(animated: true) }
   }
 
   func textFieldDidChangeSelection(_ textField: UITextField) {
+    if let owner = rightfulOwner(of: textField) { return owner.textFieldDidChangeSelection(textField) }
     guard !isSettingText else { return }
     // A caret move alone does not re-render; when the content is wider than
     // the view the scroll offset has to follow it.
@@ -2606,6 +2837,7 @@ extension NitroInputView: UITextFieldDelegate {
   }
 
   func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+    if let owner = rightfulOwner(of: textField) { return owner.textFieldShouldReturn(textField) }
     handleReturnKey()
     return false
   }
@@ -3102,7 +3334,10 @@ final class KeyboardHandoff {
     field.inputAccessoryView = editor.inputAccessoryView
     box.addSubview(field)
     window.addSubview(box)
-    guard field.becomeFirstResponder() else {
+    NitroInputView.claimInProgress = true
+    let held = field.becomeFirstResponder()
+    NitroInputView.claimInProgress = false
+    guard held else {
       box.removeFromSuperview()
       return
     }
