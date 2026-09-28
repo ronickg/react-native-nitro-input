@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { FlatList, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { FlatList, Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native'
 import {
@@ -170,7 +170,7 @@ const labLog: LabEvent[] = []
 const logLab = (type: string, height?: number, progress?: number, note?: string) =>
   labLog.push({ t: Date.now(), type, height, progress, note })
 
-function useAutorun(enabled: boolean, fields: React.MutableRefObject<Array<{ focus(): void } | null>>) {
+function useKeyboardRecorder() {
   useKeyboardHandler(
     {
       onStart: e => {
@@ -188,6 +188,10 @@ function useAutorun(enabled: boolean, fields: React.MutableRefObject<Array<{ foc
     },
     [],
   )
+}
+
+function useAutorun(enabled: boolean, fields: React.MutableRefObject<Array<{ focus(): void } | null>>) {
+  useKeyboardRecorder()
   useEffect(() => {
     if (!enabled) return
     labLog.length = 0
@@ -415,6 +419,118 @@ export function LabRowsScreen() {
 
 const ROW_HEIGHT = 72
 
+/**
+ * A backend-driven questionnaire in one screen, as Uno's DynamicForm renders
+ * it (containers/features/questionnaire/dynamic-form): the backend sends a
+ * list of questions, the screen shows one at a time keyed by its id, and Next
+ * swaps it in place - no navigation. Text questions have a keyboard, a select
+ * is tap-only (and dismisses the keyboard, as DynamicForm does), and the Next
+ * button rides the keyboard in a sticky footer. Each field has
+ * `keyboardHandoffMs`, as Uno's Input sets on every field.
+ *
+ * `autoFocus` decides whether a new text question takes the keyboard as it
+ * appears. Uno's questionnaire fields do not autofocus.
+ */
+type StepQuestion =
+  | { id: string; type: 'text'; title: string; placeholder: string; keyboardType?: 'default' | 'email-address' | 'number-pad'; multiline?: boolean }
+  | { id: string; type: 'select'; title: string; options: string[] }
+
+const STEP_QUESTIONS: StepQuestion[] = [
+  { id: 'name', type: 'text', title: 'What is your full name?', placeholder: 'Full name' },
+  { id: 'email', type: 'text', title: 'Your email address', placeholder: 'Email', keyboardType: 'email-address' },
+  { id: 'job', type: 'select', title: 'What do you do?', options: ['Employed', 'Self-employed', 'Student', 'Other'] },
+  { id: 'income', type: 'text', title: 'Monthly income', placeholder: '0', keyboardType: 'number-pad' },
+  { id: 'notes', type: 'text', title: 'Anything else?', placeholder: 'Tell us more', multiline: true },
+]
+
+export function LabStepsScreen() {
+  const { impl, autoFocus = false, autorun = false } = useRoute<RouteProp<RootStackParamList, 'LabSteps'>>().params
+  const { focused, keyboard, track } = useLabStatus()
+  const [index, setIndex] = useState(0)
+  const field = useRef<FlowFieldHandle | null>(null)
+  const question = STEP_QUESTIONS[index]!
+  const hasKeyboard = question.type === 'text'
+  const last = index === STEP_QUESTIONS.length - 1
+  useKeyboardRecorder()
+
+  const next = () => setIndex(i => Math.min(i + 1, STEP_QUESTIONS.length - 1))
+  const back = () => setIndex(i => Math.max(i - 1, 0))
+
+  // As DynamicForm: a tap-only question closes the keyboard.
+  useEffect(() => {
+    logLab('step', undefined, undefined, `question ${question.id}`)
+    if (!hasKeyboard) Keyboard.dismiss()
+  }, [question.id, hasKeyboard])
+
+  // A scripted run for a device nothing can tap on: `__lab.steps(autoFocus)`.
+  useEffect(() => {
+    if (!autorun) return
+    labLog.length = 0
+    const script: Array<[number, string, () => void]> = [
+      [800, 'focus name', () => field.current?.focus()],
+      [1600, 'Next -> email', next],
+      [1600, 'Next -> job (tap-only)', next],
+      [1600, 'Next -> income', next],
+      [1600, 'Next -> notes', next],
+      [1600, 'Back -> income', back],
+      [1600, 'Back -> job', back],
+      [1600, 'Back -> email', back],
+      [1600, 'done', () => {}],
+    ]
+    let at = 0
+    const timers = script.map(([wait, note, run]) =>
+      setTimeout(() => {
+        logLab('step', undefined, undefined, note)
+        run()
+      }, (at += wait)),
+    )
+    return () => timers.forEach(clearTimeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autorun])
+
+  return (
+    <View style={motion.screen}>
+      <StatusLine impl={impl} focused={focused} keyboard={keyboard} />
+      <View style={[motion.actions, motion.actionBar]}>
+        <Pressable testID="lab-steps-back" style={motion.action} onPress={back}>
+          <Text style={motion.actionText}>‹ Back</Text>
+        </Pressable>
+        <Text testID="lab-steps-progress" style={motion.stepProgress}>{`${index + 1} / ${STEP_QUESTIONS.length} · autoFocus ${autoFocus ? 'on' : 'off'}`}</Text>
+      </View>
+      <View style={[motion.form, motion.body]}>
+        <Text style={motion.title}>{question.title}</Text>
+        {question.type === 'text' ? (
+          <FlowField
+            key={question.id}
+            ref={field}
+            impl={impl}
+            testID={`lab-step-${question.id}`}
+            placeholder={question.placeholder}
+            keyboardType={question.keyboardType}
+            multiline={question.multiline}
+            autoFocus={autoFocus}
+            returnKeyType={last ? 'done' : 'next'}
+            returnKeyBar={false}
+            submitBehavior={question.multiline ? undefined : 'submit'}
+            onSubmitEditing={next}
+            keyboardHandoffMs={HANDOFF_MS}
+            {...track(question.id)}
+          />
+        ) : (
+          <View key={question.id} style={{ gap: 8 }}>
+            {question.options.map(option => (
+              <Pressable key={option} testID={`lab-option-${option}`} style={[motion.row, motion.option]} onPress={next}>
+                <Text style={motion.rowLabel}>{option}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </View>
+      <StickyCta label={last ? 'Submit' : 'Next'} onPress={next} />
+    </View>
+  )
+}
+
 const motion = StyleSheet.create({
   // As Uno's base screen with a footer: a column that keeps 16 below the footer.
   screen: { flex: 1, backgroundColor: '#FFFFFF', paddingBottom: 16 },
@@ -455,4 +571,6 @@ const motion = StyleSheet.create({
   },
   rowLabel: { flex: 1, fontSize: 17, color: '#111827' },
   rowField: { width: 110 },
+  option: { borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 12, height: 56 },
+  stepProgress: { alignSelf: 'center', color: '#6B7280', fontSize: 14, marginLeft: 8 },
 })
