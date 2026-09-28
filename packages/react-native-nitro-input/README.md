@@ -434,6 +434,16 @@ screen behaves like theirs with these settings:
 - **A field that leaves while it has the keyboard** (its step replaced, a
   screen popped back to one that focuses its own field): `keyboardHandoffMs`
   keeps the keyboard up for the next field instead of dropping and raising it.
+  Coming back to a screen whose field had the keyboard still gives it back:
+  that field takes it over from the stand-in.
+- **A button riding the keyboard** (keyboard-controller's
+  `KeyboardStickyView`): measured frame by frame on an iPhone 11 Pro and a
+  Galaxy A22, it follows the keyboard through opening, closing, a keyboard
+  that changes height between fields (text, email, number and phone pads, a
+  TextInput in between) and a push to a screen that focuses its own field,
+  the same with NitroInput as with TextInput. On a number pad, pass
+  `returnKeyBar={false}` when the screen's own button is the keyboard's
+  action, or iOS shows two.
 
 ```tsx
 <Stack.Navigator>{/* keyboardHandlingEnabled left off */}</Stack.Navigator>
@@ -522,6 +532,7 @@ screen behaves like theirs with these settings:
 | `showSoftInputOnFocus` | `boolean` | `true` | `false` focuses, with the caret, but shows no keyboard. |
 | `selectTextOnFocus` | `boolean` | `false` | Select everything when the field gains focus. |
 | `clearTextOnFocus` | `boolean` | `false` | Empty the field when it gains focus. |
+| `returnKeyBar` | `boolean` | `true` | iOS: on the number, phone and decimal pads, which have no return key, a bar over the keyboard with the `returnKeyType` key ("Next", "Done"…), as `TextInput` shows. `false` for a screen with its own button riding the keyboard. |
 | `keyboardHandoffMs` | `number` | `0` | When the focused field is popped or unmounted, keep the keyboard up this long for the next field to take over, instead of it dropping and rising again. 300-500 covers a stack pop. |
 | `contextMenuHidden` | `boolean` | `false` | Hides the Cut / Copy / Paste menu. |
 | `editable` | `boolean` | `true` | |

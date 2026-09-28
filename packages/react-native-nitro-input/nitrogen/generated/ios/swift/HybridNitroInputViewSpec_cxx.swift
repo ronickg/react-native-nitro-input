@@ -1041,6 +1041,17 @@ open class HybridNitroInputViewSpec_cxx {
     }
   }
   
+  public final var returnKeyBar: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.returnKeyBar
+    }
+    @inline(__always)
+    set {
+      self.__implementation.returnKeyBar = newValue
+    }
+  }
+  
   public final var contextMenuHidden: Bool {
     @inline(__always)
     get {

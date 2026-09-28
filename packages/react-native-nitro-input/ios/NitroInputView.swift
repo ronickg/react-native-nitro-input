@@ -188,6 +188,8 @@ final class NitroInputView: UIView {
     /// How long a focused field that is leaving its window keeps the keyboard
     /// up for the next field (see `KeyboardHandoff`); 0 is off.
     var keyboardHandoffMs: Double = 0
+    /// The return key bar over the number pads (see `applyReturnAccessory`).
+    var returnKeyBar: Bool = true
     var contextMenuHidden: Bool = false
     var spellCheck: Bool = true
     /// `testID` and `accessibilityLabel`, forwarded from JS so the hidden
@@ -606,6 +608,10 @@ final class NitroInputView: UIView {
   /// pop is re-added only as the transition starts): taken the moment the view
   /// is back, unless it has gone stale.
   private var pendingFocusUntil: CFTimeInterval = 0
+  /// When the field last stopped editing while on screen (media time; 0 = never).
+  private var endedEditingAt: CFTimeInterval = 0
+  /// Had the keyboard when its screen was covered: take it back on return.
+  private var restoreOnReturn = false
   /// Set while this view writes the field's text itself, so the change handler
   /// can tell a programmatic set from a user edit.
   private var isSettingText = false
@@ -827,6 +833,20 @@ final class NitroInputView: UIView {
     // The fonts were built against whatever traits the view had when it was
     // made; the window's are the ones that count.
     if window != nil { syncWithTraits(appearanceChanged: false) }
+    if window != nil, restoreOnReturn {
+      // Back on screen after its screen was covered while it had the keyboard.
+      // UIKit gives the keyboard back itself when nothing else has it - but a
+      // field on the covering screen with `keyboardHandoffMs` hands it to its
+      // stand-in as it leaves, and UIKit then sees a first responder and gives
+      // nothing back. So while the keyboard is still up (a field on the
+      // leaving screen, or its stand-in, has it), this field takes it, at the
+      // start of the way back as UIKit would. Down, UIKit's own restore runs.
+      restoreOnReturn = false
+      let handoff = KeyboardHandoff.shared
+      if traits.editable, !editor.isFirstResponder, handoff.isHolding || handoff.keyboardVisible {
+        claimFirstResponder()
+      }
+    }
     if window != nil, pendingFocusUntil > 0 {
       // Only while the keyboard is still up (held for this field, or another
       // field has it): a keyboard dismissed during the transition stays down.
@@ -841,7 +861,12 @@ final class NitroInputView: UIView {
   override func willMove(toWindow newWindow: UIWindow?) {
     // Before UIKit resigns the field on its way out, so the keyboard never
     // starts to hide.
-    if newWindow == nil { handOffKeyboardIfFocused() }
+    if newWindow == nil {
+      // Covered while it had the keyboard: UIKit resigns a field as the
+      // transition starts, a moment before its view leaves the window.
+      restoreOnReturn = editor.isFirstResponder || CACurrentMediaTime() - endedEditingAt < 1
+      handOffKeyboardIfFocused()
+    }
     super.willMove(toWindow: newWindow)
   }
 
@@ -926,6 +951,8 @@ final class NitroInputView: UIView {
     worklets = Worklets()
     if editor.isFirstResponder { editor.resignFirstResponder() }
     pendingFocusUntil = 0
+    restoreOnReturn = false
+    endedEditingAt = 0
     stopDisplayLink()
     stopBlink()
     engine.reset()
@@ -971,6 +998,8 @@ final class NitroInputView: UIView {
 
   @objc(nitroBlur) func blur() {
     pendingFocusUntil = 0
+    restoreOnReturn = false
+    endedEditingAt = 0
     if editor.isFirstResponder {
       editor.resignFirstResponder()
     } else {
@@ -1445,7 +1474,7 @@ final class NitroInputView: UIView {
   private func applyReturnAccessory() {
     let pads: [UIKeyboardType] = [.numberPad, .phonePad, .decimalPad, .asciiCapableNumberPad]
     let returnKey = traits.returnKeyType
-    let wanted = pads.contains(traits.keyboardType) && returnKey != .default
+    let wanted = traits.returnKeyBar && pads.contains(traits.keyboardType) && returnKey != .default
     if !wanted {
       guard returnAccessoryKey != nil else { return }
       returnAccessoryKey = nil
@@ -2318,6 +2347,9 @@ extension NitroInputView: UITextViewDelegate {
   }
 
   func textViewDidChange(_ textView: UITextView) {
+    // Typing does not go through `text`'s setter, so the drawn placeholder
+    // would stay under the first characters typed.
+    textView.setNeedsDisplay()
     // The text view owns the text here. `setText` runs it through the
     // formatter, which is single-line by definition, so the multiline path
     // reports what the view already holds instead.
@@ -2470,6 +2502,7 @@ extension NitroInputView: UITextFieldDelegate {
   }
 
   func textFieldDidEndEditing(_ textField: UITextField) {
+    if window != nil { endedEditingAt = CACurrentMediaTime() }
     if contentOverflows { render() }
     updateCaret()
     if worklets.onFocusChange != 0 {

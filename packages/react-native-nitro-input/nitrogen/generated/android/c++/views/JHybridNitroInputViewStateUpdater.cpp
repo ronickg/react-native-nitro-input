@@ -464,6 +464,11 @@ void JHybridNitroInputViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCla
     hybridView->setKeyboardHandoffMs(newProps->keyboardHandoffMs.get());
   }
   if (oldProps == nullptr
+        ? newProps->returnKeyBar.isProvided()
+        : !newProps->returnKeyBar.hasSameValue(oldProps->returnKeyBar)) {
+    hybridView->setReturnKeyBar(newProps->returnKeyBar.get());
+  }
+  if (oldProps == nullptr
         ? newProps->contextMenuHidden.isProvided()
         : !newProps->contextMenuHidden.hasSameValue(oldProps->contextMenuHidden)) {
     hybridView->setContextMenuHidden(newProps->contextMenuHidden.get());

@@ -84,7 +84,7 @@ const NAMES = [
 ]
 
 /** Which field has focus and whether the keyboard is up, kept for the status line. */
-function useLabStatus() {
+export function useLabStatus() {
   const [focused, setFocused] = useState<string | null>(null)
   const [keyboard, setKeyboard] = useState(Keyboard.isVisible() ? 'up' : 'down')
   useEffect(() => {
@@ -103,7 +103,7 @@ function useLabStatus() {
   return { focused, keyboard, track }
 }
 
-function StatusLine({ impl, focused, keyboard }: { impl: Impl; focused: string | null; keyboard: string }) {
+export function StatusLine({ impl, focused, keyboard }: { impl: Impl; focused: string | null; keyboard: string }) {
   return (
     <View style={lab.status}>
       <Text testID="lab-status" style={lab.statusText}>

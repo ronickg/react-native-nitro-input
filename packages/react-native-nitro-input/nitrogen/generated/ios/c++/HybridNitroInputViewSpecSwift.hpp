@@ -643,6 +643,12 @@ namespace margelo::nitro::nitroinput {
     inline void setKeyboardHandoffMs(double keyboardHandoffMs) noexcept override {
       _swiftPart.setKeyboardHandoffMs(std::forward<decltype(keyboardHandoffMs)>(keyboardHandoffMs));
     }
+    inline bool getReturnKeyBar() noexcept override {
+      return _swiftPart.getReturnKeyBar();
+    }
+    inline void setReturnKeyBar(bool returnKeyBar) noexcept override {
+      _swiftPart.setReturnKeyBar(std::forward<decltype(returnKeyBar)>(returnKeyBar));
+    }
     inline bool getContextMenuHidden() noexcept override {
       return _swiftPart.getContextMenuHidden();
     }

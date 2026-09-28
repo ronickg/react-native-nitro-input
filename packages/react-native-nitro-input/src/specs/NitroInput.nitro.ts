@@ -406,6 +406,13 @@ export interface NitroInputProps extends HybridViewProps {
    * Default: `0`.
    */
   keyboardHandoffMs: number
+  /**
+   * iOS: on the number, phone and decimal pads (no return key of their own),
+   * a bar over the keyboard with the `returnKeyType` key, as `TextInput`
+   * shows. `false` leaves the pad bare, for a screen with its own button on
+   * the keyboard. Default: `true`.
+   */
+  returnKeyBar: boolean
   /** Hides the Cut/Copy/Paste menu. Default: `false`. */
   contextMenuHidden: boolean
   /** Spell checking (`'text'` mode). Defaults to `autoCorrect`. */

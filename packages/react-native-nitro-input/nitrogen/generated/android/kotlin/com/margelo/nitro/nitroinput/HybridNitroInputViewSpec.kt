@@ -523,6 +523,12 @@ abstract class HybridNitroInputViewSpec: HybridView() {
   @get:Keep
   @set:DoNotStrip
   @set:Keep
+  abstract var returnKeyBar: Boolean
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
   abstract var contextMenuHidden: Boolean
   
   @get:DoNotStrip

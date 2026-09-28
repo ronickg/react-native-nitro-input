@@ -590,6 +590,12 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.keyboardHandoffMs.hasSameValue(oldViewProps->keyboardHandoffMs)) {
       swiftPart.setKeyboardHandoffMs(newViewProps.keyboardHandoffMs.get());
     }
+    // returnKeyBar: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.returnKeyBar.isProvided()
+          : !newViewProps.returnKeyBar.hasSameValue(oldViewProps->returnKeyBar)) {
+      swiftPart.setReturnKeyBar(newViewProps.returnKeyBar.get());
+    }
     // contextMenuHidden: boolean
     if (oldViewProps == nullptr
           ? newViewProps.contextMenuHidden.isProvided()

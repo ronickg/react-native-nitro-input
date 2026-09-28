@@ -158,6 +158,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var selectTextOnFocus: Bool = false { didSet { markConfigDirty() } }
   var clearTextOnFocus: Bool = false { didSet { markConfigDirty() } }
   var keyboardHandoffMs: Double = 0 { didSet { markConfigDirty() } }
+  var returnKeyBar: Bool = true { didSet { markConfigDirty() } }
   var contextMenuHidden: Bool = false { didSet { markConfigDirty() } }
   var spellCheck: Bool = true { didSet { markConfigDirty() } }
   var selectionStart: Double = -1 { didSet { markSelectionDirty() } }
@@ -370,6 +371,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     selectTextOnFocus = false
     clearTextOnFocus = false
     keyboardHandoffMs = 0
+    returnKeyBar = true
     contextMenuHidden = false
     spellCheck = true
     selectionStart = -1
@@ -595,6 +597,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     traits.selectTextOnFocus = selectTextOnFocus
     traits.clearTextOnFocus = clearTextOnFocus
     traits.keyboardHandoffMs = keyboardHandoffMs.isFinite ? max(0, keyboardHandoffMs) : 0
+    traits.returnKeyBar = returnKeyBar
     traits.contextMenuHidden = contextMenuHidden
     traits.spellCheck = spellCheck && autoCorrect
 

@@ -252,7 +252,7 @@ text directly, as it does on a `TextInput`.
 `submitBehavior` (+ `blurOnSubmit`), `secureTextEntry`, `keyboardAppearance`,
 `textContentType` / `autoComplete` (iOS content types and Android autofill
 hints), `enablesReturnKeyAutomatically`, `showSoftInputOnFocus`,
-`selectTextOnFocus`, `clearTextOnFocus`, `keyboardHandoffMs`, `contextMenuHidden`, `spellCheck`,
+`selectTextOnFocus`, `clearTextOnFocus`, `keyboardHandoffMs`, `returnKeyBar`, `contextMenuHidden`, `spellCheck`,
 `readOnly`, `selection`, `inputMode` / `enterKeyHint` (React Native's
 HTML-flavoured aliases, resolved with the same tables and the same precedence),
 `id`, `aria-label`, the `aria-busy` / `-checked` / `-disabled` / `-expanded` / `-selected` state, `aria-hidden` and `aria-labelledby` (which a Nitro view receives unresolved, so this component

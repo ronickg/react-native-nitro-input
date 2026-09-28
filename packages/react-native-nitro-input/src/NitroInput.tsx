@@ -563,6 +563,13 @@ export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' 
    * 300-500 covers a stack pop. Default: `0` (off).
    */
   keyboardHandoffMs?: number
+  /**
+   * iOS: on the number, phone and decimal pads, which have no return key, a
+   * bar over the keyboard with the `returnKeyType` key ("Next", "Done"...), as
+   * `TextInput` shows. `false` leaves the pad bare - for a screen that has its
+   * own button riding the keyboard. Default: `true`.
+   */
+  returnKeyBar?: boolean
   /** Hides the Cut/Copy/Paste menu. Default: `false`. */
   contextMenuHidden?: boolean
   /** Spell checking in `'text'` mode. Defaults to `autoCorrect`. */
@@ -787,6 +794,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       selectTextOnFocus,
       clearTextOnFocus,
       keyboardHandoffMs,
+      returnKeyBar,
       contextMenuHidden,
       spellCheck,
       readOnly,
@@ -1416,6 +1424,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         selectTextOnFocus={selectTextOnFocus ?? false}
         clearTextOnFocus={clearTextOnFocus ?? false}
         keyboardHandoffMs={keyboardHandoffMs ?? 0}
+        returnKeyBar={returnKeyBar ?? true}
         contextMenuHidden={contextMenuHidden ?? false}
         spellCheck={spellCheck ?? autoCorrect ?? true}
         selectionStart={selection?.start ?? -1}

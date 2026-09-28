@@ -241,6 +241,8 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     set(v) { field = v; markConfigDirty() }
   override var clearTextOnFocus: Boolean = false
     set(v) { field = v; markConfigDirty() }
+  // iOS only: Android's number pads have an action key of their own.
+  override var returnKeyBar: Boolean = true
   override var keyboardHandoffMs: Double = 0.0
     set(v) { field = v; markConfigDirty() }
   override var contextMenuHidden: Boolean = false
@@ -472,6 +474,7 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     selectTextOnFocus = false
     clearTextOnFocus = false
     keyboardHandoffMs = 0.0
+    returnKeyBar = true
     contextMenuHidden = false
     spellCheck = true
     selectionStart = -1.0

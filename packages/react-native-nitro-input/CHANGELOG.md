@@ -16,6 +16,15 @@
   return key of their own, so a form chained with Next stopped at its first
   numeric field. The bar is the return key: `submitBehavior`,
   `onSubmitEditing` and worklets run as for the real one.
+- **`returnKeyBar`** (iOS, default `true`): `false` leaves a number pad
+  without the return key bar, for a screen whose own button rides the
+  keyboard (a sticky or morphing CTA) and would otherwise be doubled.
+- **Fixed (iOS)**: coming back to a screen whose field had the keyboard, when
+  the field on the leaving screen used `keyboardHandoffMs`, left the keyboard
+  down: the stand-in held it, so UIKit had nothing to give back. The field
+  now takes the keyboard back itself, with the back animation.
+- **Fixed (iOS)**: a multiline field kept drawing its placeholder under the
+  first characters typed.
 - **Changed**: a controlled field whose parent keeps its `value` while the
   user types (a rejected edit, a digits-only filter) puts the value back, as
   `TextInput` does. It used to keep showing what was typed.
@@ -44,6 +53,10 @@
   The example app has an input lab (a search list and a form chained with
   Next, each with NitroInput or TextInput), and
   `example/e2e/keyboard-lab-android.sh` drives it with real touches over adb.
+  The lab also has a form with a sticky and a morphing CTA (keyboard-
+  controller), a push, a form sheet and a list of fields, and a scripted run
+  (`globalThis.__lab.run()`) that records keyboard-controller's events on a
+  device nothing can tap on.
 
 ## 0.3.2
 

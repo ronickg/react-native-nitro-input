@@ -62,7 +62,13 @@ ime_top() {
 ime() { adb shell dumpsys input_method | grep -m1 -oE "mInputShown=(true|false)" | cut -d= -f2; }
 status() { dump && nodes | awk -F'\t' '$2 == "lab-status" {print $3; exit}'; }
 visible() { dump && nodes | awk -F'\t' -v id="$1" 'index($2, id) == 1 {found=1} END {exit !found}'; }
-drag() { adb shell input swipe 360 900 360 350 250; sleep 1.2; }
+# A drag in the content, above whatever keyboard is up.
+drag() {
+  local kb=$(ime_top) start=900
+  (( kb > 0 && kb - 180 < start )) && start=$(( kb - 180 ))  # above a sticky footer too
+  adb shell input swipe 360 $start 360 $(( start - 350 )) 250
+  sleep 1.2
+}
 back() { adb shell input keyevent KEYCODE_BACK; sleep 1.3; }
 # The keyboard's action key (Next / Done), from its window's touchable region.
 next() {
@@ -141,9 +147,105 @@ form_flow() {
   back
 }
 
+motion_flow() {
+  local impl=$1
+  echo "motion ($impl)"
+  home
+  tap home-lab-motion-$impl
+  expect_status "focus: none · keyboard: down" "opened"
+  visible lab-cta || fail "no sticky button"
+  tap lab-first
+  expect_ime true "tapped the first field"
+  # Next through every keyboard: text, email, decimal pad, password, a
+  # TextInput in the middle, phone pad, text, multiline. The keyboard stays up.
+  local fields=(first email amount password referral phone city notes)
+  local texts=(Ada ada@acme.io 12.5 hunter2 FRIEND 0612345678 Lisbon)
+  for i in 1 2 3 4 5 6 7; do
+    adb shell input text ${texts[$i]}; sleep 0.6
+    next
+    expect_ime true "Next from ${fields[$i]}"
+    expect_status "focus: ${fields[$((i + 1))]} · keyboard: up" "Next from ${fields[$i]}"
+  done
+  # A push to a step that focuses its own field, from a field with the keyboard.
+  tap lab-cta
+  visible lab-step-code || fail "Continue did not open the next step"
+  expect_ime true "the next step's field took the keyboard"
+  expect_status "focus: code · keyboard: up" "the next step"
+  back   # Android: the first back closes the keyboard
+  back
+  visible lab-motion || fail "back did not return to the form"
+  sleep 1
+  expect_ime false "back on the form (Android leaves the keyboard down)"
+  # A form sheet with its own field, opened from a field with the keyboard.
+  tap lab-notes
+  tap lab-open-sheet
+  visible lab-sheet-note || fail "the sheet did not open"
+  expect_ime true "the sheet's field took the keyboard"
+  expect_status "focus: note · keyboard: up" "the sheet"
+  back
+  back
+  visible lab-motion || fail "the sheet did not close"
+  back
+}
+
+rows_flow() {
+  local impl=$1
+  echo "rows ($impl)"
+  home
+  tap home-lab-motion-$impl
+  tap lab-open-rows
+  tap lab-row-1
+  expect_ime true "tapped row 1"
+  # Next down the list, past the rows the list renders at first: a row that
+  # does not exist yet is scrolled in and focused as it mounts.
+  for i in $(seq 1 18); do
+    adb shell input text $i; sleep 0.4
+    next
+  done
+  expect_ime true "Next down 18 rows"
+  expect_status "focus: row 19 · keyboard: up" "Next down 18 rows"
+  drag
+  expect_ime false "dragged the rows"
+  back
+  back
+}
+
+# The width of an element with testID $1 (a prefix), from the UI hierarchy.
+width_of() {
+  dump && python3 - "$TMP/ui.xml" "$1" <<'EOF2'
+import re, sys, xml.etree.ElementTree as ET
+for n in ET.parse(sys.argv[1]).getroot().iter('node'):
+    if n.get('resource-id', '').startswith(sys.argv[2]):
+        b = list(map(int, re.findall(r'\d+', n.get('bounds', ''))))
+        print(b[2] - b[0]); break
+EOF2
+}
+
+morph_flow() {
+  local impl=$1
+  echo "morphing button ($impl)"
+  home
+  visible home-lab-morph-$impl || adb shell input swipe 360 1200 360 700 300
+  tap home-lab-morph-$impl
+  local full=$(width_of lab-cta)
+  tap lab-first
+  sleep 0.5
+  local circle=$(width_of lab-cta)
+  (( circle < full / 3 )) || fail "with the keyboard up the button should be a circle (width $circle of $full)"
+  tap lab-cta
+  expect_ime false "the circle closes the keyboard"
+  sleep 0.5
+  local back=$(width_of lab-cta)
+  (( back > full * 9 / 10 )) || fail "with the keyboard down the button should be full width again (width $back of $full)"
+  back
+}
+
 for impl in ${=${2:-ours rn}}; do
   [[ ${1:-all} == (all|search) ]] && search_flow $impl
   [[ ${1:-all} == (all|form) ]] && form_flow $impl
+  [[ ${1:-all} == (all|motion) ]] && motion_flow $impl
+  [[ ${1:-all} == (all|rows) ]] && rows_flow $impl
+  [[ ${1:-all} == (all|morph) ]] && morph_flow $impl
 done
 
 rm -rf $TMP

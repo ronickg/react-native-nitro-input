@@ -178,6 +178,8 @@ namespace margelo::nitro::nitroinput {
       prototype.registerHybridSetter("clearTextOnFocus", &HybridNitroInputViewSpec::setClearTextOnFocus);
       prototype.registerHybridGetter("keyboardHandoffMs", &HybridNitroInputViewSpec::getKeyboardHandoffMs);
       prototype.registerHybridSetter("keyboardHandoffMs", &HybridNitroInputViewSpec::setKeyboardHandoffMs);
+      prototype.registerHybridGetter("returnKeyBar", &HybridNitroInputViewSpec::getReturnKeyBar);
+      prototype.registerHybridSetter("returnKeyBar", &HybridNitroInputViewSpec::setReturnKeyBar);
       prototype.registerHybridGetter("contextMenuHidden", &HybridNitroInputViewSpec::getContextMenuHidden);
       prototype.registerHybridSetter("contextMenuHidden", &HybridNitroInputViewSpec::setContextMenuHidden);
       prototype.registerHybridGetter("spellCheck", &HybridNitroInputViewSpec::getSpellCheck);

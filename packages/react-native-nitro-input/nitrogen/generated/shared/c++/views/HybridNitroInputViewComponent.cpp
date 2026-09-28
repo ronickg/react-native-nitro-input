@@ -102,6 +102,7 @@ namespace margelo::nitro::nitroinput::views {
     selectTextOnFocus(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "selectTextOnFocus", rawProps, sourceProps.selectTextOnFocus)),
     clearTextOnFocus(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "clearTextOnFocus", rawProps, sourceProps.clearTextOnFocus)),
     keyboardHandoffMs(nitro::ReactProp<double>::fromRawValue("NitroInputView", "keyboardHandoffMs", rawProps, sourceProps.keyboardHandoffMs)),
+    returnKeyBar(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "returnKeyBar", rawProps, sourceProps.returnKeyBar)),
     contextMenuHidden(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "contextMenuHidden", rawProps, sourceProps.contextMenuHidden)),
     spellCheck(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "spellCheck", rawProps, sourceProps.spellCheck)),
     selectionStart(nitro::ReactProp<double>::fromRawValue("NitroInputView", "selectionStart", rawProps, sourceProps.selectionStart)),
@@ -210,6 +211,7 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("selectTextOnFocus"): return true;
       case hashString("clearTextOnFocus"): return true;
       case hashString("keyboardHandoffMs"): return true;
+      case hashString("returnKeyBar"): return true;
       case hashString("contextMenuHidden"): return true;
       case hashString("spellCheck"): return true;
       case hashString("selectionStart"): return true;

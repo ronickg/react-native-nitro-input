@@ -92,6 +92,7 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   var selectTextOnFocus: Bool { get set }
   var clearTextOnFocus: Bool { get set }
   var keyboardHandoffMs: Double { get set }
+  var returnKeyBar: Bool { get set }
   var contextMenuHidden: Bool { get set }
   var spellCheck: Bool { get set }
   var selectionStart: Double { get set }

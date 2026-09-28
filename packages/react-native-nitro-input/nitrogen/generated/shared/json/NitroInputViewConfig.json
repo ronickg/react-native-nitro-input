@@ -86,6 +86,7 @@
     "selectTextOnFocus": true,
     "clearTextOnFocus": true,
     "keyboardHandoffMs": true,
+    "returnKeyBar": true,
     "contextMenuHidden": true,
     "spellCheck": true,
     "selectionStart": true,

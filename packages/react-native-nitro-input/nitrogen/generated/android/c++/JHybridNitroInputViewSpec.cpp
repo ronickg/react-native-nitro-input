@@ -914,6 +914,15 @@ namespace margelo::nitro::nitroinput {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* keyboardHandoffMs */)>("setKeyboardHandoffMs");
     method(_javaPart, keyboardHandoffMs);
   }
+  bool JHybridNitroInputViewSpec::getReturnKeyBar() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean()>("getReturnKeyBar");
+    auto __result = method(_javaPart);
+    return static_cast<bool>(__result);
+  }
+  void JHybridNitroInputViewSpec::setReturnKeyBar(bool returnKeyBar) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jboolean /* returnKeyBar */)>("setReturnKeyBar");
+    method(_javaPart, returnKeyBar);
+  }
   bool JHybridNitroInputViewSpec::getContextMenuHidden() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean()>("getContextMenuHidden");
     auto __result = method(_javaPart);
