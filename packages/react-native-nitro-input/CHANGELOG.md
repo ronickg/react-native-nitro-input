@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.3
 
 - **`keyboardHandoffMs`**: when the focused field is popped or unmounted,
   the keyboard stays up this long for the next field to take over (the
@@ -38,7 +38,10 @@
   which another field may have been given: `focus()` on a hidden field's
   handle focused that other field. The text is now kept across hide and show,
   and while hidden a field's handle does nothing (`focus()` / `blur()`) or
-  waits (`setText`); `getText()` returns the kept text.
+  waits (`setText`); `getText()` returns the kept text. On Android, where
+  a hidden field keeps its view, the field takes it back when shown, and a
+  `focus()` asked for while the field is still hidden waits until it is
+  shown.
 - **Fixed**: `Keyboard.dismiss()` right after a field with `keyboardHandoffMs`
   unmounted, on a screen with no other field (a questionnaire's tap-only
   question), waited for the hold to run out (about 0.4 s) before the keyboard
