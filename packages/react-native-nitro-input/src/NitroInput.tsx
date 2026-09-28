@@ -163,6 +163,12 @@ const EMPTY_MAPPINGS: NitroInputCharacterMapping[] = []
 const mountedFields = new WeakMap<object, { focus(): void; blur(): void }>()
 /** The same fields, iterable: `Keyboard.dismiss()` with nothing focused reaches one through it. */
 const liveFields = new Set<{ focus(): void; blur(): void }>()
+/**
+ * The last field that handed the keyboard off as it unmounted, kept until its
+ * hold is over: a screen may have no field left (a tap-only question) when it
+ * calls `Keyboard.dismiss()`, and the hold is released through a native blur.
+ */
+let lastHandoff: { blur(): void } | null = null
 let patchedRegistry = false
 
 /**
@@ -202,7 +208,7 @@ function patchRegistryOnce() {
       // `Keyboard.dismiss()` with no input focused: a field that just left the
       // screen may still be holding the keyboard for the next one
       // (`keyboardHandoffMs`). A native blur on any field lets that go.
-      if (input == null) liveFields.values().next().value?.blur()
+      if (input == null) (liveFields.values().next().value ?? lastHandoff)?.blur()
       return result
     }
   }
@@ -826,7 +832,17 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     handoffRef.current = keyboardHandoffMs ?? 0
     useLayoutEffect(
       () => () => {
-        if (handoffRef.current > 0) nativeRef.current?.prepareForUnmount()
+        if (handoffRef.current > 0) {
+          const native = nativeRef.current
+          native?.prepareForUnmount()
+          if (native) {
+            const handoff = { blur: () => native.blur() }
+            lastHandoff = handoff
+            setTimeout(() => {
+              if (lastHandoff === handoff) lastHandoff = null
+            }, handoffRef.current + 100)
+          }
+        }
       },
       []
     )

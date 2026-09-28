@@ -31,6 +31,10 @@
   a flat dark snapshot. The field now takes its focus back once the screen has
   settled, so the real keyboard rises from the bottom, as in the system apps
   (Contacts). Focus the app asks for (`focus()`, `autoFocus`) is unchanged.
+- **Fixed**: `Keyboard.dismiss()` right after a field with `keyboardHandoffMs`
+  unmounted, on a screen with no other field (a questionnaire's tap-only
+  question), waited for the hold to run out (about 0.4 s) before the keyboard
+  closed. It closes at once now.
 - **Fixed (iOS)**: keyboard-controller's `KeyboardAwareScrollView` did not
   scroll a field that got its focus back (the caret had not moved, so it got no
   selection event and waited for one). The field now reports its selection
