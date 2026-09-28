@@ -633,6 +633,8 @@ final class NitroInputView: UIView {
   /// Set while a NitroInput (or the keyboard handoff's stand-in) takes first
   /// responder, which must never be refused.
   fileprivate static var claimInProgress = false
+  /// Every live field, to ask whether one is about to take the keyboard.
+  private static let liveFields = NSHashTable<NitroInputView>.weakObjects()
   private var everInWindow = false
   /// When the field last stopped editing while on screen (media time; 0 = never).
   private var endedEditingAt: CFTimeInterval = 0
@@ -705,6 +707,7 @@ final class NitroInputView: UIView {
     super.init(frame: frame)
     // Starts it tracking the keyboard before any field needs to ask.
     _ = KeyboardHandoff.shared
+    Self.liveFields.add(self)
     isOpaque = false
     backgroundColor = .clear
     clipsToBounds = false
@@ -914,7 +917,61 @@ final class NitroInputView: UIView {
   func handOffKeyboardIfFocused() {
     guard traits.keyboardHandoffMs > 0, traits.showSoftInputOnFocus,
           let window, editor.isFirstResponder else { return }
-    KeyboardHandoff.shared.hold(like: editor, in: window, for: traits.keyboardHandoffMs)
+    let hold = KeyboardHandoff.shared.hold(like: editor, in: window, for: traits.keyboardHandoffMs)
+    if let hold, let host = hostViewController {
+      Self.letGo(hold, ifLeaving: host, until: CACurrentMediaTime() + traits.keyboardHandoffMs / 1000)
+    }
+  }
+
+  /// Ends a hold as soon as the leaving field's screen turns out to be going
+  /// itself (back, a sheet closing) with no field waiting to take the
+  /// keyboard: held on, it only stays up over a screen that has no use for it
+  /// until the time runs out. React unmounts a popped screen's fields before
+  /// react-native-screens starts the pop, so at the handoff a pop still looks
+  /// like a view swapped in place; the screen starts leaving a moment later.
+  /// A field on the screen underneath that takes the keyboard back ends the
+  /// hold itself.
+  private static func letGo(_ hold: Int, ifLeaving host: UIViewController, until deadline: CFTimeInterval) {
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) { [weak host] in
+      let handoff = KeyboardHandoff.shared
+      guard let host, handoff.isHolding, handoff.currentHold == hold else { return }
+      if isLeaving(host) {
+        // Once more a moment later: the screen underneath comes back into the
+        // window as the pop starts, and a field there that had the keyboard
+        // asks for it back only then.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+          guard handoff.isHolding, handoff.currentHold == hold, !fieldWaitsForKeyboard() else { return }
+          handoff.letGo()
+        }
+        return
+      }
+      if CACurrentMediaTime() < deadline { letGo(hold, ifLeaving: host, until: deadline) }
+    }
+  }
+
+  /// `controller`'s screen is being popped or dismissed. react-native-screens
+  /// takes a popped screen out of its navigation controller as the pop
+  /// starts, while its views are still on screen: a controller in no
+  /// container, presented by nothing and not the window's root is on its way
+  /// out.
+  private static func isLeaving(_ controller: UIViewController) -> Bool {
+    var current: UIViewController? = controller
+    while let each = current {
+      if each.isMovingFromParent || each.isBeingDismissed { return true }
+      if each.parent == nil, each.presentingViewController == nil,
+         each.viewIfLoaded?.window?.rootViewController !== each { return true }
+      current = each.parent
+    }
+    return false
+  }
+
+  /// A field is about to take first responder: a return waiting for the
+  /// transition to end, or a focus() held until its view is back in a window.
+  private static func fieldWaitsForKeyboard() -> Bool {
+    let now = CACurrentMediaTime()
+    return liveFields.allObjects.contains { field in
+      (field.focusAfterTransition && field.window != nil) || field.pendingFocusUntil > now
+    }
   }
 
   /// `becomeFirstResponder`, retried next turn if UIKit declines because the
@@ -3287,6 +3344,8 @@ final class KeyboardHandoff {
   private var holder: UITextField?
   private var release: DispatchWorkItem?
   private var endObserver: NSObjectProtocol?
+  /// Which hold is running, so a check on an older one leaves this one alone.
+  private(set) var currentHold = 0
   /// Whether the system keyboard is up or on its way up.
   private(set) var keyboardVisible = false
 
@@ -3304,7 +3363,8 @@ final class KeyboardHandoff {
 
   /// Takes the keyboard from `editor` (the leaving field's system field) for up
   /// to `milliseconds`.
-  func hold(like editor: UIView, in window: UIWindow, for milliseconds: Double) {
+  @discardableResult
+  func hold(like editor: UIView, in window: UIWindow, for milliseconds: Double) -> Int? {
     letGo()
     let box = UIView(frame: CGRect(x: -1000, y: -1000, width: 1, height: 1))
     box.tag = -1
@@ -3339,8 +3399,9 @@ final class KeyboardHandoff {
     NitroInputView.claimInProgress = false
     guard held else {
       box.removeFromSuperview()
-      return
+      return nil
     }
+    currentHold += 1
     container = box
     holder = field
     // Another field took the keyboard: the hold is over.
@@ -3353,6 +3414,7 @@ final class KeyboardHandoff {
     let item = DispatchWorkItem { [weak self] in self?.letGo() }
     release = item
     DispatchQueue.main.asyncAfter(deadline: .now() + milliseconds / 1000, execute: item)
+    return currentHold
   }
 
   /// Nothing claimed the keyboard in time, or `Keyboard.dismiss()`: let it hide.

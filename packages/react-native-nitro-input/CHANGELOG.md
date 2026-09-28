@@ -12,6 +12,15 @@
   were registered in an effect, which can run after the view has attached and
   taken focus, so a worklet `onFocus` (and `useNitroInputState`'s `focused`)
   missed it. They are registered while rendering now.
+- **iOS: no keyboard left over a screen popped back to.** Going back from a
+  screen whose field had the keyboard, with `keyboardHandoffMs`, to a screen
+  where no field takes it (a list whose search field was never focused), the
+  keyboard stayed up over that screen for the whole `keyboardHandoffMs` after
+  the pop. React unmounts the popped screen's field before the pop starts, so
+  the handoff could not tell a pop from a field swapped in place. The hold now
+  ends as the screen starts to leave when no field is waiting for the
+  keyboard; a field there that had it when it was covered, or one focused on
+  return, still takes it over.
 
 ## 0.3.4
 
