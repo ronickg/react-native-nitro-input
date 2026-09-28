@@ -302,6 +302,39 @@ describe('NitroInput keyboard handoff', () => {
     }
   })
 
+  it('opens the keyboard for a field focused from an effect as it mounts, with the keyboard down', async () => {
+    // The questionnaire above with a focus() on mount in place of `autoFocus`,
+    // as forms keyed by their step do: a free-text question after a tap-only
+    // one has to bring the keyboard up itself. Here the call reaches the view
+    // once it is on the window; in a larger app it can arrive first and be
+    // held until the view is attached, a path only a real form of that size
+    // has been seen to take.
+    const field = createRef<NitroInputHandle>()
+    let go = (_index: number) => {}
+    function Step({ id }: { id: string }) {
+      useLayoutEffect(() => {
+        field.current?.focus()
+      }, [])
+      return <NitroInput ref={field} keyboardHandoffMs={400} defaultValue={id} />
+    }
+    function Steps() {
+      const [index, setIndex] = useState(0)
+      go = setIndex
+      return <View style={{ padding: 20 }}>{index === 0 ? <View style={{ height: 48 }} /> : <Step key={index} id={`step${index}`} />}</View>
+    }
+    if (noKeyboard) return
+    await render(<Steps />)
+    try {
+      await closeKeyboard()
+      expect(Keyboard.isVisible()).toBe(false)
+      go(1)
+      await waitFor(() => expect(field.current!.isFocused()).toBe(true), 3000)
+      await waitFor(() => expect(Keyboard.isVisible()).toBe(true), 3000)
+    } finally {
+      await closeKeyboard()
+    }
+  })
+
   it('keeps focus and the keyboard while a search list filters under the field', async () => {
     // A search screen: every keystroke re-renders the list below the field.
     const field = createRef<NitroInputHandle>()

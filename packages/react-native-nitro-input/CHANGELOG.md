@@ -1,5 +1,51 @@
 # Changelog
 
+## Unreleased
+
+- **iOS: a focused field that took no typing** (with
+  react-native-keyboard-controller). keyboard-controller wraps the focused
+  field's delegate in one composite shared by every input and forwards to the
+  delegate it stored last; when focus moves faster than it re-wraps (a pushed
+  screen's `autoFocus` field, which the push's own `endEditing` then resigns),
+  a field's delegate calls reach another field
+  ([keyboard-controller#1588](https://github.com/kirillzyusko/react-native-keyboard-controller/issues/1588)).
+  The field looked focused, but every keystroke was checked against the
+  other field's rules and applied to it (a number field threw the letters
+  away). A NitroInput now hands a delegate call for another field to that
+  field, and puts its own delegate back before it starts editing.
+- **`focus()` as a field mounts opens the keyboard even when it is down.**
+  A `focus()` that arrives before the view is on screen is held until it is,
+  and was then honoured only while the keyboard was still up: right for a
+  screen navigated back to (a keyboard dismissed on the way stays down), but
+  it also dropped `useEffect(() => ref.current?.focus(), [])` on a field
+  swapped in after one without a keyboard (a free-text question after a
+  multiple-choice one). A field that has never been on screen now takes the
+  focus it was asked for, as `autoFocus` does. Both platforms.
+- **iOS: an `autoFocus` field on a screen pushed without a slide**
+  (`animation: 'none'`, `'fade'`, `'simple_push'`) no longer blurs and
+  refocuses, and the keyboard no longer starts to close and comes back
+  ([react-navigation#11643](https://github.com/react-navigation/react-navigation/issues/11643),
+  [#11626](https://github.com/react-navigation/react-navigation/issues/11626)).
+  UINavigationController ends editing in the incoming view mid-transition
+  and hands first responder back as it completes; the field now keeps it
+  through the transition.
+- **iOS: a `selection` given while the field is not focused** is where the
+  caret goes when it is focused, instead of the end of the text
+  ([react-native#46943](https://github.com/facebook/react-native/issues/46943)).
+- **iOS: Japanese, Chinese and Korean input** with `maxLength` or a
+  `transform`: the IME's composition is left alone until it is committed,
+  then cut to `maxLength` and transformed. The unconverted letters no longer
+  count against `maxLength`, and a controlled parent echoing the text back
+  mid-composition no longer ends it
+  ([react-native#56463](https://github.com/facebook/react-native/issues/56463),
+  [#52552](https://github.com/facebook/react-native/issues/52552)).
+- **Android: `maxLength` counts characters when typing**, as it already did
+  for text set by the program and as iOS does: an emoji took two places when
+  typed.
+- **Android: changing `secureTextEntry` (or another keyboard prop) on a
+  focused field keeps the caret where it was** instead of moving it to the
+  start ([react-native#38676](https://github.com/facebook/react-native/issues/38676)).
+
 ## 0.3.3
 
 - **`keyboardHandoffMs`**: when the focused field is popped or unmounted,
