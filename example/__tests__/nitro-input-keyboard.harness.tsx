@@ -236,6 +236,72 @@ describe('NitroInput keyboard handoff', () => {
     }
   })
 
+  // A backend-driven questionnaire in one screen (Uno's DynamicForm): one
+  // question at a time keyed by its id, Next swaps it in place, a tap-only
+  // question dismisses the keyboard. With autoFocus on the text questions the
+  // keyboard stays up from one text question to the next and only a tap-only
+  // question closes it.
+  it('keeps the keyboard across a one-screen questionnaire, closing it only for a tap-only question', async () => {
+    type Q = { id: string; keyboard: boolean; keyboardType?: 'default' | 'number-pad' }
+    const questions: Q[] = [
+      { id: 'name', keyboard: true },
+      { id: 'email', keyboard: true },
+      { id: 'job', keyboard: false },
+      { id: 'income', keyboard: true, keyboardType: 'number-pad' },
+    ]
+    const field = createRef<NitroInputHandle>()
+    let go = (_index: number) => {}
+    function Questionnaire() {
+      const [index, setIndex] = useState(0)
+      go = setIndex
+      const q = questions[index]!
+      useEffect(() => {
+        if (!q.keyboard) Keyboard.dismiss()
+      }, [q])
+      return (
+        <View style={{ padding: 20 }}>
+          {q.keyboard ? (
+            <NitroInput key={q.id} ref={field} autoFocus keyboardType={q.keyboardType} keyboardHandoffMs={400} defaultValue={q.id} />
+          ) : (
+            <View key={q.id} style={{ height: 48 }} />
+          )}
+        </View>
+      )
+    }
+    const log = keyboardRecorder()
+    await render(<Questionnaire />)
+    try {
+      if (!(await openKeyboard(field.current))) return
+      // name -> email: text to text, the keyboard stays.
+      let from = Date.now()
+      go(1)
+      await sleep(900)
+      expect(log.hidesSince(from)).toEqual([])
+      expect(field.current!.isFocused()).toBe(true)
+      // email -> job: tap-only, the keyboard goes - at once, not when the
+      // leaving field's hold runs out (no field is left to release it).
+      from = Date.now()
+      go(2)
+      await waitFor(() => expect(log.hidesSince(from).length).toBeGreaterThan(0), 3000)
+      expect(log.hidesSince(from)[0]!.at - from).toBeLessThan(300)
+      await waitFor(() => expect(Keyboard.isVisible()).toBe(false), 3000)
+      // job -> income: the number pad comes up for the new field on its own.
+      go(3)
+      await waitFor(() => expect(Keyboard.isVisible()).toBe(true), 3000)
+      await waitFor(() => expect(field.current!.isFocused()).toBe(true))
+      await sleep(700)
+      // income -> back to email: text to text again, no hide.
+      from = Date.now()
+      go(1)
+      await sleep(900)
+      expect(log.hidesSince(from)).toEqual([])
+      expect(field.current!.isFocused()).toBe(true)
+    } finally {
+      log.stop()
+      await closeKeyboard()
+    }
+  })
+
   it('keeps focus and the keyboard while a search list filters under the field', async () => {
     // A search screen: every keystroke re-renders the list below the field.
     const field = createRef<NitroInputHandle>()

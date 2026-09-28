@@ -21,7 +21,7 @@ import {
   type Impl,
 } from './screens/KeyboardFlow'
 import { LabDetailScreen, LabFormScreen, LabSearchScreen } from './screens/InputLab'
-import { LabMotionScreen, LabRowsScreen, LabSheetScreen, LabStepScreen } from './screens/InputLabMotion'
+import { LabMotionScreen, LabRowsScreen, LabSheetScreen, LabStepScreen, LabStepsScreen } from './screens/InputLabMotion'
 
 export type RootStackParamList = {
   Home: undefined
@@ -47,6 +47,7 @@ export type RootStackParamList = {
   LabStep: { impl: Impl }
   LabSheet: { impl: Impl }
   LabRows: { impl: Impl }
+  LabSteps: { impl: Impl; autoFocus?: boolean; autorun?: boolean }
 }
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
@@ -78,6 +79,7 @@ function HomeScreen() {
   ;(globalThis as any).__lab = {
     run: (cta: 'sticky' | 'morph' = 'sticky', impl: Impl = 'ours') => nav.push('LabMotion', { impl, cta, autorun: true }),
     go: (name: keyof RootStackParamList, params?: object) => nav.navigate(name, params),
+    steps: (autoFocus = false, impl: Impl = 'ours') => nav.push('LabSteps', { impl, autoFocus, autorun: true }),
   }
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -121,6 +123,10 @@ function HomeScreen() {
         <Row>
           <Btn testID="home-lab-morph-ours" tone="primary" title="Morphing CTA (NitroInput)" onPress={() => nav.navigate('LabMotion', { impl: 'ours', cta: 'morph' })} />
           <Btn testID="home-lab-morph-rn" title="Morphing CTA (TextInput)" onPress={() => nav.navigate('LabMotion', { impl: 'rn', cta: 'morph' })} />
+        </Row>
+        <Row>
+          <Btn testID="home-lab-steps" tone="primary" title="Questionnaire, as Uno (no autoFocus)" onPress={() => nav.navigate('LabSteps', { impl: 'ours' })} />
+          <Btn testID="home-lab-steps-af" title="Questionnaire, autoFocus" onPress={() => nav.navigate('LabSteps', { impl: 'ours', autoFocus: true })} />
         </Row>
       </Card>
       <Card
@@ -186,6 +192,7 @@ export function RootNavigator() {
         <Stack.Screen name="LabMotion" component={LabMotionScreen} options={{ title: 'Motion', keyboardHandlingEnabled: false }} />
         <Stack.Screen name="LabStep" component={LabStepScreen} options={{ title: 'Next step', keyboardHandlingEnabled: false }} />
         <Stack.Screen name="LabRows" component={LabRowsScreen} options={{ title: 'Rows', keyboardHandlingEnabled: false }} />
+        <Stack.Screen name="LabSteps" component={LabStepsScreen} options={{ title: 'Questionnaire', keyboardHandlingEnabled: false }} />
         <Stack.Screen
           name="LabSheet"
           component={LabSheetScreen}
