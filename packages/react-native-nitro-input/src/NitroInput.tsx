@@ -169,6 +169,12 @@ const liveFields = new Set<{ focus(): void; blur(): void }>()
  * calls `Keyboard.dismiss()`, and the hold is released through a native blur.
  */
 let lastHandoff: { blur(): void } | null = null
+/**
+ * Which field a native view currently belongs to. A view can change hands:
+ * on iOS a hidden <Activity>'s views go back to the pool and another field
+ * may be given one; on Android they are kept for the same field.
+ */
+const viewOwner = new WeakMap<object, object>()
 let patchedRegistry = false
 
 /**
@@ -939,10 +945,12 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     // does, as React Native queues a `TextInput`'s view commands. Without this
     // the common `useEffect(() => ref.current?.focus(), [])` was a silent no-op.
     const pendingCommands = useRef<Array<(native: NitroInputRef) => void>>([])
+    const [owner] = useState(() => ({}))
     const hybridRef = useMemo(
       () =>
         callback((instance: NitroInputRef) => {
           nativeRef.current = instance
+          viewOwner.set(instance as object, owner)
           const queued = pendingCommands.current
           pendingCommands.current = []
           for (const command of queued) command(instance)
@@ -959,11 +967,24 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     // focus whichever field is given it next. While hidden, focus() and blur()
     // do nothing and text changes wait for the field to be shown.
     const hiddenRef = useRef(false)
+    const hiddenViewRef = useRef<NitroInputRef | null>(null)
     useLayoutEffect(() => {
       hiddenRef.current = false
+      // Shown again. Android keeps a hidden field's view, and calls no
+      // `hybridRef` for it again: take it back, unless another field has been
+      // given it (iOS), in which case this field's new view calls `hybridRef`.
+      const previous = hiddenViewRef.current
+      hiddenViewRef.current = null
+      if (nativeRef.current == null && previous != null && viewOwner.get(previous as object) === owner) {
+        nativeRef.current = previous
+        const queued = pendingCommands.current
+        pendingCommands.current = []
+        for (const command of queued) command(previous)
+      }
       return () => {
         const native = nativeRef.current
         if (native != null) textRef.current = native.currentText()
+        hiddenViewRef.current = native
         nativeRef.current = null
         hiddenRef.current = true
         if (!controlledRef.current) setUncontrolledText(textRef.current)

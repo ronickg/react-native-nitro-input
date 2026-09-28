@@ -1216,9 +1216,10 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
   fun focus() {
     if (!keyboard.editable) return
-    if (!isAttachedToWindow) {
-      // Focus taken off the window is lost again when the view is attached;
-      // honour it then instead.
+    if (!isAttachedToWindow || !isShown) {
+      // Off the window, or on it but hidden (a hidden <Activity>, or a
+      // subtree shown in the same commit that asks for focus): an invisible
+      // view cannot take focus. Honour it once the view is attached and shown.
       pendingFocusUntil = SystemClock.uptimeMillis() + 1000
       return
     }
@@ -1402,13 +1403,22 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     restartBlink()
     syncAccessibilityFromHost()
     maybeAutoFocus()
-    if (pendingFocusUntil > 0) {
-      // Only while the keyboard is still up (held for this field, or another
-      // field has it): a keyboard dismissed during the transition stays down.
-      val wanted = SystemClock.uptimeMillis() < pendingFocusUntil && (KeyboardHandoff.isHolding || imeVisible())
-      pendingFocusUntil = 0
-      if (wanted) post { focus() }
-    }
+    focusIfPending()
+  }
+
+  override fun onVisibilityChanged(changedView: View, visibility: Int) {
+    super.onVisibilityChanged(changedView, visibility)
+    if (isShown) focusIfPending()
+  }
+
+  /** A `focus()` asked for while the view was off the window or hidden. */
+  private fun focusIfPending() {
+    if (pendingFocusUntil <= 0 || !isAttachedToWindow || !isShown) return
+    // Only while the keyboard is still up (held for this field, or another
+    // field has it): a keyboard dismissed during the transition stays down.
+    val wanted = SystemClock.uptimeMillis() < pendingFocusUntil && (KeyboardHandoff.isHolding || imeVisible())
+    pendingFocusUntil = 0
+    if (wanted) post { focus() }
   }
 
   private fun imeVisible(): Boolean =

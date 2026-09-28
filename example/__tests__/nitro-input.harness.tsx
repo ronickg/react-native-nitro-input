@@ -537,9 +537,11 @@ describe('NitroInput', () => {
     )
     await waitFor(() => expect(refs[0]!.current?.native).not.toBeNull())
     await waitFor(() => expect(refs[0]!.current!.getText()).toBe('10-00'))
+    // Each row applies its text as it mounts; a slow machine gets to the
+    // fifth row after the first, so wait for each.
     for (let i = 0; i < 5; i++) {
       const v = values[i]!
-      expect(refs[i]!.current!.getText()).toBe(`${v.slice(0, 2)}-${v.slice(2)}`)
+      await waitFor(() => expect(refs[i]!.current?.getText()).toBe(`${v.slice(0, 2)}-${v.slice(2)}`))
     }
   })
 
