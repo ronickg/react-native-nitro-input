@@ -227,15 +227,18 @@ export function registerCallback(callback: (arg: never) => void, id: number): vo
 export function registerFocusChange(
   onFocus: ((event: WorkletFocusEvent) => void) | undefined,
   onBlur: ((event: WorkletFocusEvent) => void) | undefined,
-  id: number
+  id: number,
+  focused?: { value: boolean }
 ): void {
   if (id === 0 || !ensureWorkletsInstalled()) return
   const worklets = loadWorklets()!
   worklets.executeOnUIRuntimeSync(() => {
     'worklet'
-    const wrapper = (focused: boolean, text: string) => {
+    const wrapper = (isFocused: boolean, text: string) => {
+      if (focused) focused.value = isFocused
+      if (!onFocus && !onBlur) return
       const event = { text, target: 0, eventCount: 0, nativeEvent: { text, target: 0, eventCount: 0 } }
-      if (focused) onFocus?.(event)
+      if (isFocused) onFocus?.(event)
       else onBlur?.(event)
     }
     globalThis.__nitroInputWorklets?.set(id, wrapper as (...args: never[]) => unknown)

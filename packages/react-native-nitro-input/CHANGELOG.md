@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.5
+
+- **`focusedValue`**: pass a shared value (Reanimated's `useSharedValue(false)`)
+  and the field keeps it equal to its focus, set on the UI thread the moment
+  focus changes, while `onFocus` / `onBlur` still run on JS. For focus styling
+  that must not wait for JS and that wraps more than the field: a border
+  around a row holding an icon or a country picker in front and a clear
+  button behind. Needs `react-native-worklets`.
+- **Worklet focus handlers see the first focus of an `autoFocus` field.** They
+  were registered in an effect, which can run after the view has attached and
+  taken focus, so a worklet `onFocus` (and `useNitroInputState`'s `focused`)
+  missed it. They are registered while rendering now.
+
 ## 0.3.4
 
 - **iOS: a focused field that took no typing** (with

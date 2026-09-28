@@ -54,7 +54,9 @@ import {
   unregisterWorklet,
   type NitroInputSelection,
   type NitroInputTransform,
+  type WorkletFocusEvent,
 } from './worklets'
+import type { SharedValueLike } from './useNitroInputState'
 import { toNumericWeight, toProcessedColor } from './styleHelpers'
 import { formatProps } from './formatProps'
 import type { NumberFormat } from './NumberFormat'
@@ -644,6 +646,22 @@ export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' 
    * `({ text }) => …` reads better than `(e) => e.nativeEvent.text`.
    */
   onFocus?: (event: NitroInputFocusEvent) => void
+  /**
+   * A shared value (Reanimated's `useSharedValue(false)`) the field keeps equal
+   * to whether it has focus, set on the UI thread the moment focus changes.
+   * `onFocus` / `onBlur` still run as usual. For focus styling that must not
+   * wait for JS: a border around the field and whatever sits beside it, an
+   * icon's tint, a label's colour. Needs `react-native-worklets`.
+   *
+   * ```tsx
+   * const focused = useSharedValue(false)
+   * const ring = useAnimatedStyle(() => ({ borderColor: focused.value ? '#2563eb' : 'transparent' }))
+   * <Animated.View style={[styles.row, ring]}>
+   *   <Icon /><NitroInput focusedValue={focused} onFocus={track} /><ClearButton />
+   * </Animated.View>
+   * ```
+   */
+  focusedValue?: SharedValueLike<boolean>
   /** Blurred. Same event as {@link NitroInputProps.onFocus}. */
   onBlur?: (event: NitroInputFocusEvent) => void
   /** The return key was pressed. */
@@ -822,6 +840,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       onChangeMask,
       onFocus,
       onBlur,
+      focusedValue,
       onSubmitEditing,
       onNativeRef,
       style,
@@ -902,10 +921,10 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     const onChangeValueId = useWorkletId(onChangeValueWorklet, registerCallback)
     // Marking any of these `'worklet'` moves it to the UI thread; the JS
     // handler is then skipped, exactly as `onChangeText` already worked.
-    const onFocusId = useWorkletPairId(
+    const onFocusId = useFocusWorkletId(
       isWorklet(onFocus) ? (onFocus as never) : undefined,
       isWorklet(onBlur) ? (onBlur as never) : undefined,
-      registerFocusChange
+      focusedValue
     )
     const onSelectionChangeId = useWorkletId(
       isWorklet(onSelectionChange) ? (onSelectionChange as never) : undefined,
@@ -1537,19 +1556,29 @@ function useWorkletId<T extends (...args: never[]) => unknown>(
 }
 
 /**
- * The same, for the focus pair: native reports one focus change, so the two
- * handlers share an id and the wrapper picks between them.
+ * The same, for focus: native reports one focus change, so the two handlers
+ * and `focusedValue` share an id and the wrapper picks between them.
+ *
+ * Registered while rendering, not in an effect: an `autoFocus` field takes
+ * focus as its view attaches, which can come before this component's effects
+ * run, and a focus change for an id that is not registered yet is dropped -
+ * `focusedValue` would miss the field's first focus. The registration is
+ * synchronous on the UI runtime, so it is there before the view is.
  */
-function useWorkletPairId<T extends (...args: never[]) => unknown>(
-  onFocus: T | undefined,
-  onBlur: T | undefined,
-  register: (a: T | undefined, b: T | undefined, id: number) => void
+function useFocusWorkletId(
+  onFocus: ((event: WorkletFocusEvent) => void) | undefined,
+  onBlur: ((event: WorkletFocusEvent) => void) | undefined,
+  focusedValue: SharedValueLike<boolean> | undefined
 ): number {
-  const id = useMemo(() => (onFocus || onBlur ? allocateWorkletId() : 0), [onFocus, onBlur])
+  const id = useMemo(() => {
+    if (!onFocus && !onBlur && !focusedValue) return 0
+    const allocated = allocateWorkletId()
+    registerFocusChange(onFocus, onBlur, allocated, focusedValue)
+    return allocated
+  }, [onFocus, onBlur, focusedValue])
   useEffect(() => {
     if (id === 0) return
-    register(onFocus, onBlur, id)
     return () => unregisterWorklet(id)
-  }, [id, onFocus, onBlur, register])
+  }, [id])
   return id
 }

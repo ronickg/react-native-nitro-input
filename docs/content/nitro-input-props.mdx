@@ -457,6 +457,10 @@ Focused. The event carries `text`, `eventCount` and `target`.
 Blurred. Same event as `onFocus`.
 </Prop>
 
+<Prop name="focusedValue" type="SharedValue<boolean>">
+A shared value the field keeps equal to whether it has focus, set on the UI thread the moment focus changes (`autoFocus` included), while `onFocus` / `onBlur` still run on JS. For focus styling that must not wait for JS, such as a border around the field and the icons or buttons beside it. Needs `react-native-worklets`.
+</Prop>
+
 <Prop name="onSubmitEditing" type="(event: NitroInputTextEvent) => void">
 The return key was pressed.
 </Prop>
