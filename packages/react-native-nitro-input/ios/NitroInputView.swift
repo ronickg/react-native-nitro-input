@@ -612,6 +612,11 @@ final class NitroInputView: UIView {
   private var endedEditingAt: CFTimeInterval = 0
   /// Had the keyboard when its screen was covered: take it back on return.
   private var restoreOnReturn = false
+  /// Set while this view asks for focus itself (focus(), autoFocus, a return
+  /// after a handoff): those go through at once, even mid-transition.
+  private var claimingFocus = false
+  /// A restore deferred to the end of the running transition is waiting.
+  private var focusAfterTransition = false
   /// Set while this view writes the field's text itself, so the change handler
   /// can tell a programmatic set from a user edit.
   private var isSettingText = false
@@ -844,7 +849,9 @@ final class NitroInputView: UIView {
       restoreOnReturn = false
       let handoff = KeyboardHandoff.shared
       if traits.editable, !editor.isFirstResponder, handoff.isHolding || handoff.keyboardVisible {
-        claimFirstResponder()
+        // As UIKit's own restore: once the screen has settled (see
+        // `deferFocusWhileTransitioning`), or now when nothing is moving.
+        if !deferFocusWhileTransitioning() { claimFirstResponder() }
       }
     }
     if window != nil, pendingFocusUntil > 0 {
@@ -881,11 +888,63 @@ final class NitroInputView: UIView {
   /// `becomeFirstResponder`, retried next turn if UIKit declines because the
   /// view is in a window but not ready to accept it yet.
   private func claimFirstResponder() {
-    if editor.becomeFirstResponder() { return }
+    if claimOnce() { return }
     DispatchQueue.main.async { [weak self] in
       guard let self, self.window != nil else { return }
-      self.editor.becomeFirstResponder()
+      self.claimOnce()
     }
+  }
+
+  @discardableResult
+  private func claimOnce() -> Bool {
+    claimingFocus = true
+    defer { claimingFocus = false }
+    return editor.becomeFirstResponder()
+  }
+
+  /// Sends the current selection to a delegate someone put in front of ours
+  /// (see `textFieldDidBeginEditing`). Ours reports selections itself.
+  private func announceSelectionToDelegate() {
+    guard editor.isFirstResponder else { return }
+    if let field = editor as? UITextField, let delegate = field.delegate, delegate !== self {
+      delegate.textFieldDidChangeSelection?(field)
+    } else if let view = editor as? UITextView, let delegate = view.delegate, delegate !== self {
+      delegate.textViewDidChangeSelection?(view)
+    }
+  }
+
+  /// The view controller this field's screen belongs to.
+  private var hostViewController: UIViewController? {
+    var responder: UIResponder? = self
+    while let next = responder?.next {
+      if let controller = next as? UIViewController { return controller }
+      responder = next
+    }
+    return nil
+  }
+
+  /// UIKit gives a field its focus back when you return to its screen (back,
+  /// swipe-back, a sheet closing), and does it as the transition starts. On
+  /// iOS 26 the keyboard then travels in with the sliding screen as a flat
+  /// dark snapshot of itself, and only turns into the real keyboard once the
+  /// screen has settled. The platform apps give focus back after the
+  /// transition, so the real keyboard rises from the bottom (Contacts'
+  /// search): this does the same. Returns true when the focus was deferred.
+  /// Focus this view asks for itself (`claimingFocus`) is never deferred:
+  /// that is `focus()` and `autoFocus`, which keep the keyboard up across a
+  /// push to a screen that focuses its own field.
+  fileprivate func deferFocusWhileTransitioning() -> Bool {
+    guard !claimingFocus, let coordinator = hostViewController?.transitionCoordinator else { return false }
+    if focusAfterTransition { return true }
+    focusAfterTransition = true
+    coordinator.animate(alongsideTransition: nil) { [weak self] context in
+      // Cancelled meanwhile by blur() / Keyboard.dismiss() or a recycle.
+      guard let self, self.focusAfterTransition else { return }
+      self.focusAfterTransition = false
+      guard !context.isCancelled, self.window != nil, self.traits.editable else { return }
+      self.claimFirstResponder()
+    }
+    return true
   }
 
   override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -953,6 +1012,7 @@ final class NitroInputView: UIView {
     pendingFocusUntil = 0
     restoreOnReturn = false
     endedEditingAt = 0
+    focusAfterTransition = false
     stopDisplayLink()
     stopBlink()
     engine.reset()
@@ -1000,6 +1060,7 @@ final class NitroInputView: UIView {
     pendingFocusUntil = 0
     restoreOnReturn = false
     endedEditingAt = 0
+    focusAfterTransition = false
     if editor.isFirstResponder {
       editor.resignFirstResponder()
     } else {
@@ -2148,6 +2209,11 @@ final class NitroInputView: UIView {
    */
   fileprivate final class HiddenTextView: UITextView {
     weak var owner: NitroInputView?
+
+    override func becomeFirstResponder() -> Bool {
+      if owner?.deferFocusWhileTransitioning() == true { return false }
+      return super.becomeFirstResponder()
+    }
     var placeholder: String = "" { didSet { setNeedsDisplay() } }
     var placeholderColor: UIColor = .placeholderText { didSet { setNeedsDisplay() } }
 
@@ -2211,6 +2277,11 @@ final class NitroInputView: UIView {
 
   fileprivate final class HiddenTextField: UITextField {
     weak var owner: NitroInputView?
+
+    override func becomeFirstResponder() -> Bool {
+      if owner?.deferFocusWhileTransitioning() == true { return false }
+      return super.becomeFirstResponder()
+    }
     var leftInset: CGFloat = 0
     var rightInset: CGFloat = 0
     /// Room for a floated label sitting on the top edge.
@@ -2483,6 +2554,15 @@ extension NitroInputView: UITextFieldDelegate {
   }
 
   func textFieldDidBeginEditing(_ textField: UITextField) {
+    // keyboard-controller puts its own delegate in front of ours a turn after
+    // editing begins, and its KeyboardAwareScrollView waits for a selection
+    // event from the newly focused field before it scrolls. A tap or Next
+    // moves the caret and sends one; a field given its focus back with the
+    // caret where it was sends none, and the form never scrolls it into view.
+    // So once that delegate is in place, tell it where the selection is.
+    DispatchQueue.main.async {
+      DispatchQueue.main.async { [weak self] in self?.announceSelectionToDelegate() }
+    }
     if traits.clearTextOnFocus {
       setText("", reason: .user)
     } else if traits.selectTextOnFocus {

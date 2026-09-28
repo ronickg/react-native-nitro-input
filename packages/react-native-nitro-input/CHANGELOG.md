@@ -25,6 +25,16 @@
   now takes the keyboard back itself, with the back animation.
 - **Fixed (iOS)**: a multiline field kept drawing its placeholder under the
   first characters typed.
+- **iOS 26: no dark keyboard on the way back.** When you return to a screen
+  whose field had the keyboard, UIKit gives the field its focus back as the
+  transition starts, and iOS 26 then slides the keyboard in with the screen as
+  a flat dark snapshot. The field now takes its focus back once the screen has
+  settled, so the real keyboard rises from the bottom, as in the system apps
+  (Contacts). Focus the app asks for (`focus()`, `autoFocus`) is unchanged.
+- **Fixed (iOS)**: keyboard-controller's `KeyboardAwareScrollView` did not
+  scroll a field that got its focus back (the caret had not moved, so it got no
+  selection event and waited for one). The field now reports its selection
+  once editing begins.
 - **Changed**: a controlled field whose parent keeps its `value` while the
   user types (a rejected edit, a digits-only filter) puts the value back, as
   `TextInput` does. It used to keep showing what was typed.

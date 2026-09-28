@@ -77,6 +77,7 @@ function HomeScreen() {
   // debugger opens the motion lab and runs its keyboard script.
   ;(globalThis as any).__lab = {
     run: (cta: 'sticky' | 'morph' = 'sticky', impl: Impl = 'ours') => nav.push('LabMotion', { impl, cta, autorun: true }),
+    go: (name: keyof RootStackParamList, params?: object) => nav.navigate(name, params),
   }
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>

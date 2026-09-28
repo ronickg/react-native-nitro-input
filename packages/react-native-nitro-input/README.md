@@ -418,8 +418,10 @@ Held against iOS Contacts and Samsung's Settings and Contacts, a NitroInput
 screen behaves like theirs with these settings:
 
 - **Coming back to a screen whose field had the keyboard**: on iOS the field
-  gets its focus and the keyboard back with the back animation (swipe-back
-  too); on Android the keyboard stays down. Native-stack does both by itself
+  gets its focus and the keyboard back once the screen has settled (swipe-back
+  too), so the real keyboard rises from the bottom as in Contacts rather than
+  sliding in with the screen as iOS 26's dark snapshot; on Android the
+  keyboard stays down. Native-stack does both by itself
   as long as `keyboardHandlingEnabled` stays off, its default. Turned on
   (react-native-screens' `hideKeyboardOnSwipe`), it takes the focus away as
   the screen starts to leave, and there is nothing to give back.
