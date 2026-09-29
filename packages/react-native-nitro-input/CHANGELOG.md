@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.6
+
+- **A controlled `selection` rendered before the latest keystrokes is
+  dropped**, as `value` already was and as React Native's `TextInput` does.
+  Typed faster than JS renders (a slow Android phone, a busy JS thread), a
+  caret computed for an earlier text landed in a field that already had more
+  in it, and the next characters went in behind the first ones: a code field
+  driven by `selection` took "123456" as "156234". Uncontrolled fields are
+  unchanged.
+
 ## 0.3.5
 
 - **`focusedValue`**: pass a shared value (Reanimated's `useSharedValue(false)`)
