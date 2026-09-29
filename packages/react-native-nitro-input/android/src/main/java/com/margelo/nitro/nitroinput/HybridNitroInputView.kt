@@ -532,12 +532,18 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
   }
 
   /// A controlled `selection`; -1 on either end means "leave the caret alone".
+  /// Like `text`, dropped when it was rendered before JS saw the latest native
+  /// edits (React Native's `TextInput` does the same): typed faster than JS
+  /// renders, a caret computed for "1" landed in a field already showing
+  /// "1234", and the next digits went in behind the first one. An uncontrolled
+  /// field sends a count of 0 and is applied as before.
   private fun flushSelectionIfNeeded() {
     if (!selectionDirty) return
     selectionDirty = false
     val start = clampInt(selectionStart, -1, Int.MAX_VALUE, -1)
     val end = clampInt(selectionEnd, -1, Int.MAX_VALUE, -1)
     if (start < 0 || end < 0) return
+    if (mostRecentEventCount > 0 && mostRecentEventCount < eventCount) return
     inputView.setSelection(start, end)
   }
 

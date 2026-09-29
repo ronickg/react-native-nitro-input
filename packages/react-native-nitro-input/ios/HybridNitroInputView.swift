@@ -434,13 +434,21 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   }
 
   /// A controlled `selection`: `-1` on either end means "leave the caret alone",
-  /// which is what an uncontrolled field sends on every render.
+  /// which is what an uncontrolled field sends on every render. Like `text`,
+  /// dropped when it was rendered before JS saw the latest native edits (React
+  /// Native's `TextInput` does the same): typed faster than JS renders, a caret
+  /// computed for "1" landed in a field already showing "1234". An
+  /// uncontrolled field sends a count of 0 and is applied as before.
   private func applySelectionIfNeeded() {
     guard selectionDirty else { return }
     selectionDirty = false
     let start = Self.clampInt(selectionStart, -1, Int(Int32.max), fallback: -1)
     let end = Self.clampInt(selectionEnd, -1, Int(Int32.max), fallback: -1)
     guard start >= 0, end >= 0 else { return }
+    snapshotLock.lock()
+    let nativeCount = snapshot.eventCount
+    snapshotLock.unlock()
+    if mostRecentEventCount.isFinite, mostRecentEventCount > 0, Int(mostRecentEventCount) < nativeCount { return }
     inputView.setSelection(start: start, end: end)
   }
 
