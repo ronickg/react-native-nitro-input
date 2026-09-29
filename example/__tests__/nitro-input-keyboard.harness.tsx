@@ -192,6 +192,88 @@ describe('NitroInput keyboard handoff', () => {
     })
   }
 
+  // The other side of the handoff: back to a screen where no field takes the
+  // keyboard (a list whose search field was never focused), the keyboard goes
+  // with the pop instead of staying up over it for keyboardHandoffMs. iOS
+  // only: the handoff at the end of a pop is UIKit's.
+  if (Platform.OS === 'ios') {
+    it('lets the keyboard go after a pop back to a screen whose fields do not take it', async () => {
+      const Stack = createNativeStackNavigator()
+      const navigation = createNavigationContainerRef<Record<string, undefined>>()
+      const next = createRef<NitroInputHandle>()
+      function List() {
+        return <NitroInput defaultValue="search" keyboardHandoffMs={3000} style={{ margin: 20 }} />
+      }
+      function Amount() {
+        return <NitroInput ref={next} autoFocus defaultValue="amount" keyboardHandoffMs={3000} style={{ margin: 20 }} />
+      }
+      await render(
+        <View style={{ flex: 1, height: 500 }}>
+          <NavigationContainer ref={navigation}>
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="list" component={List} />
+              <Stack.Screen name="amount" component={Amount} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </View>
+      )
+      try {
+        await closeKeyboard()
+        navigation.navigate('amount')
+        await sleep(1200)
+        if (!Keyboard.isVisible()) return
+        navigation.goBack()
+        // The pop takes ~0.5 s; the 3 s hold would still have the keyboard up.
+        await sleep(1500)
+        expect(Keyboard.isVisible()).toBe(false)
+      } finally {
+        await closeKeyboard()
+      }
+    })
+  }
+
+  // The same pop, back to a field that had the keyboard when it was covered:
+  // that one takes it back (no refocus hook, UIKit's own return), so the
+  // hold stays for it and the keyboard never closes.
+  if (Platform.OS === 'ios') {
+    it('keeps the keyboard for the covered field taking it back after a pop', async () => {
+      const Stack = createNativeStackNavigator()
+      const navigation = createNavigationContainerRef<Record<string, undefined>>()
+      const home = createRef<NitroInputHandle>()
+      const log = keyboardRecorder()
+      function Home() {
+        return <NitroInput ref={home} defaultValue="home" keyboardHandoffMs={3000} style={{ margin: 20 }} />
+      }
+      function Next() {
+        return <NitroInput autoFocus defaultValue="next" keyboardHandoffMs={3000} style={{ margin: 20 }} />
+      }
+      await render(
+        <View style={{ flex: 1, height: 500 }}>
+          <NavigationContainer ref={navigation}>
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="home" component={Home} />
+              <Stack.Screen name="next" component={Next} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </View>
+      )
+      try {
+        await waitFor(() => expect(home.current).not.toBeNull())
+        if (!(await openKeyboard(home.current))) return
+        navigation.navigate('next')
+        await sleep(1200)
+        const from = Date.now()
+        navigation.goBack()
+        await sleep(1500)
+        expect(log.hidesSince(from)).toEqual([])
+        expect(home.current!.isFocused()).toBe(true)
+      } finally {
+        log.stop()
+        await closeKeyboard()
+      }
+    })
+  }
+
   // What the platform apps do when you come back to a screen whose field had the
   // keyboard: iOS (UIKit) gives the field its focus and the keyboard back, with
   // the pop; Android leaves the keyboard down. Native-stack gets both for free as

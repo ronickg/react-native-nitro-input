@@ -357,6 +357,33 @@ function Field() {
 values; `field.handlers` are the worklets that keep them current. Typing in
 that field runs nothing on the JS thread and re-renders nothing.
 
+#### Focus styling around a field and what sits beside it
+
+`field.handlers` replace your JS `onFocus` / `onBlur`. When you only need the
+focus state, and keep your handlers, pass a shared value as `focusedValue`: the
+field sets it on the UI thread the moment focus changes, `autoFocus` included,
+and `onFocus` / `onBlur` still run. The row that draws the border can then hold
+anything, the way a form field often has an icon or a country picker in front
+and a clear button behind:
+
+```tsx
+function SearchField({ onFocus }: { onFocus: () => void }) {
+  const focused = useSharedValue(false)
+  const ring = useAnimatedStyle(() => ({
+    borderColor: focused.value ? '#2563eb' : 'transparent',
+  }))
+  return (
+    <Animated.View style={[styles.row, ring]}>
+      <SearchIcon />
+      <NitroInput style={{ flex: 1 }} focusedValue={focused} onFocus={onFocus} />
+      <ClearButton />
+    </Animated.View>
+  )
+}
+```
+
+The border changes in the frame the caret appears, with no JS round trip.
+
 A worklet can only reach what it closes over, unless worklets run in
 [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/),
 which gives them the whole bundle. That is what lets a `transform` use a real
@@ -549,6 +576,7 @@ screen behaves like theirs with these settings:
 | `onChangeMask` | `(formatted, extracted, tail, complete) => void` | – | `mask` mode: the formatted text, the characters the user contributed, what is still missing, and whether every mandatory slot is filled. |
 | `signPlacement` | `'beforeAffix' \| 'afterAffix'` | `'beforeAffix'` | Where a negative amount's sign sits relative to `prefix`: `-$1,234.56` or `$-1,234.56`. Reflow only — a plain field's affixes are accessory views outside the text. |
 | `onFocus` / `onBlur` | `(event) => void` | – | Carries `text`, `eventCount` and `target`. |
+| `focusedValue` | `SharedValue<boolean>` | – | Kept equal to the field's focus on the UI thread, while `onFocus` / `onBlur` still run. Needs `react-native-worklets`. |
 | `onSubmitEditing` | `(event) => void` | – | Return key pressed; what happens next is `submitBehavior`. |
 | `onEndEditing` | `(event) => void` | – | Editing finished. |
 | `onSelectionChange` | `(event) => void` | – | The caret or selection moved, in code points. |
