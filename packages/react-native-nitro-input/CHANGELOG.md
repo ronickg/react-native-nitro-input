@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- **Android: no longer breaks VisionCamera frame processors.** NitroInput
+  linked `libworklets.so` although it uses only worklets' header-inline API,
+  and as a Nitro package it loads at app start, so it became the first library
+  to load `libworklets.so`. On Android that changes which copy of worklets'
+  weak RTTI each library binds to; `react-native-vision-camera-worklets`'
+  frame-processor queue then failed worklets' `dynamic_cast`, the runtime got a
+  null queue, and opening any frame-processor camera crashed with SIGSEGV in
+  `worklets::WorkletRuntime::scheduleImpl`. Worklets is now used headers-only
+  (no `DT_NEEDED`), and `installRuntime` checks the UI runtime holder by type
+  name instead of `dynamic_cast`, which is not reliable across shared libraries
+  on Android.
+
 ## 0.3.6
 
 - **A controlled `selection` rendered before the latest keystrokes is

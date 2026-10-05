@@ -12,8 +12,10 @@
 #include <worklets/Compat/Holders.h>
 #include <worklets/WorkletRuntime/WorkletRuntime.h>
 
+#include <cstring>
 #include <memory>
 #include <mutex>
+#include <typeinfo>
 
 namespace margelo::nitro::nitroinput::nitroinputworklets {
 
@@ -72,8 +74,18 @@ bool installRuntime(Runtime& rt, const Value& holder) {
   if (!holder.isObject()) return false;
   Object object = holder.asObject(rt);
   if (!object.hasNativeState(rt)) return false;
-  auto state = std::dynamic_pointer_cast<worklets::WorkletRuntimeHolder>(object.getNativeState(rt));
-  if (!state || !state->runtime_) return false;
+  auto nativeState = object.getNativeState(rt);
+  // Not dynamic_cast: on Android each shared library can carry its own copy of
+  // an inline class's type_info, and libc++ compares them by address, so the
+  // cast fails whenever this library and libworklets.so bind different copies.
+  // Compare the mangled names instead (what worklets' own
+  // getWorkletRuntimeFromHolder trusts with a static cast).
+  if (!nativeState ||
+      std::strcmp(typeid(*nativeState).name(), typeid(worklets::WorkletRuntimeHolder).name()) != 0) {
+    return false;
+  }
+  auto state = std::static_pointer_cast<worklets::WorkletRuntimeHolder>(nativeState);
+  if (!state->runtime_) return false;
   std::lock_guard<std::mutex> lock(gMutex);
   gRuntime = state->runtime_;
   return true;
