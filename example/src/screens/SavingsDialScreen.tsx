@@ -1,12 +1,13 @@
 import React, { useRef, useState } from 'react'
 import { PanResponder, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
-import { NitroNumber } from 'react-native-nitro-input'
+import { NitroNumber, type NitroNumberTransition } from 'react-native-nitro-input'
 
 /**
  * Uno's savings calculator dial, the middle of it: what a year earns on the
  * amount the knob stands on. The figure is set up as Uno's `AmountText` sets
- * up NitroNumber (centred in the full width, fitted to it, a 900 ms spring
- * roll, Open Runde's proportional digits), and the numbers follow Uno's maths:
+ * up NitroNumber (centred in the full width, fitted to it, proportional
+ * digits), but on the library's default timing for each transition, which
+ * the transition button switches between. The numbers follow Uno's maths:
  * dollars from the knob on a quadratic track, rounded to typeable steps, 15%
  * a year, nothing under a 10-dollar minimum. Dragging below the minimum rolls
  * the year to zero, which is where Uno showed a short bounce.
@@ -44,8 +45,7 @@ export function SavingsDialScreen() {
   const { width: screenWidth } = useWindowDimensions()
   const [position, setPosition] = useState(Math.round(0.08 * STEPS))
   const [mode, setMode] = useState<Mode>('usd')
-  // Uno's 900 ms, or a shorter spring that follows a drag more closely.
-  const [duration, setDuration] = useState(900)
+  const [transition, setTransition] = useState<NitroNumberTransition>('roll')
   const [rowHeight, setRowHeight] = useState(0)
   const sweep = useRef<ReturnType<typeof setInterval> | null>(null)
   const trackWidth = useRef(1)
@@ -97,9 +97,6 @@ export function SavingsDialScreen() {
             adjustsFontSizeToFit
             affixAlign="baseline"
             color="#111827"
-            direction="shortest"
-            duration={duration}
-            easing="spring"
             fontSize={40}
             fontWeight="700"
             fractionDigits={0}
@@ -116,6 +113,7 @@ export function SavingsDialScreen() {
             suffixSpacing={2}
             tabularNums={false}
             textAlign="center"
+            transition={transition}
             value={yearly}
           />
         </View>
@@ -135,9 +133,9 @@ export function SavingsDialScreen() {
 
       <View style={s.buttons}>
         <Btn
-          testID="dial-duration"
-          title={`Spring ${duration} ms`}
-          onPress={() => setDuration((d) => (d === 900 ? 400 : 900))}
+          testID="dial-transition"
+          title={`Transition: ${transition}`}
+          onPress={() => setTransition((t) => (t === 'roll' ? 'numeric' : t === 'numeric' ? 'scramble' : 'roll'))}
         />
         <Btn testID="dial-sweep-down" title="Drag to zero" onPress={() => replay(Math.round(0.08 * STEPS), 0, 2)} />
         <Btn testID="dial-sweep-up" title="Drag from zero" onPress={() => replay(0, Math.round(0.08 * STEPS), 2)} />
