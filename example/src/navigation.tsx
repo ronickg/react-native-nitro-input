@@ -188,7 +188,7 @@ export function RootNavigator() {
         <Stack.Screen name="Features" component={FeaturesScreen} options={{ title: 'New in 0.3.1' }} />
         <Stack.Screen name="ViewPropsRepro" component={ViewPropsReproScreen} options={{ title: 'View props' }} />
         <Stack.Screen name="Rtl" component={RtlScreen} options={{ title: 'Right-to-left' }} />
-        <Stack.Screen name="SavingsDial" component={SavingsDialScreen} options={{ title: 'Savings dial' }} />
+        <Stack.Screen name="SavingsDial" component={SavingsDialScreen} options={{ title: 'Savings dial', gestureEnabled: false }} />
         <Stack.Screen name="RecycleCheck" component={RecycleCheckScreen} options={{ title: 'Recycle check' }} />
         <Stack.Screen name="LabSearch" component={LabSearchScreen} options={{ title: 'Search list', keyboardHandlingEnabled: false }} />
         <Stack.Screen name="LabForm" component={LabFormScreen} options={{ title: 'Form', keyboardHandlingEnabled: false }} />

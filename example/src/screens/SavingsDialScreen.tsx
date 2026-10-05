@@ -44,6 +44,8 @@ export function SavingsDialScreen() {
   const { width: screenWidth } = useWindowDimensions()
   const [position, setPosition] = useState(Math.round(0.08 * STEPS))
   const [mode, setMode] = useState<Mode>('usd')
+  // Uno's 900 ms, or a shorter spring that follows a drag more closely.
+  const [duration, setDuration] = useState(900)
   const [rowHeight, setRowHeight] = useState(0)
   const sweep = useRef<ReturnType<typeof setInterval> | null>(null)
   const trackWidth = useRef(1)
@@ -96,7 +98,7 @@ export function SavingsDialScreen() {
             affixAlign="baseline"
             color="#111827"
             direction="shortest"
-            duration={900}
+            duration={duration}
             easing="spring"
             fontSize={40}
             fontWeight="700"
@@ -132,6 +134,11 @@ export function SavingsDialScreen() {
       </Text>
 
       <View style={s.buttons}>
+        <Btn
+          testID="dial-duration"
+          title={`Spring ${duration} ms`}
+          onPress={() => setDuration((d) => (d === 900 ? 400 : 900))}
+        />
         <Btn testID="dial-sweep-down" title="Drag to zero" onPress={() => replay(Math.round(0.08 * STEPS), 0, 2)} />
         <Btn testID="dial-sweep-up" title="Drag from zero" onPress={() => replay(0, Math.round(0.08 * STEPS), 2)} />
         <Btn testID="dial-jump-zero" title="Jump to zero" onPress={() => replay(position, 0, STEPS)} />

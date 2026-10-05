@@ -109,6 +109,8 @@ public:
   /// settles to 2 % at D, which is still a pixel at a large size, and
   /// SwiftUI lets it ring out; ended at D the last pixel snapped.
   static constexpr double kNumericTail = 1.45;
+  /// How long a roll caught by a new value takes to hand over to the follow (see `Transition::follow`).
+  static constexpr double kFollowHandover = 0.15;
 
   // The scramble (2) is planned like the numeric transition but the wheel
   // shows a different random digit every kScrambleStepSeconds until it locks
@@ -363,6 +365,30 @@ private:
     int style = 0;
     /// Any glyph-swap style: wheels blend between glyphs instead of rolling.
     bool numeric = false;
+    /// The value the roll set out from and the one it goes to.
+    double fromValue = 0;
+    double toValue = 0;
+    /// Follow: a value arrived while the figure was still rolling (a slider,
+    /// a dial, a live price). The figure is then one number chasing the
+    /// value on a damped spring, from `followFrom` at `followSpeed` (per
+    /// second) when the value arrived, and the wheels are drawn from that
+    /// number as an odometer's are. Every value of a stream keeps the
+    /// number's position and speed, and the figure only ever shows a number
+    /// between the ones it moves through. Rolled wheel by wheel, each wheel
+    /// chased its own digit of every value: a drag swung left and right
+    /// showed numbers it never passed ("190" on the way to 450), and a spring
+    /// restarted from rest on every value barely moved.
+    bool follow = false;
+    double followFrom = 0;
+    double followSpeed = 0;
+    /// A roll caught mid-way stood somewhere else than the number's wheels
+    /// would (a units wheel rolling 1 → 0 on its own while the number passes
+    /// 529 values): how far each wheel was from the number's place, and its
+    /// width, when the follow began. For kFollowHandover the wheels are the
+    /// number's plus that offset, fading out, so they neither jump nor turn
+    /// back; a wheel only the roll had shrinks away.
+    std::vector<Wheel> handover;
+    double handoverStart = 0;
   };
   /// One wheel's change flash: when its glyph last changed, how long the
   /// wheel was still moving after that (the tint holds until it lands), and
@@ -409,6 +435,14 @@ private:
   void planRoll(Transition& next, const Target& target, bool increasing, int count, int mandatory) const;
   void planNumeric(Transition& next, const Target& target, bool increasing, int count, int mandatory, double now) const;
   void apply(double elapsed);
+  /// A follow's number and its speed (per second) at `now`.
+  void applyFollow(double now);
+  void followAt(const Transition& tr, double now, double& value, double& speed) const;
+  /// Places the wheels for `value` as an odometer's, with the carries in progress (`setValue`, a follow).
+  /// Returns the wheel count.
+  int layoutContinuous(double value);
+  /// Whether a value arriving now can be followed (see `Transition::follow`).
+  bool canFollow(double value) const;
   /// The flash and the pop follow the clock, not the transition: they keep
   /// fading after a roll has finished or a snap had none.
   void applyEffects(double now);

@@ -94,7 +94,9 @@ export interface NitroNumberProps extends HybridViewProps {
   suffix?: string
   /**
    * Duration in milliseconds of the native roll that plays when `value` changes.
-   * `0` snaps to the new value immediately. Default: `500`.
+   * `0` snaps to the new value immediately. Default: `500`. A value that
+   * arrives mid-roll is followed, the figure counting towards it on a damped
+   * spring that keeps its speed; `duration` is then how closely it follows.
    */
   duration?: number
   /** Timing curve of the native roll. Default: `'easeInOut'`. */
