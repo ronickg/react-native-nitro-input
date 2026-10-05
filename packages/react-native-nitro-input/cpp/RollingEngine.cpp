@@ -459,10 +459,44 @@ void RollingEngine::animateTo(double value, double now) {
     popStart_ = now;
   }
 
+  // On the spring, a wheel that was already rolling carries its speed into
+  // this roll. Started from rest, every new value of a fast stream (a slider,
+  // a dial, a live price) brought each wheel nearly to a stop before it picked
+  // up again: a stutter on every frame of a drag.
+  if (easing_ == 4 && next.fromMotion && !next.numeric && transition_.active && !transition_.numeric) {
+    constexpr double h = 1.0 / 240.0;
+    const size_t shared = std::min(next.wheels.size(), transition_.wheels.size());
+    for (size_t i = 0; i < shared; i++) {
+      WheelTransition& wt = next.wheels[i];
+      const double travel = wt.to.position - wt.from.position;
+      if (std::fabs(travel) < 1e-9 || next.duration <= 0) {
+        continue;
+      }
+      const double speed = (rollPosition(transition_, i, now) - rollPosition(transition_, i, now - h)) / h;
+      wt.carriesSpeed = true;
+      wt.startSpeed = speed * next.duration / travel;
+    }
+  }
+
   transition_ = std::move(next);
   apply(0);
   applyEffects(now);
   settle(target);
+}
+
+double RollingEngine::rollPosition(const Transition& tr, size_t index, double now) const {
+  const WheelTransition& wt = tr.wheels[index];
+  const double delay = index < tr.delays.size() ? tr.delays[index] : 0;
+  const double raw = tr.duration > 0 ? clamp01((now - tr.start - delay) / tr.duration) : 1.0;
+  double t;
+  if (!tr.fromMotion) {
+    t = ease(raw);
+  } else if (wt.carriesSpeed) {
+    t = easeFromMotion(raw, wt.startSpeed);
+  } else {
+    t = easeFromMotion(raw);
+  }
+  return wt.from.position + (wt.to.position - wt.from.position) * t;
 }
 
 void RollingEngine::planRoll(Transition& next, const Target& target, bool increasing, int count, int mandatory) const {
@@ -961,7 +995,9 @@ void RollingEngine::apply(double elapsed) {
     // a column opens and closes over the duration itself.
     const double span = tr.style == 1 ? tr.duration / kNumericTail : tr.duration;
     const double rawSpan = span > 0 ? clamp01((elapsed - delay) / span) : 1.0;
-    double t = tr.fromMotion ? easeFromMotion(rawSpan) : ease(rawSpan);
+    double t = !tr.fromMotion ? ease(rawSpan)
+        : wt.carriesSpeed ? easeFromMotion(rawSpan, wt.startSpeed)
+        : easeFromMotion(rawSpan);
     if (tr.numeric) {
       // A column opens on the arriving glyph's size-and-opacity spring and
       // closes on the leaving glyph's blur, the faster one: on the
@@ -1223,10 +1259,31 @@ double RollingEngine::easeFromMotion(double t) const {
     case 1:
       return t;                      // linear / easeIn: keep the wheel moving at a steady pace
     case 4:
-      return spring(t, bounce_);     // the spring already starts with velocity
+      return spring(t, bounce_);
     default:
       return 1 - std::pow(1 - t, 3); // easeOut / easeInOut: decelerate into the new target
   }
+}
+
+double RollingEngine::easeFromMotion(double t, double startSpeed) const {
+  // The spring picks up from the speed the wheel had. The other curves keep
+  // their fixed re-target curve: it starts at speed, so a value arriving every
+  // frame keeps the wheel visibly moving even while it was still easing in.
+  if (easing_ == 4) {
+    return springFrom(t, bounce_, std::min(12.0, std::max(-12.0, startSpeed)));
+  }
+  return easeFromMotion(t);
+}
+
+double RollingEngine::springFrom(double t, double bounce, double startSpeed) {
+  const double zeta = std::min(1.0, std::max(0.05, 1.0 - clamp01(bounce)));
+  const double omega = 3.0 * kPi;
+  const double k = zeta * omega;
+  if (zeta >= 0.999) {
+    return 1 - (1 + (k - startSpeed) * t) * std::exp(-k * t);
+  }
+  const double wd = omega * std::sqrt(1 - zeta * zeta);
+  return 1 - std::exp(-k * t) * (std::cos(wd * t) + ((k - startSpeed) / wd) * std::sin(wd * t));
 }
 
 /// Step response of a damped spring, normalised so it has settled at t == 1.

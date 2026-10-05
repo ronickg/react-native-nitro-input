@@ -158,6 +158,32 @@ static void rapidRetargetsKeepRolling() {
   CHECK(f.wheelAt(0).position < 0.1);  // barely moved at 10 % of an ease-in start
 }
 
+// A new value arriving while a spring roll is under way: the wheel keeps the
+// speed it had. The spring used to restart from rest, so every value of a
+// fast stream (a dial being dragged) brought the wheel nearly to a stop
+// before it picked up again.
+static void springRetargetKeepsItsSpeed() {
+  RollingEngine e;
+  e.setFormat(0, 1);
+  e.setTiming(0.9, /* spring */ 4, 0.15, 0, 0);
+  e.animateTo(0, 0);
+  e.animateTo(5, 0);
+  const double dt = 1.0 / 60;
+  e.tick(5 * dt);
+  const double before5 = e.wheelAt(0).position;
+  e.tick(6 * dt);
+  const double before6 = e.wheelAt(0).position;
+  const double speedBefore = (before6 - before5) / dt;
+  e.animateTo(9, 6 * dt);                          // onward, the same way
+  e.tick(7 * dt);
+  const double speedAfter = (e.wheelAt(0).position - before6) / dt;
+  CHECK(speedBefore > 10);
+  CHECK(speedAfter >= 0.9 * speedBefore);          // was ~30 % of it
+  // It still lands on the new value.
+  e.tick(3.0);
+  CHECK(near(e.wheelAt(0).position, 9, 1e-3));
+}
+
 static void loadingFadeAndReduceMotion() {
   RollingEngine e;
   e.setFormat(0, 1);
@@ -1355,6 +1381,7 @@ static void signDisplayFollowsEcma402() {
 
 int main() {
   odometerPositions();
+  springRetargetKeepsItsSpeed();
   shortestRollsEachWheelItsOwnWay();
   progressRunsOnceThroughAChange();
   continuousTurnsTheLowerWheels();

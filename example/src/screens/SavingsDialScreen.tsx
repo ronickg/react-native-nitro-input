@@ -120,6 +120,33 @@ export function SavingsDialScreen() {
         <Text style={s.line}>{earning ? `if you save ${money(saved)}` : `Starts at ${money(MINIMUM_USD)}`}</Text>
       </View>
 
+      {/* The amount under the knob, on the same spring: it changes on almost
+          every frame of a drag, so a roll that stalls each time a new value
+          arrives shows as a stutter here. */}
+      <View style={s.card}>
+        <Text style={s.label}>Saved (changes every frame of a drag)</Text>
+        <NitroNumber
+          testID="dial-saved"
+          color="#111827"
+          direction="shortest"
+          duration={900}
+          easing="spring"
+          fontSize={40}
+          fontWeight="700"
+          fractionDigits={0}
+          groupingSeparator=","
+          letterSpacing={-1.8}
+          prefix="$"
+          prefixFontSize={24}
+          prefixOffset={-2}
+          prefixSpacing={2}
+          style={{ width: heroWidth }}
+          tabularNums={false}
+          textAlign="center"
+          value={saved}
+        />
+      </View>
+
       <View
         style={s.track}
         onLayout={e => (trackWidth.current = e.nativeEvent.layout.width)}
@@ -132,6 +159,10 @@ export function SavingsDialScreen() {
       </Text>
 
       <View style={s.buttons}>
+        <Btn testID="dial-fast" title="Fast drag up and back" onPress={() => {
+          replay(Math.round(0.1 * STEPS), Math.round(0.6 * STEPS), 6)
+          setTimeout(() => replay(Math.round(0.6 * STEPS), Math.round(0.1 * STEPS), 6), 2200)
+        }} />
         <Btn testID="dial-sweep-down" title="Drag to zero" onPress={() => replay(Math.round(0.08 * STEPS), 0, 2)} />
         <Btn testID="dial-sweep-up" title="Drag from zero" onPress={() => replay(0, Math.round(0.08 * STEPS), 2)} />
         <Btn testID="dial-jump-zero" title="Jump to zero" onPress={() => replay(position, 0, STEPS)} />

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.8
+
+- **`easing="spring"` keeps rolling through a stream of values.** A value
+  arriving mid-roll restarted the spring from rest, so on a slider, a dial or a
+  live price each new value brought the wheels nearly to a stop before they
+  picked up again: a stutter on every frame, and a figure that fell far behind
+  the value. The new spring now starts at the speed the wheel had. The other
+  easings are unchanged.
+
 ## 0.3.7
 
 - **Android: no longer breaks VisionCamera frame processors.** NitroInput

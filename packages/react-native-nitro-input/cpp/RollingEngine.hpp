@@ -341,6 +341,11 @@ private:
     /// being cut short. `clock` is how far into the swap it was (seconds).
     bool continues = false;
     double clock = 0;
+    /// Roll: the wheel was already moving when the value was re-targeted, at
+    /// `startSpeed` in this roll's own units (its travel per duration), and
+    /// the roll starts at that speed rather than from rest.
+    bool carriesSpeed = false;
+    double startSpeed = 0;
   };
   struct Transition {
     bool active = false;
@@ -427,7 +432,15 @@ private:
   /// The curve used when re-targeting mid-roll: the ease-in curves collapse to
   /// their ease-out / linear counterparts so a wheel in motion never stalls.
   double easeFromMotion(double t) const;
+  /// The roll's curve for a wheel that was already moving at `startSpeed`
+  /// (travel per duration) when it was re-targeted: the spring starts at that
+  /// speed, the other curves are `easeFromMotion(t)`.
+  double easeFromMotion(double t, double startSpeed) const;
   static double spring(double t, double bounce);
+  /// `spring` starting at `startSpeed` instead of from rest.
+  static double springFrom(double t, double bounce, double startSpeed);
+  /// Where wheel `index` of a roll stands at `now`.
+  double rollPosition(const Transition& tr, size_t index, double now) const;
   /// Step response of a damped spring with damping ratio `zeta`, scaled so it
   /// has settled (within 2 %) at t == `settle`; 0 at t <= 0.
   static double damped(double t, double zeta, double settle);
