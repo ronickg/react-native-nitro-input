@@ -27,6 +27,22 @@
   and suffix, separators, grouping, sign placement, the locale's digits) is
   read off the formatter's own parts natively, instead of formatting sample
   values into JS objects and parsing them back there.
+- **`NitroNumber` keeps rolling while its value keeps changing** (a slider, a
+  dial, a live price) (#62).
+  - With `easing="spring"`, each new value restarted the spring from rest, so
+    while a slider moved the figure stood still and only caught up when the
+    finger stopped. A wheel now keeps its speed through a new value (the
+    spring's response with the speed it had).
+  - With any easing, a new value mid-roll sent each wheel to the new digit
+    from where it stood, the way the value moved, so a wheel that lagged
+    behind or ran past its digit went a whole turn round. A new value now
+    moves where the wheel is going, by the step from the digit it was
+    heading for (as NumberFlow accumulates), so a stream one way spins it
+    faster and a drag that turns back slows it and turns it round.
+
+  Every digit still rolls on its own and lands within one `duration` of the
+  last value, as the numeric transition does. A single change from rest rolls
+  as before.
 
 ## 0.3.7
 
