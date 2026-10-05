@@ -172,59 +172,64 @@ static long shownNumber(const RollingEngine& e) {
   return value;
 }
 
-// #62: a value stepping up every frame, as a slider sends it. On the spring
-// every new value restarted the roll from rest, and the figure stood still
-// until the values stopped (4 of 120 frames changed).
+/// How far wheel `index` moved since `last` (the short way round), updating `last`.
+static double moved(const RollingEngine& e, int index, double& last) {
+  double d = std::fmod(e.wheelAt(index).position - last, 10.0);
+  if (d > 5) d -= 10;
+  if (d < -5) d += 10;
+  last = e.wheelAt(index).position;
+  return d;
+}
+
+// #62: a value stepping up every frame, as a slider sends it. The spring's
+// step response starts at rest, so every value stopped the wheels and the
+// figure stood still until the values stopped. It keeps rolling now, about
+// as far as the easeInOut roll does.
 static void springKeepsUpWithAStream() {
-  for (int easing : {4, 3}) {
+  double travelled[2] = {0, 0};
+  int run = 0;
+  for (int easing : {3, 4}) {
     RollingEngine e;
     e.setFormat(0, 1);
     e.setTiming(0.5, easing, 0.15, 0, 0);
     e.animateTo(100, 0);
-    int changed = 0;
-    long last = shownNumber(e);
-    double lagged = 0;
+    double last = e.wheelAt(0).position;
     for (int frame = 1; frame <= 120; frame++) {
       const double now = frame / 60.0;
       e.animateTo(100 + frame, now - 0.004);
       e.tick(now);
-      const long shown = shownNumber(e);
-      if (shown != last) changed++;
-      CHECK(shown >= last);                           // it only counts up
-      last = shown;
-      lagged = 100 + frame - shown;
+      travelled[run] += moved(e, 0, last);
     }
-    CHECK(changed > 90);
-    CHECK(lagged < 15);                               // a few frames behind the value, not 100
+    run++;
   }
+  CHECK(travelled[0] > 60);                          // easeInOut: half the 120 steps and more
+  CHECK(travelled[1] > 0.8 * travelled[0]);          // the spring keeps up with it (was ~2)
 }
 
-// #62: the speed carries over. A new value while the figure is moving keeps
-// its pace, rather than starting it again from rest.
+// #62: the speed carries over. A wheel rolling when a new value arrives keeps
+// its pace, rather than stopping and starting again.
 static void aNewValueKeepsTheSpeed() {
   RollingEngine e;
-  e.setFormat(2, 1);
+  e.setFormat(0, 1);
   e.setTiming(0.9, /* spring */ 4, 0.15, 0, 0);
   e.animateTo(0, 0);
-  e.animateTo(100, 0);
-  e.tick(0.1);
-  e.animateTo(200, 0.1);                              // a roll caught: the figure follows from here
+  e.animateTo(5, 0);
   const double dt = 1.0 / 60;
-  double shown[24] = {};
-  for (int frame = 1; frame <= 23; frame++) {
-    const double now = 0.1 + frame * dt;
-    e.tick(now);
-    shown[frame] = static_cast<double>(shownNumber(e)) / 100;
-    if (frame == 21) e.animateTo(300, now);           // onward while it moves
-  }
-  const double before = shown[21] - shown[20];
-  const double after = shown[22] - shown[21];
-  CHECK(before > 0.5);
-  CHECK(after > 0.9 * before);                        // was ~0 on the spring
+  e.tick(5 * dt);
+  const double before5 = e.wheelAt(0).position;
+  e.tick(6 * dt);
+  const double before6 = e.wheelAt(0).position;
+  const double speedBefore = (before6 - before5) / dt;
+  e.animateTo(9, 6 * dt);                            // onward, the same way
+  e.tick(7 * dt);
+  const double speedAfter = (e.wheelAt(0).position - before6) / dt;
+  CHECK(speedBefore > 10);
+  CHECK(speedAfter >= 0.9 * speedBefore);            // was ~30 % of it
+  e.tick(3.0);
+  CHECK(near(e.wheelAt(0).position, 9, 1e-3));
 }
 
-// #62: a single roll from rest is the same as it was: the spring's step
-// response, each wheel on its own.
+// #62: a single roll from rest is what it was: the spring's step response.
 static void aSingleSpringRollIsUnchanged() {
   RollingEngine e;
   e.setFormat(0, 1);
@@ -244,63 +249,68 @@ static void aSingleSpringRollIsUnchanged() {
 }
 
 // #62: under constant new values it lands on the last one once they stop,
-// within the spring's bounce, and the frames stop.
+// within one roll's duration, and the frames stop.
 static void aStreamSettlesOnTheLastValue() {
-  RollingEngine e;
-  e.setFormat(0, 1);
-  e.setTiming(0.5, 4, 0.15, 0, 0);
-  e.animateTo(100, 0);
-  for (int frame = 1; frame <= 60; frame++) {
-    e.animateTo(100 + 5 * frame, frame / 60.0 - 0.004);
-    e.tick(frame / 60.0);
+  for (int easing : {4, 3}) {
+    RollingEngine e;
+    e.setFormat(0, 1);
+    e.setTiming(0.5, easing, 0.15, 0, 0);
+    e.animateTo(100, 0);
+    for (int frame = 1; frame <= 60; frame++) {
+      e.animateTo(100 + 5 * frame, frame / 60.0 - 0.004);
+      e.tick(frame / 60.0);
+    }
+    double now = 1;
+    while (e.needsFrames() && now < 4) {
+      now += 1.0 / 60;
+      e.tick(now);
+    }
+    CHECK(!e.needsFrames());
+    CHECK(now <= 1 + 0.5 + 1.0 / 60);                // one duration after the last value
+    CHECK(shownNumber(e) == 400);
   }
-  long highest = 0;
-  double now = 1;
-  while (e.needsFrames() && now < 4) {
-    now += 1.0 / 60;
-    e.tick(now);
-    highest = std::max(highest, shownNumber(e));
-  }
-  CHECK(!e.needsFrames());
-  CHECK(now < 1 + 1.5);                               // settled within three durations
-  CHECK(shownNumber(e) == 400);
-  CHECK(highest <= 400 + 20);                         // a small overshoot (bounce 0.15), not a lap
 }
 
-// The dial swung left and right (the values a real drag sent, every 33 ms):
-// rolled wheel by wheel, each wheel chased its own digit of every value and
-// the figure showed numbers it never passed ("190" on the way to 450). It
-// shows a number between the values it moves through, one that changes a
-// little each frame, and lands on the last.
-static void aDialSwungLeftAndRightShowsNumbersOnItsWay() {
+// A dial swung left and right fast (the values a real drag sent, every
+// 33 ms), let go on 570. Each digit rolls the short way from where it stands
+// to the newest value's digit, so once the finger stops every wheel is a few
+// digits from home and the figure lands within one roll, as the numeric
+// transition does; and the way the value moved never sends a wheel a whole
+// turn round.
+static void aDialSwungLeftAndRightLandsAtOnce() {
   const double values[] = {11, 29, 86, 180, 300, 450, 540, 390, 260, 170, 83, 30, 90, 180, 300, 470, 650, 450, 290, 210, 110,
                            38, 33, 83, 150, 260, 380, 390, 290, 210, 170, 110, 60, 120, 200, 300, 440, 570};
-  for (int easing : {4, 3}) {
+  for (int easing : {3, 4}) {
     for (int direction : {0, 3}) {
-      RollingEngine e;
-      e.setFormat(0, 1);
-      e.setTiming(0.9, easing, 0.15, 0, direction);
-      e.animateTo(11, 0);
-      long last = shownNumber(e);
-      long biggestStep = 0;
-      double now = 0;
-      for (double value : values) {
-        e.animateTo(value, now + 0.012);
-        for (int k = 1; k <= 2; k++) {
+      for (double duration : {0.5, 0.9}) {
+        RollingEngine e;
+        e.setFormat(0, 1);
+        e.setTiming(duration, easing, 0.15, 0, direction);
+        e.animateTo(11, 0);
+        double now = 0;
+        double lastValueAt = 0;
+        double last[3] = {e.wheelAt(0).position, 0, 0};
+        double biggestFrame = 0;
+        for (double value : values) {
+          lastValueAt = now + 0.012;
+          e.animateTo(value, lastValueAt);
+          for (int k = 1; k <= 2; k++) {
+            now += 1.0 / 60;
+            e.tick(now);
+            for (int i = 0; i < std::min(3, e.wheelCount()); i++) {
+              if (i < 1 || last[i] != 0) biggestFrame = std::max(biggestFrame, std::fabs(moved(e, i, last[i])));
+              else last[i] = e.wheelAt(i).position;
+            }
+          }
+        }
+        CHECK(biggestFrame < 2.5);                     // no wheel whips round within a frame
+        while (e.needsFrames() && now < 10) {
           now += 1.0 / 60;
           e.tick(now);
-          const long shown = shownNumber(e);
-          CHECK(shown >= 11 && shown <= 650);         // never outside what the drag passed
-          biggestStep = std::max(biggestStep, std::labs(shown - last));
-          last = shown;
         }
+        CHECK(shownNumber(e) == 570);
+        CHECK(now - lastValueAt <= duration + 2.0 / 60);
       }
-      CHECK(biggestStep < 80);                        // no frame jumps across the dial
-      while (e.needsFrames() && now < 10) {
-        now += 1.0 / 60;
-        e.tick(now);
-      }
-      CHECK(shownNumber(e) == 570);
     }
   }
 }
@@ -1515,7 +1525,7 @@ int main() {
   aNewValueKeepsTheSpeed();
   aSingleSpringRollIsUnchanged();
   aStreamSettlesOnTheLastValue();
-  aDialSwungLeftAndRightShowsNumbersOnItsWay();
+  aDialSwungLeftAndRightLandsAtOnce();
   loadingFadeAndReduceMotion();
   settledTargetForAccessibility();
   jackpotRevealCountsUpAndLands();

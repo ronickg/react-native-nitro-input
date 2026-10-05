@@ -2,23 +2,22 @@
 
 ## 0.3.8
 
-- **`NitroNumber` follows a value that keeps changing** (a slider, a dial, a
-  live price) (#62). Each new value used to start a roll of its own, wheel by
-  wheel, from where the wheels stood:
-  - With `easing="spring"`, every roll started from rest, so while a slider
-    moved the figure stood still and only caught up when the finger stopped.
-  - With any easing, each wheel chased its own digit of every value. Swung
-    left and right, the figure showed numbers the drag never passed ("190" on
-    the way to 450).
+- **`NitroNumber` keeps rolling while its value keeps changing** (a slider, a
+  dial, a live price) (#62).
+  - With `easing="spring"`, each new value restarted the spring from rest, so
+    while a slider moved the figure stood still and only caught up when the
+    finger stopped. A wheel now keeps its speed through a new value (the
+    spring's response with the speed it had).
+  - With any easing, a new value mid-roll sent each wheel to the new digit
+    from where it stood, the way the value moved, so a wheel that lagged
+    behind or ran past its digit went a whole turn round. A new value now
+    moves where the wheel is going, by the step from the digit it was
+    heading for (as NumberFlow accumulates), so a stream one way spins it
+    faster and a drag that turns back slows it and turns it round.
 
-  A value that arrives mid-roll is now followed: the figure is one number
-  counting towards it, as an odometer does, on a damped spring that keeps its
-  position and speed through every new value (the spring easing's own
-  stiffness and bounce; critically damped for the other easings). It lands on
-  the last value with the easing's bounce. `duration` is how closely it
-  follows: around `400` keeps up with a finger. A single change from rest
-  rolls as before, and the numeric transition and a figure with a `stagger`
-  are unchanged.
+  Every digit still rolls on its own and lands within one `duration` of the
+  last value, as the numeric transition does. A single change from rest rolls
+  as before.
 
 ## 0.3.7
 

@@ -295,16 +295,7 @@ void RollingEngine::setValue(double value) {
   cancelReveal();
   targetValue_ = value;
   hasShownValue_ = true;
-  const int count = layoutContinuous(value);
-  Target target = makeTarget(value);
-  target.powerCount = count;
-  const double scaled = std::isfinite(value) ? std::min(std::fabs(value) * static_cast<double>(kPow10[fractionDigits_]), kMaxMagnitude) : 0.0;
-  target.negative = signDisplay_ == 0 || signDisplay_ == 3 ? value < 0 : signShown(value, static_cast<uint64_t>(std::round(scaled)));
-  noteSign(target);
-  settle(target);
-}
 
-int RollingEngine::layoutContinuous(double value) {
   const int fd = fractionDigits_;
   double scaled = std::fabs(value) * static_cast<double>(kPow10[fd]);
   if (!std::isfinite(scaled)) {
@@ -337,60 +328,13 @@ int RollingEngine::layoutContinuous(double value) {
       wheels_.push_back(Wheel{digit + carry, 1.0, false, false});
     }
   }
+  Target target = makeTarget(value);
+  target.powerCount = static_cast<int>(wheels_.size());
   // Between two values the sign fades in with the first hundredth of a negative.
-  const bool negative = signDisplay_ == 0 || signDisplay_ == 3 ? value < 0 : signShown(value, static_cast<uint64_t>(std::round(scaled)));
-  signFactor_ = negative ? (value < 0 && (signDisplay_ == 0 || signDisplay_ == 3) ? std::min(1.0, scaled) : 1.0) : 0.0;
-  return static_cast<int>(wheels_.size());
-}
-
-bool RollingEngine::canFollow(double value) const {
-  if (!transition_.active || transition_.numeric || transitionStyle_ != 0 || trailingPad_ > 0 || !std::isfinite(value)) {
-    return false;
-  }
-  // A stagger is a choreography of wheels, which the figure keeps.
-  if (stagger_ > 0) {
-    return false;
-  }
-  // The decimal columns opening or closing, or a clock's wheels: rolled wheel by wheel.
-  if (transition_.decimalFrom != transition_.decimalTo) {
-    return false;
-  }
-  for (int power = 0; power < kMaxPowerCount; power++) {
-    if (modulus_[power] != 10) {
-      return false;
-    }
-  }
-  return true;
-}
-
-void RollingEngine::followAt(const Transition& tr, double now, double& value, double& speed) const {
-  // A damped spring, x'' = -ω²x - 2ζωx', solved from the position and speed
-  // it had when the value arrived. The same stiffness and damping as the
-  // spring easing (`spring`), so a spring that comes to rest lands as one.
-  const double t = std::max(0.0, now - tr.start);
-  const double omega = 3.0 * kPi / std::max(1e-3, tr.duration);
-  const double zeta = easing_ == 4 ? std::min(1.0, std::max(0.05, 1.0 - clamp01(bounce_))) : 1.0;
-  const double x0 = tr.followFrom - tr.toValue;
-  const double v0 = tr.followSpeed;
-  double x;
-  double v;
-  if (zeta >= 0.999) {
-    const double e = std::exp(-omega * t);
-    const double b = v0 + omega * x0;
-    x = (x0 + b * t) * e;
-    v = (v0 - omega * b * t) * e;
-  } else {
-    const double k = zeta * omega;
-    const double wd = omega * std::sqrt(1 - zeta * zeta);
-    const double e = std::exp(-k * t);
-    const double c = std::cos(wd * t);
-    const double sn = std::sin(wd * t);
-    const double b = (v0 + k * x0) / wd;
-    x = e * (x0 * c + b * sn);
-    v = e * (-k * (x0 * c + b * sn) - x0 * wd * sn + b * wd * c);
-  }
-  value = tr.toValue + x;
-  speed = v;
+  target.negative = signDisplay_ == 0 || signDisplay_ == 3 ? value < 0 : signShown(value, static_cast<uint64_t>(std::round(scaled)));
+  signFactor_ = target.negative ? (value < 0 && (signDisplay_ == 0 || signDisplay_ == 3) ? std::min(1.0, scaled) : 1.0) : 0.0;
+  noteSign(target);
+  settle(target);
 }
 
 void RollingEngine::animateTo(double value, double now) {
@@ -434,96 +378,6 @@ void RollingEngine::animateTo(double value, double now) {
     }
     return;
   }
-  if (canFollow(value)) {
-    // Where the figure is and how fast it is going: a follow's own number,
-    // or the number a roll interrupted part way had reached (it set out from
-    // rest on its easing, the same curve for every wheel).
-    double from;
-    double speed;
-    if (transition_.follow) {
-      followAt(transition_, now, from, speed);
-    } else {
-      const Transition& tr = transition_;
-      auto progress = [&](double at) {
-        const double raw = tr.duration > 0 ? clamp01((at - tr.start) / tr.duration) : 1.0;
-        return tr.fromMotion ? easeFromMotion(raw) : ease(raw);
-      };
-      constexpr double h = 1.0 / 240.0;
-      const double p = progress(now);
-      from = tr.fromValue + (tr.toValue - tr.fromValue) * p;
-      speed = (tr.toValue - tr.fromValue) * (p - progress(now - h)) / h;
-    }
-    Transition next;
-    if (transition_.follow) {
-      // Still handing over from the roll it caught: that carries on.
-      next.handover = std::move(transition_.handover);
-      next.handoverStart = transition_.handoverStart;
-    } else {
-      const std::vector<Wheel> caught = wheels_;
-      layoutContinuous(from);
-      next.handover.resize(std::max(caught.size(), wheels_.size()), Wheel{0.0, 0.0, true, false});
-      for (size_t i = 0; i < next.handover.size(); i++) {
-        Wheel& h = next.handover[i];
-        if (i >= caught.size()) {
-          h = Wheel{0.0, 0.0, false, false};       // the number's own wheel: it grows in
-          continue;
-        }
-        h = caught[i];
-        if (i < wheels_.size()) {
-          double d = 0;
-          if (caught[i].linear == wheels_[i].linear) {
-            d = caught[i].position - wheels_[i].position;
-            if (!caught[i].linear) {
-              d = std::fmod(d, 10.0);
-              if (d > 5) d -= 10;
-              if (d < -5) d += 10;
-            }
-          }
-          // A wheel the roll was growing in from blank, which the number already
-          // shows: it only grows, an offset would turn it through 9.
-          h.position = d;                          // the offset from the number's wheel
-        }
-      }
-      next.handoverStart = now;
-    }
-    next.active = true;
-    next.follow = true;
-    next.start = now;
-    next.duration = duration_;
-    next.fromMotion = true;
-    next.fromValue = from;
-    next.toValue = value;
-    next.followFrom = from;
-    next.followSpeed = speed;
-    next.signFrom = signFactor_;
-    next.signTo = target.negative ? 1.0 : 0.0;
-    next.decimalFrom = decimalFactor_;
-    next.decimalTo = decimalFactor_;
-    next.finals.reserve(static_cast<size_t>(target.powerCount));
-    for (int power = 0; power < target.powerCount; power++) {
-      next.finals.push_back(Wheel{static_cast<double>(target.digit(power)), 1.0, false, false});
-    }
-    // The flash lights the wheels whose glyph is not yet the value's, until it lands.
-    const bool up = value >= from;
-    flashes_.resize(std::max(wheels_.size(), static_cast<size_t>(target.powerCount)));
-    bool anyChange = false;
-    for (int power = 0; power < static_cast<int>(flashes_.size()); power++) {
-      const int shown = power < static_cast<int>(wheels_.size()) ? shownGlyph(wheels_[static_cast<size_t>(power)]) : -1;
-      const int wanted = power < target.powerCount ? target.digit(power) : -1;
-      if (shown != wanted) {
-        flashes_[static_cast<size_t>(power)] = Flash{now, duration_, up};
-        anyChange = true;
-      }
-    }
-    if (anyChange && popOnChange_ > 0) {
-      popStart_ = now;
-    }
-    transition_ = std::move(next);
-    applyFollow(now);
-    applyEffects(now);
-    settle(target);
-    return;
-  }
   const int mandatory = minimumIntegerDigits_ + fractionDigits_;
   const int currentCount = static_cast<int>(wheels_.size());
   const int count = std::max(currentCount, target.powerCount + trailingPad_);
@@ -534,8 +388,6 @@ void RollingEngine::animateTo(double value, double now) {
   // The numeric transition rings its position spring out past the duration.
   next.duration = transitionStyle_ == 1 ? duration_ * kNumericTail : duration_;
   next.fromMotion = transition_.active;
-  next.fromValue = previous;
-  next.toValue = value;
   next.style = transitionStyle_;
   next.numeric = transitionStyle_ != 0;
   next.wheels.reserve(static_cast<size_t>(count));
@@ -607,10 +459,37 @@ void RollingEngine::animateTo(double value, double now) {
     popStart_ = now;
   }
 
+  // On the spring, a wheel that was already rolling carries its speed into
+  // this roll. The spring's step response starts at rest, so every value of
+  // a stream (a slider, a dial, a live price) stopped each wheel and started
+  // it again: a figure fed by a slider stood still until the finger stopped.
+  if (easing_ == 4 && !next.numeric && transition_.active && !transition_.numeric && next.duration > 0) {
+    constexpr double h = 1.0 / 240.0;
+    const size_t shared = std::min(next.wheels.size(), transition_.wheels.size());
+    for (size_t i = 0; i < shared; i++) {
+      WheelTransition& wt = next.wheels[i];
+      const double travel = wt.to.position - wt.from.position;
+      if (std::fabs(travel) < 1e-6 || wt.from.linear != transition_.wheels[i].from.linear) {
+        continue;
+      }
+      const double speed = (rollPosition(transition_, i, now) - rollPosition(transition_, i, now - h)) / h;
+      wt.carriesSpeed = true;
+      wt.startSpeed = speed * next.duration / travel;
+    }
+  }
+
   transition_ = std::move(next);
   apply(0);
   applyEffects(now);
   settle(target);
+}
+
+double RollingEngine::rollPosition(const Transition& tr, size_t index, double now) const {
+  const WheelTransition& wt = tr.wheels[index];
+  const double delay = index < tr.delays.size() ? tr.delays[index] : 0;
+  const double raw = tr.duration > 0 ? clamp01((now - tr.start - delay) / tr.duration) : 1.0;
+  const double t = !tr.fromMotion ? ease(raw) : wt.carriesSpeed ? easeFromMotion(raw, wt.startSpeed) : easeFromMotion(raw);
+  return wt.from.position + (wt.to.position - wt.from.position) * t;
 }
 
 void RollingEngine::planRoll(Transition& next, const Target& target, bool increasing, int count, int mandatory) const {
@@ -658,15 +537,29 @@ void RollingEngine::planRoll(Transition& next, const Target& target, bool increa
         // Interior wheel: shortest roll in the direction of the change, or
         // with `shortest` the shorter way round for this wheel alone (8 → 2
         // rolls back through 5), a tie (five apart) going with the change.
-        const double base = wrapTo(from.position, modulus);
-        from.position = base;
+        // A value arriving mid-roll moves where the wheel is going, not where
+        // it stands: by the step from the digit it was rolling to, onto the
+        // one it still had to cover (NumberFlow's accumulating composite). A
+        // stream that runs one way piles up and the wheel spins to keep up;
+        // one that turns back takes it off, and the wheel slows and turns with
+        // it. Measured from where the wheel stood, a wheel that lagged behind
+        // or ran past its digit went a whole turn round, or the short way
+        // backwards, and a fast drag left it stalling.
+        const bool rolling = next.fromMotion && transition_.active && !transition_.numeric &&
+                             power < static_cast<int>(transition_.wheels.size()) && !current.linear &&
+                             !transition_.wheels[static_cast<size_t>(power)].to.linear && current.blend >= 1;
+        const double heading = rolling ? transition_.wheels[static_cast<size_t>(power)].to.position : 0;
+        const double base = rolling ? wrapTo(heading, modulus) : wrapTo(from.position, modulus);
+        if (!rolling) {
+          from.position = base;
+        }
         from.linear = false;
         const double up = wrapTo(digit - base, modulus);
         const double down = wrapTo(base - digit, modulus);
         double delta = increasing ? up : -down;
         if (direction_ == 3 && up != down) delta = up < down ? up : -down;
         if (delta == 0 && power < highestChange) delta = increasing ? modulus : -modulus;
-        to = Wheel{base + delta, 1.0, false, false};
+        to = Wheel{(rolling ? heading : base) + delta, 1.0, false, false};
       }
       next.finals.push_back(Wheel{digit, 1.0, false, false});
     } else {
@@ -1109,7 +1002,7 @@ void RollingEngine::apply(double elapsed) {
     // a column opens and closes over the duration itself.
     const double span = tr.style == 1 ? tr.duration / kNumericTail : tr.duration;
     const double rawSpan = span > 0 ? clamp01((elapsed - delay) / span) : 1.0;
-    double t = tr.fromMotion ? easeFromMotion(rawSpan) : ease(rawSpan);
+    double t = !tr.fromMotion ? ease(rawSpan) : wt.carriesSpeed ? easeFromMotion(rawSpan, wt.startSpeed) : easeFromMotion(rawSpan);
     if (tr.numeric) {
       // A column opens on the arriving glyph's size-and-opacity spring and
       // closes on the leaving glyph's blur, the faster one: on the
@@ -1206,40 +1099,6 @@ void RollingEngine::apply(double elapsed) {
   }
 }
 
-void RollingEngine::applyFollow(double now) {
-  double value;
-  double speed;
-  followAt(transition_, now, value, speed);
-  layoutContinuous(value);
-  decimalFactor_ = transition_.decimalTo;
-  const std::vector<Wheel>& from = transition_.handover;
-  const double raw = clamp01((now - transition_.handoverStart) / kFollowHandover);
-  if (from.empty() || raw >= 1) {
-    return;
-  }
-  const double left = 1 - raw * raw * (3 - 2 * raw);
-  const size_t drawn = wheels_.size();
-  if (from.size() > drawn) {
-    wheels_.resize(from.size(), Wheel{-1.0, 0.0, true, false});
-  }
-  for (size_t i = 0; i < wheels_.size(); i++) {
-    Wheel& w = wheels_[i];
-    if (i >= from.size()) {
-      continue;
-    }
-    const Wheel& h = from[i];
-    if (i >= drawn) {
-      // Only the roll had this wheel: it stays where it was and shrinks away.
-      w = h;
-      w.width = h.width * left;
-      w.flash = 0;
-      continue;
-    }
-    w.position += h.position * left;
-    w.width += (h.width - w.width) * left;
-  }
-}
-
 void RollingEngine::finish() {
   wheels_ = transition_.finals;
   signFactor_ = transition_.signTo;
@@ -1292,20 +1151,7 @@ void RollingEngine::applyEffects(double now) {
 }
 
 bool RollingEngine::tick(double now) {
-  if (transition_.active && transition_.follow) {
-    double value;
-    double speed;
-    followAt(transition_, now, value, speed);
-    // Landed once it is within a fiftieth of the last digit and all but still.
-    const double unit = static_cast<double>(kPow10[fractionDigits_]);
-    const double elapsed = now - transition_.start;
-    if ((std::fabs(value - transition_.toValue) * unit < 0.02 && std::fabs(speed) * unit * transition_.duration < 0.1) ||
-        elapsed >= 4 * transition_.duration) {
-      finish();
-    } else {
-      applyFollow(now);
-    }
-  } else if (transition_.active) {
+  if (transition_.active) {
     const double elapsed = now - transition_.start;
     if (elapsed >= transition_.duration + transition_.maxDelay) {
       finish();
@@ -1418,10 +1264,32 @@ double RollingEngine::easeFromMotion(double t) const {
     case 1:
       return t;                      // linear / easeIn: keep the wheel moving at a steady pace
     case 4:
-      return spring(t, bounce_);     // the spring already starts with velocity
+      return spring(t, bounce_);     // from rest; a wheel in motion carries its speed (below)
     default:
       return 1 - std::pow(1 - t, 3); // easeOut / easeInOut: decelerate into the new target
   }
+}
+
+double RollingEngine::easeFromMotion(double t, double startSpeed) const {
+  if (easing_ == 4) {
+    // Bounded: a wheel a hair from its digit would otherwise read as flying.
+    return springFrom(t, bounce_, std::min(12.0, std::max(-12.0, startSpeed)));
+  }
+  return easeFromMotion(t);
+}
+
+double RollingEngine::springFrom(double t, double bounce, double startSpeed) {
+  // x(t) of the same spring as `spring`, released at 0 towards 1 at speed v0:
+  // 1 - e^{-kt}(cos ωd t + ((k - v0)/ωd) sin ωd t), or 1 - (1 + (k - v0)t)e^{-kt}
+  // critically damped. v0 = 0 is `spring` exactly.
+  const double zeta = std::min(1.0, std::max(0.05, 1.0 - clamp01(bounce)));
+  const double omega = 3.0 * kPi;
+  const double k = zeta * omega;
+  if (zeta >= 0.999) {
+    return 1 - (1 + (k - startSpeed) * t) * std::exp(-k * t);
+  }
+  const double wd = omega * std::sqrt(1 - zeta * zeta);
+  return 1 - std::exp(-k * t) * (std::cos(wd * t) + ((k - startSpeed) / wd) * std::sin(wd * t));
 }
 
 /// Step response of a damped spring, normalised so it has settled at t == 1.

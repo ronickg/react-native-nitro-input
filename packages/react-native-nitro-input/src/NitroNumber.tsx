@@ -100,17 +100,7 @@ export interface NitroNumberProps extends Omit<ViewProps, 'children'> {
    * the reveal's landing pop. `0.08` is a nudge, `0.2` a slam.
    */
   popOnChange?: number
-  /**
-   * Duration in ms of the roll played when `value` changes. `0` snaps.
-   * Default: `500` (each swap transition has its own, see `transition`).
-   *
-   * A value that arrives while the figure is still rolling (a slider, a
-   * dial, a live price) is followed rather than rolled to: the figure counts
-   * towards it like an odometer, keeping its speed through every new value,
-   * and lands on the last one with the `easing`'s bounce. Here `duration` is
-   * how closely it follows: `300`–`500` keeps up with a finger, `900` trails
-   * a fast swing. A figure with a `stagger` rolls each value wheel by wheel.
-   */
+  /** Duration in ms of the roll played when `value` changes. `0` snaps. Default: `500` (each swap transition has its own, see `transition`). */
   duration?: number
   /** Timing curve of the roll. Default: `'easeInOut'` (the scramble has its own, see `transition`; the numeric transition keeps SwiftUI's own clocks and ignores it). */
   easing?: NitroNumberEasing
