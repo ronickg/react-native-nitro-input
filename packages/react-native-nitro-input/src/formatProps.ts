@@ -6,7 +6,11 @@ export interface FormatProps {
   suffix: string
   groupingSeparator: string
   decimalSeparator: string
-  /** The digits after the decimal separator: the format's maximum. */
+  /**
+   * The digits after the decimal separator: the format's maximum. What one
+   * value shows can be fewer (`trailingZeroDisplay`, a minimum below the
+   * maximum): `figureOf` says per value.
+   */
   fractionDigits: number
   minimumIntegerDigits: number
   /** Whether a negative amount's sign comes before the prefix ("-$5") or after it ("$-5"). */
@@ -112,21 +116,66 @@ function digitGlyphsOf(locale: string, numberingSystem: string | undefined): str
   return result
 }
 
-/** What a compact format shows for one value: the figure to roll and the text around it. */
-export interface CompactParts {
-  /** The figure as the digits show it: 1.2 for "1.2K". */
+/** A value as `NumberFormat` takes it: a number, a bigint or a decimal string. */
+export type NumericInput = number | bigint | string
+
+/**
+ * `value` read in units of 10^-`minorDigits`, exactly: 123456n with 2 minor
+ * digits is "1234.56". A bigint or a plain decimal string is shifted as text,
+ * so no digit goes through a double; a number that is a safe integer is too,
+ * any other number is divided.
+ */
+export function withMinorDigits(value: NumericInput, minorDigits: number | undefined): NumericInput {
+  const digits = minorDigits === undefined ? 0 : Math.max(0, Math.trunc(minorDigits))
+  if (digits === 0) return value
+  if (typeof value === 'number') {
+    if (!Number.isSafeInteger(value)) return value / 10 ** digits
+    value = BigInt(value)
+  }
+  const text = typeof value === 'bigint' ? value.toString() : value.trim()
+  const match = /^([+-]?)(\d*)(?:\.(\d*))?$/.exec(text)
+  if (!match) return value
+  const [, sign = '', whole = '', fraction = ''] = match
+  const all = (whole + fraction).padStart(digits + fraction.length + 1, '0')
+  const point = all.length - fraction.length - digits
+  return `${sign}${all.slice(0, point)}.${all.slice(point)}`
+}
+
+/** Whether `value` is below zero, without converting it. */
+export function isNegative(value: NumericInput): boolean {
+  if (typeof value === 'bigint') return value < 0n
+  if (typeof value === 'string') return value.trim().startsWith('-') && /[1-9]/.test(value)
+  return value < 0
+}
+
+/** `value` as a double, for comparisons and for the engine when there is no format. */
+export function toNumber(value: NumericInput): number {
+  return typeof value === 'number' ? value : Number(value)
+}
+
+/** What a format shows for one value: the figure to roll and the text around it. */
+export interface FigureParts {
+  /**
+   * The figure as the digits show it, rounded the format's way (its
+   * `roundingMode`, at the digits it shows): 1.2 for "1.2K", 2.12 for
+   * "$2.12". A figure that rounds to nothing is 0, so it carries no minus.
+   */
   value: number
+  /** The fraction digits this value shows ("$1,234" 0, "$1,234.50" 2). */
   fractionDigits: number
   prefix: string
   suffix: string
 }
 
 /**
- * Compact notation's parts for `value`: "1.2K" is the figure 1.2 with the
- * suffix "K", so the digits roll and the suffix swaps as the value crosses
- * a thousand, a million…
+ * What `format` shows for `value`: the digits and how many of them are
+ * fraction digits, rounded and trimmed exactly as the format prints them, so
+ * the figure follows its `roundingMode`, `trailingZeroDisplay`, a minimum
+ * below the maximum, significant digits and compact notation ("1.2K" is the
+ * figure 1.2 with the suffix "K"). Formatted from the number, bigint or
+ * decimal string itself, so nothing is rounded through a double first.
  */
-export function compactParts(format: NumberFormat, value: number): CompactParts {
+export function figureOf(format: NumberFormat, value: NumericInput): FigureParts {
   const parts = format.formatToParts(value) as Part[]
   const props = formatProps(format)
   const latin = (text: string) =>
@@ -141,8 +190,12 @@ export function compactParts(format: NumberFormat, value: number): CompactParts 
   const integer = latin(parts.filter((p) => p.type === 'integer').map((p) => p.value).join(''))
   const fraction = latin(parts.filter((p) => p.type === 'fraction').map((p) => p.value).join(''))
   const magnitude = Number(fraction ? `${integer}.${fraction}` : integer)
+  if (integer === '' || !Number.isFinite(magnitude)) {
+    // Infinity, NaN: nothing the digits can roll to.
+    return { value: 0, fractionDigits: props.fractionDigits, ...affixes(parts) }
+  }
   return {
-    value: (value < 0 ? -1 : 1) * (Number.isFinite(magnitude) ? magnitude : 0),
+    value: magnitude === 0 ? 0 : (isNegative(value) ? -1 : 1) * magnitude,
     fractionDigits: fraction.length,
     ...affixes(parts),
   }

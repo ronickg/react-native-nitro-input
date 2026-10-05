@@ -31,7 +31,7 @@ import type {
   NitroNumberTextAlign,
 } from './specs/NitroNumber.nitro'
 import { toNumericWeight, toProcessedColor } from './styleHelpers'
-import { compactParts, formatProps } from './formatProps'
+import { figureOf, formatProps, toNumber, withMinorDigits } from './formatProps'
 import type { NumberFormat } from './NumberFormat'
 
 /**
@@ -53,11 +53,28 @@ export interface NitroNumberProps extends Omit<ViewProps, 'children'> {
   /**
    * The number to display. Every change rolls each digit natively to its new
    * glyph, in the direction of the change. The first value is shown instantly.
-   * At most 18 digits are shown: `|value| × 10^fractionDigits` is clamped at
-   * 10^17, and a JS number carries exact integers only up to 2^53.
+   *
+   * A `bigint` or a decimal string (`"1234.56"`) is taken as is, with no
+   * conversion on your side: money kept as minor units passes straight in
+   * with `minorDigits`. With a `format`, it is rounded by the format, in
+   * decimal, so it never goes through a double first. The digits themselves
+   * animate as a double: exact while `|value| × 10^fractionDigits` stays
+   * within 2^53, and at most 18 digits are shown.
    */
-  value: number
-  /** Digits shown after the decimal separator. Default: `0`. */
+  value: number | bigint | string
+  /**
+   * The decimal places `value` is counted in: `value={123456n}` with
+   * `minorDigits={2}` is 1234.56, cents to dollars without dividing. Applied
+   * to a bigint or a decimal string exactly. Default: `0`.
+   */
+  minorDigits?: number
+  /**
+   * Digits shown after the decimal separator. Default: `0`, or with a
+   * `format`, what the format shows for each value: its
+   * `trailingZeroDisplay`, a minimum below its maximum and significant
+   * digits all decide it per value, and the decimal columns roll in and out as
+   * the count changes. Set, it holds every value to this many.
+   */
   fractionDigits?: number
   /** Zero-pads the integer part to at least this many digits. Default: `1`. */
   minimumIntegerDigits?: number
@@ -231,9 +248,10 @@ export interface NitroNumberProps extends Omit<ViewProps, 'children'> {
   tabularNums?: boolean
   /**
    * A `NumberFormat` the number follows: its prefix and suffix (the currency
-   * where the locale puts it), grouping and decimal separators, fraction
-   * digits and minimum integer digits. The individual props override what it
-   * says.
+   * where the locale puts it), grouping and decimal separators, minimum
+   * integer digits, and per value the digits it prints: rounded with its
+   * `roundingMode`, trimmed by its `trailingZeroDisplay`. The figure is what
+   * `format.format(value)` shows. The individual props override what it says.
    */
   format?: NumberFormat
   /**
@@ -379,6 +397,7 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
   function NitroNumber(
     {
       value,
+      minorDigits,
       fractionDigits,
       minimumIntegerDigits,
       groupingSeparator,
@@ -463,8 +482,10 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
     latestOnRevealEnd.current = onRevealEnd
     const latestOnRevealMilestone = useRef(onRevealMilestone)
     latestOnRevealMilestone.current = onRevealMilestone
-    const latestValue = useRef(value)
-    latestValue.current = value
+    // The value as the format takes it: minor units shifted in, exactly.
+    const input = withMinorDigits(value, minorDigits)
+    const latestValue = useRef(input)
+    latestValue.current = input
     const latestOnAnimationStart = useRef(onAnimationStart)
     latestOnAnimationStart.current = onAnimationStart
     const latestOnAnimationEnd = useRef(onAnimationEnd)
@@ -523,7 +544,7 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
     const onAnimationEndCallback = useMemo(
       () =>
         callback((shown: number) => {
-          latestOnAnimationEnd.current?.(compactRef.current ? latestValue.current : shown)
+          latestOnAnimationEnd.current?.(compactRef.current ? toNumber(latestValue.current) : shown)
         }),
       []
     )
@@ -545,7 +566,8 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
         jumpTo: (next) => nativeRef.current?.jumpTo(next),
         animateTo: (next) => nativeRef.current?.animateTo(next),
         revealTo: (next) => nativeRef.current?.revealTo(next),
-        getValue: () => (compactRef.current ? latestValue.current : nativeRef.current?.value ?? latestValue.current),
+        getValue: () =>
+          compactRef.current ? toNumber(latestValue.current) : nativeRef.current?.value ?? toNumber(latestValue.current),
         get native() {
           return nativeRef.current
         },
@@ -572,14 +594,21 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
     const resolvedFontSize = fontSize ?? 32
     const resolvedAffixAlign = affixAlign ?? 'baseline'
     const derived = format ? formatProps(format) : undefined
-    // Compact notation: "1.2K" rolls the figure 1.2 and swaps the suffix.
-    const compact = format && derived?.compact ? compactParts(format, value) : undefined
+    // What the format shows for this value: the figure rounded its way, in the
+    // fraction digits it prints. Compact notation also swaps the suffix: "1.2K"
+    // rolls the figure 1.2.
+    const figure = useMemo(() => (format ? figureOf(format, input) : undefined), [format, input])
+    const compact = derived?.compact ? figure : undefined
     const compactRef = useRef(false)
     compactRef.current = compact !== undefined
     // Which way the value moved, for a compact figure that fell while the value grew (999 → 1K).
-    const previousValue = useRef(value)
-    const compactDirection = compact && direction === undefined ? (value >= previousValue.current ? 'up' : 'down') : undefined
-    previousValue.current = value
+    const numericValue = toNumber(input)
+    const previousValue = useRef(numericValue)
+    const compactDirection =
+      compact && direction === undefined ? (numericValue >= previousValue.current ? 'up' : 'down') : undefined
+    previousValue.current = numericValue
+    // Without a format the engine rounds the double, as it always has.
+    const shownValue = figure ? figure.value : numericValue
     const processedPrefixColor = useMemo(() => toProcessedColor(prefixColor) ?? Infinity, [prefixColor])
     const processedSuffixColor = useMemo(() => toProcessedColor(suffixColor) ?? Infinity, [suffixColor])
     const processedFractionColor = useMemo(() => toProcessedColor(fractionColor) ?? Infinity, [fractionColor])
@@ -627,8 +656,8 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
         {...viewProps}
         style={[autoSize, style]}
         hybridRef={hybridRef}
-        value={compact ? compact.value : value}
-        fractionDigits={fractionDigits ?? compact?.fractionDigits ?? derived?.fractionDigits ?? 0}
+        value={shownValue}
+        fractionDigits={fractionDigits ?? figure?.fractionDigits ?? 0}
         minimumIntegerDigits={minimumIntegerDigits ?? derived?.minimumIntegerDigits ?? 1}
         groupingSeparator={groupingSeparator ?? derived?.groupingSeparator ?? ''}
         decimalSeparator={decimalSeparator ?? derived?.decimalSeparator ?? '.'}

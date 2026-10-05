@@ -9,12 +9,16 @@ description: Every prop and method of NitroNumber.
 
 ## Value and formatting
 
-<Prop name="value" type="number">
-The number to display. Every change rolls each digit natively. At most 18 digits are shown: `|value| × 10^fractionDigits` is clamped at 10^17, and a JS number carries exact integers only up to 2^53.
+<Prop name="value" type="number | bigint | string">
+The number to display. Every change rolls each digit natively. A `bigint` or a decimal string (`"1234.56"`) passes straight in: money kept as minor units needs no conversion with `minorDigits`, and with a `format` it is rounded by the format in decimal, never through a double. The digits animate as a double, exact while `|value| × 10^fractionDigits` stays within 2^53; at most 18 digits are shown.
+</Prop>
+
+<Prop name="minorDigits" type="number" default="0">
+The decimal places `value` is counted in: `value={123456n}` with `minorDigits={2}` is 1234.56, cents to dollars without dividing. Applied to a bigint or a decimal string exactly.
 </Prop>
 
 <Prop name="fractionDigits" type="number" default="0">
-Digits after the decimal separator (0–9).
+Digits after the decimal separator (0–9). With a `format`, the default is what the format prints for each value: its `trailingZeroDisplay`, a minimum below its maximum and significant digits decide it, and the decimal columns roll in and out as the count changes ("$1,234" ↔ "$1,234.50"). Set, it holds every value to that count.
 </Prop>
 
 <Prop name="minimumIntegerDigits" type="number" default="1">
@@ -232,7 +236,7 @@ Every digit as wide as the widest, so columns never move. `false` lays each digi
 </Prop>
 
 <Prop name="format" type="NumberFormat">
-A [`NumberFormat`](/docs/number-format) the number follows: its prefix and suffix (the currency where the locale puts it), grouping separator and group sizes, decimal separator, fraction digits, minimum integer digits, sign display and minus sign, and its numbering system's digits. A compact format (`notation: 'compact'`) rolls the figure it shows and swaps its suffix as the value crosses a thousand, a million: "950" → "1.5K" → "2.3M". The individual props override what it says.
+A [`NumberFormat`](/docs/number-format) the number follows: its prefix and suffix (the currency where the locale puts it), grouping separator and group sizes, decimal separator, minimum integer digits, sign display and minus sign, and its numbering system's digits. Per value, the figure is what `format.format(value)` prints: rounded with its `roundingMode` (`halfEven` for banker's rounding), with the fraction digits it shows. A value that rounds to zero carries no minus. A compact format (`notation: 'compact'`) rolls the figure it shows and swaps its suffix as the value crosses a thousand, a million: "950" → "1.5K" → "2.3M". The individual props override what it says.
 </Prop>
 
 <Prop name="adjustsFontSizeToFit" type="boolean" default="false">

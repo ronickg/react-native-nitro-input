@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.3.8
+
+- **`NitroNumber` shows what its `format` prints, value by value.** It read the
+  format once and showed every value at its maximum fraction digits, rounded
+  by the engine (half away from zero, through a double). Now each value is
+  formatted:
+  - `trailingZeroDisplay: 'stripIfInteger'` and a minimum below the maximum
+    show the digits the format prints ("$1,234", then "$1,234.50"), and the
+    decimal columns roll in and out as the count changes.
+  - The figure is rounded with the format's `roundingMode` (`halfEven`
+    included), on the exact decimal: `"1.005"` is $1.01.
+  - A value that rounds to zero shows no minus.
+  - A format whose minimum fraction digits is below its maximum (a plain
+    decimal style, say) now drops the trailing zeros `Intl` drops; pass
+    `fractionDigits` to keep a fixed count.
+- **`value` takes a `bigint` or a decimal string, and `minorDigits` reads it in
+  minor units**: `<NitroNumber value={123456n} minorDigits={2} format={usd} />`
+  shows $1,234.56. With a format, nothing goes through a double before it is
+  rounded.
+
 ## 0.3.7
 
 - **Android: no longer breaks VisionCamera frame processors.** NitroInput

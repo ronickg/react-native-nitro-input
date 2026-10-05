@@ -855,8 +855,9 @@ import { NitroTime } from 'react-native-nitro-input'
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `value` | `number` | – | The number to display. Shown with at most 18 digits: `|value| × 10^fractionDigits` is clamped at 10^17, and a JS number carries exact integers only up to 2^53. |
-| `fractionDigits` | `number` | `0` | Digits after the decimal separator. |
+| `value` | `number \| bigint \| string` | – | The number to display. A bigint or a decimal string passes straight in (with a `format`, rounded by it in decimal). Animated as a double: exact while `|value| × 10^fractionDigits` stays within 2^53, at most 18 digits shown. |
+| `minorDigits` | `number` | `0` | The decimal places `value` is counted in: `value={123456n} minorDigits={2}` is 1234.56. |
+| `fractionDigits` | `number` | `0` | Digits after the decimal separator. With a `format`, what the format prints per value (`trailingZeroDisplay`, a minimum below the maximum); set, every value shows this many. |
 | `minimumIntegerDigits` | `number` | `1` | Zero-pads the integer part. |
 | `groupingSeparator` | `string` | `''` | Inserted between digit groups. |
 | `groupingSizes` | `number[]` | `[3]` | Group sizes from the decimal point: `[3, 2]` is Indian grouping (12,34,567). |
@@ -907,7 +908,7 @@ import { NitroTime } from 'react-native-nitro-input'
 | `prefixColor` / `suffixColor` | `ColorValue` | `color` | The affixes' colours. |
 | `fractionFontSize` / `fractionColor` | `number` / `ColorValue` | `fontSize` / `color` | Smaller, dimmer cents (the decimal separator follows). |
 | `fractionAlign` | `'baseline' \| 'center' \| 'top' \| 'bottom'` | `'baseline'` | `'top'`: superscript cents. |
-| `format` | `NumberFormat` | none | The number follows it: prefix and suffix, separators and group sizes, fraction and minimum integer digits, sign display, native digits; a compact format rolls its figure and swaps its suffix ("950" → "1.5K"). The individual props override it. |
+| `format` | `NumberFormat` | none | The number follows it: prefix and suffix, separators and group sizes, minimum integer digits, sign display, native digits, and per value the digits it prints (its `roundingMode`, its `trailingZeroDisplay`); a compact format rolls its figure and swaps its suffix ("950" → "1.5K"). The individual props override it. |
 | `tabularNums` | boolean | `true` | `false` lays each digit out at its own width (proportional figures); a changing column eases once from the old digit's width to the new one's. |
 | `adjustsFontSizeToFit` | `boolean` | `false` | Shrink the whole number to fit the view's fixed `width`; the view keeps its full height. |
 | `minimumFontScale` | `number` | `0.5` | Lower bound for `adjustsFontSizeToFit`. |
