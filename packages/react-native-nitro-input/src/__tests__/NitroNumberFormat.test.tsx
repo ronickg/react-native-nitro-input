@@ -63,6 +63,26 @@ describe('withMinorDigits', () => {
     expect(withMinorDigits(123456789012345678901234567890n, 2)).toBe('1234567890123456789012345678.90')
   })
 
+  it('shifts the other numeric strings Intl reads, exactly', () => {
+    expect(withMinorDigits('1e5', 2)).toBe('1e3')
+    expect(withMinorDigits('-1.5e-2', 2)).toBe('-1.5e-4')
+    expect(withMinorDigits('2E+3', 3)).toBe('2e0')
+    expect(withMinorDigits('0x10', 2)).toBe('0.16')
+    expect(withMinorDigits('0b101', 1)).toBe('0.5')
+    expect(withMinorDigits('  42  ', 2)).toBe('0.42')
+    expect(withMinorDigits('.5', 2)).toBe('0.005')
+  })
+
+  it('leaves a string that is not a number as it is, for the format to show as NaN', () => {
+    for (const text of ['1,234.56', 'abc', '.', '1.2.3', '12px', 'Infinity']) {
+      expect(withMinorDigits(text, 2)).toBe(text)
+    }
+    // Every result it does shift is a number Intl reads to the same amount / 10^digits.
+    for (const [text, expected] of [['1e5', 1000], ['0x10', 0.16], ['12.5', 0.125], ['-7', -0.07]] as const) {
+      expect(Number(withMinorDigits(text, 2))).toBeCloseTo(expected, 12)
+    }
+  })
+
   it('divides a number that is not a safe integer', () => {
     expect(withMinorDigits(12.5, 1)).toBe(1.25)
   })

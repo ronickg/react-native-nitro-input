@@ -51,10 +51,12 @@ public:
   size_t getExternalMemorySize() noexcept override { return 2048; }
 
 private:
-  std::vector<numberformat::Part> partsOf(const std::variant<int64_t, double, std::string>& value);
+  /// The parts for `value`, read already as `decimal`.
+  std::vector<numberformat::Part> partsOf(const std::variant<int64_t, double, std::string>& value, const numberformat::Decimal& decimal);
   /// The digits 0…9 this formatter prints.
   const std::array<std::string, 10>& localeDigits() const { return core_ ? core_->localeFormat().digits : platformFormat_.digits; }
-  std::string formatWithPlatform(const std::variant<int64_t, double, std::string>& value);
+  /// `decimal`: `value` read already, or null to read it here when needed.
+  std::string formatWithPlatform(const std::variant<int64_t, double, std::string>& value, const numberformat::Decimal* decimal);
 
   ResolvedNumberFormatOptions resolved_;
   std::optional<numberformat::NumberFormatCore> core_;

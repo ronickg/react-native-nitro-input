@@ -71,9 +71,12 @@ export type NumericInput = number | bigint | string
 
 /**
  * `value` read in units of 10^-`minorDigits`, exactly: 123456n with 2 minor
- * digits is "1234.56". A bigint or a plain decimal string is shifted as text,
- * so no digit goes through a double; a number that is a safe integer is too,
- * any other number is divided.
+ * digits is "1234.56". A bigint or a numeric string is shifted as text, so no
+ * digit goes through a double: a decimal ("1234.5"), one with an exponent
+ * ("1e5" becomes "1e3"), or a 0x / 0o / 0b integer, as `Intl.NumberFormat`
+ * reads strings. A number that is a safe integer is shifted the same way, any
+ * other number is divided. A string that is not a number ("1,234.56") comes
+ * back as it is, which the format shows as NaN, never as a wrong amount.
  */
 export function withMinorDigits(value: NumericInput, minorDigits: number | undefined): NumericInput {
   const digits = minorDigits === undefined ? 0 : Math.max(0, Math.trunc(minorDigits))
@@ -82,10 +85,19 @@ export function withMinorDigits(value: NumericInput, minorDigits: number | undef
     if (!Number.isSafeInteger(value)) return value / 10 ** digits
     value = BigInt(value)
   }
-  const text = typeof value === 'bigint' ? value.toString() : value.trim()
-  const match = /^([+-]?)(\d*)(?:\.(\d*))?$/.exec(text)
-  if (!match) return value
-  const [, sign = '', whole = '', fraction = ''] = match
+  let text = typeof value === 'bigint' ? value.toString() : value.trim()
+  if (/^0[xob][0-9a-f]+$/i.test(text)) {
+    // A non-decimal integer: BigInt reads it as Intl does, exactly.
+    text = BigInt(text).toString()
+  }
+  const match = /^([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/.exec(text)
+  if (!match || (match[2] === '' && match[3] === undefined && text !== '')) return value
+  const [, sign = '', whole = '', fraction = '', exponent] = match
+  if (whole === '' && fraction === '' && text.includes('.')) return value
+  if (exponent !== undefined) {
+    // Moving the point is moving the exponent.
+    return `${sign}${whole}${fraction ? `.${fraction}` : ''}e${Number(exponent) - digits}`
+  }
   const all = (whole + fraction).padStart(digits + fraction.length + 1, '0')
   const point = all.length - fraction.length - digits
   return `${sign}${all.slice(0, point)}.${all.slice(point)}`

@@ -11,7 +11,7 @@ import { Platform } from 'react-native'
 import { describe, expect, it } from 'react-native-harness'
 import { NumberFormat, type NumberFormatOptions } from 'react-native-nitro-input'
 // The components' internals, which the package does not export.
-import { figureOf, formatProps } from '../../packages/react-native-nitro-input/src/formatProps'
+import { figureOf, formatProps, withMinorDigits } from '../../packages/react-native-nitro-input/src/formatProps'
 
 const LOCALES = [
   'en-US', 'en-GB', 'en-IN', 'en-PH', 'fil-PH', 'de-DE', 'de-CH', 'fr-FR', 'es-ES', 'es-MX', 'it-IT', 'pt-BR', 'nl-NL', 'sv-SE', 'pl-PL',
@@ -328,5 +328,10 @@ describe('NumberFormat, as the components read it', () => {
     expect(figureOf(usd, '3.50')).toMatchObject({ value: 4, fractionDigits: 0 })
     expect(figureOf(new NumberFormat('en-US', { style: 'currency', currency: 'USD' }), '1.005').value).toBe(1.01)
     expect(Object.is(figureOf(new NumberFormat('en-US', { style: 'currency', currency: 'USD' }), '-0.004').value, -0)).toBe(false)
+    // Minor units given as an exponent or a hex string reach the formatter shifted, exactly.
+    const cents = new NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+    expect(figureOf(cents, withMinorDigits('1.2345e5', 2))).toMatchObject({ value: 1234.5, fractionDigits: 2 })
+    expect(figureOf(cents, withMinorDigits('0x10', 2)).value).toBe(0.16)
+    expect(figureOf(cents, withMinorDigits('1,234.56', 2)).value).toBe(0)
   })
 })

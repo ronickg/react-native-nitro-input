@@ -175,36 +175,35 @@ HybridNitroNumberFormat::HybridNitroNumberFormat(ResolvedNumberFormatOptions res
     : HybridObject(TAG), resolved_(std::move(resolved)), platform_(std::move(platform)), platformFormat_(std::move(format)),
       platformSymbols_(std::move(symbols)), words_(words), scientific_(scientific) {}
 
-std::string HybridNitroNumberFormat::formatWithPlatform(const std::variant<int64_t, double, std::string>& value) {
+std::string HybridNitroNumberFormat::formatWithPlatform(const std::variant<int64_t, double, std::string>& value, const Decimal* decimal) {
   if (compactRounding_) {
-    const Decimal d = toDecimal(value);
+    const Decimal d = decimal ? *decimal : toDecimal(value);
     if (d.kind != Decimal::Kind::Finite && nonFinite_) return nonFinite_->format(d);
     return platform_->formatDecimal(decimalString(roundCompact(d, *compactRounding_, compactExponents_)));
   }
   if (std::holds_alternative<double>(value)) return platform_->format(std::get<double>(value));
-  return platform_->formatDecimal(decimalString(toDecimal(value)));
+  return platform_->formatDecimal(decimalString(decimal ? *decimal : toDecimal(value)));
 }
 
 std::string HybridNitroNumberFormat::format(const std::variant<int64_t, double, std::string>& value) {
   if (core_) return core_->format(toDecimal(value));
-  return formatWithPlatform(value);
+  return formatWithPlatform(value, nullptr);
 }
 
-std::vector<Part> HybridNitroNumberFormat::partsOf(const std::variant<int64_t, double, std::string>& value) {
-  if (core_) return core_->formatToParts(toDecimal(value));
-  if (compactRounding_ && nonFinite_) {
-    const Decimal d = toDecimal(value);
-    if (d.kind != Decimal::Kind::Finite) return nonFinite_->formatToParts(d);
-  }
-  return partsOfFormatted(formatWithPlatform(value), platformFormat_, platformSymbols_, words_, scientific_);
+std::vector<Part> HybridNitroNumberFormat::partsOf(const std::variant<int64_t, double, std::string>& value, const Decimal& decimal) {
+  if (core_) return core_->formatToParts(decimal);
+  if (compactRounding_ && nonFinite_ && decimal.kind != Decimal::Kind::Finite) return nonFinite_->formatToParts(decimal);
+  return partsOfFormatted(formatWithPlatform(value, &decimal), platformFormat_, platformSymbols_, words_, scientific_);
 }
 
 std::vector<NumberFormatPart> HybridNitroNumberFormat::formatToParts(const std::variant<int64_t, double, std::string>& value) {
-  return toParts(partsOf(value));
+  return toParts(partsOf(value, toDecimal(value)));
 }
 
 NumberFigure HybridNitroNumberFormat::figure(const std::variant<int64_t, double, std::string>& value) {
-  const Figure f = figureOf(partsOf(value), toDecimal(value).negative, localeDigits());
+  // Read once: the parts and the sign come from the same decimal.
+  const Decimal decimal = toDecimal(value);
+  const Figure f = figureOf(partsOf(value, decimal), decimal.negative, localeDigits());
   // NaN and infinities roll nowhere; they keep the format's own fraction digits.
   const double fractionDigits = f.finite ? static_cast<double>(f.fractionDigits) : resolved_.maximumFractionDigits.value_or(0);
   return NumberFigure(f.value(), fractionDigits, f.prefix, f.suffix);
@@ -215,7 +214,8 @@ NumberFormatLayout HybridNitroNumberFormat::layout() {
   // Compact notation would print it "1.2M", so its affixes come per value.
   const bool compact = resolved_.notation == NumberFormatNotation::COMPACT;
   const std::string sample = compact ? "1" : resolved_.maximumFractionDigits.value_or(0) > 0 ? "1234567.5" : "1234567";
-  const Layout l = layoutOf(partsOf(sample), partsOf(std::string("-1")), localeDigits());
+  const std::string minusOne = "-1";
+  const Layout l = layoutOf(partsOf(sample, toDecimal(sample)), partsOf(minusOne, toDecimal(minusOne)), localeDigits());
   std::vector<double> groupingSizes(l.groupingSizes.begin(), l.groupingSizes.end());
   return NumberFormatLayout(l.prefix, l.suffix, l.groupingSeparator, l.decimalSeparator, l.signAfterAffix, l.minusSign, std::move(groupingSizes),
                             l.digitGlyphs);

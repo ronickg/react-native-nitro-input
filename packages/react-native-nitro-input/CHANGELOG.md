@@ -19,7 +19,9 @@
   minor units**: `<NitroNumber value={123456n} minorDigits={2} format={usd} />`
   shows $1,234.56. With a format, nothing goes through a double before it is
   rounded; the rounded figure then rolls as a double, exact to 15 significant
-  digits.
+  digits. A string with an exponent (`"1e5"`) or a `0x` / `0o` / `0b` integer is
+  shifted exactly too; a string that is not a number shows as NaN rather than
+  an unshifted amount.
 - **The components read their `format` in C++.** What `NitroNumber` and
   `NitroInput` take from a `NumberFormat` (the figure per value, the prefix
   and suffix, separators, grouping, sign placement, the locale's digits) is
