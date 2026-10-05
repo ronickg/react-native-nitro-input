@@ -2,6 +2,8 @@ import { NitroModules } from 'react-native-nitro-modules'
 import type {
   NitroNumberFormat,
   NitroNumberFormatFactory,
+  NumberFigure,
+  NumberFormatLayout,
   NumberFormatOptions,
   NumberFormatPart,
   ResolvedNumberFormatOptions,
@@ -388,6 +390,26 @@ const nativeOf = (value: unknown, method: string, unwrap = false) => slotsOf(val
  */
 export function sharedFormatterOf(value: unknown): object | undefined {
   return typeof value === 'object' && value !== null ? slots.get(value)?.native : undefined
+}
+
+/**
+ * What `format` shows for `value`, as `NitroNumber` rolls it: the figure
+ * rounded and trimmed as the format prints it, and the text around it. Read
+ * in C++ off the formatter's own parts, from the number, bigint or decimal
+ * string itself.
+ * @internal
+ */
+export function figureOf(format: NumberFormat, value: number | bigint | string): NumberFigure {
+  return nativeOf(format, 'figure').figure(toMathematicalValue(value))
+}
+
+/**
+ * The prefix, suffix, separators, sign placement, grouping and digits of
+ * `format`, read in C++ off its parts.
+ * @internal
+ */
+export function layoutOf(format: NumberFormat): NumberFormatLayout {
+  return nativeOf(format, 'layout').layout()
 }
 
 // `length` is 0 as the specification says: the arguments are read from `arguments`.

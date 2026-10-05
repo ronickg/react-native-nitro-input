@@ -2,6 +2,31 @@
 
 ## 0.3.8
 
+- **`NitroNumber` shows what its `format` prints, value by value.** It read the
+  format once and showed every value at its maximum fraction digits, rounded
+  by the engine (half away from zero, through a double). Now each value is
+  formatted:
+  - `trailingZeroDisplay: 'stripIfInteger'` and a minimum below the maximum
+    show the digits the format prints ("$1,234", then "$1,234.50"), and the
+    decimal columns roll in and out as the count changes.
+  - The figure is rounded with the format's `roundingMode` (`halfEven`
+    included), on the exact decimal: `"1.005"` is $1.01.
+  - A value that rounds to zero shows no minus.
+  - A format whose minimum fraction digits is below its maximum (a plain
+    decimal style, say) now drops the trailing zeros `Intl` drops; pass
+    `fractionDigits` to keep a fixed count.
+- **`value` takes a `bigint` or a decimal string, and `minorDigits` reads it in
+  minor units**: `<NitroNumber value={123456n} minorDigits={2} format={usd} />`
+  shows $1,234.56. With a format, nothing goes through a double before it is
+  rounded; the rounded figure then rolls as a double, exact to 15 significant
+  digits. A string with an exponent (`"1e5"`) or a `0x` / `0o` / `0b` integer is
+  shifted exactly too; a string that is not a number shows as NaN rather than
+  an unshifted amount.
+- **The components read their `format` in C++.** What `NitroNumber` and
+  `NitroInput` take from a `NumberFormat` (the figure per value, the prefix
+  and suffix, separators, grouping, sign placement, the locale's digits) is
+  read off the formatter's own parts natively, instead of formatting sample
+  values into JS objects and parsing them back there.
 - **`NitroNumber` keeps rolling while its value keeps changing** (a slider, a
   dial, a live price) (#62).
   - With `easing="spring"`, each new value restarted the spring from rest, so

@@ -70,6 +70,37 @@ export interface NumberFormatPart {
 }
 
 /**
+ * One value as `NitroNumber` rolls it: the figure its digits show, rounded and
+ * trimmed as the format prints it, and the text around it.
+ */
+export interface NumberFigure {
+  /** The figure as the digits show it, signed: 1.2 for "1.2K", 2.12 for "$2.12"; 0 (never -0) when it rounds to nothing, or for NaN and infinities. */
+  value: number
+  /** The fraction digits this value shows ("$1,234" 0, "$1,234.50" 2); the format's maximum for NaN and infinities. */
+  fractionDigits: number
+  /** The text before the number, without the sign. */
+  prefix: string
+  /** The text after the number, without the sign. */
+  suffix: string
+}
+
+/** The shape of a format, as `NitroNumber` and `NitroInput` lay a number out. */
+export interface NumberFormatLayout {
+  prefix: string
+  suffix: string
+  /** Empty when the format does not group. */
+  groupingSeparator: string
+  decimalSeparator: string
+  /** A negative amount's sign comes after the prefix ("$-5"), not before it ("-$5"). */
+  signAfterAffix: boolean
+  minusSign: string
+  /** The group nearest the decimal point and every one before it ([3, 2]: 12,34,567). */
+  groupingSizes: number[]
+  /** The format's digits 0…9, or empty for Latin ones. */
+  digitGlyphs: string[]
+}
+
+/**
  * A number formatter with the API of `Intl.NumberFormat`. It learns a
  * locale's format once from the platform (Foundation on iOS, ICU on Android)
  * and formats in C++ from then on, without calling into the platform per
@@ -80,6 +111,10 @@ export interface NitroNumberFormat extends HybridObject<{ ios: 'c++'; android: '
   format(value: number | Int64 | string): string
   formatToParts(value: number | Int64 | string): NumberFormatPart[]
   resolvedOptions(): ResolvedNumberFormatOptions
+  /** For the components, not part of `Intl.NumberFormat`: what `value` shows, as a figure. */
+  figure(value: number | Int64 | string): NumberFigure
+  /** For the components, not part of `Intl.NumberFormat`: the shape of the format. */
+  layout(): NumberFormatLayout
 }
 
 export interface NitroNumberFormatFactory extends HybridObject<{ ios: 'c++'; android: 'c++' }> {

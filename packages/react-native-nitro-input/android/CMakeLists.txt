@@ -22,6 +22,7 @@ add_library(${PACKAGE_NAME} SHARED
         ../cpp/worklets/NitroInputWorkletsBridge.cpp
         ../cpp/worklets/HybridNitroInputWorklets.cpp
         ../cpp/numberformat/NumberFormatCore.cpp
+        ../cpp/numberformat/FormatFigure.cpp
         ../cpp/numberformat/NumberFormatProbe.cpp
         ../cpp/numberformat/HybridNitroNumberFormat.cpp
 )

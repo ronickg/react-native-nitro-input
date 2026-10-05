@@ -17,6 +17,8 @@ namespace margelo::nitro::nitroinput {
       prototype.registerHybridMethod("format", &HybridNitroNumberFormatSpec::format);
       prototype.registerHybridMethod("formatToParts", &HybridNitroNumberFormatSpec::formatToParts);
       prototype.registerHybridMethod("resolvedOptions", &HybridNitroNumberFormatSpec::resolvedOptions);
+      prototype.registerHybridMethod("figure", &HybridNitroNumberFormatSpec::figure);
+      prototype.registerHybridMethod("layout", &HybridNitroNumberFormatSpec::layout);
     });
   }
 
