@@ -8,6 +8,18 @@
   picked up again: a stutter on every frame, and a figure that fell far behind
   the value. The new spring now starts at the speed the wheel had. The other
   easings are unchanged.
+- **The odometer follows a fast drag instead of hovering.** Every value of a
+  stream rolled for the whole `duration`, so a dial swung left and right
+  faster than that left the figure hovering between the ends, far from the
+  value, until the finger stopped. A value arriving a few frames after the
+  last now rolls for three times that gap (at least 150 ms, at most
+  `duration`). A single change, or one well after the last, still takes the
+  full duration. The numeric transition is unchanged.
+- **A drag that turns back no longer spins wheels the long way round.** With
+  the default `direction`, a value arriving mid-roll took its direction from
+  the last value rather than from what the wheels showed. A dial swung up
+  and straight back sent wheels still below the new value down through 0
+  and 9 to reach it. It now rolls from what is shown.
 
 ## 0.3.7
 

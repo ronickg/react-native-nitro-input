@@ -353,8 +353,21 @@ void RollingEngine::animateTo(double value, double now) {
       break;
     default:
       increasing = value >= previous;
+      // Mid-roll the wheels are short of the last value, and the direction is
+      // the way from what they show. Measured from the last value, a stream
+      // that turned back before the figure caught up (a dial swung left and
+      // right) sent wheels still below the new value the long way round, down
+      // through 0.
+      if (transition_.active && !transition_.numeric && (value < 0) == (previous < 0)) {
+        const int cmp = compareShownMagnitude(target);
+        if (cmp != 0) {
+          increasing = (cmp > 0) != (value < 0);
+        }
+      }
       break;
   }
+  const double sinceLastValue = now - lastValueAt_;
+  lastValueAt_ = now;
   if (!hasShownValue_ || duration_ <= 0 || reduceMotion_) {
     // A snap changes the digits at once; the flash and the pop still say so.
     const bool first = !hasShownValue_;
@@ -385,9 +398,15 @@ void RollingEngine::animateTo(double value, double now) {
   Transition next;
   next.active = true;
   next.start = now;
-  // The numeric transition rings its position spring out past the duration.
-  next.duration = transitionStyle_ == 1 ? duration_ * kNumericTail : duration_;
   next.fromMotion = transition_.active;
+  // A roll for a value of a stream catches up in a few frames rather than
+  // the duration. The numeric transition swaps to each glyph as it comes, and
+  // rings its position spring out past the duration.
+  if (transitionStyle_ == 0 && next.fromMotion && sinceLastValue >= 0) {
+    next.duration = std::min(duration_, std::max(kStreamRollSeconds, kStreamGaps * sinceLastValue));
+  } else {
+    next.duration = transitionStyle_ == 1 ? duration_ * kNumericTail : duration_;
+  }
   next.style = transitionStyle_;
   next.numeric = transitionStyle_ != 0;
   next.wheels.reserve(static_cast<size_t>(count));
@@ -551,6 +570,11 @@ void RollingEngine::planRoll(Transition& next, const Target& target, bool increa
         const double down = wrapTo(base - digit, modulus);
         double delta = increasing ? up : -down;
         if (direction_ == 3 && up != down) delta = up < down ? up : -down;
+        // Re-targeted mid-roll onto the digit it shows, a wheel settles the
+        // short way, whichever way the change goes.
+        if (next.fromMotion && direction_ == 0 && shownGlyph(current) == static_cast<int>(digit) && power >= highestChange) {
+          delta = up <= down ? up : -down;
+        }
         if (delta == 0 && power < highestChange) delta = increasing ? modulus : -modulus;
         to = Wheel{base + delta, 1.0, false, false};
       }
@@ -565,6 +589,20 @@ void RollingEngine::planRoll(Transition& next, const Target& target, bool increa
     }
     next.wheels.push_back(WheelTransition{from, to});
   }
+}
+
+int RollingEngine::compareShownMagnitude(const Target& target) const {
+  const int pad = trailingPad_;
+  const int currentCount = static_cast<int>(wheels_.size());
+  const int top = std::max(currentCount, target.powerCount + pad);
+  for (int power = top - 1; power >= pad; power--) {
+    const int shown = power < currentCount ? std::max(0, shownGlyph(wheels_[static_cast<size_t>(power)])) : 0;
+    const int wanted = power - pad < target.powerCount ? target.digit(power - pad) : 0;
+    if (shown != wanted) {
+      return wanted > shown ? 1 : -1;
+    }
+  }
+  return 0;
 }
 
 int RollingEngine::shownGlyph(const Wheel& wheel) {

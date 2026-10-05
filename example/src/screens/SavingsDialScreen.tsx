@@ -44,6 +44,7 @@ export function SavingsDialScreen() {
   const { width: screenWidth } = useWindowDimensions()
   const [position, setPosition] = useState(Math.round(0.08 * STEPS))
   const [mode, setMode] = useState<Mode>('usd')
+  const [spring, setSpring] = useState(true)
   const [rowHeight, setRowHeight] = useState(0)
   const sweep = useRef<ReturnType<typeof setInterval> | null>(null)
   const trackWidth = useRef(1)
@@ -59,6 +60,26 @@ export function SavingsDialScreen() {
         setPosition(Math.min(STEPS, Math.max(0, Math.round((e.nativeEvent.locationX / trackWidth.current) * STEPS)))),
     })
   ).current
+
+  // A finger swiping the knob left and right: a fast drag that turns round
+  // every few hundred milliseconds, then stops.
+  const wiggle = () => {
+    if (sweep.current) clearInterval(sweep.current)
+    const turns = [400, 120, 450, 80, 380, 150, 300]
+    let p = Math.round(0.1 * STEPS)
+    let leg = 0
+    setPosition(p)
+    sweep.current = setInterval(() => {
+      const to = turns[leg]!
+      p = p < to ? Math.min(to, p + 25) : Math.max(to, p - 25)
+      setPosition(p)
+      if (p === to) leg += 1
+      if (leg >= turns.length && sweep.current) {
+        clearInterval(sweep.current)
+        sweep.current = null
+      }
+    }, 16)
+  }
 
   // A finger dragging the knob: one step every frame from one position to another.
   const replay = (from: number, to: number, perFrame: number) => {
@@ -97,7 +118,7 @@ export function SavingsDialScreen() {
             color="#111827"
             direction="shortest"
             duration={900}
-            easing="spring"
+            easing={spring ? 'spring' : 'easeInOut'}
             fontSize={40}
             fontWeight="700"
             fractionDigits={0}
@@ -130,7 +151,7 @@ export function SavingsDialScreen() {
           color="#111827"
           direction="shortest"
           duration={900}
-          easing="spring"
+          easing={spring ? 'spring' : 'easeInOut'}
           fontSize={40}
           fontWeight="700"
           fractionDigits={0}
@@ -159,6 +180,12 @@ export function SavingsDialScreen() {
       </Text>
 
       <View style={s.buttons}>
+        <Btn testID="dial-wiggle" title="Swipe left and right" onPress={wiggle} />
+        <Btn
+          testID="dial-easing"
+          title={spring ? 'Easing: spring' : 'Easing: easeInOut'}
+          onPress={() => setSpring((on) => !on)}
+        />
         <Btn testID="dial-fast" title="Fast drag up and back" onPress={() => {
           replay(Math.round(0.1 * STEPS), Math.round(0.6 * STEPS), 6)
           setTimeout(() => replay(Math.round(0.6 * STEPS), Math.round(0.1 * STEPS), 6), 2200)

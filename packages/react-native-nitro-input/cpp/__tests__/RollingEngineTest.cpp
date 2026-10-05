@@ -120,7 +120,7 @@ static void staggerDoesNotStarveOnRetarget() {
   e.animateTo(999, 0);           // hundreds wheel scheduled for t = 0.2
   e.tick(0.05);
   e.animateTo(888, 0.05);        // re-target before the hundreds wheel started
-  e.tick(0.22);                  // 0.02 after its original start: it must have left "blank" (-1)
+  e.tick(0.21);                  // 0.01 after its original start: it must have left "blank" (-1)
   CHECK(e.wheelAt(2).position > -1 + 1e-9);
   CHECK(e.wheelAt(2).position < 0);
   e.tick(2);
@@ -182,6 +182,66 @@ static void springRetargetKeepsItsSpeed() {
   // It still lands on the new value.
   e.tick(3.0);
   CHECK(near(e.wheelAt(0).position, 9, 1e-3));
+}
+
+// A dial swung up and straight back: the new value is below the last one
+// but above what the wheels show, mid-roll. The tens wheel rolls on up to
+// it. Measured from the last value, it was sent down the long way round,
+// through 0 and 9.
+static void aTurnedBackStreamRollsFromWhatItShows() {
+  RollingEngine e;
+  e.setFormat(0, 1);
+  e.setTiming(0.9, /* easeInOut */ 3, 0.15, 0, 0);
+  e.animateTo(10, 0);
+  e.animateTo(80, 0);
+  e.tick(0.15);
+  const double at = e.wheelAt(1).position;
+  CHECK(at > 1 && at < 5);
+  e.animateTo(70, 0.15);
+  double lowest = at;
+  for (int frame = 1; frame <= 120; frame++) {
+    e.tick(0.15 + frame / 60.0);
+    lowest = std::min(lowest, e.wheelAt(1).position);
+  }
+  CHECK(lowest >= at - 1e-9);                     // never back down past 1, 0 …
+  CHECK(near(e.wheelAt(1).position, 7, 1e-6));
+}
+
+// A value every frame, swinging between 10 and 80 four times a second: the
+// figure follows the swing. At the full 900 ms per value it hovered in the
+// middle, a third of the way out to either end.
+static void aFastBackAndForthIsFollowed() {
+  for (int easing : {3, 4}) {
+    RollingEngine e;
+    e.setFormat(0, 1);
+    e.setTiming(0.9, easing, 0.15, 0, 0);
+    e.animateTo(10, 0);
+    double low = 1e9, high = -1e9;
+    for (int frame = 1; frame <= 150; frame++) {
+      const double t = frame / 60.0;
+      const double phase = std::fmod(t, 0.5) / 0.25;
+      const double tens = phase < 1 ? 1 + 7 * phase : 8 - 7 * (phase - 1);
+      e.animateTo(10 * std::round(tens), t - 0.008);
+      e.tick(t);
+      if (t > 1) {
+        low = std::min(low, e.wheelAt(1).position);
+        high = std::max(high, e.wheelAt(1).position);
+      }
+    }
+    CHECK(high - low > 3.5);                      // the value swings 7
+    CHECK(low > 0 && high < 9.5);                 // and never rolls round
+  }
+  // A single change, and one a while after the last, take the full duration.
+  RollingEngine f;
+  f.setFormat(0, 1);
+  f.setTiming(0.9, 3, 0.15, 0, 0);
+  f.animateTo(1, 0);
+  f.animateTo(9, 0);
+  f.tick(0.6);
+  CHECK(f.needsFrames());
+  f.animateTo(5, 0.6);
+  f.tick(1.3);
+  CHECK(f.needsFrames());
 }
 
 static void loadingFadeAndReduceMotion() {
@@ -1382,6 +1442,8 @@ static void signDisplayFollowsEcma402() {
 int main() {
   odometerPositions();
   springRetargetKeepsItsSpeed();
+  aTurnedBackStreamRollsFromWhatItShows();
+  aFastBackAndForthIsFollowed();
   shortestRollsEachWheelItsOwnWay();
   progressRunsOnceThroughAChange();
   continuousTurnsTheLowerWheels();

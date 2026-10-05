@@ -109,6 +109,13 @@ public:
   /// settles to 2 % at D, which is still a pixel at a large size, and
   /// SwiftUI lets it ring out; ended at D the last pixel snapped.
   static constexpr double kNumericTail = 1.45;
+  /// A value arriving mid-roll (the odometer), a few frames after the last one (a slider, a
+  /// dial, a live price), rolls for this long, or for kStreamGaps of the gap
+  /// since that value, up to the duration: a figure that took the whole
+  /// duration for each value of a stream trailed the drag by most of it, and
+  /// hovered between the ends of a back-and-forth.
+  static constexpr double kStreamRollSeconds = 0.15;
+  static constexpr double kStreamGaps = 3;
 
   // The scramble (2) is planned like the numeric transition but the wheel
   // shows a different random digit every kScrambleStepSeconds until it locks
@@ -412,6 +419,9 @@ private:
   /// The digit a wheel shows, or is arriving at: -1 for blank.
   static int shownGlyph(const Wheel& wheel);
   void planRoll(Transition& next, const Target& target, bool increasing, int count, int mandatory) const;
+  /// Compares `target` with the digits the wheels show now, column by column
+  /// from the highest: 1 when the target's magnitude is larger, -1 smaller, 0 the same.
+  int compareShownMagnitude(const Target& target) const;
   void planNumeric(Transition& next, const Target& target, bool increasing, int count, int mandatory, double now) const;
   void apply(double elapsed);
   /// The flash and the pop follow the clock, not the transition: they keep
@@ -485,6 +495,8 @@ private:
   std::vector<Wheel> wheels_;
   double signFactor_ = 0;
   bool hasShownValue_ = false;
+  /// When the last value arrived (`animateTo`).
+  double lastValueAt_ = 0;
   double targetValue_ = 0;
   Target target_{0, false, 1};
   int settledPowerCount_ = 1;
