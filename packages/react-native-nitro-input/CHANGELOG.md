@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.7
 
 - **Android: no longer breaks VisionCamera frame processors.** NitroInput
   linked `libworklets.so` although it uses only worklets' header-inline API,
