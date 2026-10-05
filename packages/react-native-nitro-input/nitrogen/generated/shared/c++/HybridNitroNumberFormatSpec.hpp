@@ -17,12 +17,18 @@
 namespace margelo::nitro::nitroinput { struct NumberFormatPart; }
 // Forward declaration of `ResolvedNumberFormatOptions` to properly resolve imports.
 namespace margelo::nitro::nitroinput { struct ResolvedNumberFormatOptions; }
+// Forward declaration of `NumberFigure` to properly resolve imports.
+namespace margelo::nitro::nitroinput { struct NumberFigure; }
+// Forward declaration of `NumberFormatLayout` to properly resolve imports.
+namespace margelo::nitro::nitroinput { struct NumberFormatLayout; }
 
 #include <string>
 #include <variant>
 #include "NumberFormatPart.hpp"
 #include <vector>
 #include "ResolvedNumberFormatOptions.hpp"
+#include "NumberFigure.hpp"
+#include "NumberFormatLayout.hpp"
 
 namespace margelo::nitro::nitroinput {
 
@@ -58,6 +64,8 @@ namespace margelo::nitro::nitroinput {
       virtual std::string format(const std::variant<int64_t, double, std::string>& value) = 0;
       virtual std::vector<NumberFormatPart> formatToParts(const std::variant<int64_t, double, std::string>& value) = 0;
       virtual ResolvedNumberFormatOptions resolvedOptions() = 0;
+      virtual NumberFigure figure(const std::variant<int64_t, double, std::string>& value) = 0;
+      virtual NumberFormatLayout layout() = 0;
 
     protected:
       // Hybrid Setup

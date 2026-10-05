@@ -18,7 +18,13 @@
 - **`value` takes a `bigint` or a decimal string, and `minorDigits` reads it in
   minor units**: `<NitroNumber value={123456n} minorDigits={2} format={usd} />`
   shows $1,234.56. With a format, nothing goes through a double before it is
-  rounded.
+  rounded; the rounded figure then rolls as a double, exact to 15 significant
+  digits.
+- **The components read their `format` in C++.** What `NitroNumber` and
+  `NitroInput` take from a `NumberFormat` (the figure per value, the prefix
+  and suffix, separators, grouping, sign placement, the locale's digits) is
+  read off the formatter's own parts natively, instead of formatting sample
+  values into JS objects and parsing them back there.
 
 ## 0.3.7
 

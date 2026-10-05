@@ -2,18 +2,43 @@ import React from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { NitroNumber } from '../NitroNumber'
 import type { NumberFormat } from '../NumberFormat'
-import { figureOf, withMinorDigits } from '../formatProps'
+import type { NumberFigure, NumberFormatLayout } from '../specs/NumberFormat.nitro'
+import { withMinorDigits } from '../formatProps'
 
-// No native formatter in Jest: the platform's Intl.NumberFormat stands in for
-// it, which is what NumberFormat follows (rounding modes and
-// trailingZeroDisplay included).
-function intl(locale: string, options: Intl.NumberFormatOptions & Record<string, unknown>): NumberFormat {
-  const real = new Intl.NumberFormat(locale, options)
+// No native formatter in Jest. What it shows per value (rounding modes,
+// trailingZeroDisplay, compact notation) is checked in C++
+// (NumberFormatCoreTest) and on device (number-format.harness); here a fake
+// stands in for it, to check what NitroNumber does with its answers.
+jest.mock('../NumberFormat', () => ({
+  ...jest.requireActual('../NumberFormat'),
+  figureOf: (format: FakeFormat, value: unknown) => format.figure(value),
+  layoutOf: (format: FakeFormat) => format.layout(),
+}))
+
+type FakeFormat = NumberFormat & { figure: jest.Mock<NumberFigure, [unknown]>; layout: () => NumberFormatLayout }
+
+const USD_LAYOUT: NumberFormatLayout = {
+  prefix: '$',
+  suffix: '',
+  groupingSeparator: ',',
+  decimalSeparator: '.',
+  signAfterAffix: false,
+  minusSign: '-',
+  groupingSizes: [3, 3],
+  digitGlyphs: [],
+}
+
+/** A USD format whose native figure for each value is `figures[String(value)]`. */
+function usd(figures: Record<string, Pick<NumberFigure, 'value' | 'fractionDigits'>>): FakeFormat {
   return {
-    format: (value: number | bigint | string) => real.format(value as never),
-    formatToParts: (value: number | bigint | string) => real.formatToParts(value as never),
-    resolvedOptions: () => real.resolvedOptions(),
-  } as unknown as NumberFormat
+    resolvedOptions: () => ({ maximumFractionDigits: 2, minimumIntegerDigits: 1, signDisplay: 'auto', notation: 'standard' }),
+    layout: () => USD_LAYOUT,
+    figure: jest.fn((value: unknown) => {
+      const figure = figures[String(value)]
+      if (!figure) throw new Error(`no figure for ${String(value)}`)
+      return { ...figure, prefix: '$', suffix: '' }
+    }),
+  } as unknown as FakeFormat
 }
 
 function nativeProps(renderer: ReactTestRenderer) {
@@ -27,8 +52,6 @@ function render(element: React.ReactElement) {
   })
   return renderer
 }
-
-const usd = (options: Record<string, unknown> = {}) => intl('en-US', { style: 'currency', currency: 'USD', ...options })
 
 describe('withMinorDigits', () => {
   it('shifts a bigint, a decimal string and a safe integer exactly', () => {
@@ -45,61 +68,22 @@ describe('withMinorDigits', () => {
   })
 })
 
-describe('figureOf', () => {
-  it('shows the fraction digits the format prints for each value (trailingZeroDisplay)', () => {
-    const format = usd({ trailingZeroDisplay: 'stripIfInteger' })
-    expect(figureOf(format, 1234)).toMatchObject({ value: 1234, fractionDigits: 0 })
-    expect(figureOf(format, 1234.5)).toMatchObject({ value: 1234.5, fractionDigits: 2 })
-    expect(figureOf(format, '1234.00')).toMatchObject({ value: 1234, fractionDigits: 0 })
-  })
-
-  it('shows fewer digits when the minimum is below the maximum', () => {
-    const format = intl('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 3 })
-    expect(figureOf(format, 1.5)).toMatchObject({ value: 1.5, fractionDigits: 1 })
-    expect(figureOf(format, 1.25)).toMatchObject({ value: 1.25, fractionDigits: 2 })
-    expect(figureOf(format, 2)).toMatchObject({ value: 2, fractionDigits: 0 })
-  })
-
-  it('rounds with the format\'s roundingMode, on the exact decimal', () => {
-    expect(figureOf(usd({ roundingMode: 'halfEven' }), '2.125').value).toBe(2.12)
-    expect(figureOf(usd({ roundingMode: 'halfEven' }), '2.135').value).toBe(2.14)
-    expect(figureOf(usd(), '2.125').value).toBe(2.13)
-    // 1.005 is 1.00499999… as a double: only a decimal input rounds it up.
-    expect(figureOf(usd(), '1.005').value).toBe(1.01)
-    expect(figureOf(usd({ roundingMode: 'trunc' }), '-2.129').value).toBe(-2.12)
-  })
-
-  it('rounds minor units the format\'s way without a double in between', () => {
-    expect(figureOf(usd({ maximumFractionDigits: 0, roundingMode: 'halfEven' }), withMinorDigits(250n, 2)).value).toBe(2)
-    expect(figureOf(usd({ maximumFractionDigits: 0, roundingMode: 'halfEven' }), withMinorDigits(350n, 2)).value).toBe(4)
-  })
-
-  it('carries no minus for a value that rounds to nothing', () => {
-    const shown = figureOf(usd(), '-0.004').value
-    expect(shown).toBe(0)
-    expect(Object.is(shown, -0)).toBe(false)
-    expect(figureOf(usd(), -0.5).value).toBe(-0.5)
-  })
-
-  it('keeps compact notation: the figure and its suffix', () => {
-    const figure = figureOf(intl('en-US', { notation: 'compact' }), 1234)
-    expect(figure).toMatchObject({ value: 1.2, fractionDigits: 1, suffix: 'K' })
-  })
-})
-
 describe('NitroNumber with a format', () => {
-  it('sends the figure the format prints, rounded and trimmed per value', () => {
-    const format = usd({ trailingZeroDisplay: 'stripIfInteger', roundingMode: 'halfEven' })
+  it('sends the figure the native formatter reads for each value', () => {
+    const format = usd({ '1234': { value: 1234, fractionDigits: 0 }, '2.125': { value: 2.12, fractionDigits: 2 } })
     const renderer = render(<NitroNumber format={format} value={1234} />)
     expect(nativeProps(renderer)).toMatchObject({ value: 1234, fractionDigits: 0, prefix: '$' })
 
     act(() => renderer.update(<NitroNumber format={format} value="2.125" />))
+    expect(format.figure).toHaveBeenLastCalledWith('2.125')
     expect(nativeProps(renderer)).toMatchObject({ value: 2.12, fractionDigits: 2 })
   })
 
   it('takes money as minor units, a bigint passed straight in', () => {
-    const format = usd({ trailingZeroDisplay: 'stripIfInteger' })
+    const format = usd({ '1234.56': { value: 1234.56, fractionDigits: 2 }, '1000.00': { value: 1000, fractionDigits: 0 } })
     const renderer = render(<NitroNumber format={format} value={123456n} minorDigits={2} />)
+    // Shifted as text: the formatter rounds the exact decimal.
+    expect(format.figure).toHaveBeenLastCalledWith('1234.56')
     expect(nativeProps(renderer)).toMatchObject({ value: 1234.56, fractionDigits: 2 })
 
     act(() => renderer.update(<NitroNumber format={format} value={100000n} minorDigits={2} />))
@@ -107,7 +91,7 @@ describe('NitroNumber with a format', () => {
   })
 
   it('lets fractionDigits hold every value to one count', () => {
-    const format = usd({ trailingZeroDisplay: 'stripIfInteger' })
+    const format = usd({ '1234': { value: 1234, fractionDigits: 0 } })
     const renderer = render(<NitroNumber format={format} value={1234} fractionDigits={2} />)
     expect(nativeProps(renderer).fractionDigits).toBe(2)
   })

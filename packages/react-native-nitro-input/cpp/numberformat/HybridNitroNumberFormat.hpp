@@ -15,6 +15,7 @@
 #include "HybridNitroNumberFormatFactorySpec.hpp"
 #include "HybridNitroNumberFormatSpec.hpp"
 #include "HybridNitroPlatformNumberFormatterSpec.hpp"
+#include "FormatFigure.hpp"
 #include "NumberFormatCore.hpp"
 #include "NumberFormatProbe.hpp"
 
@@ -41,6 +42,8 @@ public:
   std::string format(const std::variant<int64_t, double, std::string>& value) override;
   std::vector<NumberFormatPart> formatToParts(const std::variant<int64_t, double, std::string>& value) override;
   ResolvedNumberFormatOptions resolvedOptions() override { return resolved_; }
+  NumberFigure figure(const std::variant<int64_t, double, std::string>& value) override;
+  NumberFormatLayout layout() override;
 
   /// The C++ core, or null for a formatter the platform draws.
   const numberformat::NumberFormatCore* core() const { return core_ ? &*core_ : nullptr; }
@@ -48,6 +51,9 @@ public:
   size_t getExternalMemorySize() noexcept override { return 2048; }
 
 private:
+  std::vector<numberformat::Part> partsOf(const std::variant<int64_t, double, std::string>& value);
+  /// The digits 0…9 this formatter prints.
+  const std::array<std::string, 10>& localeDigits() const { return core_ ? core_->localeFormat().digits : platformFormat_.digits; }
   std::string formatWithPlatform(const std::variant<int64_t, double, std::string>& value);
 
   ResolvedNumberFormatOptions resolved_;

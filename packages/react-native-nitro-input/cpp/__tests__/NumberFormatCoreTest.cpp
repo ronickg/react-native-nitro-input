@@ -3,6 +3,7 @@
 // The locale formats here are written by hand the way NumberFormatProbe
 // learns them on a device; the expected strings are what Intl.NumberFormat
 // prints for the same locale and options (V8 / ICU).
+#include "numberformat/FormatFigure.hpp"
 #include "numberformat/NumberFormatCore.hpp"
 
 #include <charconv>
@@ -59,6 +60,26 @@ static Rounding fraction(int min, int max) {
 
 static std::string fmt(const LocaleFormat& f, const Rounding& r, double v, SignDisplay s = SignDisplay::Auto, Grouping g = Grouping::Auto) {
   return NumberFormatCore(f, r, g, s).format(Decimal::fromDouble(v));
+}
+
+/// The figure `NitroNumber` rolls for `text`, as "value|fraction digits|prefix|suffix" (and the exact digits).
+static std::string figure(const LocaleFormat& f, const Rounding& r, std::string_view text, std::string* digits = nullptr) {
+  const Decimal d = Decimal::fromString(text);
+  const Figure fig = figureOf(NumberFormatCore(f, r, Grouping::Auto, SignDisplay::Auto).formatToParts(d), d.negative, f.digits);
+  if (digits) *digits = fig.digits;
+  char value[64];
+  std::snprintf(value, sizeof value, "%.17g", fig.value());
+  return std::string(value) + "|" + std::to_string(fig.fractionDigits) + "|" + fig.prefix + "|" + fig.suffix;
+}
+
+static std::string layout(const LocaleFormat& f, const Rounding& r, Grouping g = Grouping::Auto) {
+  const NumberFormatCore core(f, r, g, SignDisplay::Auto);
+  const Layout l = layoutOf(core.formatToParts(Decimal::fromString(r.maximumFractionDigits > 0 ? "1234567.5" : "1234567")),
+                            core.formatToParts(Decimal::fromString("-1")), f.digits);
+  std::string sizes;
+  for (int size : l.groupingSizes) sizes += std::to_string(size) + ",";
+  return l.prefix + "|" + l.suffix + "|" + l.groupingSeparator + "|" + l.decimalSeparator + "|" + (l.signAfterAffix ? "after" : "before") + "|" +
+         l.minusSign + "|" + sizes + "|" + std::to_string(l.digitGlyphs.size());
 }
 
 static std::string parts(const LocaleFormat& f, const Rounding& r, double v) {
@@ -319,6 +340,77 @@ int main() {
     arab.groupingSeparator = "٬";
     arab.decimalSeparator = "٫";
     CHECK_EQ_STR(fmt(arab, fraction(0, 3), 1234.5), "١٬٢٣٤٫٥");
+  }
+
+  // The figure NitroNumber rolls: the digits as printed, per value.
+  {
+    const LocaleFormat usd = enUS("$", "$");
+    Rounding cents = fraction(2, 2);
+    // trailingZeroDisplay: the fraction digits follow the value.
+    Rounding strip = cents;
+    strip.trailingZeroDisplay = TrailingZeroDisplay::StripIfInteger;
+    CHECK_EQ_STR(figure(usd, strip, "1234"), "1234|0|$|");
+    CHECK_EQ_STR(figure(usd, strip, "1234.5"), "1234.5|2|$|");
+    CHECK_EQ_STR(figure(usd, strip, "1234.00"), "1234|0|$|");
+    // A minimum below the maximum.
+    const LocaleFormat plain = enUS();
+    CHECK_EQ_STR(figure(plain, fraction(0, 3), "1.5"), "1.5|1||");
+    CHECK_EQ_STR(figure(plain, fraction(0, 3), "1.25"), "1.25|2||");
+    CHECK_EQ_STR(figure(plain, fraction(0, 3), "2"), "2|0||");
+    // The format's rounding mode, on the exact decimal.
+    Rounding halfEven = cents;
+    halfEven.mode = RoundingMode::HalfEven;
+    CHECK_EQ_STR(figure(usd, halfEven, "2.125"), "2.1200000000000001|2|$|");
+    CHECK_EQ_STR(figure(usd, halfEven, "2.135"), "2.1400000000000001|2|$|");
+    CHECK_EQ_STR(figure(usd, cents, "2.125"), "2.1299999999999999|2|$|");
+    CHECK_EQ_STR(figure(usd, cents, "1.005"), "1.01|2|$|");
+    Rounding trunc = cents;
+    trunc.mode = RoundingMode::Trunc;
+    CHECK_EQ_STR(figure(usd, trunc, "-2.129"), "-2.1200000000000001|2|$|");
+    // Minor units rounded the format's way without a double in between.
+    Rounding wholeHalfEven = fraction(0, 0);
+    wholeHalfEven.mode = RoundingMode::HalfEven;
+    CHECK_EQ_STR(figure(usd, wholeHalfEven, "2.50"), "2|0|$|");
+    CHECK_EQ_STR(figure(usd, wholeHalfEven, "3.50"), "4|0|$|");
+    // A value that rounds to nothing carries no minus; the sign never joins an affix.
+    CHECK_EQ_STR(figure(usd, cents, "-0.004"), "0|2|$|");
+    CHECK_EQ_STR(figure(usd, cents, "-0.5"), "-0.5|2|$|");
+    // Past a double's exact integers, the digits stay exact.
+    std::string digits;
+    figure(usd, cents, "123456789012345678.905", &digits);
+    CHECK_EQ_STR(digits, "123456789012345678.91");
+    // A suffix currency.
+    CHECK_EQ_STR(figure(deDE(" €", "€"), cents, "-1234.5"), "-1234.5|2|| €");
+    // Locale digits map back to Latin ones.
+    LocaleFormat arab = enUS();
+    arab.digits = {"٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"};
+    arab.decimalSeparator = "٫";
+    CHECK_EQ_STR(figure(arab, fraction(0, 3), "1234.5"), "1234.5|1||");
+    // NaN and infinities roll nowhere.
+    CHECK_EQ_STR(figure(usd, cents, "NaN"), "0|0||");
+    CHECK_EQ_STR(figure(usd, cents, "-Infinity"), "0|0||");
+    // Compact notation, as the platform's parts give it: the figure 1.2 and the suffix "K".
+    const std::vector<Part> compact = {{PartType::Integer, "1"}, {PartType::Decimal, "."}, {PartType::Fraction, "2"}, {PartType::Compact, "K"}};
+    const Figure k = figureOf(compact, false, plain.digits);
+    CHECK_EQ_STR(k.digits + "|" + std::to_string(k.fractionDigits) + "|" + k.suffix, "1.2|1|K");
+  }
+
+  // The layout the components take from a format.
+  {
+    CHECK_EQ_STR(layout(enUS("$", "$"), fraction(2, 2)), "$||,|.|before|-|3,3,|0");
+    CHECK_EQ_STR(layout(deDE(" €", "€"), fraction(2, 2)), "| €|.|,|before|-|3,3,|0");
+    CHECK_EQ_STR(layout(enUS(), fraction(0, 0), Grouping::Off), "|||.|before|-|3,|0");
+    // en-IN: 12,34,567.
+    LocaleFormat inr = enUS("₹", "₹");
+    inr.secondaryGroupingSize = 2;
+    CHECK_EQ_STR(layout(inr, fraction(2, 2)), "₹||,|.|before|-|3,2,|0");
+    // The sign after the currency ("$-5"), and a minus of its own ("−").
+    LocaleFormat after = enUS("$", "$");
+    after.negativePrefix = NumberFormatCore::splitAffix("$\u2212", "$", "\u2212", "+", "%");
+    CHECK_EQ_STR(layout(after, fraction(2, 2)), "$||,|.|after|\u2212|3,3,|0");
+    LocaleFormat arab = enUS();
+    arab.digits = {"٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"};
+    CHECK_EQ_STR(layout(arab, fraction(0, 3)), "||,|.|before|-|3,3,|10");
   }
 
   if (failures == 0) std::printf("NumberFormatCore: all checks passed\n");

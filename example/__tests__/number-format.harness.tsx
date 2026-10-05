@@ -10,6 +10,8 @@
 import { Platform } from 'react-native'
 import { describe, expect, it } from 'react-native-harness'
 import { NumberFormat, type NumberFormatOptions } from 'react-native-nitro-input'
+// The components' internals, which the package does not export.
+import { figureOf, formatProps } from '../../packages/react-native-nitro-input/src/formatProps'
 
 const LOCALES = [
   'en-US', 'en-GB', 'en-IN', 'en-PH', 'fil-PH', 'de-DE', 'de-CH', 'fr-FR', 'es-ES', 'es-MX', 'it-IT', 'pt-BR', 'nl-NL', 'sv-SE', 'pl-PL',
@@ -211,5 +213,120 @@ describe('NumberFormat', () => {
     expect(() => new NumberFormat('en-US', { style: 'currency', currency: 'US' })).toThrow()
     expect(() => new NumberFormat('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 1 })).toThrow()
     expect(() => new NumberFormat('en-US', { maximumFractionDigits: 101 })).toThrow()
+  })
+})
+
+// The components' reading of a format (`figureOf`, `formatProps`), done in C++
+// since 0.3.8. The reference below is the JS it replaced, run on the same
+// parts: the two must agree for every locale, option and value.
+type Part = { type: string; value: string }
+const NUMBER_PARTS = new Set(['integer', 'group', 'decimal', 'fraction'])
+
+function referenceAffixes(parts: Part[]) {
+  const first = parts.findIndex((p) => NUMBER_PARTS.has(p.type))
+  let last = first
+  parts.forEach((p, i) => {
+    if (NUMBER_PARTS.has(p.type)) last = i
+  })
+  const text = (from: number, to: number) =>
+    parts
+      .slice(from, to)
+      .map((p) => (p.type === 'minusSign' || p.type === 'plusSign' ? '' : p.value))
+      .join('')
+  return { prefix: first < 0 ? '' : text(0, first), suffix: first < 0 ? '' : text(last + 1, parts.length) }
+}
+
+function referenceFigure(format: NumberFormat, value: number | bigint | string, glyphs: string[]) {
+  const parts = format.formatToParts(value) as Part[]
+  const latin = (text: string) =>
+    glyphs.length === 10 ? Array.from(text).map((c) => (glyphs.indexOf(c) >= 0 ? String(glyphs.indexOf(c)) : c)).join('') : text
+  const integer = latin(parts.filter((p) => p.type === 'integer').map((p) => p.value).join(''))
+  const fraction = latin(parts.filter((p) => p.type === 'fraction').map((p) => p.value).join(''))
+  const magnitude = Number(fraction ? `${integer}.${fraction}` : integer)
+  const negative = typeof value === 'bigint' ? value < 0n : typeof value === 'string' ? value.trim().startsWith('-') : value < 0
+  if (integer === '' || !Number.isFinite(magnitude)) {
+    return { value: 0, fractionDigits: format.resolvedOptions().maximumFractionDigits ?? 0, ...referenceAffixes(parts) }
+  }
+  return { value: magnitude === 0 ? 0 : (negative ? -1 : 1) * magnitude, fractionDigits: fraction.length, ...referenceAffixes(parts) }
+}
+
+describe('NumberFormat, as the components read it', () => {
+  const FIGURE_OPTIONS: NumberFormatOptions[] = [
+    ...OPTIONS,
+    { style: 'currency', currency: 'USD', trailingZeroDisplay: 'stripIfInteger' },
+    { style: 'currency', currency: 'USD', roundingMode: 'halfEven' },
+    { minimumFractionDigits: 0, maximumFractionDigits: 3 },
+    { notation: 'compact' },
+    { style: 'currency', currency: 'EUR', notation: 'compact' },
+  ]
+  const FIGURE_VALUES: (number | bigint | string)[] = [...VALUES, NaN, -Infinity, '2.125', '-0.004', '1234.00', 123456n, -98765n, 999999]
+
+  it('reads the figure the format prints, as the JS reading did', () => {
+    const mismatches: string[] = []
+    for (const locale of LOCALES) {
+      for (const options of FIGURE_OPTIONS) {
+        const format = new NumberFormat(locale, options)
+        const glyphs = formatProps(format).digitGlyphs
+        for (const value of FIGURE_VALUES) {
+          const ours = figureOf(format, value)
+          const expected = referenceFigure(format, value, glyphs)
+          const a = JSON.stringify({ ...ours, value: Object.is(ours.value, -0) ? '-0' : ours.value })
+          const b = JSON.stringify({ ...expected, value: Object.is(expected.value, -0) ? '-0' : expected.value })
+          if (a !== b) mismatches.push(`${locale} ${JSON.stringify(options)} ${String(value)}: ${a} vs ${b}`)
+        }
+      }
+    }
+    if (mismatches.length > 0) throw new Error(`${mismatches.length} mismatches\n${mismatches.slice(0, 30).join('\n')}`)
+  })
+
+  it('reads the layout of the format, as the JS reading did', () => {
+    const mismatches: string[] = []
+    for (const locale of LOCALES) {
+      for (const options of FIGURE_OPTIONS) {
+        const format = new NumberFormat(locale, options)
+        const resolved = format.resolvedOptions()
+        const compact = resolved.notation === 'compact'
+        const max = resolved.maximumFractionDigits ?? 0
+        const parts = format.formatToParts(compact ? 1 : max > 0 ? 1234567.5 : 1234567) as Part[]
+        const negative = format.formatToParts(-1) as Part[]
+        const minus = negative.findIndex((p) => p.type === 'minusSign')
+        const currency = negative.findIndex((p) => p.type === 'currency' || p.type === 'percentSign')
+        const integers = parts.filter((p) => p.type === 'integer').map((p) => Array.from(p.value).length)
+        const expected = {
+          ...referenceAffixes(parts),
+          groupingSeparator: parts.find((p) => p.type === 'group')?.value ?? '',
+          decimalSeparator: parts.find((p) => p.type === 'decimal')?.value ?? '.',
+          signPlacement: minus >= 0 && currency >= 0 && minus > currency ? 'afterAffix' : 'beforeAffix',
+          minusSign: negative[minus]?.value ?? '-',
+          groupingSizes: integers.length >= 3 ? [integers[integers.length - 1], integers[integers.length - 2]] : [3],
+        }
+        const props = formatProps(format)
+        const ours = {
+          prefix: props.prefix,
+          suffix: props.suffix,
+          groupingSeparator: props.groupingSeparator,
+          decimalSeparator: props.decimalSeparator,
+          signPlacement: props.signPlacement,
+          minusSign: props.minusSign,
+          groupingSizes: props.groupingSizes,
+        }
+        if (JSON.stringify(ours) !== JSON.stringify(expected)) {
+          mismatches.push(`${locale} ${JSON.stringify(options)}: ${JSON.stringify(ours)} vs ${JSON.stringify(expected)}`)
+        }
+        // The digits it prints are the ones it says it prints.
+        if (props.digitGlyphs.length > 0 && !format.format(1234567890).split('').every((c) => !/[0-9]/.test(c))) {
+          mismatches.push(`${locale} ${JSON.stringify(options)}: Latin digits printed with glyphs ${props.digitGlyphs.join('')}`)
+        }
+      }
+    }
+    if (mismatches.length > 0) throw new Error(`${mismatches.length} mismatches\n${mismatches.slice(0, 30).join('\n')}`)
+  })
+
+  it('rounds the exact decimal, the format\'s way', () => {
+    const usd = new NumberFormat('en-US', { style: 'currency', currency: 'USD', roundingMode: 'halfEven', maximumFractionDigits: 0 })
+    expect(figureOf(usd, '2.50')).toMatchObject({ value: 2, fractionDigits: 0, prefix: '$' })
+    expect(figureOf(usd, '3.50')).toMatchObject({ value: 4, fractionDigits: 0 })
+    expect(figureOf(new NumberFormat('en-US', { style: 'currency', currency: 'USD' }), '1.005').value).toBe(1.01)
+    expect(Object.is(figureOf(new NumberFormat('en-US', { style: 'currency', currency: 'USD' }), '-0.004').value, -0)).toBe(false)
   })
 })
