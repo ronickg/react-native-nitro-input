@@ -39,10 +39,23 @@ include_directories(
 
 # Worklets are optional: with react-native-worklets installed the views can
 # run `transform` / `onChangeText` worklets synchronously on the UI thread.
+#
+# Headers only, deliberately NOT linked: the bridge uses worklets' header-inline
+# API and imports no symbol from libworklets.so (NDK links with --no-undefined,
+# so if that ever changes the build fails here instead of misbehaving).
+# Linking would add a DT_NEEDED on libworklets.so, and since NitroInput is a
+# Nitro package (loaded at app start, ahead of most libraries) it would become
+# the first library to load libworklets.so. On Android that changes which copy
+# of worklets' weak RTTI (e.g. worklets::AsyncQueue) each library binds to, and
+# react-native-vision-camera-worklets' frame-processor queue then fails worklets'
+# dynamic_cast: null queue, SIGSEGV in WorkletRuntime::scheduleImpl.
 find_package(react-native-worklets CONFIG QUIET)
 if(react-native-worklets_FOUND)
   target_compile_definitions(${PACKAGE_NAME} PRIVATE NITRO_INPUT_WORKLETS=1)
-  target_link_libraries(${PACKAGE_NAME} react-native-worklets::worklets)
+  target_include_directories(${PACKAGE_NAME} PRIVATE
+    $<TARGET_PROPERTY:react-native-worklets::worklets,INTERFACE_INCLUDE_DIRECTORIES>)
+  target_compile_definitions(${PACKAGE_NAME} PRIVATE
+    $<TARGET_PROPERTY:react-native-worklets::worklets,INTERFACE_COMPILE_DEFINITIONS>)
   message(STATUS "NitroInput: react-native-worklets found, worklet support enabled")
 else()
   message(STATUS "NitroInput: react-native-worklets not found, worklet support disabled")
