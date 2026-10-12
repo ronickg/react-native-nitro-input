@@ -51,6 +51,11 @@ protocol InputSizingProps {
   var suffixSpacing: Double { get }
   var allowFontScaling: Bool { get }
   var maxFontSizeMultiplier: Double { get }
+  var variant: NitroInputVariant { get }
+  var label: String { get }
+  var labelBehavior: NitroInputLabelBehavior { get }
+  var labelFontSize: Double { get }
+  var cornerRadius: Double { get }
 }
 
 extension HybridNitroInputView: InputSizingProps {}
@@ -111,6 +116,78 @@ enum InputMapping {
   }
 }
 
+extension InputMapping {
+  /// The frame's sizing half; the view adds the colours and the stroke width.
+  static func sizingFrame(_ p: some InputSizingProps) -> NitroInputView.Frame {
+    var frame = NitroInputView.Frame()
+    switch p.variant {
+    case .outlined: frame.variant = .outlined
+    case .filled: frame.variant = .filled
+    case .none: frame.variant = .none
+    }
+    frame.label = p.label
+    frame.labelBehavior = p.labelBehavior == .always ? .always : .float
+    frame.labelFontSize = p.labelFontSize.isFinite ? max(0, CGFloat(p.labelFontSize)) : 0
+    frame.cornerRadius = p.cornerRadius.isFinite ? max(0, CGFloat(p.cornerRadius)) : 8
+    return frame
+  }
+}
+
+// MARK: - Frame
+
+/// The room an outlined or filled frame keeps around its text and for its
+/// label. The view lays itself out with these; `InputSizing` adds them to the
+/// size it reports. Mirrors `InputFrame` in InputSizing.kt.
+enum InputFrameMetrics {
+  /// The room a framed field keeps above and below its text. Flat, because
+  /// nothing about the vertical middle of the box depends on its corners.
+  static let framePadding: CGFloat = 16
+  /// Material's ratio: the floated label is three quarters of the body size.
+  static let floatedLabelRatio: CGFloat = 0.75
+  /// A filled field's floated label line, as a multiple of its size. A fudge,
+  /// not a Material metric: enough of a gap under the floated label that the
+  /// two lines do not crowd at the default sizes.
+  static let filledLabelLine: CGFloat = 1.4
+
+  /// How far in the label - and so the text under it - starts: far enough past
+  /// the corner that the notch never opens onto the arc itself.
+  static func labelInset(_ frame: NitroInputView.Frame) -> CGFloat { max(16, frame.cornerRadius + 8) }
+
+  static func sideInset(_ frame: NitroInputView.Frame) -> CGFloat { frame.draws ? labelInset(frame) : 0 }
+
+  static func floatedLabelSize(_ frame: NitroInputView.Frame, restingSize: CGFloat) -> CGFloat {
+    frame.labelFontSize > 0 ? frame.labelFontSize : max(9, restingSize * floatedLabelRatio)
+  }
+
+  /// Room at the top for the floated label - which only the filled variant
+  /// needs. Its floated label lives inside the box, on its own line above the
+  /// text. An outlined field's sits *on* the stroke, outside the content box.
+  static func topInset(_ frame: NitroInputView.Frame, restingSize: CGFloat) -> CGFloat {
+    guard frame.hasLabel, frame.variant == .filled else { return 0 }
+    return floatedLabelSize(frame, restingSize: restingSize) * filledLabelLine
+  }
+
+  /// The label at rest, in the body font: the widest it gets.
+  static func restingLabelWidth(_ frame: NitroInputView.Frame, metrics: InputMetrics) -> CGFloat {
+    guard frame.hasLabel else { return 0 }
+    return (frame.label as NSString).size(withAttributes: [.font: metrics.body]).width
+  }
+
+  /// A framed field's width: its content, or its label if wider, between the side insets.
+  static func width(content: CGFloat, frame: NitroInputView.Frame, metrics: InputMetrics) -> CGFloat {
+    guard frame.draws else { return content }
+    return 2 * sideInset(frame) + max(content, restingLabelWidth(frame, metrics: metrics))
+  }
+
+  /// A framed single line's height: the line with the frame's padding above
+  /// and below it, and a filled field's label line. The line is centred in it,
+  /// as it is in any height the caller gives. (A wrapping field adds its own.)
+  static func singleLineHeight(_ line: CGFloat, frame: NitroInputView.Frame, metrics: InputMetrics) -> CGFloat {
+    guard frame.draws else { return line }
+    return line + topInset(frame, restingSize: metrics.body.pointSize) + 2 * framePadding
+  }
+}
+
 // MARK: - Metrics
 
 /// A field's body / prefix / suffix fonts, the letter spacing and seams between
@@ -133,6 +210,8 @@ final class InputMetrics {
   let suffixOffset: CGFloat
   /// Height of the line box (the body font's line height).
   let lineHeight: CGFloat
+  /// The advance of one of the bullets a plain secure field draws (see `init`).
+  let secureBulletWidth: CGFloat
   private var widthCache: [WidthKey: CGFloat] = [:]
 
   private struct WidthKey: Hashable {
@@ -153,6 +232,15 @@ final class InputMetrics {
     prefixOffset = t.prefixOffset * scale
     suffixOffset = t.suffixOffset * scale
     lineHeight = ceil(body.lineHeight)
+    // A plain secure field is drawn by UITextField, which shows every
+    // character as U+2219 in the *system* font at the field's size - in the
+    // field's weight when that is the system font, regular otherwise - not as
+    // the field's own font would draw a bullet. Measured with the caret on the
+    // simulator: 8 bullets at 18 pt advance 87 pt whatever the field's font.
+    let bulletFont = t.fontFamily == nil
+      ? UIFont.systemFont(ofSize: body.pointSize, weight: NitroInputView.uiWeight(t.fontWeight))
+      : UIFont.systemFont(ofSize: body.pointSize)
+    secureBulletWidth = ("\u{2219}" as NSString).size(withAttributes: [.font: bulletFont]).width
   }
 
   func font(for role: NitroInputView.GlyphRole) -> UIFont {
@@ -373,18 +461,19 @@ enum InputGlyphs {
 
 /// The size a single-line field reports through `onSizeChange`.
 enum InputSizing {
-  /// What a plain field measures: the placeholder when empty, bullets when secure, else the text and its tail.
-  static func plainBody(text: String, hint: String, tail: String, secure: Bool) -> String {
-    text.isEmpty ? hint : secure ? InputText.bullets(text) : text + tail
-  }
-
-  /// A plain field's content width: the text (or the placeholder) and the
+  /// A plain field's content width: the text (the placeholder when empty, a
+  /// bullet per character when secure, with `keepPlaceholder`'s tail) and the
   /// affixes. The field's own kerning follows every glyph; the affixes take
   /// their room with their seams.
-  static func plainWidth(_ m: InputMetrics, format: NitroInputView.Format, body: String) -> CGFloat {
-    m.affixRoom(format.prefix, role: .prefix)
-      + m.width(of: body, role: .body) + m.bodySpacing * CGFloat(body.unicodeScalars.count)
-      + m.affixRoom(format.suffix, role: .suffix)
+  static func plainWidth(_ m: InputMetrics, format: NitroInputView.Format, text: String, hint: String, tail: String,
+                         secure: Bool) -> CGFloat {
+    let affixes = m.affixRoom(format.prefix, role: .prefix) + m.affixRoom(format.suffix, role: .suffix)
+    if secure, !text.isEmpty {
+      let count = CGFloat(text.unicodeScalars.count)
+      return affixes + (m.secureBulletWidth + m.bodySpacing) * count
+    }
+    let body = text.isEmpty ? hint : text + tail
+    return affixes + m.width(of: body, role: .body) + m.bodySpacing * CGFloat(body.unicodeScalars.count)
   }
 
   /// A reflowing field's width at rest: the engine's target, the sum of its glyphs' advances.
@@ -426,16 +515,16 @@ final class HybridNitroInputMeasure: HybridNitroInputMeasureSpec {
     let metrics = InputMetrics(InputMapping.sizingTypography(sizing))
     _ = InputText.configure(formatter: &formatter, maskEngine: &maskEngine, previous: nil, format: format)
     let text = InputText.normalized(sizing.text, format: format, formatter: &formatter, maskEngine: &maskEngine)
+    let frame = InputMapping.sizingFrame(sizing)
     // Unfocused, as a field mounts: a label resting inside it hides the placeholder.
-    let hasLabel = sizing.variant != .none && !sizing.label.isEmpty
-    let labelFloats = sizing.labelBehavior == .always || !text.isEmpty
-    let hint = hasLabel && !labelFloats ? "" : InputText.basePlaceholder(format: format, maskEngine: &maskEngine)
+    let labelFloats = frame.labelBehavior == .always || !text.isEmpty
+    let hint = frame.hasLabel && !labelFloats ? "" : InputText.basePlaceholder(format: format, maskEngine: &maskEngine)
     let tail = InputText.ghostTail(text, format: format, maskEngine: &maskEngine, secure: sizing.secureTextEntry)
     let width = sizing.plain
-      ? InputSizing.plainWidth(metrics, format: format,
-                               body: InputSizing.plainBody(text: text, hint: hint, tail: tail, secure: sizing.secureTextEntry))
+      ? InputSizing.plainWidth(metrics, format: format, text: text, hint: hint, tail: tail, secure: sizing.secureTextEntry)
       : InputSizing.reflowWidth(metrics, format: format, text: text, hint: hint, tail: tail, secure: sizing.secureTextEntry)
-    let size = InputSizing.reported(width: width, height: metrics.lineHeight)
+    let size = InputSizing.reported(width: InputFrameMetrics.width(content: width, frame: frame, metrics: metrics),
+                                    height: InputFrameMetrics.singleLineHeight(metrics.lineHeight, frame: frame, metrics: metrics))
     return NitroInputSize(width: Double(size.width), height: Double(size.height))
   }
 }

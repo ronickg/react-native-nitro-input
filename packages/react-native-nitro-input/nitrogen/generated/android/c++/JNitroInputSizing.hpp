@@ -124,6 +124,10 @@ namespace margelo::nitro::nitroinput {
       jni::local_ref<jni::JString> label = this->getFieldValue(fieldLabel);
       static const auto fieldLabelBehavior = clazz->getField<JNitroInputLabelBehavior>("labelBehavior");
       jni::local_ref<JNitroInputLabelBehavior> labelBehavior = this->getFieldValue(fieldLabelBehavior);
+      static const auto fieldLabelFontSize = clazz->getField<double>("labelFontSize");
+      double labelFontSize = this->getFieldValue(fieldLabelFontSize);
+      static const auto fieldCornerRadius = clazz->getField<double>("cornerRadius");
+      double cornerRadius = this->getFieldValue(fieldCornerRadius);
       return NitroInputSizing(
         text->toStdString(),
         mode->toCpp(),
@@ -189,7 +193,9 @@ namespace margelo::nitro::nitroinput {
         maxFontSizeMultiplier,
         variant->toCpp(),
         label->toStdString(),
-        labelBehavior->toCpp()
+        labelBehavior->toCpp(),
+        labelFontSize,
+        cornerRadius
       );
     }
 
@@ -199,7 +205,7 @@ namespace margelo::nitro::nitroinput {
      */
     [[maybe_unused]]
     static jni::local_ref<JNitroInputSizing::javaobject> fromCpp(const NitroInputSizing& value) {
-      using JSignature = JNitroInputSizing(jni::alias_ref<jni::JString>, jni::alias_ref<JNitroInputMode>, jboolean, jboolean, jboolean, double, double, double, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<JNitroInputSignPlacement>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JArrayClass<JNitroInputNotation>>, jboolean, jboolean, jni::alias_ref<jni::JArrayClass<jni::JString>>, jni::alias_ref<JNitroInputMaskAffinity>, jni::alias_ref<JNitroInputTextCase>, jni::alias_ref<jni::JArrayClass<JNitroInputCharacterMapping>>, jni::alias_ref<jni::JString>, jboolean, double, double, double, double, double, jni::alias_ref<jni::JString>, double, double, double, jboolean, double, jni::alias_ref<JNitroInputVariant>, jni::alias_ref<jni::JString>, jni::alias_ref<JNitroInputLabelBehavior>);
+      using JSignature = JNitroInputSizing(jni::alias_ref<jni::JString>, jni::alias_ref<JNitroInputMode>, jboolean, jboolean, jboolean, double, double, double, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<JNitroInputSignPlacement>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JArrayClass<JNitroInputNotation>>, jboolean, jboolean, jni::alias_ref<jni::JArrayClass<jni::JString>>, jni::alias_ref<JNitroInputMaskAffinity>, jni::alias_ref<JNitroInputTextCase>, jni::alias_ref<jni::JArrayClass<JNitroInputCharacterMapping>>, jni::alias_ref<jni::JString>, jboolean, double, double, double, double, double, jni::alias_ref<jni::JString>, double, double, double, jboolean, double, jni::alias_ref<JNitroInputVariant>, jni::alias_ref<jni::JString>, jni::alias_ref<JNitroInputLabelBehavior>, double, double);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
@@ -268,7 +274,9 @@ namespace margelo::nitro::nitroinput {
         value.maxFontSizeMultiplier,
         JNitroInputVariant::fromCpp(value.variant),
         jni::make_jstring(value.label),
-        JNitroInputLabelBehavior::fromCpp(value.labelBehavior)
+        JNitroInputLabelBehavior::fromCpp(value.labelBehavior),
+        value.labelFontSize,
+        value.cornerRadius
       );
     }
   };

@@ -727,24 +727,12 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
       selectionColor = colorFromARGB(selectionColor),
       hidden = caretHidden,
     )
-    inputView.inputFrame = NitroInputView.Frame(
-      variant = when (variant) {
-        NitroInputVariant.OUTLINED -> NitroInputView.Variant.OUTLINED
-        NitroInputVariant.FILLED -> NitroInputView.Variant.FILLED
-        NitroInputVariant.NONE -> NitroInputView.Variant.NONE
-      },
-      label = label,
-      labelBehavior = when (labelBehavior) {
-        NitroInputLabelBehavior.ALWAYS -> NitroInputView.LabelBehavior.ALWAYS
-        NitroInputLabelBehavior.FLOAT -> NitroInputView.LabelBehavior.FLOAT
-      },
+    inputView.inputFrame = sizingFrameOf(this).copy(
       labelColor = colorFromARGB(labelColor),
       labelFocusedColor = colorFromARGB(labelFocusedColor),
-      labelFontSize = Math.max(0.0, finite(labelFontSize, 0.0)).toFloat(),
       strokeColor = colorFromARGB(strokeColor),
       focusedStrokeColor = colorFromARGB(focusedStrokeColor),
       strokeWidth = Math.max(0.0, finite(strokeWidth, 1.0)).toFloat(),
-      cornerRadius = Math.max(0.0, finite(cornerRadius, 8.0)).toFloat(),
       fillColor = colorFromARGB(fillColor),
     )
     inputView.alignment = when (textAlign) {

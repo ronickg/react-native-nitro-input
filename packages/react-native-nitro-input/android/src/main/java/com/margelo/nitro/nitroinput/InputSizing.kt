@@ -1,6 +1,9 @@
 package com.margelo.nitro.nitroinput
 
+import android.graphics.Paint
+import android.text.TextPaint
 import com.margelo.nitro.nitroinput.NitroInputView.Format
+import com.margelo.nitro.nitroinput.NitroInputView.Frame
 import com.margelo.nitro.nitroinput.NitroInputView.Mode
 import com.margelo.nitro.nitroinput.NitroInputView.Typography
 import kotlin.math.ceil
@@ -42,6 +45,11 @@ internal interface InputSizingProps {
   val suffixSpacing: Double
   val allowFontScaling: Boolean
   val maxFontSizeMultiplier: Double
+  val variant: NitroInputVariant
+  val label: String
+  val labelBehavior: NitroInputLabelBehavior
+  val labelFontSize: Double
+  val cornerRadius: Double
 }
 
 internal fun finiteOr(value: Double, fallback: Double): Double = if (value.isFinite()) value else fallback
@@ -93,6 +101,90 @@ internal fun sizingTypographyOf(p: InputSizingProps, density: Float): Typography
     allowFontScaling = p.allowFontScaling,
     maxFontSizeMultiplier = max(0.0, finiteOr(p.maxFontSizeMultiplier, 0.0)).toFloat(),
   )
+}
+
+/** The frame's sizing half; the view adds the colours and the stroke width. */
+internal fun sizingFrameOf(p: InputSizingProps) = Frame(
+  variant = when (p.variant) {
+    NitroInputVariant.OUTLINED -> NitroInputView.Variant.OUTLINED
+    NitroInputVariant.FILLED -> NitroInputView.Variant.FILLED
+    NitroInputVariant.NONE -> NitroInputView.Variant.NONE
+  },
+  label = p.label,
+  labelBehavior = when (p.labelBehavior) {
+    NitroInputLabelBehavior.ALWAYS -> NitroInputView.LabelBehavior.ALWAYS
+    NitroInputLabelBehavior.FLOAT -> NitroInputView.LabelBehavior.FLOAT
+  },
+  labelFontSize = max(0.0, finiteOr(p.labelFontSize, 0.0)).toFloat(),
+  cornerRadius = max(0.0, finiteOr(p.cornerRadius, 8.0)).toFloat(),
+)
+
+/**
+ * The room an outlined or filled frame keeps around its text and for its
+ * label, in px. The view lays itself out with these; [InputSizing] adds them
+ * to the size it reports. Mirrors `InputFrameMetrics` in InputSizing.swift.
+ */
+internal object InputFrame {
+  /** How far the label starts from the frame's edge, at a minimum. */
+  const val LABEL_INSET_DP = 16f
+  /** Past the corner's curve, so the notch never opens onto the arc. */
+  const val LABEL_CORNER_GAP_DP = 8f
+  /**
+   * The room a framed field keeps above and below its text. Flat, unlike the
+   * side inset: that one grows with `cornerRadius` because the *label* has to
+   * clear the corner curve, which is a horizontal problem.
+   */
+  const val FRAME_PADDING_DP = 16f
+  const val FLOATED_LABEL_RATIO = 0.75f
+  const val MIN_FLOATED_LABEL_DP = 9f
+  /** A filled field's floated label line, as a multiple of its size (a fudge, not a Material metric). */
+  const val FILLED_LABEL_LINE = 1.4f
+
+  /** How far in the label - and so the text under it - starts. */
+  fun labelInsetPx(frame: Frame, density: Float): Float =
+    max(LABEL_INSET_DP * density, frame.cornerRadius * density + LABEL_CORNER_GAP_DP * density)
+
+  fun sideInsetPx(frame: Frame, density: Float): Float = if (frame.draws) labelInsetPx(frame, density) else 0f
+
+  fun floatedLabelSizePx(frame: Frame, restingSizePx: Float, density: Float): Float =
+    if (frame.labelFontSize > 0f) frame.labelFontSize * density
+    else max(MIN_FLOATED_LABEL_DP * density, restingSizePx * FLOATED_LABEL_RATIO)
+
+  /**
+   * Room at the top for the floated label - which only the filled variant
+   * needs. Its label floats inside the box, on its own line above the text. An
+   * outlined field's label sits *on* the stroke, outside the content box: it
+   * intrudes into the top of the frame but never onto the text's line.
+   */
+  fun topInsetPx(frame: Frame, restingSizePx: Float, density: Float): Float =
+    if (!frame.hasLabel || frame.variant != NitroInputView.Variant.FILLED) 0f
+    else floatedLabelSizePx(frame, restingSizePx, density) * FILLED_LABEL_LINE
+
+  /** The label at rest, in the body face and size: the widest it gets. */
+  fun restingLabelWidthPx(frame: Frame, fonts: InputFonts): Float {
+    if (!frame.hasLabel) return 0f
+    val body = fonts.paint(InputRole.BODY)
+    val paint = TextPaint(Paint.ANTI_ALIAS_FLAG)
+    paint.typeface = body.typeface
+    paint.textSize = body.textSize
+    return paint.measureText(frame.label)
+  }
+
+  /** A framed field's width: its content, or its label if wider, between the side insets. */
+  fun widthPx(contentPx: Float, frame: Frame, fonts: InputFonts, density: Float): Float {
+    if (!frame.draws) return contentPx
+    return 2f * sideInsetPx(frame, density) + max(contentPx, restingLabelWidthPx(frame, fonts))
+  }
+
+  /**
+   * A framed single line's height: the line with the frame's padding above and
+   * below it, and a filled field's label line. The line is centred in it, as it
+   * is in any height the caller gives. (A wrapping field adds its own.)
+   */
+  fun singleLineHeightPx(linePx: Float, frame: Frame, fonts: InputFonts, density: Float): Float {
+    if (!frame.draws) return linePx
+    return linePx + topInsetPx(frame, fonts.paint(InputRole.BODY).textSize, density) + 2f * FRAME_PADDING_DP * density
+  }
 }
 
 /**
@@ -298,4 +390,9 @@ internal class SizingProps(s: NitroInputSizing) : InputSizingProps {
   override val suffixSpacing = s.suffixSpacing
   override val allowFontScaling = s.allowFontScaling
   override val maxFontSizeMultiplier = s.maxFontSizeMultiplier
+  override val variant = s.variant
+  override val label = s.label
+  override val labelBehavior = s.labelBehavior
+  override val labelFontSize = s.labelFontSize
+  override val cornerRadius = s.cornerRadius
 }

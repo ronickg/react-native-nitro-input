@@ -613,21 +613,12 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     worklets.onKeyPress = Self.clampInt(onKeyPressWorklet, 0, Int(Int32.max), fallback: 0)
 
     inputView.typography = typography
-    var inputFrame = NitroInputView.Frame()
-    switch variant {
-    case .outlined: inputFrame.variant = .outlined
-    case .filled: inputFrame.variant = .filled
-    case .none: inputFrame.variant = .none
-    }
-    inputFrame.label = label
-    inputFrame.labelBehavior = labelBehavior == .always ? .always : .float
+    var inputFrame = InputMapping.sizingFrame(self)
     inputFrame.labelColor = Self.color(fromARGB: labelColor)
     inputFrame.labelFocusedColor = Self.color(fromARGB: labelFocusedColor)
-    inputFrame.labelFontSize = labelFontSize.isFinite ? max(0, CGFloat(labelFontSize)) : 0
     inputFrame.strokeColor = Self.color(fromARGB: strokeColor)
     inputFrame.focusedStrokeColor = Self.color(fromARGB: focusedStrokeColor)
     inputFrame.strokeWidth = strokeWidth.isFinite ? max(0, CGFloat(strokeWidth)) : 1
-    inputFrame.cornerRadius = cornerRadius.isFinite ? max(0, CGFloat(cornerRadius)) : 8
     inputFrame.fillColor = Self.color(fromARGB: fillColor)
     inputView.inputFrame = inputFrame
     inputView.format = format

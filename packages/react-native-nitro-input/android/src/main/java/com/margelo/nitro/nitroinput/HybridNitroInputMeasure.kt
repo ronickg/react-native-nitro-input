@@ -33,16 +33,20 @@ class HybridNitroInputMeasure : HybridNitroInputMeasureSpec() {
     val fonts = InputFonts(sizingTypographyOf(props, density), density, resources.configuration.fontScale, context?.assets, Color.BLACK)
     InputText.configure(formatter, maskEngine, null, format)
     val text = InputText.conform(sizing.text, format, formatter, maskEngine, clampedInt(sizing.maxLength, 0, Int.MAX_VALUE, 0))
+    val frame = sizingFrameOf(props)
     // Unfocused, as a field mounts: a label resting inside it hides the placeholder.
-    val hasLabel = sizing.variant != NitroInputVariant.NONE && sizing.label.isNotEmpty()
-    val labelFloats = sizing.labelBehavior == NitroInputLabelBehavior.ALWAYS || text.isNotEmpty()
-    val hint = if (hasLabel && !labelFloats) "" else InputText.basePlaceholder(format, maskEngine)
+    val labelFloats = frame.labelBehavior == NitroInputView.LabelBehavior.ALWAYS || text.isNotEmpty()
+    val hint = if (frame.hasLabel && !labelFloats) "" else InputText.basePlaceholder(format, maskEngine)
     val tail = InputText.ghostTail(text, format, maskEngine, sizing.secureTextEntry)
     val width = if (sizing.plain) {
       InputSizing.plainWidthPx(fonts, format, InputSizing.plainBody(text, hint, tail, sizing.secureTextEntry))
     } else {
       InputSizing.reflowWidthPx(fonts, format, text, hint, tail, sizing.secureTextEntry)
     }
-    return InputSizing.reported(width, fonts.lineHeight, density)
+    return InputSizing.reported(
+      InputFrame.widthPx(width, frame, fonts, density),
+      InputFrame.singleLineHeightPx(fonts.lineHeight, frame, fonts, density),
+      density,
+    )
   }
 }

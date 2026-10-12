@@ -54,6 +54,8 @@ export interface NitroInputSizing {
   variant: NitroInputVariant
   label: string
   labelBehavior: NitroInputLabelBehavior
+  labelFontSize: number
+  cornerRadius: number
 }
 
 /** A size in points (iOS) or dp (Android). */

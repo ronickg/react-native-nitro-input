@@ -1916,7 +1916,7 @@ final class NitroInputView: UIView {
     return UIFont(descriptor: descriptor, size: size)
   }
 
-  private static func uiWeight(_ w: CGFloat) -> UIFont.Weight {
+  static func uiWeight(_ w: CGFloat) -> UIFont.Weight {
     switch w {
     case ..<150: return .ultraLight
     case ..<250: return .thin
@@ -1944,7 +1944,8 @@ final class NitroInputView: UIView {
   }
 
   private func intrinsicHeight() -> CGFloat {
-    guard traits.multiline else { return fonts.lineHeight }
+    // A single line is centred in its height; a frame adds its padding (and a filled label's line).
+    guard traits.multiline else { return InputFrameMetrics.singleLineHeight(fonts.lineHeight, frame: inputFrame, metrics: fonts.metrics) }
     let line = lineBoxHeight
     // Only the frame's room is on top of the text. The rest of the text view's
     // inset is `lineBoxPadding`, which is the *first* line's share of the
@@ -2014,13 +2015,14 @@ final class NitroInputView: UIView {
 
   private func contentWidth() -> CGFloat {
     guard traits.plain else { return CGFloat(engine.targetWidth()) }
-    let body = InputSizing.plainBody(text: text, hint: effectivePlaceholder, tail: ghostTail, secure: traits.secureTextEntry)
-    return InputSizing.plainWidth(fonts.metrics, format: format, body: body)
+    return InputSizing.plainWidth(fonts.metrics, format: format, text: text, hint: effectivePlaceholder, tail: ghostTail,
+                                  secure: traits.secureTextEntry)
   }
 
   private func reportIntrinsicSize() {
     // The same rounding as the measure that sized the field before it mounted.
-    let size = InputSizing.reported(width: contentWidth(), height: intrinsicHeight())
+    let size = InputSizing.reported(width: InputFrameMetrics.width(content: contentWidth(), frame: inputFrame, metrics: fonts.metrics),
+                                    height: intrinsicHeight())
     guard abs(size.width - lastReportedSize.width) > 0.01 || abs(size.height - lastReportedSize.height) > 0.01 else {
       pendingSizeReport = false
       return
@@ -2876,14 +2878,12 @@ extension NitroInputView: UITextFieldDelegate {
 
 extension NitroInputView {
 
-  /// Material's ratio: the floated label is three quarters of the body size.
-  private static let floatedLabelRatio: CGFloat = 0.75
   /// Breathing room either side of the label inside the notch.
   private static let labelGapPadding: CGFloat = 4
   /// Inset of the label (and the text below it) from the leading edge.
   /// Material uses 16; a large corner radius needs more, or the notch opens
   /// flush against the corner arc and the run of line before it disappears.
-  private var labelInset: CGFloat { max(16, inputFrame.cornerRadius + 8) }
+  private var labelInset: CGFloat { InputFrameMetrics.labelInset(inputFrame) }
   // Timings taken from Material's own text fields. The label runs the whole
   // duration on the standard decelerate curve; the notch is staggered behind
   // it, because the label has to travel most of the way to the top edge before
@@ -2932,9 +2932,7 @@ extension NitroInputView {
   private var restingLabelFont: UIFont { fonts.font(for: .body) }
 
   private var floatedLabelSize: CGFloat {
-    let explicit = inputFrame.labelFontSize
-    if explicit > 0 { return explicit }
-    return max(9, restingLabelFont.pointSize * Self.floatedLabelRatio)
+    InputFrameMetrics.floatedLabelSize(inputFrame, restingSize: restingLabelFont.pointSize)
   }
 
   // The frame is drawn in `CGColor`s, which have no appearance of their own:
@@ -2983,29 +2981,19 @@ extension NitroInputView {
   /// The top inset the label needs when it is floated onto the outline: half of
   /// it sits above the line, so the text below has to start lower.
   var frameTopInset: CGFloat {
-    // Only the filled variant needs the room. Its floated label lives inside
-    // the box, on its own line above the text. An outlined field's floated
-    // label sits *on* the stroke, outside the content box entirely - it
-    // intrudes into the top of the frame but never onto the text's line - so
-    // the text stays centred, which is what Material's outlined field does and
-    // what a field with no label at all does. Reserving space for it here left
-    // the text sitting half an inset low.
-    guard inputFrame.hasLabel, inputFrame.variant == .filled else { return 0 }
-    // 1.4 is a fudge, not a Material metric: enough of a gap under the
-    // floated label that the two lines do not crowd at the default sizes.
-    // Material's filled field is specified at a fixed 56dp with its own
-    // baselines; if this field is ever given fixed metrics, derive it there.
-    return floatedLabelSize * 1.4
+    // Only the filled variant needs the room (see `InputFrameMetrics.topInset`):
+    // an outlined field's floated label sits on the stroke, and reserving space
+    // for it left the text sitting half an inset low.
+    InputFrameMetrics.topInset(inputFrame, restingSize: restingLabelFont.pointSize)
   }
 
-  /// The room a framed field keeps above and below its text. Flat, because
-  /// nothing about the vertical middle of the box depends on its corners.
-  static let framePadding: CGFloat = 16
+  /// The room a framed field keeps above and below its text (`InputFrameMetrics`).
+  static let framePadding = InputFrameMetrics.framePadding
 
   /// Horizontal room for the frame, so the text lines up under the label
   /// instead of running into the stroke.
   var frameSideInset: CGFloat {
-    inputFrame.draws ? labelInset : 0
+    InputFrameMetrics.sideInset(inputFrame)
   }
 
   func layoutFrame(animated: Bool) {

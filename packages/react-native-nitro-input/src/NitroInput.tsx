@@ -1465,6 +1465,8 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       variant: variant ?? 'none',
       label: label ?? '',
       labelBehavior: labelBehavior ?? 'float',
+      labelFontSize: labelFontSize ?? 0,
+      cornerRadius: cornerRadius ?? 8,
     }
     // Until the view reports its size, the field lays out at the size it will
     // report, measured now with the view's own code - as `TextInput` measures
@@ -1520,11 +1522,9 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         minimumFontScale={minimumFontScale ?? 0.5}
         labelColor={processedLabelColor}
         labelFocusedColor={processedLabelFocusedColor}
-        labelFontSize={labelFontSize ?? 0}
         strokeColor={processedStrokeColor}
         focusedStrokeColor={processedFocusedStrokeColor}
         strokeWidth={strokeWidth ?? 1}
-        cornerRadius={cornerRadius ?? 8}
         fillColor={processedFillColor}
         onChangeMask={onChangeMaskCallback}
         keyboardType={resolvedKeyboardType}

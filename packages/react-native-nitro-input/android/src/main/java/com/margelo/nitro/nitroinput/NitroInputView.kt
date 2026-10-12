@@ -745,7 +745,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     // put space between its first line and the stroke: it pays for both edges.
     val side = frameSideInsetPx.roundToInt()
     val framePadding = if (inputFrame.draws && keyboard.multiline) {
-      (FRAME_PADDING_DP * density).roundToInt()
+      (InputFrame.FRAME_PADDING_DP * density).roundToInt()
     } else {
       0
     }
@@ -832,6 +832,10 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val selectionStart = editText.selectionStart
     val selectionEnd = editText.selectionEnd
     editText.inputType = textType
+    // A password input type switches the field to monospace, so its bullets
+    // were wider than the field measures them; React Native's TextInput puts
+    // the typeface back the same way.
+    if (k.secureTextEntry) editText.typeface = fonts.body.typeface
     if (rawType != null) editText.setRawInputType(rawType)
     if (k.multiline) {
       editText.setSingleLine(false)
@@ -1635,7 +1639,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     get() = if (typography.lineHeightPx > 0f) typography.lineHeightPx else fonts.lineHeight
 
   private fun intrinsicHeightPx(): Float {
-    if (!keyboard.multiline) return fonts.lineHeight
+    // A single line is centred in its height; a frame adds its padding (and a filled label's line).
+    if (!keyboard.multiline) return InputFrame.singleLineHeightPx(fonts.lineHeight, inputFrame, fonts, density)
     // The frame's padding counts on both paths. Leaving it off this one was
     // enough to lose it entirely: at mount there is no layout yet, so this
     // branch answered, and by the time the frame arrived and set the padding
@@ -1675,7 +1680,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     // The reported size is always the full-size one: with shrink-to-fit the view
     // keeps its height and the scaled text is centred inside it when drawing.
     // The same rounding as the measure that sized the field before it mounted.
-    val size = InputSizing.reported(contentWidthPx(), intrinsicHeightPx(), density)
+    val size = InputSizing.reported(InputFrame.widthPx(contentWidthPx(), inputFrame, fonts, density), intrinsicHeightPx(), density)
     val widthDp = size.width.toFloat()
     val heightDp = size.height.toFloat()
     if (abs(widthDp - lastReportedWidth) <= 0.01f && abs(heightDp - lastReportedHeight) <= 0.01f) {
@@ -1843,10 +1848,10 @@ class NitroInputView(context: Context) : FrameLayout(context) {
    * the corner that the notch never opens onto the arc itself.
    */
   private val labelInsetPx: Float
-    get() = max(LABEL_INSET_DP * density, inputFrame.cornerRadius * density + LABEL_CORNER_GAP_DP * density)
+    get() = InputFrame.labelInsetPx(inputFrame, density)
 
   private val frameSideInsetPx: Float
-    get() = if (inputFrame.draws) labelInsetPx else 0f
+    get() = InputFrame.sideInsetPx(inputFrame, density)
 
   /**
    * Room at the top for the floated label - which only the filled variant
@@ -1856,20 +1861,12 @@ class NitroInputView(context: Context) : FrameLayout(context) {
    * text stays centred the way it would with no label at all.
    */
   private val frameTopInsetPx: Float
-    get() {
-      if (!inputFrame.hasLabel || inputFrame.variant != Variant.FILLED) return 0f
-      // 1.4 is a fudge, not a Material metric - see the note on iOS.
-      return floatedLabelSizePx * 1.4f
-    }
+    get() = InputFrame.topInsetPx(inputFrame, restingLabelSizePx, density)
 
   private val restingLabelSizePx: Float get() = fonts.paint(InputRole.BODY).textSize
 
   private val floatedLabelSizePx: Float
-    get() {
-      val explicit = inputFrame.labelFontSize
-      if (explicit > 0f) return explicit * density
-      return max(MIN_FLOATED_LABEL_DP * density, restingLabelSizePx * FLOATED_LABEL_RATIO)
-    }
+    get() = InputFrame.floatedLabelSizePx(inputFrame, restingLabelSizePx, density)
 
   /** The label floats once focused or holding text - or always, if asked. */
   private val labelShouldFloat: Boolean
@@ -2176,22 +2173,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     private const val CARET_WIDTH_DP = 2f
     /** Fraction of the line height the caret leaves free (split between top and bottom). */
     private const val CARET_INSET = 0.1f
-    /** How far the label starts from the frame's left edge, at a minimum. */
-    private const val LABEL_INSET_DP = 16f
-    /**
-     * The room a framed field keeps above and below its text. Flat, unlike the
-     * side inset: that one grows with `cornerRadius` because the *label* has to
-     * clear the corner curve, which is a horizontal problem. The text sits in
-     * the middle of the box, so a rounder frame must not make the field taller.
-     */
-    private const val FRAME_PADDING_DP = 16f
-    /** Clearance the label keeps past the corner arc, so the notch opens onto the straight run. */
-    private const val LABEL_CORNER_GAP_DP = 8f
     /** Breathing room the notch leaves on each side of the label. */
     private const val LABEL_GAP_PADDING_DP = 4f
-    /** The floated label's size, as a fraction of the resting one. */
-    private const val FLOATED_LABEL_RATIO = 0.75f
-    private const val MIN_FLOATED_LABEL_DP = 9f
     /**
      * Taken from Material's own text fields. MUI's OutlinedInput runs the label
      * 200ms on the standard decelerate curve and the legend's width 100ms after
