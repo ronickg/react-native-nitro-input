@@ -15,6 +15,7 @@ import { RtlScreen } from './screens/RtlScreen'
 import { RecycleCheckScreen } from './screens/RecycleCheckScreen'
 import { MoneyFormatScreen } from './screens/MoneyFormatScreen'
 import { SavingsDialScreen } from './screens/SavingsDialScreen'
+import { UnoAmountPickerScreen, UnoMaskedInputsScreen } from './screens/UnoScreens'
 import {
   FlowAmountScreen,
   FlowEmailScreen,
@@ -44,6 +45,8 @@ export type RootStackParamList = {
   RecycleCheck: undefined
   MoneyFormat: undefined
   SavingsDial: undefined
+  UnoAmountPicker: undefined
+  UnoMaskedInputs: undefined
   LabSearch: { impl: Impl }
   LabForm: { impl: Impl }
   LabDetail: { title: string }
@@ -164,6 +167,8 @@ function HomeScreen() {
         <Row><Btn testID="home-money-format" tone="primary" title="Money: bigint, stripIfInteger, halfEven" onPress={() => nav.navigate('MoneyFormat')} /></Row>
         <Row><Btn testID="home-recycle" title="Recycle check (400-row lists)" onPress={() => nav.navigate('RecycleCheck')} /></Row>
         <Row><Btn testID="home-savings-dial" tone="primary" title="Savings dial (Uno), to zero" onPress={() => nav.navigate('SavingsDial')} /></Row>
+        <Row><Btn testID="home-uno-amount" tone="primary" title="Uno: amount picker, custom amount" onPress={() => nav.navigate('UnoAmountPicker')} /></Row>
+        <Row><Btn testID="home-uno-masks" tone="primary" title="Uno: masked inputs" onPress={() => nav.navigate('UnoMaskedInputs')} /></Row>
       </Card>
       <Card title="Original demo" hint="The NitroNumber and reflowing input showcases, and the edge cases.">
         <Row><Btn testID="home-demo" title="Open demo" onPress={() => nav.navigate('Demo')} /></Row>
@@ -193,6 +198,8 @@ export function RootNavigator() {
         <Stack.Screen name="Rtl" component={RtlScreen} options={{ title: 'Right-to-left' }} />
         <Stack.Screen name="MoneyFormat" component={MoneyFormatScreen} options={{ title: 'Money format' }} />
         <Stack.Screen name="SavingsDial" component={SavingsDialScreen} options={{ title: 'Savings dial', gestureEnabled: false }} />
+        <Stack.Screen name="UnoAmountPicker" component={UnoAmountPickerScreen} options={{ title: 'Pay credit' }} />
+        <Stack.Screen name="UnoMaskedInputs" component={UnoMaskedInputsScreen} options={{ title: 'Masked inputs' }} />
         <Stack.Screen name="RecycleCheck" component={RecycleCheckScreen} options={{ title: 'Recycle check' }} />
         <Stack.Screen name="LabSearch" component={LabSearchScreen} options={{ title: 'Search list', keyboardHandlingEnabled: false }} />
         <Stack.Screen name="LabForm" component={LabFormScreen} options={{ title: 'Form', keyboardHandlingEnabled: false }} />

@@ -14,7 +14,7 @@ import com.margelo.nitro.views.RecyclableView
  */
 @Keep
 @DoNotStrip
-class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitroInputViewSpec(), RecyclableView {
+class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitroInputViewSpec(), RecyclableView, InputSizingProps {
   private val mainHandler = Handler(Looper.getMainLooper())
 
   /**
@@ -73,7 +73,7 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     }
     inputView.onKeyPress = { key -> onKeyPress?.invoke(key) }
     inputView.onIntrinsicSizeChange = { width, height ->
-      onSizeChange?.invoke(width.toDouble(), height.toDouble())
+      if (!configured || committing) sizeHeld = true else onSizeChange?.invoke(width.toDouble(), height.toDouble())
     }
   }
 
@@ -285,7 +285,7 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
   override var onSizeChange: ((width: Double, height: Double) -> Unit)? = null
     set(v) {
       field = v
-      onMain { inputView.resendIntrinsicSize() }
+      onMain { if (configured) inputView.resendIntrinsicSize() }
     }
 
   // endregion
@@ -505,7 +505,10 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     configDirty = true
     textDirty = true
     isBatching = false
-    onMain { inputView.resetForRecycle() }
+    onMain {
+      configured = false
+      inputView.resetForRecycle()
+    }
   }
 
   // endregion
@@ -565,12 +568,35 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     else -> null
   }
 
+  /**
+   * Whether the props have been applied since the view was made or recycled.
+   * Until then its size is the defaults' (or the last element's), and JS, which
+   * lays the field out at its measured size from the first commit, must not
+   * see it: a stray report made the field jump to it and back.
+   */
+  private var configured = false
+  /** Inside [commit], where a size is of half-applied props. */
+  private var committing = false
+  /** A size was held back by the two above, so the settled one is sent after. */
+  private var sizeHeld = false
+
   private fun commit() {
     onMain {
-      inputView.batch {
-        flushConfigIfNeeded()
-        flushTextIfNeeded()
-        flushSelectionIfNeeded()
+      committing = true
+      try {
+        inputView.batch {
+          flushConfigIfNeeded()
+          flushTextIfNeeded()
+          flushSelectionIfNeeded()
+        }
+      } finally {
+        committing = false
+      }
+      // Once after the first commit, so JS always hears the view's size.
+      if (!configured || sizeHeld) {
+        configured = true
+        sizeHeld = false
+        inputView.resendIntrinsicSize()
       }
     }
   }
@@ -601,54 +627,18 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     if (!configDirty) return
     configDirty = false
 
-    val size = finite(fontSize, 32.0).toFloat()
-    inputView.format = NitroInputView.Format(
-      mode = when (mode) {
-        NitroInputMode.NUMBER -> NitroInputView.Mode.NUMBER
-        NitroInputMode.MASK -> NitroInputView.Mode.MASK
-        else -> NitroInputView.Mode.TEXT
-      },
-      mask = mask,
-      maskNotations = maskNotations.map {
-        NitroInputView.MaskNotation(it.character, it.characterSet, it.isOptional)
-      },
-      maskAutocomplete = maskAutocomplete,
-      maskAutoSkip = maskAutoSkip,
-      maskAffinityFormats = maskAffinityFormats.toList(),
-      maskAffinityStrategy = maskAffinityStrategy.value,
-      maskTextCase = maskTextCase.value,
-      maskCharacterMap = maskCharacterMap.map { NitroInputView.MaskMapping(it.from, it.to) },
-      maskSlotPlaceholder = maskSlotPlaceholder,
-      keepPlaceholder = keepPlaceholder,
-      fractionDigits = clampInt(fractionDigits, 0, 9, 2),
-      maxIntegerDigits = clampInt(maxIntegerDigits, 1, 30, 15),
-      groupingSeparator = groupingSeparator,
-      decimalSeparator = decimalSeparator,
-      prefix = prefix,
-      suffix = suffix,
-      signBeforeAffix = signPlacement != NitroInputSignPlacement.AFTERAFFIX,
-      placeholder = placeholder,
-    )
-    inputView.typography = NitroInputView.Typography(
-      fontSize = size,
-      lineHeightPx = (Math.max(0.0, finite(lineHeight, 0.0)) * inputView.resources.displayMetrics.density).toFloat(),
-      prefixFontSize = finite(prefixFontSize, size.toDouble()).toFloat(),
-      suffixFontSize = finite(suffixFontSize, size.toDouble()).toFloat(),
-      fontWeight = clampInt(fontWeight, 100, 900, 400),
-      fontFamily = fontFamily.ifEmpty { null },
+    // The sizing half of the mapping is shared with HybridNitroInputMeasure,
+    // which sizes the field before this view exists.
+    inputView.format = formatOf(this)
+    inputView.typography = sizingTypographyOf(this, inputView.resources.displayMetrics.density).copy(
       color = colorFromARGB(color),
       placeholderColor = colorFromARGB(placeholderColor),
       prefixAlign = mapAffixAlign(prefixAlign),
       suffixAlign = mapAffixAlign(suffixAlign),
-      letterSpacing = if (letterSpacing.isFinite()) letterSpacing.toFloat() else 0f,
-      prefixSpacing = prefixSpacing.takeIf { it.isFinite() }?.toFloat(),
-      suffixSpacing = suffixSpacing.takeIf { it.isFinite() }?.toFloat(),
       prefixOffset = if (prefixOffset.isFinite()) prefixOffset.toFloat() else 0f,
       suffixOffset = if (suffixOffset.isFinite()) suffixOffset.toFloat() else 0f,
       adjustsFontSizeToFit = adjustsFontSizeToFit,
       minimumFontScale = finite(minimumFontScale, 0.5).coerceIn(0.05, 1.0).toFloat(),
-      allowFontScaling = allowFontScaling,
-      maxFontSizeMultiplier = Math.max(0.0, finite(maxFontSizeMultiplier, 0.0)).toFloat(),
     )
     inputView.worklets = NitroInputView.Worklets(
       transform = clampInt(transformWorklet, 0, Int.MAX_VALUE, 0),
@@ -737,24 +727,12 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
       selectionColor = colorFromARGB(selectionColor),
       hidden = caretHidden,
     )
-    inputView.inputFrame = NitroInputView.Frame(
-      variant = when (variant) {
-        NitroInputVariant.OUTLINED -> NitroInputView.Variant.OUTLINED
-        NitroInputVariant.FILLED -> NitroInputView.Variant.FILLED
-        NitroInputVariant.NONE -> NitroInputView.Variant.NONE
-      },
-      label = label,
-      labelBehavior = when (labelBehavior) {
-        NitroInputLabelBehavior.ALWAYS -> NitroInputView.LabelBehavior.ALWAYS
-        NitroInputLabelBehavior.FLOAT -> NitroInputView.LabelBehavior.FLOAT
-      },
+    inputView.inputFrame = sizingFrameOf(this).copy(
       labelColor = colorFromARGB(labelColor),
       labelFocusedColor = colorFromARGB(labelFocusedColor),
-      labelFontSize = Math.max(0.0, finite(labelFontSize, 0.0)).toFloat(),
       strokeColor = colorFromARGB(strokeColor),
       focusedStrokeColor = colorFromARGB(focusedStrokeColor),
       strokeWidth = Math.max(0.0, finite(strokeWidth, 1.0)).toFloat(),
-      cornerRadius = Math.max(0.0, finite(cornerRadius, 8.0)).toFloat(),
       fillColor = colorFromARGB(fillColor),
     )
     inputView.alignment = when (textAlign) {

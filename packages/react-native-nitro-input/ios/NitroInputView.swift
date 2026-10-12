@@ -23,12 +23,19 @@ import UIKit
 final class NitroInputView: UIView {
 
   private typealias Engine = margelo.nitro.nitroinput.ReflowEngine
-  private typealias AmountFormatter = margelo.nitro.nitroinput.AmountFormatter
-  private typealias MaskEngine = margelo.nitro.nitroinput.MaskEngine
+  typealias AmountFormatter = margelo.nitro.nitroinput.AmountFormatter
+  typealias MaskEngine = margelo.nitro.nitroinput.MaskEngine
   private typealias Outline = margelo.nitro.nitroinput.OutlineGeometry
 
   // Engine roles / kinds (plain ints so the unscoped C++ enums need no bridging).
   private enum Role { static let prefix: Int32 = 0, body: Int32 = 1, suffix: Int32 = 2 }
+  private static func engineRole(_ role: GlyphRole) -> Int32 {
+    switch role {
+    case .prefix: return Role.prefix
+    case .body: return Role.body
+    case .suffix: return Role.suffix
+    }
+  }
   private enum Kind { static let text: Int32 = 0 }
 
   // MARK: - Configuration
@@ -342,7 +349,7 @@ final class NitroInputView: UIView {
 
   // MARK: - Fonts
 
-  fileprivate enum GlyphRole {
+  enum GlyphRole {
     case body, prefix, suffix
   }
 
@@ -357,6 +364,9 @@ final class NitroInputView: UIView {
   /// Body / prefix / suffix fonts with per-glyph caches (advance widths, ink
   /// metrics and pre-rasterized images in the text or placeholder colour).
   fileprivate final class FontSet {
+    /// The fonts, spacing and advance widths, shared with the measure that
+    /// sizes a field before it mounts (InputSizing.swift).
+    let metrics: InputMetrics
     let body: UIFont
     let prefix: UIFont
     let suffix: UIFont
@@ -380,7 +390,6 @@ final class NitroInputView: UIView {
     /// Pixel density the glyph images are rendered at.
     let renderScale: CGFloat
     private var glyphCache: [GlyphKey: NSAttributedString] = [:]
-    private var widthCache: [GlyphKey: CGFloat] = [:]
     private var imageCache: [GlyphKey: UIImage] = [:]
     private var inkDescentCache: [GlyphKey: CGFloat] = [:]
 
@@ -426,42 +435,29 @@ final class NitroInputView: UIView {
     init(_ t: Typography, traits: UITraitCollection) {
       // The view's own display, not the main screen's (deprecated, and absent on visionOS).
       renderScale = max(1, traits.displayScale)
-      let scale = NitroInputView.systemFontMultiplier(t)
-      body = NitroInputView.makeFont(size: t.fontSize * scale, weight: t.fontWeight, family: t.fontFamily)
-      prefix = NitroInputView.makeFont(size: (t.prefixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily)
-      suffix = NitroInputView.makeFont(size: (t.suffixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily)
+      metrics = InputMetrics(t)
+      body = metrics.body
+      prefix = metrics.prefix
+      suffix = metrics.suffix
       color = t.color.resolvedColor(with: traits)
       placeholderColor = t.placeholderColor.resolvedColor(with: traits)
       prefixAlign = t.prefixAlign
       suffixAlign = t.suffixAlign
-      bodySpacing = t.letterSpacing * scale
-      prefixLetterSpacing = t.letterSpacing * scale * (prefix.pointSize / body.pointSize)
-      suffixLetterSpacing = t.letterSpacing * scale * (suffix.pointSize / body.pointSize)
-      prefixSeam = t.prefixSpacing.map { $0 * scale }
-      suffixSeam = t.suffixSpacing.map { $0 * scale }
-      prefixOffset = t.prefixOffset * scale
-      suffixOffset = t.suffixOffset * scale
-      lineHeight = ceil(body.lineHeight)
+      bodySpacing = metrics.bodySpacing
+      prefixLetterSpacing = metrics.prefixLetterSpacing
+      suffixLetterSpacing = metrics.suffixLetterSpacing
+      prefixSeam = metrics.prefixSeam
+      suffixSeam = metrics.suffixSeam
+      prefixOffset = metrics.prefixOffset
+      suffixOffset = metrics.suffixOffset
+      lineHeight = metrics.lineHeight
     }
 
     /// Letter spacing after a glyph of `role`.
-    func spacing(for role: GlyphRole) -> CGFloat {
-      switch role {
-      case .body: return bodySpacing
-      case .prefix: return prefixLetterSpacing
-      case .suffix: return suffixLetterSpacing
-      }
-    }
+    func spacing(for role: GlyphRole) -> CGFloat { metrics.spacing(for: role) }
 
     /// The room an affix takes beside the text: its glyphs, their spacing and the seam.
-    func affixRoom(_ affix: String, role: GlyphRole) -> CGFloat {
-      guard !affix.isEmpty else { return 0 }
-      let glyphs = affix.unicodeScalars.reduce(CGFloat(0)) { $0 + width(of: String($1), role: role) }
-      let count = CGFloat(affix.unicodeScalars.count)
-      if role == .prefix { return glyphs + prefixLetterSpacing * (count - 1) + (prefixSeam ?? prefixLetterSpacing) }
-      // The field's own kerning already spaces its last glyph by the body spacing.
-      return glyphs + suffixLetterSpacing * count + ((suffixSeam ?? bodySpacing) - bodySpacing)
-    }
+    func affixRoom(_ affix: String, role: GlyphRole) -> CGFloat { metrics.affixRoom(affix, role: role) }
 
     func font(for role: GlyphRole) -> UIFont {
       switch role {
@@ -484,13 +480,7 @@ final class NitroInputView: UIView {
     }
 
     /// Advance width of `text` in the role's font, in points.
-    func width(of text: String, role: GlyphRole) -> CGFloat {
-      let key = GlyphKey(text: text, role: role, placeholder: false)
-      if let cached = widthCache[key] { return cached }
-      let width = attributed(text, role: role).size().width
-      widthCache[key] = width
-      return width
-    }
+    func width(of text: String, role: GlyphRole) -> CGFloat { metrics.width(of: text, role: role) }
 
     /// The glyph rasterized once (colour baked in, at screen density): a frame
     /// only moves layers, the main thread never redraws a bitmap.
@@ -550,8 +540,9 @@ final class NitroInputView: UIView {
   // MARK: - State
 
   private var engine = Engine()
-  private var formatter = AmountFormatter()
-  private var maskEngine = MaskEngine()
+  /// Configured through `InputText` (InputSizing.swift), as a measure's are.
+  var formatter = AmountFormatter()
+  var maskEngine = MaskEngine()
   /// The outline / fill. Stroke-only, so the notch is a hole rather than a mask.
   private lazy var frameLayer: CAShapeLayer = {
     let shape = CAShapeLayer()
@@ -1145,6 +1136,11 @@ final class NitroInputView: UIView {
     timing = Timing()
     traits = Traits()
     alignment = .auto
+    // Last: the defaults above fed the engine an empty text (turning `plain`
+    // off feeds it), which it would take for its first, so the next element's
+    // text slid in instead of showing as it is (the engine snaps only its
+    // first text).
+    engine.reset()
     // `onTextChange`, `onFocusChange`, `onSubmit` and `onIntrinsicSizeChange`
     // are the hybrid's wiring, not the element's props: they stay across
     // recycling (the hybrid clears its own callback props).
@@ -1258,59 +1254,14 @@ final class NitroInputView: UIView {
     onIntrinsicSizeChange?(lastReportedSize)
   }
 
-  private func normalized(_ raw: String) -> String {
-    switch format.mode {
-    case .number:
-      return String(formatter.normalize(std.string(raw)).text)
-    case .mask:
-      let count = Int32(raw.unicodeScalars.count)
-      let result = maskEngine.apply(std.string(raw), count, true, format.maskAutocomplete, false)
-      return String(result.formattedText)
-    case .text:
-      return Self.truncated(raw, to: format.maxLength)
-    }
-  }
+  private func normalized(_ raw: String) -> String { normalizedText(raw) }
 
-  private static func truncated(_ text: String, to maxLength: Int) -> String {
-    guard maxLength > 0, text.unicodeScalars.count > maxLength else { return text }
-    var view = String.UnicodeScalarView()
-    view.append(contentsOf: text.unicodeScalars.prefix(maxLength))
-    return String(view)
-  }
+  private static func truncated(_ text: String, to maxLength: Int) -> String { InputText.truncated(text, to: maxLength) }
 
   // MARK: - Configuration application
 
   private func applyFormat(previous: Format) {
-    if format.mode == .number {
-      formatter.setFormat(Int32(max(0, format.fractionDigits)), Int32(max(1, format.maxIntegerDigits)),
-                          std.string(format.groupingSeparator), std.string(format.decimalSeparator))
-    }
-    let maskChanged = format.mask != previous.mask || format.maskNotations != previous.maskNotations
-      || format.maskAffinityFormats != previous.maskAffinityFormats
-      || format.maskAffinityStrategy != previous.maskAffinityStrategy
-      || format.maskTextCase != previous.maskTextCase || format.maskCharacterMap != previous.maskCharacterMap
-      || format.maskSlotPlaceholder != previous.maskSlotPlaceholder
-    if format.mode == .mask, maskChanged || previous.mode != .mask {
-      maskEngine.clearNotations()
-      for notation in format.maskNotations {
-        maskEngine.addNotation(std.string(notation.character), std.string(notation.characterSet),
-                               notation.isOptional)
-      }
-      maskEngine.clearAffinityFormats()
-      for alternative in format.maskAffinityFormats {
-        maskEngine.addAffinityFormat(std.string(alternative))
-      }
-      maskEngine.setAffinityStrategy(Int32(format.maskAffinityStrategy))
-      maskEngine.setTextCase(Int32(format.maskTextCase))
-      maskEngine.clearCharacterMap()
-      for mapping in format.maskCharacterMap {
-        maskEngine.addCharacterMapping(std.string(mapping.from), std.string(mapping.to))
-      }
-      maskEngine.setSlotPlaceholder(std.string(format.maskSlotPlaceholder))
-      // A bad pattern leaves the engine inactive; the field then behaves as
-      // plain text rather than refusing every keystroke.
-      _ = maskEngine.setFormat(std.string(format.mask))
-    }
+    let maskChanged = configureEngines(previous: previous)
     updateFieldInsets()
     syncAccessibilityPlaceholder()
     // A changed formatter or mode reformats what is in the field.
@@ -1759,9 +1710,35 @@ final class NitroInputView: UIView {
     return (start, end)
   }
 
+  private var batchDepth = 0
+  private var feedPending = false
+  private var feedCaret = -1
+
+  /// Runs `block` with engine feeds coalesced into one at the end, as Android's
+  /// `batch` does. A prop commit applies the config and then the text; fed in
+  /// between (turning `plain` off feeds the engine), the engine took the still
+  /// empty field for its first text, which it shows as is, and animated the
+  /// real one in: every reflowing amount slid in on mount.
+  func batch(_ block: () -> Void) {
+    batchDepth += 1
+    block()
+    batchDepth -= 1
+    if batchDepth == 0, feedPending {
+      feedPending = false
+      let caret = feedCaret
+      feedCaret = -1
+      feedEngine(caret: caret)
+    }
+  }
+
   /// Hands the engine the current text as glyphs (prefix, body or placeholder,
   /// suffix) with their advance widths and commits it.
   fileprivate func feedEngine(caret: Int) {
+    if batchDepth > 0 {
+      feedCaret = feedPending && feedCaret == -1 ? -1 : caret
+      feedPending = true
+      return
+    }
     // Plain mode has no overlay to feed: the field draws its own text. Its
     // width still has to reach React for `autoWidth`, and this is the one
     // place every text, font, affix and placeholder change comes through.
@@ -1772,51 +1749,15 @@ final class NitroInputView: UIView {
     // `secureTextEntry` masks what the overlay draws: the hidden field keeps
     // the real text (UIKit needs it for editing and autofill), but every glyph
     // the user sees is a bullet.
-    let body = traits.secureTextEntry
-      ? String(repeating: "\u{2022}", count: text.unicodeScalars.count)
-      : text
+    let body = traits.secureTextEntry ? InputText.bullets(text) : text
     let showPlaceholder = body.isEmpty && !effectivePlaceholder.isEmpty
-    let bodyText = showPlaceholder ? effectivePlaceholder : body
     let numberKinds = format.mode == .number
-
-    // A negative amount reads "-$1,234.56", not "$-1,234.56": the sign belongs
-    // to the amount, not to the digits after the symbol. It stays a *body*
-    // glyph - it is part of the text, and the caret counts body glyphs in the
-    // order they are added - and is only laid out ahead of the prefix.
-    var rest = Array(bodyText.unicodeScalars)
-    let sign: Unicode.Scalar? =
-      format.signPlacement == .beforeAffix && !showPlaceholder && !format.prefix.isEmpty
-        && rest.first.map(Self.isSign) == true
-        ? rest.removeFirst()
-        : nil
-    // Advances carry the letter spacing; the last prefix glyph and the last
-    // body glyph before a suffix carry the seams instead.
-    let fonts = self.fonts
-    if let sign {
-      let kind = numberKinds ? formatter.kindOf(sign.value) : Kind.text
-      engine.addGlyph(sign.value, Role.body, kind, Double(fonts.width(of: String(sign), role: .body) + fonts.bodySpacing), false)
-    }
-    let prefixScalars = Array(format.prefix.unicodeScalars)
-    for (i, scalar) in prefixScalars.enumerated() {
-      let after = i == prefixScalars.count - 1 ? (fonts.prefixSeam ?? fonts.prefixLetterSpacing) : fonts.prefixLetterSpacing
-      engine.addGlyph(scalar.value, Role.prefix, Kind.text, Double(fonts.width(of: String(scalar), role: .prefix) + after), false)
-    }
-    let hasSuffix = !format.suffix.isEmpty
-    for (i, scalar) in rest.enumerated() {
-      let kind = numberKinds ? formatter.kindOf(scalar.value) : Kind.text
-      let after = hasSuffix && i == rest.count - 1 ? (fonts.suffixSeam ?? fonts.bodySpacing) : fonts.bodySpacing
-      engine.addGlyph(scalar.value, Role.body, kind, Double(fonts.width(of: String(scalar), role: .body) + after), showPlaceholder)
-    }
-    // `keepPlaceholder`: the rest of the mask trails the text as placeholder
-    // glyphs. They come after every typed glyph, so the caret - which counts
-    // body glyphs in order - never lands among them.
-    if !showPlaceholder {
-      for scalar in ghostTail.unicodeScalars {
-        engine.addGlyph(scalar.value, Role.body, Kind.text, Double(fonts.width(of: String(scalar), role: .body) + fonts.bodySpacing), true)
-      }
-    }
-    for scalar in format.suffix.unicodeScalars {
-      engine.addGlyph(scalar.value, Role.suffix, Kind.text, Double(fonts.width(of: String(scalar), role: .suffix) + fonts.suffixLetterSpacing), false)
+    // The same walk sizes the field before it mounts (InputSizing.swift).
+    InputGlyphs.walk(fonts.metrics, format: format, shown: showPlaceholder ? effectivePlaceholder : body,
+                     showPlaceholder: showPlaceholder, tail: ghostTail) { scalar, role, placeholder, advance in
+      // Number kinds for the text (or the placeholder in its place), never for the kept tail.
+      let kind = numberKinds && role == .body && (showPlaceholder || !placeholder) ? formatter.kindOf(scalar.value) : Kind.text
+      engine.addGlyph(scalar.value, Self.engineRole(role), kind, Double(advance), placeholder)
     }
     engine.commitText(Int32(caret), CACurrentMediaTime())
     reportIntrinsicSize()
@@ -1878,9 +1819,7 @@ final class NitroInputView: UIView {
   // MARK: - Offsets (UTF-16 ↔ code points)
 
   /// A leading minus, in either the keyboard's spelling or the typographic one.
-  static func isSign(_ scalar: Unicode.Scalar) -> Bool {
-    scalar == "-" || scalar.value == 0x2212
-  }
+  static func isSign(_ scalar: Unicode.Scalar) -> Bool { InputText.isSign(scalar) }
 
   static func codePointOffset(in string: String, utf16 offset: Int) -> Int {
     let utf16 = string.utf16
@@ -1949,7 +1888,7 @@ final class NitroInputView: UIView {
   }
 
   /// Dynamic Type multiplier for `allowFontScaling`, capped by `maxFontSizeMultiplier`.
-  private static func systemFontMultiplier(_ t: Typography) -> CGFloat {
+  static func systemFontMultiplier(_ t: Typography) -> CGFloat {
     guard t.allowFontScaling else { return 1 }
     let multiplier = UIFontMetrics(forTextStyle: .body).scaledValue(for: 100) / 100
     if t.maxFontSizeMultiplier > 0 {
@@ -1958,7 +1897,7 @@ final class NitroInputView: UIView {
     return multiplier
   }
 
-  private static func makeFont(size: CGFloat, weight: CGFloat, family: String?) -> UIFont {
+  static func makeFont(size: CGFloat, weight: CGFloat, family: String?) -> UIFont {
     let uiWeight = uiWeight(weight)
     let traits: [UIFontDescriptor.TraitKey: Any] = [.weight: uiWeight]
     var base: UIFont
@@ -1977,7 +1916,7 @@ final class NitroInputView: UIView {
     return UIFont(descriptor: descriptor, size: size)
   }
 
-  private static func uiWeight(_ w: CGFloat) -> UIFont.Weight {
+  static func uiWeight(_ w: CGFloat) -> UIFont.Weight {
     switch w {
     case ..<150: return .ultraLight
     case ..<250: return .thin
@@ -2005,7 +1944,8 @@ final class NitroInputView: UIView {
   }
 
   private func intrinsicHeight() -> CGFloat {
-    guard traits.multiline else { return fonts.lineHeight }
+    // A single line is centred in its height; a frame adds its padding (and a filled label's line).
+    guard traits.multiline else { return InputFrameMetrics.singleLineHeight(fonts.lineHeight, frame: inputFrame, metrics: fonts.metrics) }
     let line = lineBoxHeight
     // Only the frame's room is on top of the text. The rest of the text view's
     // inset is `lineBoxPadding`, which is the *first* line's share of the
@@ -2075,17 +2015,14 @@ final class NitroInputView: UIView {
 
   private func contentWidth() -> CGFloat {
     guard traits.plain else { return CGFloat(engine.targetWidth()) }
-    let body = text.isEmpty
-      ? effectivePlaceholder
-      : traits.secureTextEntry ? String(repeating: "\u{2022}", count: text.unicodeScalars.count) : text + ghostTail
-    // The field's own kerning follows every glyph; the affixes take their room with their seams.
-    return fonts.affixRoom(format.prefix, role: .prefix)
-      + fonts.width(of: body, role: .body) + fonts.bodySpacing * CGFloat(body.unicodeScalars.count)
-      + fonts.affixRoom(format.suffix, role: .suffix)
+    return InputSizing.plainWidth(fonts.metrics, format: format, text: text, hint: effectivePlaceholder, tail: ghostTail,
+                                  secure: traits.secureTextEntry)
   }
 
   private func reportIntrinsicSize() {
-    let size = CGSize(width: ceil(contentWidth() + 2), height: intrinsicHeight())
+    // The same rounding as the measure that sized the field before it mounted.
+    let size = InputSizing.reported(width: InputFrameMetrics.width(content: contentWidth(), frame: inputFrame, metrics: fonts.metrics),
+                                    height: intrinsicHeight())
     guard abs(size.width - lastReportedSize.width) > 0.01 || abs(size.height - lastReportedSize.height) > 0.01 else {
       pendingSizeReport = false
       return
@@ -2941,14 +2878,12 @@ extension NitroInputView: UITextFieldDelegate {
 
 extension NitroInputView {
 
-  /// Material's ratio: the floated label is three quarters of the body size.
-  private static let floatedLabelRatio: CGFloat = 0.75
   /// Breathing room either side of the label inside the notch.
   private static let labelGapPadding: CGFloat = 4
   /// Inset of the label (and the text below it) from the leading edge.
   /// Material uses 16; a large corner radius needs more, or the notch opens
   /// flush against the corner arc and the run of line before it disappears.
-  private var labelInset: CGFloat { max(16, inputFrame.cornerRadius + 8) }
+  private var labelInset: CGFloat { InputFrameMetrics.labelInset(inputFrame) }
   // Timings taken from Material's own text fields. The label runs the whole
   // duration on the standard decelerate curve; the notch is staggered behind
   // it, because the label has to travel most of the way to the top edge before
@@ -2981,33 +2916,10 @@ extension NitroInputView {
 
   /// `keepPlaceholder` without a `placeholder` shows the mask itself, empty
   /// slots as `maskSlotPlaceholder`: "+1 (___) ___-____".
-  private var basePlaceholder: String {
-    if format.placeholder.isEmpty, format.mode == .mask, format.keepPlaceholder, maskEngine.isActive() {
-      return String(maskEngine.apply(std.string(""), 0, true, false, false).tailPlaceholder)
-    }
-    return format.placeholder
-  }
+  private var basePlaceholder: String { sharedBasePlaceholder }
 
-  /// `keepPlaceholder`: what is still to come after the typed text, drawn in
-  /// the placeholder colour. The caller's placeholder from where the text ends
-  /// - "1234 5" leaves "678 9012" of "1234 5678 9012" - or, without one, the
-  /// rest of the mask. The placeholder is written for `mask`, so when one of
-  /// `maskAffinityFormats` has taken over (a 4-6-5 Amex under a 4-4-4-4
-  /// placeholder) its characters no longer line up, and that format's own
-  /// tail is shown instead. A complete text has nothing to come.
-  var ghostTail: String {
-    guard format.mode == .mask, format.keepPlaceholder, !text.isEmpty, !traits.secureTextEntry,
-          maskEngine.isActive() else { return "" }
-    let typed = text.unicodeScalars.count
-    let result = maskEngine.apply(std.string(text), Int32(typed), true, false, false)
-    if result.complete { return "" }
-    let placeholder = Array(format.placeholder.unicodeScalars)
-    if placeholder.isEmpty || result.formatIndex != 0 { return String(result.tailPlaceholder) }
-    guard typed < placeholder.count else { return "" }
-    var rest = String.UnicodeScalarView()
-    rest.append(contentsOf: placeholder[typed...])
-    return String(rest)
-  }
+  /// `keepPlaceholder`: what is still to come after the typed text (`InputText.ghostTail`).
+  var ghostTail: String { sharedGhostTail(secure: traits.secureTextEntry) }
 
   /// The label floats once the field is focused or holds text - or always, if
   /// the caller asked for that.
@@ -3020,9 +2932,7 @@ extension NitroInputView {
   private var restingLabelFont: UIFont { fonts.font(for: .body) }
 
   private var floatedLabelSize: CGFloat {
-    let explicit = inputFrame.labelFontSize
-    if explicit > 0 { return explicit }
-    return max(9, restingLabelFont.pointSize * Self.floatedLabelRatio)
+    InputFrameMetrics.floatedLabelSize(inputFrame, restingSize: restingLabelFont.pointSize)
   }
 
   // The frame is drawn in `CGColor`s, which have no appearance of their own:
@@ -3071,29 +2981,19 @@ extension NitroInputView {
   /// The top inset the label needs when it is floated onto the outline: half of
   /// it sits above the line, so the text below has to start lower.
   var frameTopInset: CGFloat {
-    // Only the filled variant needs the room. Its floated label lives inside
-    // the box, on its own line above the text. An outlined field's floated
-    // label sits *on* the stroke, outside the content box entirely - it
-    // intrudes into the top of the frame but never onto the text's line - so
-    // the text stays centred, which is what Material's outlined field does and
-    // what a field with no label at all does. Reserving space for it here left
-    // the text sitting half an inset low.
-    guard inputFrame.hasLabel, inputFrame.variant == .filled else { return 0 }
-    // 1.4 is a fudge, not a Material metric: enough of a gap under the
-    // floated label that the two lines do not crowd at the default sizes.
-    // Material's filled field is specified at a fixed 56dp with its own
-    // baselines; if this field is ever given fixed metrics, derive it there.
-    return floatedLabelSize * 1.4
+    // Only the filled variant needs the room (see `InputFrameMetrics.topInset`):
+    // an outlined field's floated label sits on the stroke, and reserving space
+    // for it left the text sitting half an inset low.
+    InputFrameMetrics.topInset(inputFrame, restingSize: restingLabelFont.pointSize)
   }
 
-  /// The room a framed field keeps above and below its text. Flat, because
-  /// nothing about the vertical middle of the box depends on its corners.
-  static let framePadding: CGFloat = 16
+  /// The room a framed field keeps above and below its text (`InputFrameMetrics`).
+  static let framePadding = InputFrameMetrics.framePadding
 
   /// Horizontal room for the frame, so the text lines up under the label
   /// instead of running into the stroke.
   var frameSideInset: CGFloat {
-    inputFrame.draws ? labelInset : 0
+    InputFrameMetrics.sideInset(inputFrame)
   }
 
   func layoutFrame(animated: Bool) {

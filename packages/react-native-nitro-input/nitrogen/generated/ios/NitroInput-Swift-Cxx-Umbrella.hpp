@@ -8,6 +8,8 @@
 #pragma once
 
 // Forward declarations of C++ defined types
+// Forward declaration of `HybridNitroInputMeasureSpec` to properly resolve imports.
+namespace margelo::nitro::nitroinput { class HybridNitroInputMeasureSpec; }
 // Forward declaration of `HybridNitroInputViewSpec` to properly resolve imports.
 namespace margelo::nitro::nitroinput { class HybridNitroInputViewSpec; }
 // Forward declaration of `HybridNitroNumberFormatPlatformSpec` to properly resolve imports.
@@ -46,6 +48,10 @@ namespace margelo::nitro::nitroinput { struct NitroInputNotation; }
 namespace margelo::nitro::nitroinput { enum class NitroInputReturnKeyType; }
 // Forward declaration of `NitroInputSignPlacement` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputSignPlacement; }
+// Forward declaration of `NitroInputSize` to properly resolve imports.
+namespace margelo::nitro::nitroinput { struct NitroInputSize; }
+// Forward declaration of `NitroInputSizing` to properly resolve imports.
+namespace margelo::nitro::nitroinput { struct NitroInputSizing; }
 // Forward declaration of `NitroInputSubmitBehavior` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroInputSubmitBehavior; }
 // Forward declaration of `NitroInputTextAlignVertical` to properly resolve imports.
@@ -94,6 +100,7 @@ namespace margelo::nitro::nitroinput { enum class NumberFormatStyle; }
 namespace margelo::nitro::nitroinput { enum class NumberFormatUnitDisplay; }
 
 // Include C++ defined types
+#include "HybridNitroInputMeasureSpec.hpp"
 #include "HybridNitroInputViewSpec.hpp"
 #include "HybridNitroNumberFormatPlatformSpec.hpp"
 #include "HybridNitroNumberViewSpec.hpp"
@@ -113,6 +120,8 @@ namespace margelo::nitro::nitroinput { enum class NumberFormatUnitDisplay; }
 #include "NitroInputNotation.hpp"
 #include "NitroInputReturnKeyType.hpp"
 #include "NitroInputSignPlacement.hpp"
+#include "NitroInputSize.hpp"
+#include "NitroInputSizing.hpp"
 #include "NitroInputSubmitBehavior.hpp"
 #include "NitroInputTextAlign.hpp"
 #include "NitroInputTextAlignVertical.hpp"
@@ -154,6 +163,8 @@ namespace margelo::nitro::nitroinput { enum class NumberFormatUnitDisplay; }
 #include <NitroModules/DateToChronoDate.hpp>
 
 // Forward declarations of Swift defined types
+// Forward declaration of `HybridNitroInputMeasureSpec_cxx` to properly resolve imports.
+namespace NitroInput { class HybridNitroInputMeasureSpec_cxx; }
 // Forward declaration of `HybridNitroInputViewSpec_cxx` to properly resolve imports.
 namespace NitroInput { class HybridNitroInputViewSpec_cxx; }
 // Forward declaration of `HybridNitroNumberFormatPlatformSpec_cxx` to properly resolve imports.

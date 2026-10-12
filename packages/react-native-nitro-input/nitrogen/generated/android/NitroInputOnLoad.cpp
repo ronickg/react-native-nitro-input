@@ -23,6 +23,7 @@
 #include "JFunc_void_std__string.hpp"
 #include "JFunc_void_double_double.hpp"
 #include "views/JHybridNitroInputViewStateUpdater.hpp"
+#include "JHybridNitroInputMeasureSpec.hpp"
 #include "JHybridNitroNumberViewSpec.hpp"
 #include "JFunc_void.hpp"
 #include "views/JHybridNitroNumberViewStateUpdater.hpp"
@@ -83,6 +84,14 @@ struct JHybridNitroTextMeasureSpecImpl: public jni::JavaClass<JHybridNitroTextMe
     return javaPart->getJHybridNitroTextMeasureSpec();
   }
 };
+struct JHybridNitroInputMeasureSpecImpl: public jni::JavaClass<JHybridNitroInputMeasureSpecImpl, JHybridNitroInputMeasureSpec::JavaPart> {
+  static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/nitroinput/HybridNitroInputMeasure;";
+  static std::shared_ptr<JHybridNitroInputMeasureSpec> create() {
+    static const auto constructorFn = javaClassStatic()->getConstructor<JHybridNitroInputMeasureSpecImpl::javaobject()>();
+    jni::local_ref<JHybridNitroInputMeasureSpec::JavaPart> javaPart = javaClassStatic()->newObject(constructorFn);
+    return javaPart->getJHybridNitroInputMeasureSpec();
+  }
+};
 
 void registerAllNatives() {
   using namespace margelo::nitro;
@@ -97,6 +106,7 @@ void registerAllNatives() {
   margelo::nitro::nitroinput::JFunc_void_std__string_cxx::registerNatives();
   margelo::nitro::nitroinput::JFunc_void_double_double_cxx::registerNatives();
   margelo::nitro::nitroinput::views::JHybridNitroInputViewStateUpdater::registerNatives();
+  margelo::nitro::nitroinput::JHybridNitroInputMeasureSpec::CxxPart::registerNatives();
   margelo::nitro::nitroinput::JHybridNitroNumberViewSpec::CxxPart::registerNatives();
   margelo::nitro::nitroinput::JFunc_void_cxx::registerNatives();
   margelo::nitro::nitroinput::views::JHybridNitroNumberViewStateUpdater::registerNatives();
@@ -153,6 +163,12 @@ void registerAllNatives() {
     "NitroTextMeasure",
     []() -> std::shared_ptr<HybridObject> {
       return JHybridNitroTextMeasureSpecImpl::create();
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "NitroInputMeasure",
+    []() -> std::shared_ptr<HybridObject> {
+      return JHybridNitroInputMeasureSpecImpl::create();
     }
   );
 }

@@ -70,7 +70,12 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
       self?.onKeyPress?(key)
     }
     inputView.onIntrinsicSizeChange = { [weak self] size in
-      self?.onSizeChange?(Double(size.width), Double(size.height))
+      guard let self else { return }
+      if !self.configured || self.committing {
+        self.sizeHeld = true
+      } else {
+        self.onSizeChange?(Double(size.width), Double(size.height))
+      }
     }
   }
 
@@ -181,7 +186,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var onSelectionChange: ((Double, Double) -> Void)?
   var onKeyPress: ((String) -> Void)?
   var onSizeChange: ((Double, Double) -> Void)? {
-    didSet { onMain { self.inputView.resendIntrinsicSize() } }
+    didSet { onMain { if self.configured { self.inputView.resendIntrinsicSize() } } }
   }
 
   // MARK: - Methods
@@ -401,7 +406,10 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     snapshotLock.lock()
     snapshot = Snapshot()
     snapshotLock.unlock()
-    onMain { self.inputView.resetForRecycle() }
+    onMain {
+      self.configured = false
+      self.inputView.resetForRecycle()
+    }
   }
 
   // MARK: - Batching
@@ -425,11 +433,32 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     if !isBatching { commit() }
   }
 
+  /// Whether the props have been applied since the view was made or recycled.
+  /// Until then its size is the defaults' (or the last element's), and JS,
+  /// which lays the field out at its measured size from the first commit, must
+  /// not see it: a stray report made the field jump to it and back.
+  private var configured = false
+  /// Inside `commit`, where a size is of half-applied props (the config
+  /// applied, the text not yet).
+  private var committing = false
+  /// A size was held back by the two above, so the settled one is sent after.
+  private var sizeHeld = false
+
   private func commit() {
     onMain {
-      self.flushConfigIfNeeded()
-      self.applyTextIfNeeded()
-      self.applySelectionIfNeeded()
+      self.committing = true
+      self.inputView.batch {
+        self.flushConfigIfNeeded()
+        self.applyTextIfNeeded()
+        self.applySelectionIfNeeded()
+      }
+      self.committing = false
+      // Once after the first commit, so JS always hears the view's size.
+      if !self.configured || self.sizeHeld {
+        self.configured = true
+        self.sizeHeld = false
+        self.inputView.resendIntrinsicSize()
+      }
     }
   }
 
@@ -519,54 +548,18 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     guard configDirty else { return }
     configDirty = false
 
-    var format = NitroInputView.Format()
-    switch mode {
-    case .number: format.mode = .number
-    case .mask: format.mode = .mask
-    case .text: format.mode = .text
-    }
-    format.mask = mask
-    format.maskNotations = maskNotations.map {
-      NitroInputView.MaskNotation(character: $0.character, characterSet: $0.characterSet, isOptional: $0.isOptional)
-    }
-    format.maskAutocomplete = maskAutocomplete
-    format.maskAutoSkip = maskAutoSkip
-    format.maskAffinityFormats = maskAffinityFormats
-    format.maskAffinityStrategy = Int(maskAffinityStrategy.rawValue)
-    format.maskTextCase = Int(maskTextCase.rawValue)
-    format.maskCharacterMap = maskCharacterMap.map { NitroInputView.MaskMapping(from: $0.from, to: $0.to) }
-    format.maskSlotPlaceholder = maskSlotPlaceholder
-    format.keepPlaceholder = keepPlaceholder
-    format.fractionDigits = Self.clampInt(fractionDigits, 0, 9, fallback: 2)
-    format.maxIntegerDigits = Self.clampInt(maxIntegerDigits, 1, 30, fallback: 15)
-    format.groupingSeparator = groupingSeparator
-    format.decimalSeparator = decimalSeparator.isEmpty ? "." : decimalSeparator
-    format.prefix = prefix
-    format.suffix = suffix
-    format.signPlacement = signPlacement == .afteraffix ? .afterAffix : .beforeAffix
-    format.placeholder = placeholder
-    format.maxLength = Self.clampInt(maxLength, 0, 1_000_000, fallback: 0)
-
-    var typography = NitroInputView.Typography()
-    typography.fontSize = CGFloat(fontSize.isFinite && fontSize > 0 ? fontSize : 32)
-    typography.lineHeight = CGFloat(lineHeight.isFinite && lineHeight > 0 ? lineHeight : 0)
-    typography.prefixFontSize = prefixFontSize.isFinite && prefixFontSize > 0 ? CGFloat(prefixFontSize) : nil
-    typography.suffixFontSize = suffixFontSize.isFinite && suffixFontSize > 0 ? CGFloat(suffixFontSize) : nil
-    typography.fontWeight = CGFloat(fontWeight.isFinite ? fontWeight : 400)
-    typography.fontFamily = fontFamily.isEmpty ? nil : fontFamily
+    // The sizing half of the mapping is shared with HybridNitroInputMeasure,
+    // which sizes the field before this view exists (InputSizing.swift).
+    let format = InputMapping.format(self)
+    var typography = InputMapping.sizingTypography(self)
     typography.color = Self.color(fromARGB: color) ?? .label
     typography.placeholderColor = Self.color(fromARGB: placeholderColor) ?? .placeholderText
     typography.prefixAlign = Self.mapAffixAlign(prefixAlign)
     typography.suffixAlign = Self.mapAffixAlign(suffixAlign)
-    typography.letterSpacing = CGFloat(letterSpacing.isFinite ? letterSpacing : 0)
-    typography.prefixSpacing = prefixSpacing.isFinite ? CGFloat(prefixSpacing) : nil
-    typography.suffixSpacing = suffixSpacing.isFinite ? CGFloat(suffixSpacing) : nil
     typography.prefixOffset = CGFloat(prefixOffset.isFinite ? prefixOffset : 0)
     typography.suffixOffset = CGFloat(suffixOffset.isFinite ? suffixOffset : 0)
     typography.adjustsFontSizeToFit = adjustsFontSizeToFit
     typography.minimumFontScale = CGFloat(min(1, max(0.05, minimumFontScale.isFinite ? minimumFontScale : 0.5)))
-    typography.allowFontScaling = allowFontScaling
-    typography.maxFontSizeMultiplier = CGFloat(max(0, maxFontSizeMultiplier.isFinite ? maxFontSizeMultiplier : 0))
 
     var timing = NitroInputView.Timing()
     timing.duration = max(0, (duration.isFinite ? duration : 400) / 1000)
@@ -620,21 +613,12 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     worklets.onKeyPress = Self.clampInt(onKeyPressWorklet, 0, Int(Int32.max), fallback: 0)
 
     inputView.typography = typography
-    var inputFrame = NitroInputView.Frame()
-    switch variant {
-    case .outlined: inputFrame.variant = .outlined
-    case .filled: inputFrame.variant = .filled
-    case .none: inputFrame.variant = .none
-    }
-    inputFrame.label = label
-    inputFrame.labelBehavior = labelBehavior == .always ? .always : .float
+    var inputFrame = InputMapping.sizingFrame(self)
     inputFrame.labelColor = Self.color(fromARGB: labelColor)
     inputFrame.labelFocusedColor = Self.color(fromARGB: labelFocusedColor)
-    inputFrame.labelFontSize = labelFontSize.isFinite ? max(0, CGFloat(labelFontSize)) : 0
     inputFrame.strokeColor = Self.color(fromARGB: strokeColor)
     inputFrame.focusedStrokeColor = Self.color(fromARGB: focusedStrokeColor)
     inputFrame.strokeWidth = strokeWidth.isFinite ? max(0, CGFloat(strokeWidth)) : 1
-    inputFrame.cornerRadius = cornerRadius.isFinite ? max(0, CGFloat(cornerRadius)) : 8
     inputFrame.fillColor = Self.color(fromARGB: fillColor)
     inputView.inputFrame = inputFrame
     inputView.format = format

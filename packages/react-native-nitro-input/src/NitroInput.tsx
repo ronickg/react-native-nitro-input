@@ -17,6 +17,7 @@ import {
 import {
   callback,
   getHostComponent,
+  NitroModules,
   type HybridRef,
 } from 'react-native-nitro-modules'
 import NitroInputViewConfig from '../nitrogen/generated/shared/json/NitroInputViewConfig.json'
@@ -42,6 +43,7 @@ import type {
   NitroInputTextCase,
   NitroInputCharacterMapping,
 } from './specs/NitroInput.nitro'
+import type { NitroInputMeasure, NitroInputSizing } from './specs/NitroInputMeasure.nitro'
 import {
   allocateWorkletId,
   isWorklet,
@@ -734,6 +736,27 @@ export type NitroInputTransition = 'none' | 'reflow'
  * Like a `TextInput`, it takes its width from its parent; `autoWidth` sizes
  * it to its content instead, and is on by default when the text reflows.
  */
+// One per app, made on first use. `null` when the native side has none (an
+// app built against an older version, or a test without native modules): the
+// field then takes its size from the view's first report, as it used to.
+let measurer: NitroInputMeasure | null | undefined
+function measureSizing(sizing: NitroInputSizing): Size | null {
+  if (measurer === undefined) {
+    try {
+      const made = NitroModules.createHybridObject<NitroInputMeasure>('NitroInputMeasure')
+      measurer = typeof made?.measure === 'function' ? made : null
+    } catch {
+      measurer = null
+    }
+  }
+  if (measurer === null) return null
+  try {
+    return measurer.measure(sizing)
+  } catch {
+    return null
+  }
+}
+
 export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
   function NitroInput(
     {
@@ -912,6 +935,11 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     if (value != null) textRef.current = value
 
     const [size, setSize] = useState<Size | null>(null)
+    // The size measured before the view existed (see `measureSizing`), and
+    // whether the view has reported its own since.
+    const seedRef = useRef<Size | null>(null)
+    const seedKeyRef = useRef('')
+    const reportedRef = useRef(false)
     // Worklets are registered on the UI runtime and referenced by id; a
     // handler marked 'worklet' runs there instead of on the JS thread.
     const transformId = useWorkletId(transform, registerTransform)
@@ -1066,12 +1094,16 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     const onSizeChange = useMemo(
       () =>
         callback((width: number, height: number) => {
+          reportedRef.current = true
           if (!measuredRef.current) return
           setSize((previous) => {
+            // Until the first report the field shows the seed; a report that
+            // matches it leaves `size` as it is, and costs no commit.
+            const shown = previous ?? seedRef.current
             if (!autoWidthRef.current) {
-              return previous !== null && previous.height === height ? previous : { width: previous?.width ?? width, height }
+              return shown !== null && shown.height === height ? previous : { width: shown?.width ?? width, height }
             }
-            return previous !== null && previous.width === width && previous.height === height
+            return shown !== null && shown.width === width && shown.height === height
               ? previous
               : { width, height }
           })
@@ -1392,54 +1424,94 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     if (resolvedImportance != null) hostViewProps.importantForAccessibility = resolvedImportance
     if (resolvedLabelledBy != null) hostViewProps.accessibilityLabelledBy = resolvedLabelledBy
 
+    // What the field's size follows. Sent to the view as props and, before
+    // the view exists, to `measureSizing`, so the two see the same values.
+    const sizing: NitroInputSizing = {
+      text: value ?? uncontrolledText,
+      mode: resolvedMode,
+      plain: !reflows,
+      multiline: isMultiline,
+      secureTextEntry: secureTextEntry ?? false,
+      maxLength: maxLength ?? 0,
+      fractionDigits: resolvedFractionDigits,
+      maxIntegerDigits: maxIntegerDigits ?? 15,
+      groupingSeparator: groupingSeparator ?? derived?.groupingSeparator ?? ',',
+      decimalSeparator: decimalSeparator ?? derived?.decimalSeparator ?? '.',
+      prefix: resolvedPrefix,
+      suffix: resolvedSuffix,
+      signPlacement: signPlacement ?? derived?.signPlacement ?? 'beforeAffix',
+      placeholder: placeholder ?? '',
+      mask: resolvedMode === 'mask' ? (mask ?? '') : '',
+      maskNotations: stableNotations,
+      maskAutocomplete: maskAutocomplete ?? true,
+      maskAutoSkip: maskAutoSkip ?? false,
+      maskAffinityFormats: stableAffinityFormats,
+      maskAffinityStrategy: maskAffinityStrategy ?? 'wholeString',
+      maskTextCase: maskTextCase ?? 'none',
+      maskCharacterMap: stableCharacterMap,
+      maskSlotPlaceholder: maskSlotPlaceholder ?? (keepPlaceholder ? '_' : ''),
+      keepPlaceholder: keepPlaceholder ?? false,
+      fontSize: resolvedFontSize,
+      lineHeight: Math.max(0, lineHeight ?? 0),
+      prefixFontSize: prefixFontSize ?? resolvedFontSize,
+      suffixFontSize: suffixFontSize ?? resolvedFontSize,
+      fontWeight: numericWeight,
+      fontFamily: fontFamily ?? '',
+      letterSpacing: letterSpacing ?? 0,
+      prefixSpacing: prefixSpacing ?? Infinity,
+      suffixSpacing: suffixSpacing ?? Infinity,
+      allowFontScaling: allowFontScaling ?? false,
+      maxFontSizeMultiplier: maxFontSizeMultiplier ?? 0,
+      variant: variant ?? 'none',
+      label: label ?? '',
+      labelBehavior: labelBehavior ?? 'float',
+      labelFontSize: labelFontSize ?? 0,
+      cornerRadius: cornerRadius ?? 8,
+    }
+    // Until the view reports its size, the field lays out at the size it will
+    // report, measured now with the view's own code - as `TextInput` measures
+    // in its shadow node - rather than at its parent's width for the commit
+    // the report takes. Not for a wrapping field (its height needs the width
+    // it will get), a `transform` (a worklet, run on the UI thread) or a
+    // style that sets both dimensions. Measured again only when what it
+    // follows changes.
+    if (!reportedRef.current) {
+      const seedKey = measured && !isMultiline && transformId === 0 ? JSON.stringify(sizing) : ''
+      if (seedKey !== seedKeyRef.current) {
+        seedKeyRef.current = seedKey
+        seedRef.current = seedKey === '' ? null : measureSizing(sizing)
+      }
+    }
+    const shownSize = size ?? seedRef.current
     const autoSize = useMemo(
       () =>
-        size !== null
+        shownSize !== null
           ? autoWidth
-            ? { width: size.width, height: size.height }
-            : { height: size.height }
+            ? { width: shownSize.width, height: shownSize.height }
+            : { height: shownSize.height }
           : { height: resolvedFontSize * 1.25 },
-      [size, resolvedFontSize, autoWidth]
+      [shownSize, resolvedFontSize, autoWidth]
     )
 
     return (
       <NativeNitroInputView
         {...hostViewProps}
+        {...sizing}
         ref={hostRef as React.Ref<never>}
         style={[autoSize, style]}
         hybridRef={hybridRef}
-        text={value ?? uncontrolledText}
         // An uncontrolled field's `text` is its initial text: a count of 0 is
         // never caught up after the first edit, so native never puts it back.
         mostRecentEventCount={value != null ? eventCountRef.current : 0}
-        mode={resolvedMode}
-        plain={!reflows}
-        fractionDigits={resolvedFractionDigits}
-        maxIntegerDigits={maxIntegerDigits ?? 15}
-        groupingSeparator={groupingSeparator ?? derived?.groupingSeparator ?? ','}
-        decimalSeparator={decimalSeparator ?? derived?.decimalSeparator ?? '.'}
-        prefix={resolvedPrefix}
-        suffix={resolvedSuffix}
-        prefixFontSize={prefixFontSize ?? resolvedFontSize}
-        suffixFontSize={suffixFontSize ?? resolvedFontSize}
-        signPlacement={signPlacement ?? derived?.signPlacement ?? 'beforeAffix'}
         prefixAlign={prefixAlign ?? resolvedAffixAlign}
         suffixAlign={suffixAlign ?? resolvedAffixAlign}
-        letterSpacing={letterSpacing ?? 0}
-        prefixSpacing={prefixSpacing ?? Infinity}
-        suffixSpacing={suffixSpacing ?? Infinity}
         prefixOffset={prefixOffset ?? 0}
         suffixOffset={suffixOffset ?? 0}
-        placeholder={placeholder ?? ''}
         placeholderColor={processedPlaceholderColor}
         duration={duration ?? 400}
         easing={easing ?? 'expo'}
         bounce={bounce ?? 0.15}
         effect={effect ?? 'auto'}
-        fontSize={resolvedFontSize}
-        lineHeight={Math.max(0, lineHeight ?? 0)}
-        fontWeight={numericWeight}
-        fontFamily={fontFamily ?? ''}
         color={processedColor}
         textAlign={textAlign ?? 'auto'}
         rightToLeft={rightToLeft}
@@ -1448,36 +1520,18 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         caretHidden={caretHidden ?? false}
         adjustsFontSizeToFit={adjustsFontSizeToFit ?? false}
         minimumFontScale={minimumFontScale ?? 0.5}
-        allowFontScaling={allowFontScaling ?? false}
-        maxFontSizeMultiplier={maxFontSizeMultiplier ?? 0}
-        variant={variant ?? 'none'}
-        label={label ?? ''}
-        labelBehavior={labelBehavior ?? 'float'}
         labelColor={processedLabelColor}
         labelFocusedColor={processedLabelFocusedColor}
-        labelFontSize={labelFontSize ?? 0}
         strokeColor={processedStrokeColor}
         focusedStrokeColor={processedFocusedStrokeColor}
         strokeWidth={strokeWidth ?? 1}
-        cornerRadius={cornerRadius ?? 8}
         fillColor={processedFillColor}
-        mask={resolvedMode === 'mask' ? (mask ?? '') : ''}
-        maskNotations={stableNotations}
-        maskAutocomplete={maskAutocomplete ?? true}
-        maskAutoSkip={maskAutoSkip ?? false}
-        maskAffinityFormats={stableAffinityFormats}
-        maskAffinityStrategy={maskAffinityStrategy ?? 'wholeString'}
-        maskTextCase={maskTextCase ?? 'none'}
-        maskCharacterMap={stableCharacterMap}
-        maskSlotPlaceholder={maskSlotPlaceholder ?? (keepPlaceholder ? '_' : '')}
-        keepPlaceholder={keepPlaceholder ?? false}
         onChangeMask={onChangeMaskCallback}
         keyboardType={resolvedKeyboardType}
         returnKeyType={resolvedReturnKeyType}
         autoCapitalize={autoCapitalize ?? 'sentences'}
         autoCorrect={autoCorrect ?? true}
         editable={(editable ?? true) && !(readOnly ?? false)}
-        multiline={isMultiline}
         numberOfLines={Math.max(0, Math.trunc(numberOfLines ?? rows ?? 0))}
         textAlignVertical={textAlignVertical ?? 'auto'}
         scrollEnabled={scrollEnabled ?? true}
@@ -1496,7 +1550,6 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
               ? 'submit'
               : 'blurAndSubmit')
         }
-        secureTextEntry={secureTextEntry ?? false}
         keyboardAppearance={keyboardAppearance ?? 'default'}
         textContentType={textContentType ?? autoComplete ?? ''}
         enablesReturnKeyAutomatically={enablesReturnKeyAutomatically ?? false}
@@ -1509,7 +1562,6 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         spellCheck={spellCheck ?? autoCorrect ?? true}
         selectionStart={selection?.start ?? -1}
         selectionEnd={selection?.end ?? selection?.start ?? -1}
-        maxLength={maxLength ?? 0}
         transformWorklet={transformId}
         onChangeTextWorklet={onChangeTextId}
         onChangeValueWorklet={onChangeValueId}
