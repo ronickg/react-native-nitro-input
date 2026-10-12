@@ -570,8 +570,10 @@ class NitroNumberView(context: Context) : View(context) {
       if (strip !== drawn) drawn.recycle()
       return strip
     }
-    private val capHeightCache = HashMap<GlyphRole, Float>()
-    private val inkDescentCache = HashMap<String, Float>()
+    // Concurrent: a prefix or suffix blurred on the warm thread ([blurredText])
+    // aligns itself through these while the UI thread draws through them.
+    private val capHeightCache = java.util.concurrent.ConcurrentHashMap<GlyphRole, Float>()
+    private val inkDescentCache = java.util.concurrent.ConcurrentHashMap<String, Float>()
 
     /** A fraction digit's baseline in the line box, at its alignment. */
     private val fractionBaseline: Float
@@ -679,13 +681,14 @@ class NitroNumberView(context: Context) : View(context) {
     /** How far `text`'s ink hangs below the baseline (0 for digits and capitals). */
     private fun inkDescent(text: String, role: GlyphRole): Float = inkDescentCache.getOrPut(role.name + "|" + text) {
       val bounds = Rect()
-      paint(role).getTextBounds(text, 0, text.length, bounds)
+      // A copy: the UI thread changes the paint's alpha as it draws.
+      TextPaint(paint(role)).getTextBounds(text, 0, text.length, bounds)
       max(0, bounds.bottom).toFloat()
     }
 
     private fun capHeight(role: GlyphRole): Float = capHeightCache.getOrPut(role) {
       val bounds = Rect()
-      paint(role).getTextBounds("0", 0, 1, bounds)
+      TextPaint(paint(role)).getTextBounds("0", 0, 1, bounds)
       -bounds.top.toFloat()
     }
   }
