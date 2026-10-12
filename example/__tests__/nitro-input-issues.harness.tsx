@@ -416,15 +416,21 @@ describe('NitroInput against other inputs’ bugs: text and selection', () => {
   it('sets a text again after the user cleared it', async () => {
     const field = createRef<NitroInputHandle>()
     let setValue = (_: string) => {}
+    let rendered = ''
     function Host() {
       const [value, set] = useState('A')
       setValue = set
+      rendered = value
       return <NitroInput ref={field} value={value} onChangeText={set} />
     }
     await render(<Host />)
     await waitFor(() => expect(field.current?.getText()).toBe('A'))
     field.current!.setText('') // the user clearing it, reported like an edit
-    await waitFor(() => expect(field.current!.getText()).toBe(''))
+    // The parent has to have taken the clear: the native text is '' at once,
+    // but `onChangeText('')` reaches React later, and a 'A' set before it
+    // lands is a no-op (state is still 'A') that the late '' then overwrites.
+    await waitFor(() => expect(rendered).toBe(''))
+    expect(field.current!.getText()).toBe('')
     setValue('A')
     await waitFor(() => expect(field.current!.getText()).toBe('A'))
   })
