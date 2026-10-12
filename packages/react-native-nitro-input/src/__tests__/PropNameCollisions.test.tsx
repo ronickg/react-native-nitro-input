@@ -54,11 +54,17 @@ function namesReactNativeParses(): Set<string> {
   return names;
 }
 
-/** Top-level prop names declared in a `.nitro.ts` spec. */
+/**
+ * Top-level prop names a `.nitro.ts` spec declares for a view: the members of
+ * its interfaces that extend `HybridViewProps`. A struct's fields (a measure's
+ * `width` / `height`) never reach a view's props parser.
+ */
 function declaredProps(specSource: string): string[] {
   const names = new Set<string>();
-  for (const match of specSource.matchAll(/^ {2}(?:readonly )?([a-zA-Z][a-zA-Z0-9]*)\??:/gm)) {
-    names.add(match[1]!);
+  for (const body of specSource.matchAll(/interface \w+ extends HybridViewProps \{\n([\s\S]*?)\n\}/g)) {
+    for (const match of body[1]!.matchAll(/^ {2}(?:readonly )?([a-zA-Z][a-zA-Z0-9]*)\??:/gm)) {
+      names.add(match[1]!);
+    }
   }
   return [...names];
 }
@@ -97,7 +103,9 @@ describe('prop names', () => {
   });
 
   const specDir = join(__dirname, '..', 'specs');
-  const specs = readdirSync(specDir).filter((f) => f.endsWith('.nitro.ts'));
+  const specs = readdirSync(specDir).filter(
+    (f) => f.endsWith('.nitro.ts') && readFileSync(join(specDir, f), 'utf8').includes('extends HybridViewProps')
+  );
 
   it('still sees the clashes we accepted, so the list cannot go stale', () => {
     // If RN ever drops one of these, the entry should go too.

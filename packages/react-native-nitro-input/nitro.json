@@ -74,6 +74,16 @@
         "language": "kotlin",
         "implementationClassName": "HybridNitroTextMeasure"
       }
+    },
+    "NitroInputMeasure": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridNitroInputMeasure"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridNitroInputMeasure"
+      }
     }
   },
   "ignorePaths": [

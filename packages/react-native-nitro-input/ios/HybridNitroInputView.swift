@@ -519,54 +519,18 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     guard configDirty else { return }
     configDirty = false
 
-    var format = NitroInputView.Format()
-    switch mode {
-    case .number: format.mode = .number
-    case .mask: format.mode = .mask
-    case .text: format.mode = .text
-    }
-    format.mask = mask
-    format.maskNotations = maskNotations.map {
-      NitroInputView.MaskNotation(character: $0.character, characterSet: $0.characterSet, isOptional: $0.isOptional)
-    }
-    format.maskAutocomplete = maskAutocomplete
-    format.maskAutoSkip = maskAutoSkip
-    format.maskAffinityFormats = maskAffinityFormats
-    format.maskAffinityStrategy = Int(maskAffinityStrategy.rawValue)
-    format.maskTextCase = Int(maskTextCase.rawValue)
-    format.maskCharacterMap = maskCharacterMap.map { NitroInputView.MaskMapping(from: $0.from, to: $0.to) }
-    format.maskSlotPlaceholder = maskSlotPlaceholder
-    format.keepPlaceholder = keepPlaceholder
-    format.fractionDigits = Self.clampInt(fractionDigits, 0, 9, fallback: 2)
-    format.maxIntegerDigits = Self.clampInt(maxIntegerDigits, 1, 30, fallback: 15)
-    format.groupingSeparator = groupingSeparator
-    format.decimalSeparator = decimalSeparator.isEmpty ? "." : decimalSeparator
-    format.prefix = prefix
-    format.suffix = suffix
-    format.signPlacement = signPlacement == .afteraffix ? .afterAffix : .beforeAffix
-    format.placeholder = placeholder
-    format.maxLength = Self.clampInt(maxLength, 0, 1_000_000, fallback: 0)
-
-    var typography = NitroInputView.Typography()
-    typography.fontSize = CGFloat(fontSize.isFinite && fontSize > 0 ? fontSize : 32)
-    typography.lineHeight = CGFloat(lineHeight.isFinite && lineHeight > 0 ? lineHeight : 0)
-    typography.prefixFontSize = prefixFontSize.isFinite && prefixFontSize > 0 ? CGFloat(prefixFontSize) : nil
-    typography.suffixFontSize = suffixFontSize.isFinite && suffixFontSize > 0 ? CGFloat(suffixFontSize) : nil
-    typography.fontWeight = CGFloat(fontWeight.isFinite ? fontWeight : 400)
-    typography.fontFamily = fontFamily.isEmpty ? nil : fontFamily
+    // The sizing half of the mapping is shared with HybridNitroInputMeasure,
+    // which sizes the field before this view exists (InputSizing.swift).
+    let format = InputMapping.format(self)
+    var typography = InputMapping.sizingTypography(self)
     typography.color = Self.color(fromARGB: color) ?? .label
     typography.placeholderColor = Self.color(fromARGB: placeholderColor) ?? .placeholderText
     typography.prefixAlign = Self.mapAffixAlign(prefixAlign)
     typography.suffixAlign = Self.mapAffixAlign(suffixAlign)
-    typography.letterSpacing = CGFloat(letterSpacing.isFinite ? letterSpacing : 0)
-    typography.prefixSpacing = prefixSpacing.isFinite ? CGFloat(prefixSpacing) : nil
-    typography.suffixSpacing = suffixSpacing.isFinite ? CGFloat(suffixSpacing) : nil
     typography.prefixOffset = CGFloat(prefixOffset.isFinite ? prefixOffset : 0)
     typography.suffixOffset = CGFloat(suffixOffset.isFinite ? suffixOffset : 0)
     typography.adjustsFontSizeToFit = adjustsFontSizeToFit
     typography.minimumFontScale = CGFloat(min(1, max(0.05, minimumFontScale.isFinite ? minimumFontScale : 0.5)))
-    typography.allowFontScaling = allowFontScaling
-    typography.maxFontSizeMultiplier = CGFloat(max(0, maxFontSizeMultiplier.isFinite ? maxFontSizeMultiplier : 0))
 
     var timing = NitroInputView.Timing()
     timing.duration = max(0, (duration.isFinite ? duration : 400) / 1000)

@@ -8,6 +8,8 @@
 #pragma once
 
 // Forward declarations of C++ defined types
+// Forward declaration of `HybridNitroInputMeasureSpec` to properly resolve imports.
+namespace margelo::nitro::nitroinput { class HybridNitroInputMeasureSpec; }
 // Forward declaration of `HybridNitroInputViewSpec` to properly resolve imports.
 namespace margelo::nitro::nitroinput { class HybridNitroInputViewSpec; }
 // Forward declaration of `HybridNitroNumberFormatPlatformSpec` to properly resolve imports.
@@ -28,6 +30,8 @@ namespace margelo::nitro::nitroinput { enum class NitroInputEasing; }
 namespace margelo::nitro::nitroinput { enum class NitroInputEffect; }
 // Forward declaration of `NitroInputNotation` to properly resolve imports.
 namespace margelo::nitro::nitroinput { struct NitroInputNotation; }
+// Forward declaration of `NitroInputSize` to properly resolve imports.
+namespace margelo::nitro::nitroinput { struct NitroInputSize; }
 // Forward declaration of `NitroNumberAffixAlign` to properly resolve imports.
 namespace margelo::nitro::nitroinput { enum class NitroNumberAffixAlign; }
 // Forward declaration of `NitroNumberDirection` to properly resolve imports.
@@ -46,6 +50,8 @@ namespace margelo::nitro::nitroinput { enum class NitroNumberTextAlign; }
 namespace margelo::nitro::nitroinput { enum class NitroNumberTransition; }
 
 // Forward declarations of Swift defined types
+// Forward declaration of `HybridNitroInputMeasureSpec_cxx` to properly resolve imports.
+namespace NitroInput { class HybridNitroInputMeasureSpec_cxx; }
 // Forward declaration of `HybridNitroInputViewSpec_cxx` to properly resolve imports.
 namespace NitroInput { class HybridNitroInputViewSpec_cxx; }
 // Forward declaration of `HybridNitroNumberFormatPlatformSpec_cxx` to properly resolve imports.
@@ -60,6 +66,7 @@ namespace NitroInput { class HybridNitroTextMeasureSpec_cxx; }
 namespace NitroInput { class HybridNitroTextViewSpec_cxx; }
 
 // Include C++ defined types
+#include "HybridNitroInputMeasureSpec.hpp"
 #include "HybridNitroInputViewSpec.hpp"
 #include "HybridNitroNumberFormatPlatformSpec.hpp"
 #include "HybridNitroNumberViewSpec.hpp"
@@ -70,6 +77,7 @@ namespace NitroInput { class HybridNitroTextViewSpec_cxx; }
 #include "NitroInputEasing.hpp"
 #include "NitroInputEffect.hpp"
 #include "NitroInputNotation.hpp"
+#include "NitroInputSize.hpp"
 #include "NitroNumberAffixAlign.hpp"
 #include "NitroNumberDirection.hpp"
 #include "NitroNumberEasing.hpp"
@@ -423,6 +431,27 @@ namespace margelo::nitro::nitroinput::bridge::swift {
   }
   inline Result_bool_ create_Result_bool_(const std::exception_ptr& error) noexcept {
     return Result<bool>::withError(error);
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridNitroInputMeasureSpec>
+  /**
+   * Specialized version of `std::shared_ptr<HybridNitroInputMeasureSpec>`.
+   */
+  using std__shared_ptr_HybridNitroInputMeasureSpec_ = std::shared_ptr<HybridNitroInputMeasureSpec>;
+  std::shared_ptr<HybridNitroInputMeasureSpec> create_std__shared_ptr_HybridNitroInputMeasureSpec_(void* NON_NULL swiftUnsafePointer) noexcept;
+  void* NON_NULL get_std__shared_ptr_HybridNitroInputMeasureSpec_(std__shared_ptr_HybridNitroInputMeasureSpec_ cppType);
+  
+  // pragma MARK: std::weak_ptr<HybridNitroInputMeasureSpec>
+  using std__weak_ptr_HybridNitroInputMeasureSpec_ = std::weak_ptr<HybridNitroInputMeasureSpec>;
+  inline std__weak_ptr_HybridNitroInputMeasureSpec_ weakify_std__shared_ptr_HybridNitroInputMeasureSpec_(const std::shared_ptr<HybridNitroInputMeasureSpec>& strong) noexcept { return strong; }
+  
+  // pragma MARK: Result<NitroInputSize>
+  using Result_NitroInputSize_ = Result<NitroInputSize>;
+  inline Result_NitroInputSize_ create_Result_NitroInputSize_(const NitroInputSize& value) noexcept {
+    return Result<NitroInputSize>::withValue(value);
+  }
+  inline Result_NitroInputSize_ create_Result_NitroInputSize_(const std::exception_ptr& error) noexcept {
+    return Result<NitroInputSize>::withError(error);
   }
   
   // pragma MARK: std::optional<double>

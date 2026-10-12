@@ -23,6 +23,18 @@
   a background queue, a blur the screen is waiting on on a second one ahead
   of it (drawn sharp until it lands), and the shared glyph caches are
   thread-safe.
+- **`NitroInput` lays out at its real size in the commit that mounts it.**
+  Its size came from the view, through `onSizeChange` and a React commit, so
+  the first layout had none: an `autoWidth` field took its parent's width (or
+  none) for a commit, and every field without a fixed height moved by a pixel
+  or two as its line box arrived. Now a single-line field is measured on the JS
+  thread before its view exists (a new `NitroInputMeasure`), with the code the
+  view sizes itself with - fonts, affixes and their seams, number and mask
+  formatting, the placeholder and `keepPlaceholder`'s tail - as React
+  Native's `TextInput` measures in its shadow node. About 0.1 ms per field;
+  the view's own report then matches and no longer costs a commit. A wrapping
+  field, a `transform` worklet and a style that sets both sides keep the old
+  path.
 
 ## 0.3.8
 

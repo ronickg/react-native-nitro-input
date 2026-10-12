@@ -14,7 +14,7 @@ import com.margelo.nitro.views.RecyclableView
  */
 @Keep
 @DoNotStrip
-class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitroInputViewSpec(), RecyclableView {
+class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitroInputViewSpec(), RecyclableView, InputSizingProps {
   private val mainHandler = Handler(Looper.getMainLooper())
 
   /**
@@ -601,54 +601,18 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     if (!configDirty) return
     configDirty = false
 
-    val size = finite(fontSize, 32.0).toFloat()
-    inputView.format = NitroInputView.Format(
-      mode = when (mode) {
-        NitroInputMode.NUMBER -> NitroInputView.Mode.NUMBER
-        NitroInputMode.MASK -> NitroInputView.Mode.MASK
-        else -> NitroInputView.Mode.TEXT
-      },
-      mask = mask,
-      maskNotations = maskNotations.map {
-        NitroInputView.MaskNotation(it.character, it.characterSet, it.isOptional)
-      },
-      maskAutocomplete = maskAutocomplete,
-      maskAutoSkip = maskAutoSkip,
-      maskAffinityFormats = maskAffinityFormats.toList(),
-      maskAffinityStrategy = maskAffinityStrategy.value,
-      maskTextCase = maskTextCase.value,
-      maskCharacterMap = maskCharacterMap.map { NitroInputView.MaskMapping(it.from, it.to) },
-      maskSlotPlaceholder = maskSlotPlaceholder,
-      keepPlaceholder = keepPlaceholder,
-      fractionDigits = clampInt(fractionDigits, 0, 9, 2),
-      maxIntegerDigits = clampInt(maxIntegerDigits, 1, 30, 15),
-      groupingSeparator = groupingSeparator,
-      decimalSeparator = decimalSeparator,
-      prefix = prefix,
-      suffix = suffix,
-      signBeforeAffix = signPlacement != NitroInputSignPlacement.AFTERAFFIX,
-      placeholder = placeholder,
-    )
-    inputView.typography = NitroInputView.Typography(
-      fontSize = size,
-      lineHeightPx = (Math.max(0.0, finite(lineHeight, 0.0)) * inputView.resources.displayMetrics.density).toFloat(),
-      prefixFontSize = finite(prefixFontSize, size.toDouble()).toFloat(),
-      suffixFontSize = finite(suffixFontSize, size.toDouble()).toFloat(),
-      fontWeight = clampInt(fontWeight, 100, 900, 400),
-      fontFamily = fontFamily.ifEmpty { null },
+    // The sizing half of the mapping is shared with HybridNitroInputMeasure,
+    // which sizes the field before this view exists.
+    inputView.format = formatOf(this)
+    inputView.typography = sizingTypographyOf(this, inputView.resources.displayMetrics.density).copy(
       color = colorFromARGB(color),
       placeholderColor = colorFromARGB(placeholderColor),
       prefixAlign = mapAffixAlign(prefixAlign),
       suffixAlign = mapAffixAlign(suffixAlign),
-      letterSpacing = if (letterSpacing.isFinite()) letterSpacing.toFloat() else 0f,
-      prefixSpacing = prefixSpacing.takeIf { it.isFinite() }?.toFloat(),
-      suffixSpacing = suffixSpacing.takeIf { it.isFinite() }?.toFloat(),
       prefixOffset = if (prefixOffset.isFinite()) prefixOffset.toFloat() else 0f,
       suffixOffset = if (suffixOffset.isFinite()) suffixOffset.toFloat() else 0f,
       adjustsFontSizeToFit = adjustsFontSizeToFit,
       minimumFontScale = finite(minimumFontScale, 0.5).coerceIn(0.05, 1.0).toFloat(),
-      allowFontScaling = allowFontScaling,
-      maxFontSizeMultiplier = Math.max(0.0, finite(maxFontSizeMultiplier, 0.0)).toFloat(),
     )
     inputView.worklets = NitroInputView.Worklets(
       transform = clampInt(transformWorklet, 0, Int.MAX_VALUE, 0),
