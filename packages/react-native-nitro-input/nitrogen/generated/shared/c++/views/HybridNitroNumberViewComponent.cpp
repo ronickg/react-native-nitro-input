@@ -53,13 +53,13 @@ namespace margelo::nitro::nitroinput::views {
     shimmerBaseColor(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "shimmerBaseColor", rawProps, sourceProps.shimmerBaseColor)),
     shimmerDirection(nitro::ReactProp<std::optional<NitroNumberShimmerDirection>>::fromRawValue("NitroNumberView", "shimmerDirection", rawProps, sourceProps.shimmerDirection)),
     shimmerDelay(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "shimmerDelay", rawProps, sourceProps.shimmerDelay)),
-    fontSize(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "fontSize", rawProps, sourceProps.fontSize)),
+    textSize(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "textSize", rawProps, sourceProps.textSize)),
     prefixFontSize(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "prefixFontSize", rawProps, sourceProps.prefixFontSize)),
     suffixFontSize(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "suffixFontSize", rawProps, sourceProps.suffixFontSize)),
     affixAlign(nitro::ReactProp<std::optional<NitroNumberAffixAlign>>::fromRawValue("NitroNumberView", "affixAlign", rawProps, sourceProps.affixAlign)),
     prefixAlign(nitro::ReactProp<std::optional<NitroNumberAffixAlign>>::fromRawValue("NitroNumberView", "prefixAlign", rawProps, sourceProps.prefixAlign)),
     suffixAlign(nitro::ReactProp<std::optional<NitroNumberAffixAlign>>::fromRawValue("NitroNumberView", "suffixAlign", rawProps, sourceProps.suffixAlign)),
-    letterSpacing(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "letterSpacing", rawProps, sourceProps.letterSpacing)),
+    textLetterSpacing(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "textLetterSpacing", rawProps, sourceProps.textLetterSpacing)),
     prefixSpacing(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "prefixSpacing", rawProps, sourceProps.prefixSpacing)),
     suffixSpacing(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "suffixSpacing", rawProps, sourceProps.suffixSpacing)),
     prefixOffset(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "prefixOffset", rawProps, sourceProps.prefixOffset)),
@@ -82,10 +82,10 @@ namespace margelo::nitro::nitroinput::views {
     minimumFontScale(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "minimumFontScale", rawProps, sourceProps.minimumFontScale)),
     allowFontScaling(nitro::ReactProp<std::optional<bool>>::fromRawValue("NitroNumberView", "allowFontScaling", rawProps, sourceProps.allowFontScaling)),
     maxFontSizeMultiplier(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "maxFontSizeMultiplier", rawProps, sourceProps.maxFontSizeMultiplier)),
-    fontWeight(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "fontWeight", rawProps, sourceProps.fontWeight)),
-    fontFamily(nitro::ReactProp<std::optional<std::string>>::fromRawValue("NitroNumberView", "fontFamily", rawProps, sourceProps.fontFamily)),
-    color(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "color", rawProps, sourceProps.color)),
-    textAlign(nitro::ReactProp<std::optional<NitroNumberTextAlign>>::fromRawValue("NitroNumberView", "textAlign", rawProps, sourceProps.textAlign)),
+    textWeight(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "textWeight", rawProps, sourceProps.textWeight)),
+    textFamily(nitro::ReactProp<std::optional<std::string>>::fromRawValue("NitroNumberView", "textFamily", rawProps, sourceProps.textFamily)),
+    textColor(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroNumberView", "textColor", rawProps, sourceProps.textColor)),
+    textAlignment(nitro::ReactProp<std::optional<NitroNumberTextAlign>>::fromRawValue("NitroNumberView", "textAlignment", rawProps, sourceProps.textAlignment)),
     rightToLeft(nitro::ReactProp<std::optional<bool>>::fromRawValue("NitroNumberView", "rightToLeft", rawProps, sourceProps.rightToLeft)),
     onSizeChange(nitro::ReactProp<std::optional<std::function<void(double /* width */, double /* height */)>>>::fromRawValue("NitroNumberView", "onSizeChange", rawProps, sourceProps.onSizeChange)),
     onRevealEnd(nitro::ReactProp<std::optional<std::function<void()>>>::fromRawValue("NitroNumberView", "onRevealEnd", rawProps, sourceProps.onRevealEnd)),
@@ -129,13 +129,13 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("shimmerBaseColor"): return true;
       case hashString("shimmerDirection"): return true;
       case hashString("shimmerDelay"): return true;
-      case hashString("fontSize"): return true;
+      case hashString("textSize"): return true;
       case hashString("prefixFontSize"): return true;
       case hashString("suffixFontSize"): return true;
       case hashString("affixAlign"): return true;
       case hashString("prefixAlign"): return true;
       case hashString("suffixAlign"): return true;
-      case hashString("letterSpacing"): return true;
+      case hashString("textLetterSpacing"): return true;
       case hashString("prefixSpacing"): return true;
       case hashString("suffixSpacing"): return true;
       case hashString("prefixOffset"): return true;
@@ -158,10 +158,10 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("minimumFontScale"): return true;
       case hashString("allowFontScaling"): return true;
       case hashString("maxFontSizeMultiplier"): return true;
-      case hashString("fontWeight"): return true;
-      case hashString("fontFamily"): return true;
-      case hashString("color"): return true;
-      case hashString("textAlign"): return true;
+      case hashString("textWeight"): return true;
+      case hashString("textFamily"): return true;
+      case hashString("textColor"): return true;
+      case hashString("textAlignment"): return true;
       case hashString("rightToLeft"): return true;
       case hashString("onSizeChange"): return true;
       case hashString("onRevealEnd"): return true;

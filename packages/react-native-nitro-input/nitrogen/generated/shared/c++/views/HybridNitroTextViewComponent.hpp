@@ -48,12 +48,12 @@ namespace margelo::nitro::nitroinput::views {
 
   public:
     nitro::ReactProp<std::string> text;
-    nitro::ReactProp<std::optional<double>> fontSize;
-    nitro::ReactProp<std::optional<double>> fontWeight;
-    nitro::ReactProp<std::optional<std::string>> fontFamily;
-    nitro::ReactProp<std::optional<double>> color;
-    nitro::ReactProp<std::optional<double>> letterSpacing;
-    nitro::ReactProp<std::optional<NitroNumberTextAlign>> textAlign;
+    nitro::ReactProp<std::optional<double>> textSize;
+    nitro::ReactProp<std::optional<double>> textWeight;
+    nitro::ReactProp<std::optional<std::string>> textFamily;
+    nitro::ReactProp<std::optional<double>> textColor;
+    nitro::ReactProp<std::optional<double>> textLetterSpacing;
+    nitro::ReactProp<std::optional<NitroNumberTextAlign>> textAlignment;
     nitro::ReactProp<std::optional<bool>> rightToLeft;
     nitro::ReactProp<std::optional<double>> duration;
     nitro::ReactProp<std::optional<NitroInputEasing>> easing;
@@ -73,12 +73,12 @@ namespace margelo::nitro::nitroinput::views {
     [[nodiscard]]
     bool hasSameProps(const HybridNitroTextViewProps& other) const noexcept {
       return text.hasSameValue(other.text) &&
-             fontSize.hasSameValue(other.fontSize) &&
-             fontWeight.hasSameValue(other.fontWeight) &&
-             fontFamily.hasSameValue(other.fontFamily) &&
-             color.hasSameValue(other.color) &&
-             letterSpacing.hasSameValue(other.letterSpacing) &&
-             textAlign.hasSameValue(other.textAlign) &&
+             textSize.hasSameValue(other.textSize) &&
+             textWeight.hasSameValue(other.textWeight) &&
+             textFamily.hasSameValue(other.textFamily) &&
+             textColor.hasSameValue(other.textColor) &&
+             textLetterSpacing.hasSameValue(other.textLetterSpacing) &&
+             textAlignment.hasSameValue(other.textAlignment) &&
              rightToLeft.hasSameValue(other.rightToLeft) &&
              duration.hasSameValue(other.duration) &&
              easing.hasSameValue(other.easing) &&
@@ -99,12 +99,12 @@ namespace margelo::nitro::nitroinput::views {
     [[nodiscard]]
     bool hasAnyProvidedProps() const noexcept {
       return text.isProvided() ||
-             fontSize.isProvided() ||
-             fontWeight.isProvided() ||
-             fontFamily.isProvided() ||
-             color.isProvided() ||
-             letterSpacing.isProvided() ||
-             textAlign.isProvided() ||
+             textSize.isProvided() ||
+             textWeight.isProvided() ||
+             textFamily.isProvided() ||
+             textColor.isProvided() ||
+             textLetterSpacing.isProvided() ||
+             textAlignment.isProvided() ||
              rightToLeft.isProvided() ||
              duration.isProvided() ||
              easing.isProvided() ||

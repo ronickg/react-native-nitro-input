@@ -92,10 +92,10 @@ data class NitroInputSizing(
   val keepPlaceholder: Boolean,
   @DoNotStrip
   @Keep
-  val fontSize: Double,
+  val textSize: Double,
   @DoNotStrip
   @Keep
-  val lineHeight: Double,
+  val textLineHeight: Double,
   @DoNotStrip
   @Keep
   val prefixFontSize: Double,
@@ -104,13 +104,13 @@ data class NitroInputSizing(
   val suffixFontSize: Double,
   @DoNotStrip
   @Keep
-  val fontWeight: Double,
+  val textWeight: Double,
   @DoNotStrip
   @Keep
-  val fontFamily: String,
+  val textFamily: String,
   @DoNotStrip
   @Keep
-  val letterSpacing: Double,
+  val textLetterSpacing: Double,
   @DoNotStrip
   @Keep
   val prefixSpacing: Double,
@@ -168,13 +168,13 @@ data class NitroInputSizing(
       && Objects.deepEquals(this.maskCharacterMap, other.maskCharacterMap)
       && Objects.deepEquals(this.maskSlotPlaceholder, other.maskSlotPlaceholder)
       && Objects.deepEquals(this.keepPlaceholder, other.keepPlaceholder)
-      && Objects.deepEquals(this.fontSize, other.fontSize)
-      && Objects.deepEquals(this.lineHeight, other.lineHeight)
+      && Objects.deepEquals(this.textSize, other.textSize)
+      && Objects.deepEquals(this.textLineHeight, other.textLineHeight)
       && Objects.deepEquals(this.prefixFontSize, other.prefixFontSize)
       && Objects.deepEquals(this.suffixFontSize, other.suffixFontSize)
-      && Objects.deepEquals(this.fontWeight, other.fontWeight)
-      && Objects.deepEquals(this.fontFamily, other.fontFamily)
-      && Objects.deepEquals(this.letterSpacing, other.letterSpacing)
+      && Objects.deepEquals(this.textWeight, other.textWeight)
+      && Objects.deepEquals(this.textFamily, other.textFamily)
+      && Objects.deepEquals(this.textLetterSpacing, other.textLetterSpacing)
       && Objects.deepEquals(this.prefixSpacing, other.prefixSpacing)
       && Objects.deepEquals(this.suffixSpacing, other.suffixSpacing)
       && Objects.deepEquals(this.allowFontScaling, other.allowFontScaling)
@@ -212,13 +212,13 @@ data class NitroInputSizing(
       maskCharacterMap,
       maskSlotPlaceholder,
       keepPlaceholder,
-      fontSize,
-      lineHeight,
+      textSize,
+      textLineHeight,
       prefixFontSize,
       suffixFontSize,
-      fontWeight,
-      fontFamily,
-      letterSpacing,
+      textWeight,
+      textFamily,
+      textLetterSpacing,
       prefixSpacing,
       suffixSpacing,
       allowFontScaling,
@@ -239,8 +239,8 @@ data class NitroInputSizing(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(text: String, mode: NitroInputMode, plain: Boolean, multiline: Boolean, secureTextEntry: Boolean, maxLength: Double, fractionDigits: Double, maxIntegerDigits: Double, groupingSeparator: String, decimalSeparator: String, prefix: String, suffix: String, signPlacement: NitroInputSignPlacement, placeholder: String, mask: String, maskNotations: Array<NitroInputNotation>, maskAutocomplete: Boolean, maskAutoSkip: Boolean, maskAffinityFormats: Array<String>, maskAffinityStrategy: NitroInputMaskAffinity, maskTextCase: NitroInputTextCase, maskCharacterMap: Array<NitroInputCharacterMapping>, maskSlotPlaceholder: String, keepPlaceholder: Boolean, fontSize: Double, lineHeight: Double, prefixFontSize: Double, suffixFontSize: Double, fontWeight: Double, fontFamily: String, letterSpacing: Double, prefixSpacing: Double, suffixSpacing: Double, allowFontScaling: Boolean, maxFontSizeMultiplier: Double, variant: NitroInputVariant, label: String, labelBehavior: NitroInputLabelBehavior, labelFontSize: Double, cornerRadius: Double): NitroInputSizing {
-      return NitroInputSizing(text, mode, plain, multiline, secureTextEntry, maxLength, fractionDigits, maxIntegerDigits, groupingSeparator, decimalSeparator, prefix, suffix, signPlacement, placeholder, mask, maskNotations, maskAutocomplete, maskAutoSkip, maskAffinityFormats, maskAffinityStrategy, maskTextCase, maskCharacterMap, maskSlotPlaceholder, keepPlaceholder, fontSize, lineHeight, prefixFontSize, suffixFontSize, fontWeight, fontFamily, letterSpacing, prefixSpacing, suffixSpacing, allowFontScaling, maxFontSizeMultiplier, variant, label, labelBehavior, labelFontSize, cornerRadius)
+    private fun fromCpp(text: String, mode: NitroInputMode, plain: Boolean, multiline: Boolean, secureTextEntry: Boolean, maxLength: Double, fractionDigits: Double, maxIntegerDigits: Double, groupingSeparator: String, decimalSeparator: String, prefix: String, suffix: String, signPlacement: NitroInputSignPlacement, placeholder: String, mask: String, maskNotations: Array<NitroInputNotation>, maskAutocomplete: Boolean, maskAutoSkip: Boolean, maskAffinityFormats: Array<String>, maskAffinityStrategy: NitroInputMaskAffinity, maskTextCase: NitroInputTextCase, maskCharacterMap: Array<NitroInputCharacterMapping>, maskSlotPlaceholder: String, keepPlaceholder: Boolean, textSize: Double, textLineHeight: Double, prefixFontSize: Double, suffixFontSize: Double, textWeight: Double, textFamily: String, textLetterSpacing: Double, prefixSpacing: Double, suffixSpacing: Double, allowFontScaling: Boolean, maxFontSizeMultiplier: Double, variant: NitroInputVariant, label: String, labelBehavior: NitroInputLabelBehavior, labelFontSize: Double, cornerRadius: Double): NitroInputSizing {
+      return NitroInputSizing(text, mode, plain, multiline, secureTextEntry, maxLength, fractionDigits, maxIntegerDigits, groupingSeparator, decimalSeparator, prefix, suffix, signPlacement, placeholder, mask, maskNotations, maskAutocomplete, maskAutoSkip, maskAffinityFormats, maskAffinityStrategy, maskTextCase, maskCharacterMap, maskSlotPlaceholder, keepPlaceholder, textSize, textLineHeight, prefixFontSize, suffixFontSize, textWeight, textFamily, textLetterSpacing, prefixSpacing, suffixSpacing, allowFontScaling, maxFontSizeMultiplier, variant, label, labelBehavior, labelFontSize, cornerRadius)
     }
   }
 }

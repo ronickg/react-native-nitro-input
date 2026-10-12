@@ -535,14 +535,14 @@ open class HybridNitroInputViewSpec_cxx {
     }
   }
   
-  public final var letterSpacing: Double {
+  public final var textLetterSpacing: Double {
     @inline(__always)
     get {
-      return self.__implementation.letterSpacing
+      return self.__implementation.textLetterSpacing
     }
     @inline(__always)
     set {
-      self.__implementation.letterSpacing = newValue
+      self.__implementation.textLetterSpacing = newValue
     }
   }
   
@@ -656,69 +656,69 @@ open class HybridNitroInputViewSpec_cxx {
     }
   }
   
-  public final var fontSize: Double {
+  public final var textSize: Double {
     @inline(__always)
     get {
-      return self.__implementation.fontSize
+      return self.__implementation.textSize
     }
     @inline(__always)
     set {
-      self.__implementation.fontSize = newValue
+      self.__implementation.textSize = newValue
     }
   }
   
-  public final var lineHeight: Double {
+  public final var textLineHeight: Double {
     @inline(__always)
     get {
-      return self.__implementation.lineHeight
+      return self.__implementation.textLineHeight
     }
     @inline(__always)
     set {
-      self.__implementation.lineHeight = newValue
+      self.__implementation.textLineHeight = newValue
     }
   }
   
-  public final var fontWeight: Double {
+  public final var textWeight: Double {
     @inline(__always)
     get {
-      return self.__implementation.fontWeight
+      return self.__implementation.textWeight
     }
     @inline(__always)
     set {
-      self.__implementation.fontWeight = newValue
+      self.__implementation.textWeight = newValue
     }
   }
   
-  public final var fontFamily: std.string {
+  public final var textFamily: std.string {
     @inline(__always)
     get {
-      return std.string(self.__implementation.fontFamily)
+      return std.string(self.__implementation.textFamily)
     }
     @inline(__always)
     set {
-      self.__implementation.fontFamily = String(newValue)
+      self.__implementation.textFamily = String(newValue)
     }
   }
   
-  public final var color: Double {
+  public final var textColor: Double {
     @inline(__always)
     get {
-      return self.__implementation.color
+      return self.__implementation.textColor
     }
     @inline(__always)
     set {
-      self.__implementation.color = newValue
+      self.__implementation.textColor = newValue
     }
   }
   
-  public final var textAlign: Int32 {
+  public final var textAlignment: Int32 {
     @inline(__always)
     get {
-      return self.__implementation.textAlign.rawValue
+      return self.__implementation.textAlignment.rawValue
     }
     @inline(__always)
     set {
-      self.__implementation.textAlign = margelo.nitro.nitroinput.NitroInputTextAlign(rawValue: newValue)!
+      self.__implementation.textAlignment = margelo.nitro.nitroinput.NitroInputTextAlign(rawValue: newValue)!
     }
   }
   
@@ -887,14 +887,14 @@ open class HybridNitroInputViewSpec_cxx {
     }
   }
   
-  public final var textAlignVertical: Int32 {
+  public final var textVerticalAlignment: Int32 {
     @inline(__always)
     get {
-      return self.__implementation.textAlignVertical.rawValue
+      return self.__implementation.textVerticalAlignment.rawValue
     }
     @inline(__always)
     set {
-      self.__implementation.textAlignVertical = margelo.nitro.nitroinput.NitroInputTextAlignVertical(rawValue: newValue)!
+      self.__implementation.textVerticalAlignment = margelo.nitro.nitroinput.NitroInputTextAlignVertical(rawValue: newValue)!
     }
   }
   

@@ -34,13 +34,13 @@ internal interface InputSizingProps {
   val suffix: String
   val signPlacement: NitroInputSignPlacement
   val placeholder: String
-  val fontSize: Double
-  val lineHeight: Double
+  val textSize: Double
+  val textLineHeight: Double
   val prefixFontSize: Double
   val suffixFontSize: Double
-  val fontWeight: Double
-  val fontFamily: String
-  val letterSpacing: Double
+  val textWeight: Double
+  val textFamily: String
+  val textLetterSpacing: Double
   val prefixSpacing: Double
   val suffixSpacing: Double
   val allowFontScaling: Boolean
@@ -87,15 +87,15 @@ internal fun formatOf(p: InputSizingProps) = Format(
 
 /** The typography's sizing half; the view adds the colours, alignment and offsets. */
 internal fun sizingTypographyOf(p: InputSizingProps, density: Float): Typography {
-  val size = finiteOr(p.fontSize, 32.0).toFloat()
+  val size = finiteOr(p.textSize, 32.0).toFloat()
   return Typography(
     fontSize = size,
-    lineHeightPx = (max(0.0, finiteOr(p.lineHeight, 0.0)) * density).toFloat(),
+    lineHeightPx = (max(0.0, finiteOr(p.textLineHeight, 0.0)) * density).toFloat(),
     prefixFontSize = finiteOr(p.prefixFontSize, size.toDouble()).toFloat(),
     suffixFontSize = finiteOr(p.suffixFontSize, size.toDouble()).toFloat(),
-    fontWeight = clampedInt(p.fontWeight, 100, 900, 400),
-    fontFamily = p.fontFamily.ifEmpty { null },
-    letterSpacing = if (p.letterSpacing.isFinite()) p.letterSpacing.toFloat() else 0f,
+    fontWeight = clampedInt(p.textWeight, 100, 900, 400),
+    fontFamily = p.textFamily.ifEmpty { null },
+    letterSpacing = if (p.textLetterSpacing.isFinite()) p.textLetterSpacing.toFloat() else 0f,
     prefixSpacing = p.prefixSpacing.takeIf { it.isFinite() }?.toFloat(),
     suffixSpacing = p.suffixSpacing.takeIf { it.isFinite() }?.toFloat(),
     allowFontScaling = p.allowFontScaling,
@@ -379,13 +379,13 @@ internal class SizingProps(s: NitroInputSizing) : InputSizingProps {
   override val suffix = s.suffix
   override val signPlacement = s.signPlacement
   override val placeholder = s.placeholder
-  override val fontSize = s.fontSize
-  override val lineHeight = s.lineHeight
+  override val textSize = s.textSize
+  override val textLineHeight = s.textLineHeight
   override val prefixFontSize = s.prefixFontSize
   override val suffixFontSize = s.suffixFontSize
-  override val fontWeight = s.fontWeight
-  override val fontFamily = s.fontFamily
-  override val letterSpacing = s.letterSpacing
+  override val textWeight = s.textWeight
+  override val textFamily = s.textFamily
+  override val textLetterSpacing = s.textLetterSpacing
   override val prefixSpacing = s.prefixSpacing
   override val suffixSpacing = s.suffixSpacing
   override val allowFontScaling = s.allowFontScaling

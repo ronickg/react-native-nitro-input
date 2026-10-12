@@ -18,7 +18,7 @@ public extension NitroInputSizing {
   /**
    * Create a new instance of `NitroInputSizing`.
    */
-  init(text: String, mode: NitroInputMode, plain: Bool, multiline: Bool, secureTextEntry: Bool, maxLength: Double, fractionDigits: Double, maxIntegerDigits: Double, groupingSeparator: String, decimalSeparator: String, prefix: String, suffix: String, signPlacement: NitroInputSignPlacement, placeholder: String, mask: String, maskNotations: [NitroInputNotation], maskAutocomplete: Bool, maskAutoSkip: Bool, maskAffinityFormats: [String], maskAffinityStrategy: NitroInputMaskAffinity, maskTextCase: NitroInputTextCase, maskCharacterMap: [NitroInputCharacterMapping], maskSlotPlaceholder: String, keepPlaceholder: Bool, fontSize: Double, lineHeight: Double, prefixFontSize: Double, suffixFontSize: Double, fontWeight: Double, fontFamily: String, letterSpacing: Double, prefixSpacing: Double, suffixSpacing: Double, allowFontScaling: Bool, maxFontSizeMultiplier: Double, variant: NitroInputVariant, label: String, labelBehavior: NitroInputLabelBehavior, labelFontSize: Double, cornerRadius: Double) {
+  init(text: String, mode: NitroInputMode, plain: Bool, multiline: Bool, secureTextEntry: Bool, maxLength: Double, fractionDigits: Double, maxIntegerDigits: Double, groupingSeparator: String, decimalSeparator: String, prefix: String, suffix: String, signPlacement: NitroInputSignPlacement, placeholder: String, mask: String, maskNotations: [NitroInputNotation], maskAutocomplete: Bool, maskAutoSkip: Bool, maskAffinityFormats: [String], maskAffinityStrategy: NitroInputMaskAffinity, maskTextCase: NitroInputTextCase, maskCharacterMap: [NitroInputCharacterMapping], maskSlotPlaceholder: String, keepPlaceholder: Bool, textSize: Double, textLineHeight: Double, prefixFontSize: Double, suffixFontSize: Double, textWeight: Double, textFamily: String, textLetterSpacing: Double, prefixSpacing: Double, suffixSpacing: Double, allowFontScaling: Bool, maxFontSizeMultiplier: Double, variant: NitroInputVariant, label: String, labelBehavior: NitroInputLabelBehavior, labelFontSize: Double, cornerRadius: Double) {
     self.init(std.string(text), mode, plain, multiline, secureTextEntry, maxLength, fractionDigits, maxIntegerDigits, std.string(groupingSeparator), std.string(decimalSeparator), std.string(prefix), std.string(suffix), signPlacement, std.string(placeholder), std.string(mask), { () -> bridge.std__vector_NitroInputNotation_ in
       var __vector = bridge.create_std__vector_NitroInputNotation_(maskNotations.count)
       for __item in maskNotations {
@@ -37,7 +37,7 @@ public extension NitroInputSizing {
         __vector.push_back(__item)
       }
       return __vector
-    }(), std.string(maskSlotPlaceholder), keepPlaceholder, fontSize, lineHeight, prefixFontSize, suffixFontSize, fontWeight, std.string(fontFamily), letterSpacing, prefixSpacing, suffixSpacing, allowFontScaling, maxFontSizeMultiplier, variant, std.string(label), labelBehavior, labelFontSize, cornerRadius)
+    }(), std.string(maskSlotPlaceholder), keepPlaceholder, textSize, textLineHeight, prefixFontSize, suffixFontSize, textWeight, std.string(textFamily), textLetterSpacing, prefixSpacing, suffixSpacing, allowFontScaling, maxFontSizeMultiplier, variant, std.string(label), labelBehavior, labelFontSize, cornerRadius)
   }
 
   @inline(__always)
@@ -161,13 +161,13 @@ public extension NitroInputSizing {
   }
   
   @inline(__always)
-  var fontSize: Double {
-    return self.__fontSize
+  var textSize: Double {
+    return self.__textSize
   }
   
   @inline(__always)
-  var lineHeight: Double {
-    return self.__lineHeight
+  var textLineHeight: Double {
+    return self.__textLineHeight
   }
   
   @inline(__always)
@@ -181,18 +181,18 @@ public extension NitroInputSizing {
   }
   
   @inline(__always)
-  var fontWeight: Double {
-    return self.__fontWeight
+  var textWeight: Double {
+    return self.__textWeight
   }
   
   @inline(__always)
-  var fontFamily: String {
-    return String(self.__fontFamily)
+  var textFamily: String {
+    return String(self.__textFamily)
   }
   
   @inline(__always)
-  var letterSpacing: Double {
-    return self.__letterSpacing
+  var textLetterSpacing: Double {
+    return self.__textLetterSpacing
   }
   
   @inline(__always)

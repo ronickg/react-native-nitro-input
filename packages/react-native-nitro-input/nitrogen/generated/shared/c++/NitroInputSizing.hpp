@@ -87,13 +87,13 @@ namespace margelo::nitro::nitroinput {
     std::vector<NitroInputCharacterMapping> maskCharacterMap     SWIFT_PRIVATE;
     std::string maskSlotPlaceholder     SWIFT_PRIVATE;
     bool keepPlaceholder     SWIFT_PRIVATE;
-    double fontSize     SWIFT_PRIVATE;
-    double lineHeight     SWIFT_PRIVATE;
+    double textSize     SWIFT_PRIVATE;
+    double textLineHeight     SWIFT_PRIVATE;
     double prefixFontSize     SWIFT_PRIVATE;
     double suffixFontSize     SWIFT_PRIVATE;
-    double fontWeight     SWIFT_PRIVATE;
-    std::string fontFamily     SWIFT_PRIVATE;
-    double letterSpacing     SWIFT_PRIVATE;
+    double textWeight     SWIFT_PRIVATE;
+    std::string textFamily     SWIFT_PRIVATE;
+    double textLetterSpacing     SWIFT_PRIVATE;
     double prefixSpacing     SWIFT_PRIVATE;
     double suffixSpacing     SWIFT_PRIVATE;
     bool allowFontScaling     SWIFT_PRIVATE;
@@ -106,7 +106,7 @@ namespace margelo::nitro::nitroinput {
 
   public:
     NitroInputSizing() = default;
-    explicit NitroInputSizing(std::string text, NitroInputMode mode, bool plain, bool multiline, bool secureTextEntry, double maxLength, double fractionDigits, double maxIntegerDigits, std::string groupingSeparator, std::string decimalSeparator, std::string prefix, std::string suffix, NitroInputSignPlacement signPlacement, std::string placeholder, std::string mask, std::vector<NitroInputNotation> maskNotations, bool maskAutocomplete, bool maskAutoSkip, std::vector<std::string> maskAffinityFormats, NitroInputMaskAffinity maskAffinityStrategy, NitroInputTextCase maskTextCase, std::vector<NitroInputCharacterMapping> maskCharacterMap, std::string maskSlotPlaceholder, bool keepPlaceholder, double fontSize, double lineHeight, double prefixFontSize, double suffixFontSize, double fontWeight, std::string fontFamily, double letterSpacing, double prefixSpacing, double suffixSpacing, bool allowFontScaling, double maxFontSizeMultiplier, NitroInputVariant variant, std::string label, NitroInputLabelBehavior labelBehavior, double labelFontSize, double cornerRadius): text(text), mode(mode), plain(plain), multiline(multiline), secureTextEntry(secureTextEntry), maxLength(maxLength), fractionDigits(fractionDigits), maxIntegerDigits(maxIntegerDigits), groupingSeparator(groupingSeparator), decimalSeparator(decimalSeparator), prefix(prefix), suffix(suffix), signPlacement(signPlacement), placeholder(placeholder), mask(mask), maskNotations(maskNotations), maskAutocomplete(maskAutocomplete), maskAutoSkip(maskAutoSkip), maskAffinityFormats(maskAffinityFormats), maskAffinityStrategy(maskAffinityStrategy), maskTextCase(maskTextCase), maskCharacterMap(maskCharacterMap), maskSlotPlaceholder(maskSlotPlaceholder), keepPlaceholder(keepPlaceholder), fontSize(fontSize), lineHeight(lineHeight), prefixFontSize(prefixFontSize), suffixFontSize(suffixFontSize), fontWeight(fontWeight), fontFamily(fontFamily), letterSpacing(letterSpacing), prefixSpacing(prefixSpacing), suffixSpacing(suffixSpacing), allowFontScaling(allowFontScaling), maxFontSizeMultiplier(maxFontSizeMultiplier), variant(variant), label(label), labelBehavior(labelBehavior), labelFontSize(labelFontSize), cornerRadius(cornerRadius) {}
+    explicit NitroInputSizing(std::string text, NitroInputMode mode, bool plain, bool multiline, bool secureTextEntry, double maxLength, double fractionDigits, double maxIntegerDigits, std::string groupingSeparator, std::string decimalSeparator, std::string prefix, std::string suffix, NitroInputSignPlacement signPlacement, std::string placeholder, std::string mask, std::vector<NitroInputNotation> maskNotations, bool maskAutocomplete, bool maskAutoSkip, std::vector<std::string> maskAffinityFormats, NitroInputMaskAffinity maskAffinityStrategy, NitroInputTextCase maskTextCase, std::vector<NitroInputCharacterMapping> maskCharacterMap, std::string maskSlotPlaceholder, bool keepPlaceholder, double textSize, double textLineHeight, double prefixFontSize, double suffixFontSize, double textWeight, std::string textFamily, double textLetterSpacing, double prefixSpacing, double suffixSpacing, bool allowFontScaling, double maxFontSizeMultiplier, NitroInputVariant variant, std::string label, NitroInputLabelBehavior labelBehavior, double labelFontSize, double cornerRadius): text(text), mode(mode), plain(plain), multiline(multiline), secureTextEntry(secureTextEntry), maxLength(maxLength), fractionDigits(fractionDigits), maxIntegerDigits(maxIntegerDigits), groupingSeparator(groupingSeparator), decimalSeparator(decimalSeparator), prefix(prefix), suffix(suffix), signPlacement(signPlacement), placeholder(placeholder), mask(mask), maskNotations(maskNotations), maskAutocomplete(maskAutocomplete), maskAutoSkip(maskAutoSkip), maskAffinityFormats(maskAffinityFormats), maskAffinityStrategy(maskAffinityStrategy), maskTextCase(maskTextCase), maskCharacterMap(maskCharacterMap), maskSlotPlaceholder(maskSlotPlaceholder), keepPlaceholder(keepPlaceholder), textSize(textSize), textLineHeight(textLineHeight), prefixFontSize(prefixFontSize), suffixFontSize(suffixFontSize), textWeight(textWeight), textFamily(textFamily), textLetterSpacing(textLetterSpacing), prefixSpacing(prefixSpacing), suffixSpacing(suffixSpacing), allowFontScaling(allowFontScaling), maxFontSizeMultiplier(maxFontSizeMultiplier), variant(variant), label(label), labelBehavior(labelBehavior), labelFontSize(labelFontSize), cornerRadius(cornerRadius) {}
 
   public:
     friend bool operator==(const NitroInputSizing& lhs, const NitroInputSizing& rhs) = default;
@@ -146,13 +146,13 @@ namespace margelo::nitro {
         JSIConverter<std::vector<margelo::nitro::nitroinput::NitroInputCharacterMapping>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maskCharacterMap"))),
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maskSlotPlaceholder"))),
         JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "keepPlaceholder"))),
-        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "fontSize"))),
-        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "lineHeight"))),
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "textSize"))),
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "textLineHeight"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "prefixFontSize"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "suffixFontSize"))),
-        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "fontWeight"))),
-        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "fontFamily"))),
-        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "letterSpacing"))),
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "textWeight"))),
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "textFamily"))),
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "textLetterSpacing"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "prefixSpacing"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "suffixSpacing"))),
         JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "allowFontScaling"))),
@@ -190,13 +190,13 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "maskCharacterMap"), JSIConverter<std::vector<margelo::nitro::nitroinput::NitroInputCharacterMapping>>::toJSI(runtime, arg.maskCharacterMap));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "maskSlotPlaceholder"), JSIConverter<std::string>::toJSI(runtime, arg.maskSlotPlaceholder));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "keepPlaceholder"), JSIConverter<bool>::toJSI(runtime, arg.keepPlaceholder));
-      obj.setProperty(runtime, PropNameIDCache::get(runtime, "fontSize"), JSIConverter<double>::toJSI(runtime, arg.fontSize));
-      obj.setProperty(runtime, PropNameIDCache::get(runtime, "lineHeight"), JSIConverter<double>::toJSI(runtime, arg.lineHeight));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "textSize"), JSIConverter<double>::toJSI(runtime, arg.textSize));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "textLineHeight"), JSIConverter<double>::toJSI(runtime, arg.textLineHeight));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "prefixFontSize"), JSIConverter<double>::toJSI(runtime, arg.prefixFontSize));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "suffixFontSize"), JSIConverter<double>::toJSI(runtime, arg.suffixFontSize));
-      obj.setProperty(runtime, PropNameIDCache::get(runtime, "fontWeight"), JSIConverter<double>::toJSI(runtime, arg.fontWeight));
-      obj.setProperty(runtime, PropNameIDCache::get(runtime, "fontFamily"), JSIConverter<std::string>::toJSI(runtime, arg.fontFamily));
-      obj.setProperty(runtime, PropNameIDCache::get(runtime, "letterSpacing"), JSIConverter<double>::toJSI(runtime, arg.letterSpacing));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "textWeight"), JSIConverter<double>::toJSI(runtime, arg.textWeight));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "textFamily"), JSIConverter<std::string>::toJSI(runtime, arg.textFamily));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "textLetterSpacing"), JSIConverter<double>::toJSI(runtime, arg.textLetterSpacing));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "prefixSpacing"), JSIConverter<double>::toJSI(runtime, arg.prefixSpacing));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "suffixSpacing"), JSIConverter<double>::toJSI(runtime, arg.suffixSpacing));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "allowFontScaling"), JSIConverter<bool>::toJSI(runtime, arg.allowFontScaling));
@@ -240,13 +240,13 @@ namespace margelo::nitro {
       if (!JSIConverter<std::vector<margelo::nitro::nitroinput::NitroInputCharacterMapping>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maskCharacterMap")))) return false;
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maskSlotPlaceholder")))) return false;
       if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "keepPlaceholder")))) return false;
-      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "fontSize")))) return false;
-      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "lineHeight")))) return false;
+      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "textSize")))) return false;
+      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "textLineHeight")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "prefixFontSize")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "suffixFontSize")))) return false;
-      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "fontWeight")))) return false;
-      if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "fontFamily")))) return false;
-      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "letterSpacing")))) return false;
+      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "textWeight")))) return false;
+      if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "textFamily")))) return false;
+      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "textLetterSpacing")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "prefixSpacing")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "suffixSpacing")))) return false;
       if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "allowFontScaling")))) return false;

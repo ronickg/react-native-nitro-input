@@ -500,14 +500,14 @@ namespace margelo::nitro::nitroinput {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroInputAffixAlign> /* suffixAlign */)>("setSuffixAlign");
     method(_javaPart, JNitroInputAffixAlign::fromCpp(suffixAlign));
   }
-  double JHybridNitroInputViewSpec::getLetterSpacing() {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getLetterSpacing");
+  double JHybridNitroInputViewSpec::getTextLetterSpacing() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getTextLetterSpacing");
     auto __result = method(_javaPart);
     return __result;
   }
-  void JHybridNitroInputViewSpec::setLetterSpacing(double letterSpacing) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* letterSpacing */)>("setLetterSpacing");
-    method(_javaPart, letterSpacing);
+  void JHybridNitroInputViewSpec::setTextLetterSpacing(double textLetterSpacing) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* textLetterSpacing */)>("setTextLetterSpacing");
+    method(_javaPart, textLetterSpacing);
   }
   double JHybridNitroInputViewSpec::getPrefixSpacing() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getPrefixSpacing");
@@ -599,59 +599,59 @@ namespace margelo::nitro::nitroinput {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroInputEffect> /* effect */)>("setEffect");
     method(_javaPart, JNitroInputEffect::fromCpp(effect));
   }
-  double JHybridNitroInputViewSpec::getFontSize() {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getFontSize");
+  double JHybridNitroInputViewSpec::getTextSize() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getTextSize");
     auto __result = method(_javaPart);
     return __result;
   }
-  void JHybridNitroInputViewSpec::setFontSize(double fontSize) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* fontSize */)>("setFontSize");
-    method(_javaPart, fontSize);
+  void JHybridNitroInputViewSpec::setTextSize(double textSize) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* textSize */)>("setTextSize");
+    method(_javaPart, textSize);
   }
-  double JHybridNitroInputViewSpec::getLineHeight() {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getLineHeight");
+  double JHybridNitroInputViewSpec::getTextLineHeight() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getTextLineHeight");
     auto __result = method(_javaPart);
     return __result;
   }
-  void JHybridNitroInputViewSpec::setLineHeight(double lineHeight) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* lineHeight */)>("setLineHeight");
-    method(_javaPart, lineHeight);
+  void JHybridNitroInputViewSpec::setTextLineHeight(double textLineHeight) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* textLineHeight */)>("setTextLineHeight");
+    method(_javaPart, textLineHeight);
   }
-  double JHybridNitroInputViewSpec::getFontWeight() {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getFontWeight");
+  double JHybridNitroInputViewSpec::getTextWeight() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getTextWeight");
     auto __result = method(_javaPart);
     return __result;
   }
-  void JHybridNitroInputViewSpec::setFontWeight(double fontWeight) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* fontWeight */)>("setFontWeight");
-    method(_javaPart, fontWeight);
+  void JHybridNitroInputViewSpec::setTextWeight(double textWeight) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* textWeight */)>("setTextWeight");
+    method(_javaPart, textWeight);
   }
-  std::string JHybridNitroInputViewSpec::getFontFamily() {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("getFontFamily");
+  std::string JHybridNitroInputViewSpec::getTextFamily() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("getTextFamily");
     auto __result = method(_javaPart);
     return __result->toStdString();
   }
-  void JHybridNitroInputViewSpec::setFontFamily(const std::string& fontFamily) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JString> /* fontFamily */)>("setFontFamily");
-    method(_javaPart, jni::make_jstring(fontFamily));
+  void JHybridNitroInputViewSpec::setTextFamily(const std::string& textFamily) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JString> /* textFamily */)>("setTextFamily");
+    method(_javaPart, jni::make_jstring(textFamily));
   }
-  double JHybridNitroInputViewSpec::getColor() {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getColor");
+  double JHybridNitroInputViewSpec::getTextColor() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getTextColor");
     auto __result = method(_javaPart);
     return __result;
   }
-  void JHybridNitroInputViewSpec::setColor(double color) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* color */)>("setColor");
-    method(_javaPart, color);
+  void JHybridNitroInputViewSpec::setTextColor(double textColor) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* textColor */)>("setTextColor");
+    method(_javaPart, textColor);
   }
-  NitroInputTextAlign JHybridNitroInputViewSpec::getTextAlign() {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JNitroInputTextAlign>()>("getTextAlign");
+  NitroInputTextAlign JHybridNitroInputViewSpec::getTextAlignment() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JNitroInputTextAlign>()>("getTextAlignment");
     auto __result = method(_javaPart);
     return __result->toCpp();
   }
-  void JHybridNitroInputViewSpec::setTextAlign(NitroInputTextAlign textAlign) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroInputTextAlign> /* textAlign */)>("setTextAlign");
-    method(_javaPart, JNitroInputTextAlign::fromCpp(textAlign));
+  void JHybridNitroInputViewSpec::setTextAlignment(NitroInputTextAlign textAlignment) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroInputTextAlign> /* textAlignment */)>("setTextAlignment");
+    method(_javaPart, JNitroInputTextAlign::fromCpp(textAlignment));
   }
   bool JHybridNitroInputViewSpec::getRightToLeft() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean()>("getRightToLeft");
@@ -788,14 +788,14 @@ namespace margelo::nitro::nitroinput {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* numberOfLines */)>("setNumberOfLines");
     method(_javaPart, numberOfLines);
   }
-  NitroInputTextAlignVertical JHybridNitroInputViewSpec::getTextAlignVertical() {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JNitroInputTextAlignVertical>()>("getTextAlignVertical");
+  NitroInputTextAlignVertical JHybridNitroInputViewSpec::getTextVerticalAlignment() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JNitroInputTextAlignVertical>()>("getTextVerticalAlignment");
     auto __result = method(_javaPart);
     return __result->toCpp();
   }
-  void JHybridNitroInputViewSpec::setTextAlignVertical(NitroInputTextAlignVertical textAlignVertical) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroInputTextAlignVertical> /* textAlignVertical */)>("setTextAlignVertical");
-    method(_javaPart, JNitroInputTextAlignVertical::fromCpp(textAlignVertical));
+  void JHybridNitroInputViewSpec::setTextVerticalAlignment(NitroInputTextAlignVertical textVerticalAlignment) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroInputTextAlignVertical> /* textVerticalAlignment */)>("setTextVerticalAlignment");
+    method(_javaPart, JNitroInputTextAlignVertical::fromCpp(textVerticalAlignment));
   }
   bool JHybridNitroInputViewSpec::getScrollEnabled() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean()>("getScrollEnabled");

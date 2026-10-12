@@ -132,11 +132,11 @@ open class HybridNitroTextViewSpec_cxx {
     }
   }
   
-  public final var fontSize: bridge.std__optional_double_ {
+  public final var textSize: bridge.std__optional_double_ {
     @inline(__always)
     get {
       return { () -> bridge.std__optional_double_ in
-        if let __unwrappedValue = self.__implementation.fontSize {
+        if let __unwrappedValue = self.__implementation.textSize {
           return bridge.create_std__optional_double_(__unwrappedValue)
         } else {
           return .init()
@@ -145,7 +145,7 @@ open class HybridNitroTextViewSpec_cxx {
     }
     @inline(__always)
     set {
-      self.__implementation.fontSize = { () -> Double? in
+      self.__implementation.textSize = { () -> Double? in
         if bridge.has_value_std__optional_double_(newValue) {
           let __unwrapped = bridge.get_std__optional_double_(newValue)
           return __unwrapped
@@ -156,11 +156,11 @@ open class HybridNitroTextViewSpec_cxx {
     }
   }
   
-  public final var fontWeight: bridge.std__optional_double_ {
+  public final var textWeight: bridge.std__optional_double_ {
     @inline(__always)
     get {
       return { () -> bridge.std__optional_double_ in
-        if let __unwrappedValue = self.__implementation.fontWeight {
+        if let __unwrappedValue = self.__implementation.textWeight {
           return bridge.create_std__optional_double_(__unwrappedValue)
         } else {
           return .init()
@@ -169,7 +169,7 @@ open class HybridNitroTextViewSpec_cxx {
     }
     @inline(__always)
     set {
-      self.__implementation.fontWeight = { () -> Double? in
+      self.__implementation.textWeight = { () -> Double? in
         if bridge.has_value_std__optional_double_(newValue) {
           let __unwrapped = bridge.get_std__optional_double_(newValue)
           return __unwrapped
@@ -180,11 +180,11 @@ open class HybridNitroTextViewSpec_cxx {
     }
   }
   
-  public final var fontFamily: bridge.std__optional_std__string_ {
+  public final var textFamily: bridge.std__optional_std__string_ {
     @inline(__always)
     get {
       return { () -> bridge.std__optional_std__string_ in
-        if let __unwrappedValue = self.__implementation.fontFamily {
+        if let __unwrappedValue = self.__implementation.textFamily {
           return bridge.create_std__optional_std__string_(std.string(__unwrappedValue))
         } else {
           return .init()
@@ -193,7 +193,7 @@ open class HybridNitroTextViewSpec_cxx {
     }
     @inline(__always)
     set {
-      self.__implementation.fontFamily = { () -> String? in
+      self.__implementation.textFamily = { () -> String? in
         if bridge.has_value_std__optional_std__string_(newValue) {
           let __unwrapped = bridge.get_std__optional_std__string_(newValue)
           return String(__unwrapped)
@@ -204,11 +204,11 @@ open class HybridNitroTextViewSpec_cxx {
     }
   }
   
-  public final var color: bridge.std__optional_double_ {
+  public final var textColor: bridge.std__optional_double_ {
     @inline(__always)
     get {
       return { () -> bridge.std__optional_double_ in
-        if let __unwrappedValue = self.__implementation.color {
+        if let __unwrappedValue = self.__implementation.textColor {
           return bridge.create_std__optional_double_(__unwrappedValue)
         } else {
           return .init()
@@ -217,7 +217,7 @@ open class HybridNitroTextViewSpec_cxx {
     }
     @inline(__always)
     set {
-      self.__implementation.color = { () -> Double? in
+      self.__implementation.textColor = { () -> Double? in
         if bridge.has_value_std__optional_double_(newValue) {
           let __unwrapped = bridge.get_std__optional_double_(newValue)
           return __unwrapped
@@ -228,11 +228,11 @@ open class HybridNitroTextViewSpec_cxx {
     }
   }
   
-  public final var letterSpacing: bridge.std__optional_double_ {
+  public final var textLetterSpacing: bridge.std__optional_double_ {
     @inline(__always)
     get {
       return { () -> bridge.std__optional_double_ in
-        if let __unwrappedValue = self.__implementation.letterSpacing {
+        if let __unwrappedValue = self.__implementation.textLetterSpacing {
           return bridge.create_std__optional_double_(__unwrappedValue)
         } else {
           return .init()
@@ -241,7 +241,7 @@ open class HybridNitroTextViewSpec_cxx {
     }
     @inline(__always)
     set {
-      self.__implementation.letterSpacing = { () -> Double? in
+      self.__implementation.textLetterSpacing = { () -> Double? in
         if bridge.has_value_std__optional_double_(newValue) {
           let __unwrapped = bridge.get_std__optional_double_(newValue)
           return __unwrapped
@@ -252,11 +252,11 @@ open class HybridNitroTextViewSpec_cxx {
     }
   }
   
-  public final var textAlign: bridge.std__optional_NitroNumberTextAlign_ {
+  public final var textAlignment: bridge.std__optional_NitroNumberTextAlign_ {
     @inline(__always)
     get {
       return { () -> bridge.std__optional_NitroNumberTextAlign_ in
-        if let __unwrappedValue = self.__implementation.textAlign {
+        if let __unwrappedValue = self.__implementation.textAlignment {
           return bridge.create_std__optional_NitroNumberTextAlign_(__unwrappedValue)
         } else {
           return .init()
@@ -265,7 +265,7 @@ open class HybridNitroTextViewSpec_cxx {
     }
     @inline(__always)
     set {
-      self.__implementation.textAlign = newValue.value
+      self.__implementation.textAlignment = newValue.value
     }
   }
   

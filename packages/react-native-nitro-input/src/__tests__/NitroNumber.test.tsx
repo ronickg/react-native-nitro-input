@@ -36,10 +36,10 @@ describe('NitroNumber', () => {
     expect(props.groupingSeparator).toBe(',')
     expect(props.prefix).toBe('$')
     expect(props.suffix).toBe(' USD')
-    expect(props.fontWeight).toBe(700)
-    expect(props.color).toBe(processColor('#ff0000'))
+    expect(props.textWeight).toBe(700)
+    expect(props.textColor).toBe(processColor('#ff0000'))
     expect(props.shimmerColor).toBe(processColor('#00ff00'))
-    expect(props.textAlign).toBe('right')
+    expect(props.textAlignment).toBe('right')
   })
 
   it('passes the transition through with its own timing defaults', () => {
@@ -68,10 +68,10 @@ describe('NitroNumber', () => {
   })
 
   it('maps numeric and string font weights', () => {
-    expect(nativeProps(render(<NitroNumber value={1} fontWeight="600" />)).fontWeight).toBe(600)
-    expect(nativeProps(render(<NitroNumber value={1} fontWeight={300} />)).fontWeight).toBe(300)
-    expect(nativeProps(render(<NitroNumber value={1} fontWeight="semibold" />)).fontWeight).toBe(600)
-    expect(nativeProps(render(<NitroNumber value={1} />)).fontWeight).toBe(400)
+    expect(nativeProps(render(<NitroNumber value={1} fontWeight="600" />)).textWeight).toBe(600)
+    expect(nativeProps(render(<NitroNumber value={1} fontWeight={300} />)).textWeight).toBe(300)
+    expect(nativeProps(render(<NitroNumber value={1} fontWeight="semibold" />)).textWeight).toBe(600)
+    expect(nativeProps(render(<NitroNumber value={1} />)).textWeight).toBe(400)
   })
 
   it('never sends undefined for a native prop (a removed prop reaches native as null, which Nitro rejects)', () => {
@@ -88,8 +88,8 @@ describe('NitroNumber', () => {
     }
     expect(props.prefix).toBe('')
     expect(props.suffix).toBe('')
-    expect(props.fontFamily).toBe('')
-    expect(props.color).toBe(Infinity)
+    expect(props.textFamily).toBe('')
+    expect(props.textColor).toBe(Infinity)
     expect(props.shimmerColor).toBe(Infinity)
     expect(props.prefixFontSize).toBe(32)
     expect(props.loading).toBe(false)
@@ -222,7 +222,7 @@ describe('NitroNumber', () => {
   })
 
   it('resolves the layout direction the way React Native does and aligns to the start edge by default', () => {
-    expect(nativeProps(render(<NitroNumber value={1} />)).textAlign).toBe('auto')
+    expect(nativeProps(render(<NitroNumber value={1} />)).textAlignment).toBe('auto')
     expect(nativeProps(render(<NitroNumber value={1} />)).rightToLeft).toBe(false)
     // The view's own `direction` wins over the app's.
     expect(nativeProps(render(<NitroNumber value={1} style={{ direction: 'rtl' }} />)).rightToLeft).toBe(true)

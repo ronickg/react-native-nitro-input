@@ -11,6 +11,7 @@ import {
   I18nManager,
   StyleSheet,
   type ColorValue,
+  type StyleProp,
   type TextStyle,
   type ViewProps,
 } from 'react-native'
@@ -277,7 +278,14 @@ export interface NitroInputKeyPressEvent {
   nativeEvent: { key: string; eventCount: number; target: number }
 }
 
-export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' | 'onBlur'> {
+export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' | 'onBlur' | 'style'> {
+  /**
+   * As `TextInput`'s: a view style, and the text styles it reads its
+   * typography from (`fontSize`, `fontWeight`, `fontFamily`, `color`,
+   * `letterSpacing`, `lineHeight`, `textAlign`, `textAlignVertical`). The props
+   * of the same name win over it.
+   */
+  style?: StyleProp<TextStyle>
   /**
    * The text to show (controlled). The native side formats and shows what the
    * user types on its own; this prop is applied when it changes to something
@@ -736,26 +744,6 @@ export type NitroInputTransition = 'none' | 'reflow'
  * Like a `TextInput`, it takes its width from its parent; `autoWidth` sizes
  * it to its content instead, and is on by default when the text reflows.
  */
-/** The style keys `TextInput` reads its typography from that are also a prop of the native view. */
-const TEXT_STYLE_KEYS = [
-  'fontSize',
-  'lineHeight',
-  'fontWeight',
-  'fontFamily',
-  'color',
-  'letterSpacing',
-  'textAlign',
-  'textAlignVertical',
-] as const
-
-/** `style` with the text keys taken out (they are props here); the same object when it has none. */
-function withoutTextKeys<S>(style: S, flat: Record<string, unknown> | undefined): S {
-  if (flat == null || !TEXT_STYLE_KEYS.some((key) => key in flat)) return style
-  const rest: Record<string, unknown> = { ...flat }
-  for (const key of TEXT_STYLE_KEYS) delete rest[key]
-  return rest as S
-}
-
 function styleTextAlign(value: TextStyle['textAlign'], rightToLeft: boolean): NitroInputTextAlign | undefined {
   switch (value) {
     case undefined:
@@ -1107,9 +1095,9 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       [style]
     )
     // `TextInput` takes its typography from `style`; so does this, under the
-    // props of the same name, which win. The keys are kept out of the style the
-    // view gets: Fabric hands a view its style's keys as props, and these share
-    // their names with the view's own (a string `fontWeight` there threw).
+    // props of the same name, which win. (Fabric hands a view its style's keys
+    // as props too; the view's own are named so that none can be one of them -
+    // see PropNameCollisions.test.)
     const fontSize = fontSizeProp ?? flat?.fontSize
     const lineHeight = lineHeightProp ?? flat?.lineHeight
     const fontWeight = fontWeightProp ?? flat?.fontWeight
@@ -1117,7 +1105,6 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     const color = colorProp ?? flat?.color
     const letterSpacing = letterSpacingProp ?? flat?.letterSpacing
     const textAlignVertical = textAlignVerticalProp ?? styleTextAlignVertical(flat?.textAlignVertical)
-    const hostStyle = useMemo(() => withoutTextKeys(style, flat), [style, flat])
     // The layout direction, resolved the way React Native resolves it for its
     // own views: the field's `style.direction` if it says, else the app's.
     // Fabric does not hand a Hybrid View its resolved direction, so native is
@@ -1503,13 +1490,13 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       maskCharacterMap: stableCharacterMap,
       maskSlotPlaceholder: maskSlotPlaceholder ?? (keepPlaceholder ? '_' : ''),
       keepPlaceholder: keepPlaceholder ?? false,
-      fontSize: resolvedFontSize,
-      lineHeight: Math.max(0, lineHeight ?? 0),
+      textSize: resolvedFontSize,
+      textLineHeight: Math.max(0, lineHeight ?? 0),
       prefixFontSize: prefixFontSize ?? resolvedFontSize,
       suffixFontSize: suffixFontSize ?? resolvedFontSize,
-      fontWeight: numericWeight,
-      fontFamily: fontFamily ?? '',
-      letterSpacing: letterSpacing ?? 0,
+      textWeight: numericWeight,
+      textFamily: fontFamily ?? '',
+      textLetterSpacing: letterSpacing ?? 0,
       prefixSpacing: prefixSpacing ?? Infinity,
       suffixSpacing: suffixSpacing ?? Infinity,
       allowFontScaling: allowFontScaling ?? false,
@@ -1550,7 +1537,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         {...hostViewProps}
         {...sizing}
         ref={hostRef as React.Ref<never>}
-        style={[autoSize, hostStyle]}
+        style={[autoSize, style]}
         hybridRef={hybridRef}
         // An uncontrolled field's `text` is its initial text: a count of 0 is
         // never caught up after the first edit, so native never puts it back.
@@ -1564,8 +1551,8 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         easing={easing ?? 'expo'}
         bounce={bounce ?? 0.15}
         effect={effect ?? 'auto'}
-        color={processedColor}
-        textAlign={textAlign ?? 'auto'}
+        textColor={processedColor}
+        textAlignment={textAlign ?? 'auto'}
         rightToLeft={rightToLeft}
         caretColor={processedCursorColor}
         selectionColor={processedSelectionColor}
@@ -1585,7 +1572,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         autoCorrect={autoCorrect ?? true}
         editable={(editable ?? true) && !(readOnly ?? false)}
         numberOfLines={Math.max(0, Math.trunc(numberOfLines ?? rows ?? 0))}
-        textAlignVertical={textAlignVertical ?? 'auto'}
+        textVerticalAlignment={textAlignVertical ?? 'auto'}
         scrollEnabled={scrollEnabled ?? true}
         autoFocus={autoFocus ?? false}
         fieldTestID={viewProps.testID ?? ''}

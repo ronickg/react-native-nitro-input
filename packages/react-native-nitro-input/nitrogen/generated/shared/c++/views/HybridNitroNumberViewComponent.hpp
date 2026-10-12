@@ -85,13 +85,13 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<std::optional<double>> shimmerBaseColor;
     nitro::ReactProp<std::optional<NitroNumberShimmerDirection>> shimmerDirection;
     nitro::ReactProp<std::optional<double>> shimmerDelay;
-    nitro::ReactProp<std::optional<double>> fontSize;
+    nitro::ReactProp<std::optional<double>> textSize;
     nitro::ReactProp<std::optional<double>> prefixFontSize;
     nitro::ReactProp<std::optional<double>> suffixFontSize;
     nitro::ReactProp<std::optional<NitroNumberAffixAlign>> affixAlign;
     nitro::ReactProp<std::optional<NitroNumberAffixAlign>> prefixAlign;
     nitro::ReactProp<std::optional<NitroNumberAffixAlign>> suffixAlign;
-    nitro::ReactProp<std::optional<double>> letterSpacing;
+    nitro::ReactProp<std::optional<double>> textLetterSpacing;
     nitro::ReactProp<std::optional<double>> prefixSpacing;
     nitro::ReactProp<std::optional<double>> suffixSpacing;
     nitro::ReactProp<std::optional<double>> prefixOffset;
@@ -114,10 +114,10 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<std::optional<double>> minimumFontScale;
     nitro::ReactProp<std::optional<bool>> allowFontScaling;
     nitro::ReactProp<std::optional<double>> maxFontSizeMultiplier;
-    nitro::ReactProp<std::optional<double>> fontWeight;
-    nitro::ReactProp<std::optional<std::string>> fontFamily;
-    nitro::ReactProp<std::optional<double>> color;
-    nitro::ReactProp<std::optional<NitroNumberTextAlign>> textAlign;
+    nitro::ReactProp<std::optional<double>> textWeight;
+    nitro::ReactProp<std::optional<std::string>> textFamily;
+    nitro::ReactProp<std::optional<double>> textColor;
+    nitro::ReactProp<std::optional<NitroNumberTextAlign>> textAlignment;
     nitro::ReactProp<std::optional<bool>> rightToLeft;
     nitro::ReactProp<std::optional<std::function<void(double /* width */, double /* height */)>>> onSizeChange;
     nitro::ReactProp<std::optional<std::function<void()>>> onRevealEnd;
@@ -161,13 +161,13 @@ namespace margelo::nitro::nitroinput::views {
              shimmerBaseColor.hasSameValue(other.shimmerBaseColor) &&
              shimmerDirection.hasSameValue(other.shimmerDirection) &&
              shimmerDelay.hasSameValue(other.shimmerDelay) &&
-             fontSize.hasSameValue(other.fontSize) &&
+             textSize.hasSameValue(other.textSize) &&
              prefixFontSize.hasSameValue(other.prefixFontSize) &&
              suffixFontSize.hasSameValue(other.suffixFontSize) &&
              affixAlign.hasSameValue(other.affixAlign) &&
              prefixAlign.hasSameValue(other.prefixAlign) &&
              suffixAlign.hasSameValue(other.suffixAlign) &&
-             letterSpacing.hasSameValue(other.letterSpacing) &&
+             textLetterSpacing.hasSameValue(other.textLetterSpacing) &&
              prefixSpacing.hasSameValue(other.prefixSpacing) &&
              suffixSpacing.hasSameValue(other.suffixSpacing) &&
              prefixOffset.hasSameValue(other.prefixOffset) &&
@@ -190,10 +190,10 @@ namespace margelo::nitro::nitroinput::views {
              minimumFontScale.hasSameValue(other.minimumFontScale) &&
              allowFontScaling.hasSameValue(other.allowFontScaling) &&
              maxFontSizeMultiplier.hasSameValue(other.maxFontSizeMultiplier) &&
-             fontWeight.hasSameValue(other.fontWeight) &&
-             fontFamily.hasSameValue(other.fontFamily) &&
-             color.hasSameValue(other.color) &&
-             textAlign.hasSameValue(other.textAlign) &&
+             textWeight.hasSameValue(other.textWeight) &&
+             textFamily.hasSameValue(other.textFamily) &&
+             textColor.hasSameValue(other.textColor) &&
+             textAlignment.hasSameValue(other.textAlignment) &&
              rightToLeft.hasSameValue(other.rightToLeft) &&
              onSizeChange.hasSameValue(other.onSizeChange) &&
              onRevealEnd.hasSameValue(other.onRevealEnd) &&
@@ -238,13 +238,13 @@ namespace margelo::nitro::nitroinput::views {
              shimmerBaseColor.isProvided() ||
              shimmerDirection.isProvided() ||
              shimmerDelay.isProvided() ||
-             fontSize.isProvided() ||
+             textSize.isProvided() ||
              prefixFontSize.isProvided() ||
              suffixFontSize.isProvided() ||
              affixAlign.isProvided() ||
              prefixAlign.isProvided() ||
              suffixAlign.isProvided() ||
-             letterSpacing.isProvided() ||
+             textLetterSpacing.isProvided() ||
              prefixSpacing.isProvided() ||
              suffixSpacing.isProvided() ||
              prefixOffset.isProvided() ||
@@ -267,10 +267,10 @@ namespace margelo::nitro::nitroinput::views {
              minimumFontScale.isProvided() ||
              allowFontScaling.isProvided() ||
              maxFontSizeMultiplier.isProvided() ||
-             fontWeight.isProvided() ||
-             fontFamily.isProvided() ||
-             color.isProvided() ||
-             textAlign.isProvided() ||
+             textWeight.isProvided() ||
+             textFamily.isProvided() ||
+             textColor.isProvided() ||
+             textAlignment.isProvided() ||
              rightToLeft.isProvided() ||
              onSizeChange.isProvided() ||
              onRevealEnd.isProvided() ||

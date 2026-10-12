@@ -61,6 +61,20 @@
   text area as the field's own text and hint are: in a padded field narrower
   than its placeholder (or once the typed text filled it), the tail ran over
   the padding to the field's edge. iOS already clipped it.
+- **A `TextInput` style no longer crashes a field, and `NitroInput` reads
+  its typography from it.** Fabric hands a view its style's keys as props,
+  and six to eight of each view's native props shared a name with a text
+  style key: `style={{ fontWeight: '700' }}` threw ("Value is a string,
+  expected a number") on `NitroInput`, `NitroNumber` and `NitroText`, and a
+  numeric `fontSize` or `color` there was fought over by the style and the
+  prop. The native props are renamed (`textSize`, `textWeight`,
+  `textFamily`, `textColor`, `textLetterSpacing`, `textLineHeight`,
+  `textAlignment`, `textVerticalAlignment`); the components' own props keep
+  their names. A test now fails if any native prop shares a name with a React
+  Native style key or view prop. `NitroInput` also takes `fontSize`,
+  `fontWeight`, `fontFamily`, `color`, `letterSpacing`, `lineHeight`,
+  `textAlign` and `textAlignVertical` from `style`, as `TextInput` does (its
+  `style` is typed as `TextInput`'s); the props of the same name win.
 
 ## 0.3.8
 

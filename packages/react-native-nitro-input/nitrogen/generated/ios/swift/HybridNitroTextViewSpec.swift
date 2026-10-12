@@ -11,12 +11,12 @@ import NitroModules
 public protocol HybridNitroTextViewSpec_protocol: HybridObject, HybridView {
   // Properties
   var text: String { get set }
-  var fontSize: Double? { get set }
-  var fontWeight: Double? { get set }
-  var fontFamily: String? { get set }
-  var color: Double? { get set }
-  var letterSpacing: Double? { get set }
-  var textAlign: NitroNumberTextAlign? { get set }
+  var textSize: Double? { get set }
+  var textWeight: Double? { get set }
+  var textFamily: String? { get set }
+  var textColor: Double? { get set }
+  var textLetterSpacing: Double? { get set }
+  var textAlignment: NitroNumberTextAlign? { get set }
   var rightToLeft: Bool? { get set }
   var duration: Double? { get set }
   var easing: NitroInputEasing? { get set }

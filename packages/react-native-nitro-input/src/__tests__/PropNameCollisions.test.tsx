@@ -35,9 +35,24 @@ function reactNativeViewDir(): string {
   return join(dirname(entry), 'ReactCommon/react/renderer/components/view');
 }
 
+/**
+ * Every key a `style` can carry. Fabric hands a view its style's keys as
+ * props, so a style key that is also the name of one of our props reaches the
+ * prop's parser: `style={{ fontWeight: '700' }}` threw "Value is a string,
+ * expected a number" when the view had a numeric `fontWeight` of its own.
+ */
+function styleKeys(): Set<string> {
+  const entry = require.resolve('react-native/package.json');
+  const source = readFileSync(
+    join(dirname(entry), 'Libraries/Components/View/ReactNativeStyleAttributes.js'),
+    'utf8',
+  );
+  return new Set([...source.matchAll(/^\s+([a-zA-Z]+):/gm)].map((match) => match[1]!));
+}
+
 function namesReactNativeParses(): Set<string> {
   const dir = reactNativeViewDir();
-  const names = new Set<string>();
+  const names = styleKeys();
   for (const file of VIEW_PROP_SOURCES) {
     let source: string;
     try {
@@ -87,6 +102,19 @@ describe('prop names', () => {
     expect(reserved.size).toBeGreaterThan(50);
     expect(reserved.has('outlineColor')).toBe(true);
     expect(reserved.has('borderRadius')).toBe(true);
+    // The style keys too, text ones included.
+    expect(reserved.has('fontWeight')).toBe(true);
+    expect(reserved.has('textAlignVertical')).toBe(true);
+  });
+
+  it('would catch the style key that crashed', () => {
+    const before = [
+      'export interface Props extends HybridViewProps {',
+      '  fontWeight?: number',
+      '  textWeight?: number',
+      '}',
+    ].join('\n');
+    expect(declaredProps(before).filter((name) => reserved.has(name))).toEqual(['fontWeight']);
   });
 
   it('would catch the collision we already shipped once', () => {

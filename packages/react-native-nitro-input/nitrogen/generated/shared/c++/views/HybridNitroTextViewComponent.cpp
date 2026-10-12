@@ -21,12 +21,12 @@ namespace margelo::nitro::nitroinput::views {
                                                      const react::RawProps& rawProps):
     react::ViewProps(context, sourceProps, rawProps, filterObjectKeys),
     text(nitro::ReactProp<std::string>::fromRawValue("NitroTextView", "text", rawProps, sourceProps.text)),
-    fontSize(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroTextView", "fontSize", rawProps, sourceProps.fontSize)),
-    fontWeight(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroTextView", "fontWeight", rawProps, sourceProps.fontWeight)),
-    fontFamily(nitro::ReactProp<std::optional<std::string>>::fromRawValue("NitroTextView", "fontFamily", rawProps, sourceProps.fontFamily)),
-    color(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroTextView", "color", rawProps, sourceProps.color)),
-    letterSpacing(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroTextView", "letterSpacing", rawProps, sourceProps.letterSpacing)),
-    textAlign(nitro::ReactProp<std::optional<NitroNumberTextAlign>>::fromRawValue("NitroTextView", "textAlign", rawProps, sourceProps.textAlign)),
+    textSize(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroTextView", "textSize", rawProps, sourceProps.textSize)),
+    textWeight(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroTextView", "textWeight", rawProps, sourceProps.textWeight)),
+    textFamily(nitro::ReactProp<std::optional<std::string>>::fromRawValue("NitroTextView", "textFamily", rawProps, sourceProps.textFamily)),
+    textColor(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroTextView", "textColor", rawProps, sourceProps.textColor)),
+    textLetterSpacing(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroTextView", "textLetterSpacing", rawProps, sourceProps.textLetterSpacing)),
+    textAlignment(nitro::ReactProp<std::optional<NitroNumberTextAlign>>::fromRawValue("NitroTextView", "textAlignment", rawProps, sourceProps.textAlignment)),
     rightToLeft(nitro::ReactProp<std::optional<bool>>::fromRawValue("NitroTextView", "rightToLeft", rawProps, sourceProps.rightToLeft)),
     duration(nitro::ReactProp<std::optional<double>>::fromRawValue("NitroTextView", "duration", rawProps, sourceProps.duration)),
     easing(nitro::ReactProp<std::optional<NitroInputEasing>>::fromRawValue("NitroTextView", "easing", rawProps, sourceProps.easing)),
@@ -46,12 +46,12 @@ namespace margelo::nitro::nitroinput::views {
   bool HybridNitroTextViewProps::filterObjectKeys(const std::string& propName) {
     switch (hashString(propName)) {
       case hashString("text"): return true;
-      case hashString("fontSize"): return true;
-      case hashString("fontWeight"): return true;
-      case hashString("fontFamily"): return true;
-      case hashString("color"): return true;
-      case hashString("letterSpacing"): return true;
-      case hashString("textAlign"): return true;
+      case hashString("textSize"): return true;
+      case hashString("textWeight"): return true;
+      case hashString("textFamily"): return true;
+      case hashString("textColor"): return true;
+      case hashString("textLetterSpacing"): return true;
+      case hashString("textAlignment"): return true;
       case hashString("rightToLeft"): return true;
       case hashString("duration"): return true;
       case hashString("easing"): return true;

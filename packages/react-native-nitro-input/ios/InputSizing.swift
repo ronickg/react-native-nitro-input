@@ -40,13 +40,13 @@ protocol InputSizingProps {
   var signPlacement: NitroInputSignPlacement { get }
   var placeholder: String { get }
   var maxLength: Double { get }
-  var fontSize: Double { get }
-  var lineHeight: Double { get }
+  var textSize: Double { get }
+  var textLineHeight: Double { get }
   var prefixFontSize: Double { get }
   var suffixFontSize: Double { get }
-  var fontWeight: Double { get }
-  var fontFamily: String { get }
-  var letterSpacing: Double { get }
+  var textWeight: Double { get }
+  var textFamily: String { get }
+  var textLetterSpacing: Double { get }
   var prefixSpacing: Double { get }
   var suffixSpacing: Double { get }
   var allowFontScaling: Bool { get }
@@ -101,13 +101,13 @@ enum InputMapping {
   /// The typography's sizing half; the view adds the colours, alignment and offsets.
   static func sizingTypography(_ p: some InputSizingProps) -> NitroInputView.Typography {
     var typography = NitroInputView.Typography()
-    typography.fontSize = CGFloat(p.fontSize.isFinite && p.fontSize > 0 ? p.fontSize : 32)
-    typography.lineHeight = CGFloat(p.lineHeight.isFinite && p.lineHeight > 0 ? p.lineHeight : 0)
+    typography.fontSize = CGFloat(p.textSize.isFinite && p.textSize > 0 ? p.textSize : 32)
+    typography.lineHeight = CGFloat(p.textLineHeight.isFinite && p.textLineHeight > 0 ? p.textLineHeight : 0)
     typography.prefixFontSize = p.prefixFontSize.isFinite && p.prefixFontSize > 0 ? CGFloat(p.prefixFontSize) : nil
     typography.suffixFontSize = p.suffixFontSize.isFinite && p.suffixFontSize > 0 ? CGFloat(p.suffixFontSize) : nil
-    typography.fontWeight = CGFloat(p.fontWeight.isFinite ? p.fontWeight : 400)
-    typography.fontFamily = p.fontFamily.isEmpty ? nil : p.fontFamily
-    typography.letterSpacing = CGFloat(p.letterSpacing.isFinite ? p.letterSpacing : 0)
+    typography.fontWeight = CGFloat(p.textWeight.isFinite ? p.textWeight : 400)
+    typography.fontFamily = p.textFamily.isEmpty ? nil : p.textFamily
+    typography.letterSpacing = CGFloat(p.textLetterSpacing.isFinite ? p.textLetterSpacing : 0)
     typography.prefixSpacing = p.prefixSpacing.isFinite ? CGFloat(p.prefixSpacing) : nil
     typography.suffixSpacing = p.suffixSpacing.isFinite ? CGFloat(p.suffixSpacing) : nil
     typography.allowFontScaling = p.allowFontScaling

@@ -196,7 +196,7 @@ export interface NitroNumberProps extends HybridViewProps {
   /** A pause after each sweep, in ms. Default: `0`. */
   shimmerDelay?: number
   /** Font size of the digits in points. Default: `32`. */
-  fontSize?: number
+  textSize?: number
   /** Font size of `prefix` in points. Defaults to `fontSize`. */
   prefixFontSize?: number
   /** Font size of `suffix` in points. Defaults to `fontSize`. */
@@ -208,7 +208,7 @@ export interface NitroNumberProps extends HybridViewProps {
   /** Vertical alignment of `suffix` only. Defaults to `affixAlign`. */
   suffixAlign?: NitroNumberAffixAlign
   /** Points added after every glyph, like `Text`'s `letterSpacing`; an affix gets it in proportion to its size. Default: `0`. */
-  letterSpacing?: number
+  textLetterSpacing?: number
   /** Points between the prefix and the digits, in place of the letter spacing there. Not finite: the letter spacing. */
   prefixSpacing?: number
   /** Points between the digits and the suffix, in place of the letter spacing there. Not finite: the letter spacing. */
@@ -274,13 +274,13 @@ export interface NitroNumberProps extends HybridViewProps {
   /** Upper bound for `allowFontScaling`, e.g. `1.3`. `0` means no cap. Default: `0`. */
   maxFontSizeMultiplier?: number
   /** Numeric font weight, `100`–`900`. Default: `400`. */
-  fontWeight?: number
+  textWeight?: number
   /** Font family name. Defaults to the system font. */
-  fontFamily?: string
+  textFamily?: string
   /** Text color as a processed ARGB integer (from `processColor`). Defaults to the platform label color. */
-  color?: number
+  textColor?: number
   /** Where the number sits inside the view when the view is wider than the number. Default: `'auto'`, the start edge. */
-  textAlign?: NitroNumberTextAlign
+  textAlignment?: NitroNumberTextAlign
   /**
    * Lay the figure out right-to-left: `'auto'` alignment resolves to the right
    * edge, the prefix moves to the right and the suffix to the left, and the

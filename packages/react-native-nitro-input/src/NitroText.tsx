@@ -134,13 +134,13 @@ export function NitroText({
   const native: NativeNitroTextProps & Record<string, unknown> = viewProps as never
   native.text = text
   native.style = style == null ? { width: Math.ceil(width), height } : [{ width: Math.ceil(width), height }, style]
-  if (size !== 17) native.fontSize = size
-  if (weight !== 400) native.fontWeight = weight
-  if (family !== '') native.fontFamily = family
-  if (spacing !== 0) native.letterSpacing = spacing
+  if (size !== 17) native.textSize = size
+  if (weight !== 400) native.textWeight = weight
+  if (family !== '') native.textFamily = family
+  if (spacing !== 0) native.textLetterSpacing = spacing
   const processedColor = toProcessedColor(color)
-  if (processedColor !== undefined) native.color = processedColor
-  if (textAlign !== undefined) native.textAlign = textAlign
+  if (processedColor !== undefined) native.textColor = processedColor
+  if (textAlign !== undefined) native.textAlignment = textAlign
   if (duration !== undefined) native.duration = duration
   if (easing !== undefined) native.easing = easing
   if (bounce !== undefined) native.bounce = bounce

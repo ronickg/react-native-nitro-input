@@ -47,10 +47,10 @@ describe('right-to-left', () => {
   it('aligns to the start edge unless told otherwise', () => {
     // `'auto'` is the start edge of the layout direction, as `TextInput` with
     // no `textAlign`; `'left'` and `'right'` are absolute.
-    expect(nativeProps(render(<NitroInput />)).textAlign).toBe('auto')
-    expect(nativeProps(render(<NitroInput textAlign="left" />)).textAlign).toBe('left')
-    expect(nativeProps(render(<NitroInput textAlign="right" />)).textAlign).toBe('right')
-    expect(nativeProps(render(<NitroInput textAlign="center" />)).textAlign).toBe('center')
+    expect(nativeProps(render(<NitroInput />)).textAlignment).toBe('auto')
+    expect(nativeProps(render(<NitroInput textAlign="left" />)).textAlignment).toBe('left')
+    expect(nativeProps(render(<NitroInput textAlign="right" />)).textAlignment).toBe('right')
+    expect(nativeProps(render(<NitroInput textAlign="center" />)).textAlignment).toBe('center')
   })
 })
 
@@ -87,7 +87,7 @@ describe('multiline', () => {
     expect(nativeProps(render(<NitroInput multiline numberOfLines={4} />)).numberOfLines).toBe(4)
     expect(nativeProps(render(<NitroInput multiline rows={3} />)).numberOfLines).toBe(3)
     expect(nativeProps(render(<NitroInput multiline numberOfLines={4} rows={3} />)).numberOfLines).toBe(4)
-    expect(nativeProps(render(<NitroInput multiline textAlignVertical="bottom" />)).textAlignVertical).toBe('bottom')
+    expect(nativeProps(render(<NitroInput multiline textAlignVertical="bottom" />)).textVerticalAlignment).toBe('bottom')
   })
 })
 
@@ -260,46 +260,34 @@ describe('colours', () => {
 })
 
 describe('typography in style, as TextInput takes it', () => {
-  const hostStyle = (renderer: ReactTestRenderer) =>
-    Object.assign({}, ...(nativeProps(renderer).style as object[]).flat().filter(Boolean)) as Record<string, unknown>
-
-  it('reads the text keys from style and keeps them out of the view style', () => {
-    const renderer = render(
-      <NitroInput
-        style={{ fontSize: 18, fontWeight: '700', fontFamily: 'Menlo', color: '#ff0000', letterSpacing: 2, lineHeight: 30, textAlign: 'center', width: 200 }}
-      />
+  it('reads the text keys from style', () => {
+    const props = nativeProps(
+      render(
+        <NitroInput
+          style={{ fontSize: 18, fontWeight: '700', fontFamily: 'Menlo', color: '#ff0000', letterSpacing: 2, lineHeight: 30, textAlign: 'center', textAlignVertical: 'top', width: 200 }}
+        />
+      )
     )
-    const props = nativeProps(renderer)
-    expect(props.fontSize).toBe(18)
-    expect(props.fontWeight).toBe(700)
-    expect(props.fontFamily).toBe('Menlo')
-    expect(props.letterSpacing).toBe(2)
-    expect(props.lineHeight).toBe(30)
-    expect(props.textAlign).toBe('center')
-    expect(props.color).not.toBe(Infinity)
-    // Fabric passes a style's keys to the view as props: a string fontWeight there threw.
-    const style = hostStyle(renderer)
-    for (const key of ['fontSize', 'fontWeight', 'fontFamily', 'color', 'letterSpacing', 'lineHeight', 'textAlign']) {
-      expect(style).not.toHaveProperty(key)
-    }
-    expect(style.width).toBe(200)
+    expect(props.textSize).toBe(18)
+    expect(props.textWeight).toBe(700)
+    expect(props.textFamily).toBe('Menlo')
+    expect(props.textLetterSpacing).toBe(2)
+    expect(props.textLineHeight).toBe(30)
+    expect(props.textAlignment).toBe('center')
+    expect(props.textVerticalAlignment).toBe('top')
+    expect(props.textColor).not.toBe(Infinity)
   })
 
   it('lets the props of the same name win', () => {
     const props = nativeProps(render(<NitroInput fontSize={40} fontWeight="300" style={{ fontSize: 18, fontWeight: '700' }} />))
-    expect(props.fontSize).toBe(40)
-    expect(props.fontWeight).toBe(300)
+    expect(props.textSize).toBe(40)
+    expect(props.textWeight).toBe(300)
   })
 
   it('reads start, end and justify the way TextInput does', () => {
-    expect(nativeProps(render(<NitroInput style={{ textAlign: 'start' }} />)).textAlign).toBe('auto')
-    expect(nativeProps(render(<NitroInput style={{ textAlign: 'end' }} />)).textAlign).toBe('right')
-    expect(nativeProps(render(<NitroInput style={{ textAlign: 'end', direction: 'rtl' }} />)).textAlign).toBe('left')
-    expect(nativeProps(render(<NitroInput style={{ textAlign: 'justify' }} />)).textAlign).toBe('auto')
-  })
-
-  it('passes a style with no text keys through as it is', () => {
-    const style = { width: 120 }
-    expect((nativeProps(render(<NitroInput style={style} />)).style as unknown[])[1]).toBe(style)
+    expect(nativeProps(render(<NitroInput style={{ textAlign: 'start' }} />)).textAlignment).toBe('auto')
+    expect(nativeProps(render(<NitroInput style={{ textAlign: 'end' }} />)).textAlignment).toBe('right')
+    expect(nativeProps(render(<NitroInput style={{ textAlign: 'end', direction: 'rtl' }} />)).textAlignment).toBe('left')
+    expect(nativeProps(render(<NitroInput style={{ textAlign: 'justify' }} />)).textAlignment).toBe('auto')
   })
 })

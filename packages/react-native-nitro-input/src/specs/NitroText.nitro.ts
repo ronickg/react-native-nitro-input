@@ -21,16 +21,16 @@ import type { NitroInputEasing, NitroInputEffect } from './NitroInput.nitro'
 export interface NitroTextProps extends HybridViewProps {
   text: string
   /** In points, already scaled for the system text size when the wrapper was asked to. Default 17. */
-  fontSize?: number
+  textSize?: number
   /** Numeric weight, 100–900. Default 400. */
-  fontWeight?: number
+  textWeight?: number
   /** Default: the system font. */
-  fontFamily?: string
+  textFamily?: string
   /** Processed ARGB. Default: the platform label colour. */
-  color?: number
+  textColor?: number
   /** Points after every character. */
-  letterSpacing?: number
-  textAlign?: NitroNumberTextAlign
+  textLetterSpacing?: number
+  textAlignment?: NitroNumberTextAlign
   rightToLeft?: boolean
   /** Of a morph, in ms. Default 400. */
   duration?: number

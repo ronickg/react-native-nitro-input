@@ -411,11 +411,9 @@ describe('props reach the native side the same way', () => {
     ['showSoftInputOnFocus', false],
     ['allowFontScaling', false],
     ['maxFontSizeMultiplier', 2],
-    ['textAlign', 'center'],
     ['editable', false],
     ['multiline', true],
     ['numberOfLines', 3],
-    ['textAlignVertical', 'top'],
     ['spellCheck', false],
     ['submitBehavior', 'submit'],
   ]
@@ -424,6 +422,19 @@ describe('props reach the native side the same way', () => {
     const { rn, ours } = both({ [prop]: value })
     expect(ours.host()[prop]).toEqual(rn.host()[prop])
     expect(ours.host()[prop]).toEqual(value)
+  })
+
+  // The same, under a native name of ours that no style key can share (see
+  // PropNameCollisions.test): Fabric hands a view its style's keys as props.
+  const RENAMED: Array<[prop: string, native: string, value: unknown]> = [
+    ['textAlign', 'textAlignment', 'center'],
+    ['textAlignVertical', 'textVerticalAlignment', 'top'],
+  ]
+
+  it.each(RENAMED)('%s (as %s)', (prop, native, value) => {
+    const { rn, ours } = both({ [prop]: value })
+    expect(ours.host()[native]).toEqual(rn.host()[prop])
+    expect(ours.host()[native]).toEqual(value)
   })
 
   it('defaultValue becomes the initial text on both', () => {

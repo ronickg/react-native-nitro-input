@@ -96,20 +96,20 @@ namespace margelo::nitro::nitroinput {
       jni::local_ref<jni::JString> maskSlotPlaceholder = this->getFieldValue(fieldMaskSlotPlaceholder);
       static const auto fieldKeepPlaceholder = clazz->getField<jboolean>("keepPlaceholder");
       jboolean keepPlaceholder = this->getFieldValue(fieldKeepPlaceholder);
-      static const auto fieldFontSize = clazz->getField<double>("fontSize");
-      double fontSize = this->getFieldValue(fieldFontSize);
-      static const auto fieldLineHeight = clazz->getField<double>("lineHeight");
-      double lineHeight = this->getFieldValue(fieldLineHeight);
+      static const auto fieldTextSize = clazz->getField<double>("textSize");
+      double textSize = this->getFieldValue(fieldTextSize);
+      static const auto fieldTextLineHeight = clazz->getField<double>("textLineHeight");
+      double textLineHeight = this->getFieldValue(fieldTextLineHeight);
       static const auto fieldPrefixFontSize = clazz->getField<double>("prefixFontSize");
       double prefixFontSize = this->getFieldValue(fieldPrefixFontSize);
       static const auto fieldSuffixFontSize = clazz->getField<double>("suffixFontSize");
       double suffixFontSize = this->getFieldValue(fieldSuffixFontSize);
-      static const auto fieldFontWeight = clazz->getField<double>("fontWeight");
-      double fontWeight = this->getFieldValue(fieldFontWeight);
-      static const auto fieldFontFamily = clazz->getField<jni::JString>("fontFamily");
-      jni::local_ref<jni::JString> fontFamily = this->getFieldValue(fieldFontFamily);
-      static const auto fieldLetterSpacing = clazz->getField<double>("letterSpacing");
-      double letterSpacing = this->getFieldValue(fieldLetterSpacing);
+      static const auto fieldTextWeight = clazz->getField<double>("textWeight");
+      double textWeight = this->getFieldValue(fieldTextWeight);
+      static const auto fieldTextFamily = clazz->getField<jni::JString>("textFamily");
+      jni::local_ref<jni::JString> textFamily = this->getFieldValue(fieldTextFamily);
+      static const auto fieldTextLetterSpacing = clazz->getField<double>("textLetterSpacing");
+      double textLetterSpacing = this->getFieldValue(fieldTextLetterSpacing);
       static const auto fieldPrefixSpacing = clazz->getField<double>("prefixSpacing");
       double prefixSpacing = this->getFieldValue(fieldPrefixSpacing);
       static const auto fieldSuffixSpacing = clazz->getField<double>("suffixSpacing");
@@ -180,13 +180,13 @@ namespace margelo::nitro::nitroinput {
         }(maskCharacterMap),
         maskSlotPlaceholder->toStdString(),
         static_cast<bool>(keepPlaceholder),
-        fontSize,
-        lineHeight,
+        textSize,
+        textLineHeight,
         prefixFontSize,
         suffixFontSize,
-        fontWeight,
-        fontFamily->toStdString(),
-        letterSpacing,
+        textWeight,
+        textFamily->toStdString(),
+        textLetterSpacing,
         prefixSpacing,
         suffixSpacing,
         static_cast<bool>(allowFontScaling),
@@ -261,13 +261,13 @@ namespace margelo::nitro::nitroinput {
         }(value.maskCharacterMap),
         jni::make_jstring(value.maskSlotPlaceholder),
         value.keepPlaceholder,
-        value.fontSize,
-        value.lineHeight,
+        value.textSize,
+        value.textLineHeight,
         value.prefixFontSize,
         value.suffixFontSize,
-        value.fontWeight,
-        jni::make_jstring(value.fontFamily),
-        value.letterSpacing,
+        value.textWeight,
+        jni::make_jstring(value.textFamily),
+        value.textLetterSpacing,
         value.prefixSpacing,
         value.suffixSpacing,
         value.allowFontScaling,

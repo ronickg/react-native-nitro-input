@@ -353,11 +353,11 @@ namespace margelo::nitro::nitroinput {
     inline void setSuffixAlign(NitroInputAffixAlign suffixAlign) noexcept override {
       _swiftPart.setSuffixAlign(static_cast<int>(suffixAlign));
     }
-    inline double getLetterSpacing() noexcept override {
-      return _swiftPart.getLetterSpacing();
+    inline double getTextLetterSpacing() noexcept override {
+      return _swiftPart.getTextLetterSpacing();
     }
-    inline void setLetterSpacing(double letterSpacing) noexcept override {
-      _swiftPart.setLetterSpacing(std::forward<decltype(letterSpacing)>(letterSpacing));
+    inline void setTextLetterSpacing(double textLetterSpacing) noexcept override {
+      _swiftPart.setTextLetterSpacing(std::forward<decltype(textLetterSpacing)>(textLetterSpacing));
     }
     inline double getPrefixSpacing() noexcept override {
       return _swiftPart.getPrefixSpacing();
@@ -422,43 +422,43 @@ namespace margelo::nitro::nitroinput {
     inline void setEffect(NitroInputEffect effect) noexcept override {
       _swiftPart.setEffect(static_cast<int>(effect));
     }
-    inline double getFontSize() noexcept override {
-      return _swiftPart.getFontSize();
+    inline double getTextSize() noexcept override {
+      return _swiftPart.getTextSize();
     }
-    inline void setFontSize(double fontSize) noexcept override {
-      _swiftPart.setFontSize(std::forward<decltype(fontSize)>(fontSize));
+    inline void setTextSize(double textSize) noexcept override {
+      _swiftPart.setTextSize(std::forward<decltype(textSize)>(textSize));
     }
-    inline double getLineHeight() noexcept override {
-      return _swiftPart.getLineHeight();
+    inline double getTextLineHeight() noexcept override {
+      return _swiftPart.getTextLineHeight();
     }
-    inline void setLineHeight(double lineHeight) noexcept override {
-      _swiftPart.setLineHeight(std::forward<decltype(lineHeight)>(lineHeight));
+    inline void setTextLineHeight(double textLineHeight) noexcept override {
+      _swiftPart.setTextLineHeight(std::forward<decltype(textLineHeight)>(textLineHeight));
     }
-    inline double getFontWeight() noexcept override {
-      return _swiftPart.getFontWeight();
+    inline double getTextWeight() noexcept override {
+      return _swiftPart.getTextWeight();
     }
-    inline void setFontWeight(double fontWeight) noexcept override {
-      _swiftPart.setFontWeight(std::forward<decltype(fontWeight)>(fontWeight));
+    inline void setTextWeight(double textWeight) noexcept override {
+      _swiftPart.setTextWeight(std::forward<decltype(textWeight)>(textWeight));
     }
-    inline std::string getFontFamily() noexcept override {
-      auto __result = _swiftPart.getFontFamily();
+    inline std::string getTextFamily() noexcept override {
+      auto __result = _swiftPart.getTextFamily();
       return __result;
     }
-    inline void setFontFamily(const std::string& fontFamily) noexcept override {
-      _swiftPart.setFontFamily(fontFamily);
+    inline void setTextFamily(const std::string& textFamily) noexcept override {
+      _swiftPart.setTextFamily(textFamily);
     }
-    inline double getColor() noexcept override {
-      return _swiftPart.getColor();
+    inline double getTextColor() noexcept override {
+      return _swiftPart.getTextColor();
     }
-    inline void setColor(double color) noexcept override {
-      _swiftPart.setColor(std::forward<decltype(color)>(color));
+    inline void setTextColor(double textColor) noexcept override {
+      _swiftPart.setTextColor(std::forward<decltype(textColor)>(textColor));
     }
-    inline NitroInputTextAlign getTextAlign() noexcept override {
-      auto __result = _swiftPart.getTextAlign();
+    inline NitroInputTextAlign getTextAlignment() noexcept override {
+      auto __result = _swiftPart.getTextAlignment();
       return static_cast<NitroInputTextAlign>(__result);
     }
-    inline void setTextAlign(NitroInputTextAlign textAlign) noexcept override {
-      _swiftPart.setTextAlign(static_cast<int>(textAlign));
+    inline void setTextAlignment(NitroInputTextAlign textAlignment) noexcept override {
+      _swiftPart.setTextAlignment(static_cast<int>(textAlignment));
     }
     inline bool getRightToLeft() noexcept override {
       return _swiftPart.getRightToLeft();
@@ -553,12 +553,12 @@ namespace margelo::nitro::nitroinput {
     inline void setNumberOfLines(double numberOfLines) noexcept override {
       _swiftPart.setNumberOfLines(std::forward<decltype(numberOfLines)>(numberOfLines));
     }
-    inline NitroInputTextAlignVertical getTextAlignVertical() noexcept override {
-      auto __result = _swiftPart.getTextAlignVertical();
+    inline NitroInputTextAlignVertical getTextVerticalAlignment() noexcept override {
+      auto __result = _swiftPart.getTextVerticalAlignment();
       return static_cast<NitroInputTextAlignVertical>(__result);
     }
-    inline void setTextAlignVertical(NitroInputTextAlignVertical textAlignVertical) noexcept override {
-      _swiftPart.setTextAlignVertical(static_cast<int>(textAlignVertical));
+    inline void setTextVerticalAlignment(NitroInputTextAlignVertical textVerticalAlignment) noexcept override {
+      _swiftPart.setTextVerticalAlignment(static_cast<int>(textVerticalAlignment));
     }
     inline bool getScrollEnabled() noexcept override {
       return _swiftPart.getScrollEnabled();

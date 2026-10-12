@@ -104,41 +104,41 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.text.hasSameValue(oldViewProps->text)) {
       swiftPart.setText(newViewProps.text.get());
     }
-    // fontSize: optional
+    // textSize: optional
     if (oldViewProps == nullptr
-          ? newViewProps.fontSize.isProvided()
-          : !newViewProps.fontSize.hasSameValue(oldViewProps->fontSize)) {
-      swiftPart.setFontSize(newViewProps.fontSize.get());
+          ? newViewProps.textSize.isProvided()
+          : !newViewProps.textSize.hasSameValue(oldViewProps->textSize)) {
+      swiftPart.setTextSize(newViewProps.textSize.get());
     }
-    // fontWeight: optional
+    // textWeight: optional
     if (oldViewProps == nullptr
-          ? newViewProps.fontWeight.isProvided()
-          : !newViewProps.fontWeight.hasSameValue(oldViewProps->fontWeight)) {
-      swiftPart.setFontWeight(newViewProps.fontWeight.get());
+          ? newViewProps.textWeight.isProvided()
+          : !newViewProps.textWeight.hasSameValue(oldViewProps->textWeight)) {
+      swiftPart.setTextWeight(newViewProps.textWeight.get());
     }
-    // fontFamily: optional
+    // textFamily: optional
     if (oldViewProps == nullptr
-          ? newViewProps.fontFamily.isProvided()
-          : !newViewProps.fontFamily.hasSameValue(oldViewProps->fontFamily)) {
-      swiftPart.setFontFamily(newViewProps.fontFamily.get());
+          ? newViewProps.textFamily.isProvided()
+          : !newViewProps.textFamily.hasSameValue(oldViewProps->textFamily)) {
+      swiftPart.setTextFamily(newViewProps.textFamily.get());
     }
-    // color: optional
+    // textColor: optional
     if (oldViewProps == nullptr
-          ? newViewProps.color.isProvided()
-          : !newViewProps.color.hasSameValue(oldViewProps->color)) {
-      swiftPart.setColor(newViewProps.color.get());
+          ? newViewProps.textColor.isProvided()
+          : !newViewProps.textColor.hasSameValue(oldViewProps->textColor)) {
+      swiftPart.setTextColor(newViewProps.textColor.get());
     }
-    // letterSpacing: optional
+    // textLetterSpacing: optional
     if (oldViewProps == nullptr
-          ? newViewProps.letterSpacing.isProvided()
-          : !newViewProps.letterSpacing.hasSameValue(oldViewProps->letterSpacing)) {
-      swiftPart.setLetterSpacing(newViewProps.letterSpacing.get());
+          ? newViewProps.textLetterSpacing.isProvided()
+          : !newViewProps.textLetterSpacing.hasSameValue(oldViewProps->textLetterSpacing)) {
+      swiftPart.setTextLetterSpacing(newViewProps.textLetterSpacing.get());
     }
-    // textAlign: optional
+    // textAlignment: optional
     if (oldViewProps == nullptr
-          ? newViewProps.textAlign.isProvided()
-          : !newViewProps.textAlign.hasSameValue(oldViewProps->textAlign)) {
-      swiftPart.setTextAlign(newViewProps.textAlign.get());
+          ? newViewProps.textAlignment.isProvided()
+          : !newViewProps.textAlignment.hasSameValue(oldViewProps->textAlignment)) {
+      swiftPart.setTextAlignment(newViewProps.textAlignment.get());
     }
     // rightToLeft: optional
     if (oldViewProps == nullptr
