@@ -478,7 +478,7 @@ class NitroNumberView(context: Context) : View(context) {
         val canvas = Canvas(mask)
         // A paint of its own: the masks are warmed off the main thread, where
         // the digit paint's alpha is being changed by the draws.
-        val paint = TextPaint(paint(role)).apply { alpha = 255 }
+        val paint = TextPaint(threadPaint(role)).apply { alpha = 255 }
         canvas.drawText(text, pad + (cell - width(text, role)) / 2f, pad + digitBaseline(role), paint)
         if (radius > 0) boxBlurMask(mask, radius)
         // Immutable and uploaded ahead of its first draw: HWUI re-pins a mutable
@@ -486,7 +486,6 @@ class NitroNumberView(context: Context) : View(context) {
         // for its texture upload.
         val done = mask.copy(Bitmap.Config.ALPHA_8, false) ?: mask
         if (done !== mask) mask.recycle()
-        done.prepareToDraw()
         done
       }
       digitMasks.set(slot, mask)
@@ -516,12 +515,11 @@ class NitroNumberView(context: Context) : View(context) {
         val h = ceil(lineHeight).toInt() + 2 * pad
         val mask = Bitmap.createBitmap(w.coerceAtLeast(1), h, Bitmap.Config.ALPHA_8)
         val canvas = Canvas(mask)
-        val paint = TextPaint(paint(role)).apply { alpha = 255 }
+        val paint = TextPaint(threadPaint(role)).apply { alpha = 255 }
         canvas.drawText(text, pad.toFloat(), pad + baseline(role, text, 0f), paint)
         if (radius > 0) boxBlurMask(mask, radius)
         val done = mask.copy(Bitmap.Config.ALPHA_8, false) ?: mask
         if (done !== mask) mask.recycle()
-        done.prepareToDraw()
         done
       }
     }
@@ -585,6 +583,15 @@ class NitroNumberView(context: Context) : View(context) {
      * strips and masks are keyed by it.
      */
     private val roleKeys: Array<String>
+    /**
+     * Each role's paint as the font set was made, never changed after: what
+     * the warm thread measures and draws masks with. The UI thread changes the
+     * role paints' alpha as it draws, and a Paint promises no thread safety.
+     */
+    private val maskPaints: Array<TextPaint>
+
+    /** The paint to measure or draw [role] with on this thread: the UI thread's own, the warm thread's unchanging copy. */
+    private fun threadPaint(role: GlyphRole): TextPaint = if (isMainThread()) paint(role) else maskPaints[role.ordinal]
 
     init {
       for (d in 0..9) digitWidths[d] = width(glyphs[d], GlyphRole.DIGIT)
@@ -600,6 +607,7 @@ class NitroNumberView(context: Context) : View(context) {
         "${t.fontFamily}|${t.fontWeight}|${digit.textSize}|${p.textSize}|${p.color}|${p.typeface?.hashCode()}|${p.fontFeatureSettings}|" +
           "${role.name}|${alignment(role)}|${if (role == GlyphRole.PREFIX) prefixOffset else if (role == GlyphRole.SUFFIX) suffixOffset else 0f}|$glyphsKey"
       }
+      maskPaints = Array(GlyphRole.entries.size) { TextPaint(paint(GlyphRole.entries[it])).apply { alpha = 255 } }
     }
 
     private fun key(role: GlyphRole): String = roleKeys[role.ordinal]
@@ -625,7 +633,7 @@ class NitroNumberView(context: Context) : View(context) {
     // One map per role: a joined "role|text" key allocated a string on every
     // lookup, and the layout looks widths up for every glyph on every frame.
     fun width(text: String, role: GlyphRole): Float =
-      widthCache[role.ordinal].getOrPut(text) { paint(role).measureText(text) }
+      widthCache[role.ordinal].getOrPut(text) { threadPaint(role).measureText(text) }
 
     private val shapedCache = Array(GlyphRole.entries.size) { java.util.concurrent.ConcurrentHashMap<String, ShapedText>() }
 
@@ -681,14 +689,13 @@ class NitroNumberView(context: Context) : View(context) {
     /** How far `text`'s ink hangs below the baseline (0 for digits and capitals). */
     private fun inkDescent(text: String, role: GlyphRole): Float = inkDescentCache.getOrPut(role.name + "|" + text) {
       val bounds = Rect()
-      // A copy: the UI thread changes the paint's alpha as it draws.
-      TextPaint(paint(role)).getTextBounds(text, 0, text.length, bounds)
+      threadPaint(role).getTextBounds(text, 0, text.length, bounds)
       max(0, bounds.bottom).toFloat()
     }
 
     private fun capHeight(role: GlyphRole): Float = capHeightCache.getOrPut(role) {
       val bounds = Rect()
-      TextPaint(paint(role)).getTextBounds("0", 0, 1, bounds)
+      threadPaint(role).getTextBounds("0", 0, 1, bounds)
       -bounds.top.toFloat()
     }
   }
@@ -1188,19 +1195,27 @@ class NitroNumberView(context: Context) : View(context) {
    * the ten-digits-at-every-level warm-ups ([execute]): behind a font change's
    * warm-up, the glyph on screen stayed sharp for its whole swap.
    *
-   * At background priority, below the UI thread but not starved under load
-   * (Thread.MIN_PRIORITY is the lowest nice level there is). A mask that cannot
-   * be made (out of memory, say) is skipped and the glyph stays sharp: an
-   * exception escaping a thread of its own takes the whole app down on Android.
+   * At background priority plus one step (Glide's choice): below the UI
+   * thread, not starved under load (Thread.MIN_PRIORITY is the lowest nice
+   * level there is). A mask that cannot be made (out of memory, say) is
+   * skipped, the glyph stays sharp, and it is not asked for again for a
+   * while: an exception escaping a thread of its own takes the whole app down
+   * on Android, and a failure retried every frame logged every frame. Any
+   * other Error is a bug and is not swallowed.
    */
   private object WarmExecutor : java.util.concurrent.Executor {
     private val queue = java.util.concurrent.LinkedBlockingDeque<Runnable>()
     /** Masks the UI thread has asked for and the warm thread has not made yet. */
     private val pending = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    /** When a mask last failed, by key: not asked for again until [RETRY_MS] later. */
+    private val failed = java.util.concurrent.ConcurrentHashMap<String, Long>()
+    private const val RETRY_MS = 2000L
 
     init {
       Thread({
-        android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+        android.os.Process.setThreadPriority(
+          android.os.Process.THREAD_PRIORITY_BACKGROUND + android.os.Process.THREAD_PRIORITY_MORE_FAVORABLE
+        )
         while (true) {
           val task = try {
             queue.take()
@@ -1209,8 +1224,10 @@ class NitroNumberView(context: Context) : View(context) {
           }
           try {
             task.run()
-          } catch (t: Throwable) {
-            android.util.Log.w("NitroNumber", "A glyph mask could not be made; the glyph is drawn sharp", t)
+          } catch (e: Exception) {
+            android.util.Log.w("NitroNumber", "A glyph mask could not be made; the glyph is drawn sharp", e)
+          } catch (e: OutOfMemoryError) {
+            android.util.Log.w("NitroNumber", "Out of memory making a glyph mask; the glyph is drawn sharp", e)
           }
         }
       }, "NitroNumberWarm").apply {
@@ -1225,11 +1242,19 @@ class NitroNumberView(context: Context) : View(context) {
 
     /** Makes [key]'s mask on the warm thread next, once however many frames ask for it while it is queued. */
     fun request(key: String, make: () -> Unit) {
+      failed[key]?.let { if (SystemClock.uptimeMillis() - it < RETRY_MS) return }
       if (!pending.add(key)) return
       queue.offerFirst(
         Runnable {
           try {
             make()
+            failed.remove(key)
+          } catch (e: Exception) {
+            failed[key] = SystemClock.uptimeMillis()
+            throw e
+          } catch (e: OutOfMemoryError) {
+            failed[key] = SystemClock.uptimeMillis()
+            throw e
           } finally {
             pending.remove(key)
           }
@@ -2134,8 +2159,8 @@ class NitroNumberView(context: Context) : View(context) {
     fun peek(key: String): Bitmap? = entries[key]
 
     /**
-     * [make] runs OUTSIDE the lock. Run inside it, the warm thread (at
-     * MIN_PRIORITY) held the lock through each blur, and the UI thread's
+     * [make] runs OUTSIDE the lock. Run inside it, the warm thread (then at
+     * Thread.MIN_PRIORITY) held the lock through each blur, and the UI thread's
      * lookup in onDraw waited on it: ANRs with the main thread `Blocked` in
      * `get`. Two threads making the same key both make it; the second keeps
      * the first's bitmap and recycles its own, which nobody has seen.
@@ -2158,6 +2183,11 @@ class NitroNumberView(context: Context) : View(context) {
           eldest.remove()
         }
       }
+      // Immutable and uploaded ahead of its first draw: HWUI re-pins a mutable
+      // bitmap at every sync, and the first frame that drew a fresh mask paid
+      // for its texture upload. Only the one that is kept: a race's loser is
+      // recycled above, unseen.
+      bitmap.prepareToDraw()
       return bitmap
     }
   }

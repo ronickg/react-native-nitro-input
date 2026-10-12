@@ -650,17 +650,19 @@ final class NitroNumberView: UIView {
       if level <= 0 || numericBlur <= 0 { return swapImage(text, role: role, level: 0, tint: tint) }
       let key = TintKey(image: ImageKey(font: fontTag(role), color: colorKey(for: role), scale: renderScale, text: text, role: role), tint: tint.map { Self.key(of: $0) } ?? 0, level: level, blur: blurKey)
       if let cached = Self.sharedBlurred[key] { return cached }
+      let now = CACurrentMediaTime()
       Self.pendingLock.lock()
-      let first = Self.pending.insert(key).inserted
+      // One that could not be made is not asked for again every frame.
+      let recentlyFailed = Self.failed[key].map { now - $0 < Self.retryInterval } ?? false
+      let first = !recentlyFailed && Self.pending.insert(key).inserted
       Self.pendingLock.unlock()
       if first {
         Self.glyphQueue.async {
-          defer {
-            Self.pendingLock.lock()
-            Self.pending.remove(key)
-            Self.pendingLock.unlock()
-          }
-          _ = self.swapImage(text, role: role, level: level, tint: tint)
+          let made = self.swapImage(text, role: role, level: level, tint: tint) != nil
+          Self.pendingLock.lock()
+          Self.pending.remove(key)
+          if made { Self.failed[key] = nil } else { Self.failed[key] = CACurrentMediaTime() }
+          Self.pendingLock.unlock()
         }
       }
       return nil
@@ -672,6 +674,10 @@ final class NitroNumberView: UIView {
     static let warmQueue = DispatchQueue(label: "NitroNumber.warm", qos: .utility)
     /// Blurs asked for and not made yet, so a glyph asked for every frame is made once.
     private static var pending = Set<TintKey>()
+    /// When a blur last could not be made (vImage or the renderer failed), by key.
+    private static var failed: [TintKey: CFTimeInterval] = [:]
+    private static let retryInterval: CFTimeInterval = 2
+    /// Guards `pending` and `failed`.
     private static let pendingLock = NSLock()
 
     private var blurKey: Int { Int((numericBlur * 1000).rounded()) }
