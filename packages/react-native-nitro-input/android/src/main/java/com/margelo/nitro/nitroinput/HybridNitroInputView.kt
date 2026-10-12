@@ -73,7 +73,7 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     }
     inputView.onKeyPress = { key -> onKeyPress?.invoke(key) }
     inputView.onIntrinsicSizeChange = { width, height ->
-      onSizeChange?.invoke(width.toDouble(), height.toDouble())
+      if (!configured || committing) sizeHeld = true else onSizeChange?.invoke(width.toDouble(), height.toDouble())
     }
   }
 
@@ -285,7 +285,7 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
   override var onSizeChange: ((width: Double, height: Double) -> Unit)? = null
     set(v) {
       field = v
-      onMain { inputView.resendIntrinsicSize() }
+      onMain { if (configured) inputView.resendIntrinsicSize() }
     }
 
   // endregion
@@ -505,7 +505,10 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     configDirty = true
     textDirty = true
     isBatching = false
-    onMain { inputView.resetForRecycle() }
+    onMain {
+      configured = false
+      inputView.resetForRecycle()
+    }
   }
 
   // endregion
@@ -565,12 +568,35 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     else -> null
   }
 
+  /**
+   * Whether the props have been applied since the view was made or recycled.
+   * Until then its size is the defaults' (or the last element's), and JS, which
+   * lays the field out at its measured size from the first commit, must not
+   * see it: a stray report made the field jump to it and back.
+   */
+  private var configured = false
+  /** Inside [commit], where a size is of half-applied props. */
+  private var committing = false
+  /** A size was held back by the two above, so the settled one is sent after. */
+  private var sizeHeld = false
+
   private fun commit() {
     onMain {
-      inputView.batch {
-        flushConfigIfNeeded()
-        flushTextIfNeeded()
-        flushSelectionIfNeeded()
+      committing = true
+      try {
+        inputView.batch {
+          flushConfigIfNeeded()
+          flushTextIfNeeded()
+          flushSelectionIfNeeded()
+        }
+      } finally {
+        committing = false
+      }
+      // Once after the first commit, so JS always hears the view's size.
+      if (!configured || sizeHeld) {
+        configured = true
+        sizeHeld = false
+        inputView.resendIntrinsicSize()
       }
     }
   }

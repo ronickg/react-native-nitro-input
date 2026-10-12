@@ -1220,6 +1220,13 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       caret = Caret()
       alignment = Alignment.AUTO
     }
+    // Last: the defaults above fed the engine an empty text, which it would
+    // take for its first, so the next element's text slid in instead of
+    // showing as it is (the engine snaps only its first text).
+    engine.reset()
+    glyphs.clear()
+    contentWidth = 0f
+    fed = false
     // onTextChange, onFocusChange, onSubmit and onIntrinsicSizeChange are the
     // hybrid's wiring, not the element's props: they stay across recycling
     // (the hybrid clears its own callback props).

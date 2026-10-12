@@ -1136,6 +1136,11 @@ final class NitroInputView: UIView {
     timing = Timing()
     traits = Traits()
     alignment = .auto
+    // Last: the defaults above fed the engine an empty text (turning `plain`
+    // off feeds it), which it would take for its first, so the next element's
+    // text slid in instead of showing as it is (the engine snaps only its
+    // first text).
+    engine.reset()
     // `onTextChange`, `onFocusChange`, `onSubmit` and `onIntrinsicSizeChange`
     // are the hybrid's wiring, not the element's props: they stay across
     // recycling (the hybrid clears its own callback props).
@@ -1705,9 +1710,35 @@ final class NitroInputView: UIView {
     return (start, end)
   }
 
+  private var batchDepth = 0
+  private var feedPending = false
+  private var feedCaret = -1
+
+  /// Runs `block` with engine feeds coalesced into one at the end, as Android's
+  /// `batch` does. A prop commit applies the config and then the text; fed in
+  /// between (turning `plain` off feeds the engine), the engine took the still
+  /// empty field for its first text, which it shows as is, and animated the
+  /// real one in: every reflowing amount slid in on mount.
+  func batch(_ block: () -> Void) {
+    batchDepth += 1
+    block()
+    batchDepth -= 1
+    if batchDepth == 0, feedPending {
+      feedPending = false
+      let caret = feedCaret
+      feedCaret = -1
+      feedEngine(caret: caret)
+    }
+  }
+
   /// Hands the engine the current text as glyphs (prefix, body or placeholder,
   /// suffix) with their advance widths and commits it.
   fileprivate func feedEngine(caret: Int) {
+    if batchDepth > 0 {
+      feedCaret = feedPending && feedCaret == -1 ? -1 : caret
+      feedPending = true
+      return
+    }
     // Plain mode has no overlay to feed: the field draws its own text. Its
     // width still has to reach React for `autoWidth`, and this is the one
     // place every text, font, affix and placeholder change comes through.

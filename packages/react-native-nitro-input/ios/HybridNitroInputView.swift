@@ -70,7 +70,12 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
       self?.onKeyPress?(key)
     }
     inputView.onIntrinsicSizeChange = { [weak self] size in
-      self?.onSizeChange?(Double(size.width), Double(size.height))
+      guard let self else { return }
+      if !self.configured || self.committing {
+        self.sizeHeld = true
+      } else {
+        self.onSizeChange?(Double(size.width), Double(size.height))
+      }
     }
   }
 
@@ -181,7 +186,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var onSelectionChange: ((Double, Double) -> Void)?
   var onKeyPress: ((String) -> Void)?
   var onSizeChange: ((Double, Double) -> Void)? {
-    didSet { onMain { self.inputView.resendIntrinsicSize() } }
+    didSet { onMain { if self.configured { self.inputView.resendIntrinsicSize() } } }
   }
 
   // MARK: - Methods
@@ -401,7 +406,10 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     snapshotLock.lock()
     snapshot = Snapshot()
     snapshotLock.unlock()
-    onMain { self.inputView.resetForRecycle() }
+    onMain {
+      self.configured = false
+      self.inputView.resetForRecycle()
+    }
   }
 
   // MARK: - Batching
@@ -425,11 +433,32 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     if !isBatching { commit() }
   }
 
+  /// Whether the props have been applied since the view was made or recycled.
+  /// Until then its size is the defaults' (or the last element's), and JS,
+  /// which lays the field out at its measured size from the first commit, must
+  /// not see it: a stray report made the field jump to it and back.
+  private var configured = false
+  /// Inside `commit`, where a size is of half-applied props (the config
+  /// applied, the text not yet).
+  private var committing = false
+  /// A size was held back by the two above, so the settled one is sent after.
+  private var sizeHeld = false
+
   private func commit() {
     onMain {
-      self.flushConfigIfNeeded()
-      self.applyTextIfNeeded()
-      self.applySelectionIfNeeded()
+      self.committing = true
+      self.inputView.batch {
+        self.flushConfigIfNeeded()
+        self.applyTextIfNeeded()
+        self.applySelectionIfNeeded()
+      }
+      self.committing = false
+      // Once after the first commit, so JS always hears the view's size.
+      if !self.configured || self.sizeHeld {
+        self.configured = true
+        self.sizeHeld = false
+        self.inputView.resendIntrinsicSize()
+      }
     }
   }
 
