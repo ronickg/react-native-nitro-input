@@ -11,6 +11,10 @@
   glyph. Now masks are made outside the lock, the UI thread never blurs (a
   mask not warmed yet is drawn sharp for a frame while the warm thread makes
   it), and the blur reuses per-thread buffers instead of allocating per mask.
+  A mask the screen is waiting on is made ahead of the warm-up's queue (it
+  waited behind every digit at every blur level, ~50 ms), the warm thread runs
+  at background priority rather than the lowest, and a mask that cannot be
+  made is skipped rather than crashing the app.
 
 ## 0.3.8
 

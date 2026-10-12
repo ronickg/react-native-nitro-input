@@ -1171,29 +1171,67 @@ class NitroNumberView(context: Context) : View(context) {
     if (timing.transition != Transition.NUMERIC) return
     val set = fonts
     val fraction = format.fractionDigits > 0
-    WarmExecutor.execute {
-      for (digit in 0..9) for (level in 0..NUMERIC_BLUR_LEVELS) set.blurred(GlyphRole.DIGIT, digit, level)
-      if (fraction) for (digit in 0..9) for (level in 0..NUMERIC_BLUR_LEVELS) set.blurred(GlyphRole.FRACTION, digit, level)
+    // One task a mask, so a mask the UI thread asks for meanwhile is made
+    // next rather than after the whole set (70 to 140 blurs).
+    val roles = if (fraction) listOf(GlyphRole.DIGIT, GlyphRole.FRACTION) else listOf(GlyphRole.DIGIT)
+    for (role in roles) for (digit in 0..9) for (level in 0..NUMERIC_BLUR_LEVELS) {
+      WarmExecutor.execute { set.blurred(role, digit, level) }
     }
   }
 
-  /** One background thread for warming glyph masks, shared by every view. */
+  /**
+   * One background thread for glyph masks, shared by every view. A mask the UI
+   * thread is waiting on ([request]) goes to the front of the queue, ahead of
+   * the ten-digits-at-every-level warm-ups ([execute]): behind a font change's
+   * warm-up, the glyph on screen stayed sharp for its whole swap.
+   *
+   * At background priority, below the UI thread but not starved under load
+   * (Thread.MIN_PRIORITY is the lowest nice level there is). A mask that cannot
+   * be made (out of memory, say) is skipped and the glyph stays sharp: an
+   * exception escaping a thread of its own takes the whole app down on Android.
+   */
   private object WarmExecutor : java.util.concurrent.Executor {
-    private val pool = java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "NitroNumberWarm").apply { isDaemon = true; priority = Thread.MIN_PRIORITY } }
+    private val queue = java.util.concurrent.LinkedBlockingDeque<Runnable>()
     /** Masks the UI thread has asked for and the warm thread has not made yet. */
     private val pending = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
-    override fun execute(command: Runnable) = pool.execute(command)
 
-    /** Makes [key]'s mask on the warm thread, once however many frames ask for it while it is queued. */
+    init {
+      Thread({
+        android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+        while (true) {
+          val task = try {
+            queue.take()
+          } catch (_: InterruptedException) {
+            continue
+          }
+          try {
+            task.run()
+          } catch (t: Throwable) {
+            android.util.Log.w("NitroNumber", "A glyph mask could not be made; the glyph is drawn sharp", t)
+          }
+        }
+      }, "NitroNumberWarm").apply {
+        isDaemon = true
+        start()
+      }
+    }
+
+    override fun execute(command: Runnable) {
+      queue.offerLast(command)
+    }
+
+    /** Makes [key]'s mask on the warm thread next, once however many frames ask for it while it is queued. */
     fun request(key: String, make: () -> Unit) {
       if (!pending.add(key)) return
-      pool.execute {
-        try {
-          make()
-        } finally {
-          pending.remove(key)
+      queue.offerFirst(
+        Runnable {
+          try {
+            make()
+          } finally {
+            pending.remove(key)
+          }
         }
-      }
+      )
     }
   }
 
