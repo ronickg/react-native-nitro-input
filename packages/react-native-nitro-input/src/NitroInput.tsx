@@ -736,6 +736,45 @@ export type NitroInputTransition = 'none' | 'reflow'
  * Like a `TextInput`, it takes its width from its parent; `autoWidth` sizes
  * it to its content instead, and is on by default when the text reflows.
  */
+/** The style keys `TextInput` reads its typography from that are also a prop of the native view. */
+const TEXT_STYLE_KEYS = [
+  'fontSize',
+  'lineHeight',
+  'fontWeight',
+  'fontFamily',
+  'color',
+  'letterSpacing',
+  'textAlign',
+  'textAlignVertical',
+] as const
+
+/** `style` with the text keys taken out (they are props here); the same object when it has none. */
+function withoutTextKeys<S>(style: S, flat: Record<string, unknown> | undefined): S {
+  if (flat == null || !TEXT_STYLE_KEYS.some((key) => key in flat)) return style
+  const rest: Record<string, unknown> = { ...flat }
+  for (const key of TEXT_STYLE_KEYS) delete rest[key]
+  return rest as S
+}
+
+function styleTextAlign(value: TextStyle['textAlign'], rightToLeft: boolean): NitroInputTextAlign | undefined {
+  switch (value) {
+    case undefined:
+      return undefined
+    // `justify` has no meaning on one line: the start edge, as on a TextInput.
+    case 'start':
+    case 'justify':
+      return 'auto'
+    case 'end':
+      return rightToLeft ? 'left' : 'right'
+    default:
+      return value
+  }
+}
+
+function styleTextAlignVertical(value: TextStyle['textAlignVertical']): NitroInputTextAlignVertical | undefined {
+  return value ?? undefined
+}
+
 // One per app, made on first use. `null` when the native side has none (an
 // app built against an older version, or a test without native modules): the
 // field then takes its size from the view's first report, as it used to.
@@ -775,7 +814,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       signPlacement,
       prefixAlign,
       suffixAlign,
-      letterSpacing,
+      letterSpacing: letterSpacingProp,
       prefixSpacing,
       suffixSpacing,
       prefixOffset,
@@ -787,12 +826,12 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       easing,
       bounce,
       effect,
-      fontSize,
-      lineHeight,
-      fontWeight,
-      fontFamily,
-      color,
-      textAlign,
+      fontSize: fontSizeProp,
+      lineHeight: lineHeightProp,
+      fontWeight: fontWeightProp,
+      fontFamily: fontFamilyProp,
+      color: colorProp,
+      textAlign: textAlignProp,
       cursorColor,
       selectionColor,
       caretHidden,
@@ -831,7 +870,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       multiline,
       numberOfLines,
       rows,
-      textAlignVertical,
+      textAlignVertical: textAlignVerticalProp,
       scrollEnabled,
       autoFocus,
       transition,
@@ -1063,16 +1102,29 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     const flat = useMemo(
       () =>
         StyleSheet.flatten(style) as
-          | { width?: unknown; flex?: unknown; height?: unknown; direction?: unknown }
+          | ({ width?: unknown; flex?: unknown; height?: unknown; direction?: unknown } & TextStyle)
           | undefined,
       [style]
     )
+    // `TextInput` takes its typography from `style`; so does this, under the
+    // props of the same name, which win. The keys are kept out of the style the
+    // view gets: Fabric hands a view its style's keys as props, and these share
+    // their names with the view's own (a string `fontWeight` there threw).
+    const fontSize = fontSizeProp ?? flat?.fontSize
+    const lineHeight = lineHeightProp ?? flat?.lineHeight
+    const fontWeight = fontWeightProp ?? flat?.fontWeight
+    const fontFamily = fontFamilyProp ?? flat?.fontFamily
+    const color = colorProp ?? flat?.color
+    const letterSpacing = letterSpacingProp ?? flat?.letterSpacing
+    const textAlignVertical = textAlignVerticalProp ?? styleTextAlignVertical(flat?.textAlignVertical)
+    const hostStyle = useMemo(() => withoutTextKeys(style, flat), [style, flat])
     // The layout direction, resolved the way React Native resolves it for its
     // own views: the field's `style.direction` if it says, else the app's.
     // Fabric does not hand a Hybrid View its resolved direction, so native is
     // told outright.
     const rightToLeft =
       flat?.direction === 'rtl' || (flat?.direction !== 'ltr' && I18nManager.isRTL)
+    const textAlign = textAlignProp ?? styleTextAlign(flat?.textAlign, rightToLeft)
     // `TextInput` stretches to its parent; sizing to content is this
     // component's own behaviour, and it is what stops it being a drop-in.
     // `NitroInput` turns it off so flexbox gives it the parent's width, the
@@ -1498,7 +1550,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         {...hostViewProps}
         {...sizing}
         ref={hostRef as React.Ref<never>}
-        style={[autoSize, style]}
+        style={[autoSize, hostStyle]}
         hybridRef={hybridRef}
         // An uncontrolled field's `text` is its initial text: a count of 0 is
         // never caught up after the first edit, so native never puts it back.

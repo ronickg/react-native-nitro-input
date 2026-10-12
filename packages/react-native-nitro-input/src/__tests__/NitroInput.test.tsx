@@ -258,3 +258,48 @@ describe('colours', () => {
     expect(props.fillColor).toBe(Infinity)
   })
 })
+
+describe('typography in style, as TextInput takes it', () => {
+  const hostStyle = (renderer: ReactTestRenderer) =>
+    Object.assign({}, ...(nativeProps(renderer).style as object[]).flat().filter(Boolean)) as Record<string, unknown>
+
+  it('reads the text keys from style and keeps them out of the view style', () => {
+    const renderer = render(
+      <NitroInput
+        style={{ fontSize: 18, fontWeight: '700', fontFamily: 'Menlo', color: '#ff0000', letterSpacing: 2, lineHeight: 30, textAlign: 'center', width: 200 }}
+      />
+    )
+    const props = nativeProps(renderer)
+    expect(props.fontSize).toBe(18)
+    expect(props.fontWeight).toBe(700)
+    expect(props.fontFamily).toBe('Menlo')
+    expect(props.letterSpacing).toBe(2)
+    expect(props.lineHeight).toBe(30)
+    expect(props.textAlign).toBe('center')
+    expect(props.color).not.toBe(Infinity)
+    // Fabric passes a style's keys to the view as props: a string fontWeight there threw.
+    const style = hostStyle(renderer)
+    for (const key of ['fontSize', 'fontWeight', 'fontFamily', 'color', 'letterSpacing', 'lineHeight', 'textAlign']) {
+      expect(style).not.toHaveProperty(key)
+    }
+    expect(style.width).toBe(200)
+  })
+
+  it('lets the props of the same name win', () => {
+    const props = nativeProps(render(<NitroInput fontSize={40} fontWeight="300" style={{ fontSize: 18, fontWeight: '700' }} />))
+    expect(props.fontSize).toBe(40)
+    expect(props.fontWeight).toBe(300)
+  })
+
+  it('reads start, end and justify the way TextInput does', () => {
+    expect(nativeProps(render(<NitroInput style={{ textAlign: 'start' }} />)).textAlign).toBe('auto')
+    expect(nativeProps(render(<NitroInput style={{ textAlign: 'end' }} />)).textAlign).toBe('right')
+    expect(nativeProps(render(<NitroInput style={{ textAlign: 'end', direction: 'rtl' }} />)).textAlign).toBe('left')
+    expect(nativeProps(render(<NitroInput style={{ textAlign: 'justify' }} />)).textAlign).toBe('auto')
+  })
+
+  it('passes a style with no text keys through as it is', () => {
+    const style = { width: 120 }
+    expect((nativeProps(render(<NitroInput style={style} />)).style as unknown[])[1]).toBe(style)
+  })
+})
