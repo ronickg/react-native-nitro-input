@@ -740,6 +740,88 @@ function MaskFeaturesDemo() {
       <Text style={styles.morphReadout} testID="mask-card-readout">
         "{card.formatted}" · extracted "{card.extracted}" · {card.complete ? 'complete' : 'incomplete'}
       </Text>
+      {/* As Uno sets its masked fields up: Open Runde, a placeholder that is a value
+          in the mask's shape. Typing the placeholder's own digits must not move a glyph. */}
+      <View style={styles.morphTextBox}>
+        <NitroInput
+          testID="mask-clabe-runde"
+          mode="mask"
+          mask="[000] [000] [00000000000] [0]"
+          placeholder="002 180 70061234567 8"
+          keepPlaceholder
+          fontFamily="OpenRunde-Medium"
+          fontSize={20}
+          keyboardType="number-pad"
+          style={styles.morphText}
+        />
+      </View>
+      <View style={styles.morphTextBox}>
+        <NitroInput
+          testID="mask-iban-runde"
+          mode="mask"
+          mask="[AA00] [____] [0000] [0000] [0000] [00]"
+          placeholder="GB82 WEST 1234 5698 7654 32"
+          keepPlaceholder
+          maskAutocomplete={false}
+          maskAutoSkip
+          maskTextCase="upper"
+          fontFamily="OpenRunde-Regular"
+          fontSize={20}
+          autoCapitalize="characters"
+          style={styles.morphText}
+        />
+      </View>
+      {/* Padded and narrower than its placeholder, as Uno's boxes are: the grey
+          tail must stop at the text area, not run into the padding or past the box. */}
+      <View style={[styles.morphTextBox, { width: 260, borderWidth: 1, borderColor: '#94A3B8' }]}>
+        <NitroInput
+          testID="mask-iban-padded"
+          mode="mask"
+          mask="[AA00] [____] [0000] [0000] [0000] [00]"
+          placeholder="GB82 WEST 1234 5698 7654 32"
+          keepPlaceholder
+          maskAutocomplete={false}
+          maskAutoSkip
+          maskTextCase="upper"
+          fontFamily="OpenRunde-Regular"
+          fontSize={16}
+          autoCapitalize="characters"
+          style={[styles.morphText, { paddingHorizontal: 24, backgroundColor: '#FEF3C7' }]}
+        />
+      </View>
+      {/* Narrower than its placeholder: the field scrolls as it fills. */}
+      <View style={[styles.morphTextBox, { width: 200 }]}>
+        <NitroInput
+          testID="mask-iban-narrow"
+          mode="mask"
+          mask="[AA00] [____] [0000] [0000] [0000] [00]"
+          placeholder="GB82 WEST 1234 5698 7654 32"
+          keepPlaceholder
+          maskAutocomplete={false}
+          maskAutoSkip
+          maskTextCase="upper"
+          fontFamily="OpenRunde-Regular"
+          fontSize={16}
+          autoCapitalize="characters"
+          style={styles.morphText}
+        />
+      </View>
+      <View style={styles.morphTextBox}>
+        <NitroInput
+          testID="mask-nino-runde"
+          mode="mask"
+          mask="[AA] [00] [00] [00] [A]"
+          placeholder="QQ 12 34 56 C"
+          keepPlaceholder
+          maskAutocomplete={false}
+          maskAutoSkip
+          maskTextCase="upper"
+          fontFamily="OpenRunde-Regular"
+          fontSize={20}
+          autoCapitalize="characters"
+          style={styles.morphText}
+        />
+      </View>
       <View style={styles.morphTextBox}>
         <NitroInput
           transition="reflow"

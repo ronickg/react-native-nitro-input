@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **Android: `keepPlaceholder`'s greyed tail stays inside the field.** The
+  rest of the placeholder, drawn after what was typed, was not clipped to the
+  text area as the field's own text and hint are: in a padded field narrower
+  than its placeholder (or once the typed text filled it), the tail ran over
+  the padding to the field's edge. iOS already clipped it.
+
 ## 0.3.8
 
 - **`NitroNumber` shows what its `format` prints, value by value.** It read the
