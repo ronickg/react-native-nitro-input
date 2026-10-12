@@ -35,6 +35,7 @@ target_sources(
   # Shared Nitrogen C++ sources
   ../nitrogen/generated/shared/c++/HybridNitroInputViewSpec.cpp
   ../nitrogen/generated/shared/c++/views/HybridNitroInputViewComponent.cpp
+  ../nitrogen/generated/shared/c++/HybridNitroInputMeasureSpec.cpp
   ../nitrogen/generated/shared/c++/HybridNitroInputWorkletsSpec.cpp
   ../nitrogen/generated/shared/c++/HybridNitroNumberViewSpec.cpp
   ../nitrogen/generated/shared/c++/views/HybridNitroNumberViewComponent.cpp
@@ -48,6 +49,7 @@ target_sources(
   # Android-specific Nitrogen C++ sources
   ../nitrogen/generated/android/c++/JHybridNitroInputViewSpec.cpp
   ../nitrogen/generated/android/c++/views/JHybridNitroInputViewStateUpdater.cpp
+  ../nitrogen/generated/android/c++/JHybridNitroInputMeasureSpec.cpp
   ../nitrogen/generated/android/c++/JHybridNitroNumberViewSpec.cpp
   ../nitrogen/generated/android/c++/views/JHybridNitroNumberViewStateUpdater.cpp
   ../nitrogen/generated/android/c++/JHybridNitroTextMeasureSpec.cpp

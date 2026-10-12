@@ -17,6 +17,7 @@
 #include "HybridNitroNumberFormatPlatformSpecSwift.hpp"
 #include "HybridNitroTextViewSpecSwift.hpp"
 #include "HybridNitroTextMeasureSpecSwift.hpp"
+#include "HybridNitroInputMeasureSpecSwift.hpp"
 
 @interface NitroInputAutolinking : NSObject
 @end
@@ -77,6 +78,13 @@
     "NitroTextMeasure",
     []() -> std::shared_ptr<HybridObject> {
       std::shared_ptr<HybridNitroTextMeasureSpec> hybridObject = NitroInput::NitroInputAutolinking::createNitroTextMeasure();
+      return hybridObject;
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "NitroInputMeasure",
+    []() -> std::shared_ptr<HybridObject> {
+      std::shared_ptr<HybridNitroInputMeasureSpec> hybridObject = NitroInput::NitroInputAutolinking::createNitroInputMeasure();
       return hybridObject;
     }
   );

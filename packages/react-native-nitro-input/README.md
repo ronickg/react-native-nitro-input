@@ -173,6 +173,10 @@ interpolate between them.
 `variant="filled"` gives a filled field instead: a `fillColor`
 background with a square bottom and an indicator rule along it.
 
+Without a size in its style the field sizes itself to the frame: its text (or
+its resting label, if wider) between the side insets, and 16 of padding above
+and below the line, plus a line for a filled field's floated label.
+
 The label runs 200 ms on a decelerate curve, and the notch is staggered 50 ms behind it opening and closes in 50 ms,
 so the gap is never open under a label that has not arrived. All of it runs
 inside the view, off a native focus callback — there is no React state to

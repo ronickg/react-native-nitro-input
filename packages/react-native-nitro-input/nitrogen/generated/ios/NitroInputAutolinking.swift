@@ -71,4 +71,16 @@ public final class NitroInputAutolinking {
   public static func isNitroTextMeasureRecyclable() -> Bool {
     return HybridNitroTextMeasure.self is any RecyclableView.Type
   }
+  
+  public static func createNitroInputMeasure() -> bridge.std__shared_ptr_HybridNitroInputMeasureSpec_ {
+    let hybridObject = HybridNitroInputMeasure()
+    return { () -> bridge.std__shared_ptr_HybridNitroInputMeasureSpec_ in
+      let __cxxWrapped = hybridObject.getCxxWrapper()
+      return __cxxWrapped.getCxxPart()
+    }()
+  }
+  
+  public static func isNitroInputMeasureRecyclable() -> Bool {
+    return HybridNitroInputMeasure.self is any RecyclableView.Type
+  }
 }

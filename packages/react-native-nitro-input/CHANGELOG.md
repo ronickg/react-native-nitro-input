@@ -23,6 +23,39 @@
   a background queue, a blur the screen is waiting on on a second one ahead
   of it (drawn sharp until it lands), and the shared glyph caches are
   thread-safe.
+- **`NitroInput` lays out at its real size in the commit that mounts it.**
+  Its size came from the view, through `onSizeChange` and a React commit, so
+  the first layout had none: an `autoWidth` field took its parent's width (or
+  none) for a commit, and every field without a fixed height moved by a pixel
+  or two as its line box arrived. Now a single-line field is measured on the JS
+  thread before its view exists (a new `NitroInputMeasure`), with the code the
+  view sizes itself with - fonts, affixes and their seams, number and mask
+  formatting, the placeholder and `keepPlaceholder`'s tail - as React
+  Native's `TextInput` measures in its shadow node. About 0.1 ms per field;
+  the view's own report then matches and no longer costs a commit. A wrapping
+  field, a `transform` worklet and a style that sets both sides keep the old
+  path.
+- **A framed field sizes itself.** With no width or height from its style,
+  an `outlined` or `filled` field took the size of its text line alone: the
+  frame's side insets and the label were left out, so a resting label was
+  drawn outside the field and a filled one cut its text off. Its size now
+  includes the frame: the side insets either side of the text or the resting
+  label, whichever is wider, and above and below it the same 16 of padding
+  (and a filled field's label line) a wrapping field already had. A field
+  given a height in its style is unchanged.
+- **A secure field fits its bullets.** Android set the password input type
+  after the typeface, which switches the field to monospace, so its bullets
+  were wider than the field measured them; the typeface is now put back, as
+  React Native's `TextInput` does. On iOS the field measured its text as
+  bullets in its own font, but UIKit draws U+2219 in the system font; it now
+  measures those. An `autoWidth` secure field showed `●●●●…` for 8 characters
+  on iOS and 5 bullets on Android.
+- **No size jump on mount, and no amount sliding in on a reused field.** A
+  size the view reported before its props were applied (the defaults', or a
+  recycled view's last element's) reached JS and made the field jump to it and
+  back. And on iOS a recycled view took the empty text its props reset fed the
+  engine for its first, so a reflowing amount on a reused view slid in instead
+  of showing as it is.
 
 ## 0.3.8
 

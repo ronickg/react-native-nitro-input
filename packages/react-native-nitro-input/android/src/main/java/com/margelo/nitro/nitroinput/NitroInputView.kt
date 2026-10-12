@@ -8,9 +8,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.Rect
 import android.graphics.RectF
-import android.graphics.Typeface
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -35,9 +33,7 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.core.widget.TextViewCompat
-import com.facebook.react.common.assets.ReactFontManager
 import kotlin.math.abs
-import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -232,25 +228,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       if (field == value) return
       val old = field
       field = value
-      formatter.setFormat(value.fractionDigits, value.maxIntegerDigits, value.groupingSeparator, value.decimalSeparator)
-      val maskChanged = old.mask != value.mask || old.maskNotations != value.maskNotations ||
-        old.maskAffinityFormats != value.maskAffinityFormats || old.maskAffinityStrategy != value.maskAffinityStrategy ||
-        old.maskTextCase != value.maskTextCase || old.maskCharacterMap != value.maskCharacterMap ||
-        old.maskSlotPlaceholder != value.maskSlotPlaceholder
-      if (value.mode == Mode.MASK && (old.mode != Mode.MASK || maskChanged)) {
-        maskEngine.clearNotations()
-        value.maskNotations.forEach { maskEngine.addNotation(it.character, it.characterSet, it.isOptional) }
-        maskEngine.clearAffinityFormats()
-        value.maskAffinityFormats.forEach { maskEngine.addAffinityFormat(it) }
-        maskEngine.setAffinityStrategy(value.maskAffinityStrategy)
-        maskEngine.setTextCase(value.maskTextCase)
-        maskEngine.clearCharacterMap()
-        value.maskCharacterMap.forEach { maskEngine.addCharacterMapping(it.from, it.to) }
-        maskEngine.setSlotPlaceholder(value.maskSlotPlaceholder)
-        // A bad pattern leaves the engine inactive; the field then behaves as
-        // plain text rather than refusing every keystroke.
-        maskEngine.setFormat(value.mask)
-      }
+      InputText.configure(formatter, maskEngine, old, value)
       if (old.mode != value.mode) {
         rebuildFonts()
         applyKeyboard()
@@ -528,7 +506,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   private var resolvedPlaceholderColor = mutedTextColor
   /** `caret.color`, or the theme's accent. */
   private var resolvedCaretColor = themeCaretColor
-  private var fonts: FontSet = FontSet(Typography())
+  private var fonts: InputFonts = makeFonts(Typography())
   private val glyphs = ArrayList<Glyph>()
   /** Reused per frame so the JNI hop never allocates; grown on demand. */
   private var frameBuffer = DoubleArray(3 + 11 * 64)
@@ -687,172 +665,6 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
   // region Fonts
 
-  private enum class Role { PREFIX, BODY, SUFFIX }
-
-  /** Body / prefix / suffix paints with per-character advance caches. */
-  private inner class FontSet(t: Typography) {
-    private val scale = systemFontMultiplier(t)
-    val body = makePaint(t, t.fontSize * scale)
-    val prefix = makePaint(t, t.prefixFontSize * scale)
-    val suffix = makePaint(t, t.suffixFontSize * scale)
-    private val prefixAlign = t.prefixAlign
-    private val suffixAlign = t.suffixAlign
-    /** Letter spacing after a body / prefix / suffix glyph, the seams (null: the letter spacing) and the affix offsets, in px. */
-    val bodySpacing = t.letterSpacing * scale * density
-    val prefixLetterSpacing = bodySpacing * (t.prefixFontSize / t.fontSize)
-    val suffixLetterSpacing = bodySpacing * (t.suffixFontSize / t.fontSize)
-    val prefixSeam = t.prefixSpacing?.let { it * scale * density }
-    val suffixSeam = t.suffixSpacing?.let { it * scale * density }
-    val prefixOffset = t.prefixOffset * scale * density
-    val suffixOffset = t.suffixOffset * scale * density
-    private val bodyMetrics: Paint.FontMetrics = body.fontMetrics
-    /** The font's own line box, before any `lineHeight` override. */
-    val fontLineHeight: Float = ceil(bodyMetrics.descent - bodyMetrics.ascent)
-    /** Height of the line box in px: `lineHeight` when given, else the font's. */
-    val lineHeight: Float = if (t.lineHeightPx > 0f) t.lineHeightPx else fontLineHeight
-    /**
-     * How far to push the glyphs down inside the line box. The platform stacks
-     * the extra leading above the line, so without this the run rides high;
-     * with a line height *tighter* than the font it rides low, and the same
-     * halving corrects both. React Native skips the tighter case.
-     */
-    val baselineNudge: Float = (lineHeight - fontLineHeight) / 2f
-    private val widthCaches = Array(3) { HashMap<Int, Float>() }
-    private val capHeightCache = HashMap<Role, Float>()
-    // By role, then text: a key built from both was a string allocated for
-    // every affix glyph on every frame of a reflow.
-    private val inkDescentCaches = Array(3) { HashMap<String, Float>() }
-    // Each role's metrics, read once: `Paint.fontMetrics` allocates, and the
-    // affixes' baselines are asked for on every frame of a reflow.
-    private val metrics = arrayOf(prefix.fontMetrics, bodyMetrics, suffix.fontMetrics)
-    private val shapedCaches = Array(3) { HashMap<Int, ShapedText>() }
-
-    /**
-     * One character of [role] shaped once, for [Canvas.drawGlyphs]: `drawText`
-     * runs the text shaper on every call, and a reflow draws every glyph on
-     * every frame of its animation (see NitroNumberView's `shaped`).
-     */
-    @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
-    fun shaped(codePoint: Int, role: Role): ShapedText =
-      shapedCaches[role.ordinal].getOrPut(codePoint) { ShapedText.of(charString(codePoint), paint(role)) }
-
-    fun paint(role: Role): TextPaint = when (role) {
-      Role.BODY -> body
-      Role.PREFIX -> prefix
-      Role.SUFFIX -> suffix
-    }
-
-    /** Advance of one character, in px. */
-    fun width(codePoint: Int, role: Role): Float =
-      widthCaches[role.ordinal].getOrPut(codePoint) { paint(role).measureText(charString(codePoint)) }
-
-    /** Sum of the per-character advances of [text] (what the engine lays out). */
-    fun width(text: String, role: Role): Float {
-      var total = 0f
-      var i = 0
-      while (i < text.length) {
-        val cp = text.codePointAt(i)
-        total += width(cp, role)
-        i += Character.charCount(cp)
-      }
-      return total
-    }
-
-    /** Letter spacing after a glyph of [role], in px. */
-    fun spacing(role: Role): Float = when (role) {
-      Role.BODY -> bodySpacing
-      Role.PREFIX -> prefixLetterSpacing
-      Role.SUFFIX -> suffixLetterSpacing
-    }
-
-    /** The room an affix takes beside the text: its glyphs, their spacing and the seam, in px. */
-    fun affixRoom(affix: String, role: Role): Float {
-      if (affix.isEmpty()) return 0f
-      val count = affix.codePointCount(0, affix.length)
-      val glyphs = width(affix, role)
-      if (role == Role.PREFIX) return glyphs + prefixLetterSpacing * (count - 1) + (prefixSeam ?: prefixLetterSpacing)
-      // The edit text's own letter spacing already follows its last glyph.
-      return glyphs + suffixLetterSpacing * count + ((suffixSeam ?: bodySpacing) - bodySpacing)
-    }
-
-    /** Baseline y for `role` drawing `text`, given the top of the body line box. */
-    fun baseline(role: Role, text: String, lineTop: Float): Float {
-      val aligned = alignedBaseline(role, text, lineTop)
-      return when (role) {
-        Role.BODY -> aligned
-        Role.PREFIX -> aligned + prefixOffset
-        Role.SUFFIX -> aligned + suffixOffset
-      }
-    }
-
-    private fun alignedBaseline(role: Role, text: String, lineTop: Float): Float {
-      // `baselineNudge` re-centres the run when `lineHeight` differs from the
-      // font's: the extra goes above the line, so the body sits that far lower.
-      // Everything pinned to the body follows it; `CENTER` does not, because it
-      // centres in the line box itself, which is already the new height.
-      val bodyBaseline = lineTop + baselineNudge - bodyMetrics.ascent
-      if (role == Role.BODY) return bodyBaseline
-      val m = metrics[role.ordinal]
-      return when (if (role == Role.PREFIX) prefixAlign else suffixAlign) {
-        AffixAlign.BASELINE -> bodyBaseline
-        AffixAlign.CENTER -> lineTop + (lineHeight - (m.descent - m.ascent)) / 2f - m.ascent
-        AffixAlign.TOP -> bodyBaseline - capHeight(Role.BODY) + capHeight(role)
-        // Pin the bottom of the ink, not of the line boxes: the digits' ink ends
-        // on the baseline, so "USD" sits on it too instead of hanging down to
-        // where a comma's tail reaches.
-        AffixAlign.BOTTOM -> bodyBaseline + inkDescent(ALL_DIGITS, Role.BODY) - inkDescent(text, role)
-      }
-    }
-
-    /** How far `text`'s ink hangs below the baseline (0 for digits and capitals). */
-    private fun inkDescent(text: String, role: Role): Float = inkDescentCaches[role.ordinal].getOrPut(text) {
-      val bounds = Rect()
-      paint(role).getTextBounds(text, 0, text.length, bounds)
-      max(0, bounds.bottom).toFloat()
-    }
-
-    private fun capHeight(role: Role): Float = capHeightCache.getOrPut(role) {
-      val bounds = Rect()
-      paint(role).getTextBounds("0", 0, 1, bounds)
-      -bounds.top.toFloat()
-    }
-  }
-
-  /** System font scale for `allowFontScaling`, capped by `maxFontSizeMultiplier`. */
-  private fun systemFontMultiplier(t: Typography): Float {
-    if (!t.allowFontScaling) return 1f
-    val multiplier = context.resources.configuration.fontScale
-    return if (t.maxFontSizeMultiplier > 0f) min(multiplier, t.maxFontSizeMultiplier) else multiplier
-  }
-
-  private fun makePaint(t: Typography, sizeDp: Float): TextPaint {
-    val paint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG)
-    paint.typeface = makeTypeface(t)
-    paint.textSize = sizeDp * density
-    paint.color = t.color ?: themeTextColor
-    // Tabular figures in every mode, as on iOS: the engine slides digit runs
-    // in text mode too, and proportional digits would jitter as they change.
-    paint.fontFeatureSettings = "tnum"
-    return paint
-  }
-
-  private fun makeTypeface(t: Typography): Typeface {
-    val family = t.fontFamily
-    return try {
-      if (!family.isNullOrEmpty()) {
-        ReactFontManager.getInstance().getTypeface(family, Typeface.NORMAL, t.fontWeight, context.assets)
-      } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-        Typeface.create(Typeface.DEFAULT, t.fontWeight, false)
-      } else if (t.fontWeight >= 600) {
-        Typeface.DEFAULT_BOLD
-      } else {
-        Typeface.DEFAULT
-      }
-    } catch (e: Throwable) {
-      if (t.fontWeight >= 600) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-    }
-  }
-
   private fun resolveThemeColor(attr: Int, fallback: Int): Int {
     val value = TypedValue()
     return if (context.theme.resolveAttribute(attr, value, true)) {
@@ -895,9 +707,12 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
   private fun charString(codePoint: Int): String = charCache.getOrPut(codePoint) { String(Character.toChars(codePoint)) }
 
+  private fun makeFonts(t: Typography) =
+    InputFonts(t, density, resources.configuration.fontScale, context.assets, themeTextColor)
+
   private fun rebuildFonts() {
     deriveColors()
-    fonts = FontSet(typography)
+    fonts = makeFonts(typography)
     applyEditTextLayout()
     reportIntrinsicSize()
     overlay.invalidate()
@@ -930,7 +745,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     // put space between its first line and the stroke: it pays for both edges.
     val side = frameSideInsetPx.roundToInt()
     val framePadding = if (inputFrame.draws && keyboard.multiline) {
-      (FRAME_PADDING_DP * density).roundToInt()
+      (InputFrame.FRAME_PADDING_DP * density).roundToInt()
     } else {
       0
     }
@@ -949,9 +764,9 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     // Relative: the prefix sits at the start edge and the suffix at the end,
     // so under a right-to-left layout the room for them swaps sides too.
     editText.setPaddingRelative(
-      side + f.affixRoom(format.prefix, Role.PREFIX).roundToInt(),
+      side + f.affixRoom(format.prefix, InputRole.PREFIX).roundToInt(),
       frameTopInsetPx.roundToInt() + framePadding + labelOverhang,
-      side + f.affixRoom(format.suffix, Role.SUFFIX).roundToInt(),
+      side + f.affixRoom(format.suffix, InputRole.SUFFIX).roundToInt(),
       framePadding,
     )
     applyAffixes()
@@ -1017,6 +832,10 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val selectionStart = editText.selectionStart
     val selectionEnd = editText.selectionEnd
     editText.inputType = textType
+    // A password input type switches the field to monospace, so its bullets
+    // were wider than the field measures them; React Native's TextInput puts
+    // the typeface back the same way.
+    if (k.secureTextEntry) editText.typeface = fonts.body.typeface
     if (rawType != null) editText.setRawInputType(rawType)
     if (k.multiline) {
       editText.setSingleLine(false)
@@ -1116,11 +935,11 @@ class NitroInputView(context: Context) : FrameLayout(context) {
    * nothing filled it, so a currency symbol was simply a gap.
    */
   private fun applyAffixes() {
-    prefixView = affixView(prefixView, format.prefix, Role.PREFIX, Gravity.START)
-    suffixView = affixView(suffixView, format.suffix, Role.SUFFIX, Gravity.END)
+    prefixView = affixView(prefixView, format.prefix, InputRole.PREFIX, Gravity.START)
+    suffixView = affixView(suffixView, format.suffix, InputRole.SUFFIX, Gravity.END)
   }
 
-  private fun affixView(existing: TextView?, affix: String, role: Role, edge: Int): TextView? {
+  private fun affixView(existing: TextView?, affix: String, role: InputRole, edge: Int): TextView? {
     if (!keyboard.plain || affix.isEmpty()) {
       existing?.let { removeView(it) }
       return null
@@ -1146,7 +965,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val extra = seam.roundToInt().coerceAtLeast(0)
     view.setPaddingRelative(view.paddingStart + if (edge == Gravity.END) extra else 0, view.paddingTop,
                             view.paddingEnd + if (edge == Gravity.START) extra else 0, view.paddingBottom)
-    view.translationY = if (role == Role.PREFIX) fonts.prefixOffset else fonts.suffixOffset
+    view.translationY = if (role == InputRole.PREFIX) fonts.prefixOffset else fonts.suffixOffset
     view.setTextColor(resolvedTextColor)
     if (view.text?.toString() != affix) view.text = affix
     return view
@@ -1405,6 +1224,13 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       caret = Caret()
       alignment = Alignment.AUTO
     }
+    // Last: the defaults above fed the engine an empty text, which it would
+    // take for its first, so the next element's text slid in instead of
+    // showing as it is (the engine snaps only its first text).
+    engine.reset()
+    glyphs.clear()
+    contentWidth = 0f
+    fed = false
     // onTextChange, onFocusChange, onSubmit and onIntrinsicSizeChange are the
     // hybrid's wiring, not the element's props: they stay across recycling
     // (the hybrid clears its own callback props).
@@ -1482,16 +1308,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   // region Text flow
 
   /** Text mode truncates to `maxLength`; number mode formats. */
-  private fun conform(value: String): String {
-    if (format.mode == Mode.NUMBER) return formatter.normalize(value)
-    if (format.mode == Mode.MASK) {
-      return maskEngine.applyAll(value, value.codePointCount(0, value.length), true, format.maskAutocomplete, false)
-    }
-    val limit = keyboard.maxLength
-    if (limit <= 0) return value
-    val end = utf16Index(value, limit)
-    return value.substring(0, end)
-  }
+  private fun conform(value: String): String =
+    InputText.conform(value, format, formatter, maskEngine, keyboard.maxLength)
 
   private fun setProgrammatic(value: String, notify: Boolean) {
     var next = value
@@ -1693,57 +1511,24 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       reportIntrinsicSize()
       return
     }
-    val f = fonts
     engine.setReduceMotion(animationsDisabled())
     engine.beginText()
     val hint = effectivePlaceholder
     val showPlaceholder = text.isEmpty() && hint.isNotEmpty()
     // `secureTextEntry` masks what the overlay draws: the EditText keeps the
     // real text (the IME and autofill need it), every drawn glyph is a bullet.
-    val body = if (keyboard.secureTextEntry) "\u2022".repeat(text.codePointCount(0, text.length)) else text
-    val shown = if (showPlaceholder) hint else body
-
-    // A negative amount reads "-$1,234.56", not "$-1,234.56": the sign belongs
-    // to the amount, not to the digits after the symbol. It stays a *body*
-    // glyph - it is part of the text, and the caret counts body glyphs in the
-    // order they are added - and is only laid out ahead of the prefix.
-    val signed = format.signBeforeAffix && !showPlaceholder && format.prefix.isNotEmpty() &&
-      shown.isNotEmpty() && isSign(shown[0])
-    // Advances carry the letter spacing; the last prefix glyph and the last
-    // body glyph before a suffix carry the seams instead.
-    if (signed) addRun(shown.substring(0, 1), Role.BODY, f, placeholder = false)
-    addRun(format.prefix, Role.PREFIX, f, placeholder = false, lastSpacing = f.prefixSeam)
-    val tail = if (showPlaceholder) "" else ghostTail
-    addRun(if (signed) shown.substring(1) else shown, Role.BODY, f, placeholder = showPlaceholder,
-           lastSpacing = if (format.suffix.isNotEmpty() && tail.isEmpty()) f.suffixSeam else null)
-    // `keepPlaceholder`: the rest of the mask trails the text as placeholder
-    // glyphs. They come after every typed glyph, so the caret - which counts
-    // body glyphs in order - never lands among them.
-    addRun(tail, Role.BODY, f, placeholder = true,
-           lastSpacing = if (format.suffix.isNotEmpty()) f.suffixSeam else null)
-    addRun(format.suffix, Role.SUFFIX, f, placeholder = false)
+    val body = if (keyboard.secureTextEntry) InputText.bullets(text) else text
+    val numberKinds = format.mode == Mode.NUMBER
+    // The same walk sizes the field before it mounts (InputSizing).
+    InputGlyphs.walk(fonts, format, if (showPlaceholder) hint else body, showPlaceholder, ghostTail) { cp, role, placeholder, advance ->
+      val kind = if (numberKinds && role == InputRole.BODY) formatter.kindOf(cp) else 0
+      engine.addGlyph(cp, role.ordinal, kind, advance.toDouble(), placeholder)
+    }
     engine.commitText(caret, now())
     fed = true
     reportIntrinsicSize()
     scheduleFrameIfNeeded()
     overlay.invalidate()
-  }
-
-  /** A leading minus, in either the keyboard's spelling or the typographic one. */
-  private fun isSign(c: Char): Boolean = c == '-' || c == '\u2212'
-
-  private fun addRun(s: String, role: Role, f: FontSet, placeholder: Boolean, lastSpacing: Float? = null) {
-    val numberKinds = role == Role.BODY && format.mode == Mode.NUMBER
-    val spacing = f.spacing(role)
-    var i = 0
-    while (i < s.length) {
-      val cp = s.codePointAt(i)
-      val kind = if (numberKinds) formatter.kindOf(cp) else 0
-      val next = i + Character.charCount(cp)
-      val after = if (next >= s.length && lastSpacing != null) lastSpacing else spacing
-      engine.addGlyph(cp, role.ordinal, kind, (f.width(cp, role) + after).toDouble(), placeholder)
-      i = next
-    }
   }
 
   /** Nearest glyph boundary to a tap, as a UTF-16 offset into the edit text. */
@@ -1854,7 +1639,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     get() = if (typography.lineHeightPx > 0f) typography.lineHeightPx else fonts.lineHeight
 
   private fun intrinsicHeightPx(): Float {
-    if (!keyboard.multiline) return fonts.lineHeight
+    // A single line is centred in its height; a frame adds its padding (and a filled label's line).
+    if (!keyboard.multiline) return InputFrame.singleLineHeightPx(fonts.lineHeight, inputFrame, fonts, density)
     // The frame's padding counts on both paths. Leaving it off this one was
     // enough to lose it entirely: at mount there is no layout yet, so this
     // branch answered, and by the time the frame arrived and set the padding
@@ -1887,23 +1673,16 @@ class NitroInputView(context: Context) : FrameLayout(context) {
    */
   private fun contentWidthPx(): Float {
     if (!keyboard.plain) return engine.targetWidth().toFloat()
-    val body = when {
-      text.isEmpty() -> effectivePlaceholder
-      keyboard.secureTextEntry -> "\u2022".repeat(text.codePointCount(0, text.length))
-      else -> text + ghostTail
-    }
-    // The edit text's own letter spacing follows every glyph; the affixes take their room with their seams.
-    val f = fonts
-    return f.affixRoom(format.prefix, Role.PREFIX) +
-      f.paint(Role.BODY).measureText(body) + f.bodySpacing * body.codePointCount(0, body.length) +
-      f.affixRoom(format.suffix, Role.SUFFIX)
+    return InputSizing.plainWidthPx(fonts, format, InputSizing.plainBody(text, effectivePlaceholder, ghostTail, keyboard.secureTextEntry))
   }
 
   private fun reportIntrinsicSize() {
     // The reported size is always the full-size one: with shrink-to-fit the view
     // keeps its height and the scaled text is centred inside it when drawing.
-    val widthDp = ceil(contentWidthPx() / density + 2f)
-    val heightDp = ceil(intrinsicHeightPx() / density)
+    // The same rounding as the measure that sized the field before it mounted.
+    val size = InputSizing.reported(InputFrame.widthPx(contentWidthPx(), inputFrame, fonts, density), intrinsicHeightPx(), density)
+    val widthDp = size.width.toFloat()
+    val heightDp = size.height.toFloat()
     if (abs(widthDp - lastReportedWidth) <= 0.01f && abs(heightDp - lastReportedHeight) <= 0.01f) {
       pendingSizeReport = false
       return
@@ -2035,7 +1814,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       // Sliding glyphs pass through the line box: clip so they appear from its
       // edges, with a 0.15 em margin so a comma's tail is never cut at rest.
       if (slides) {
-        val band = min(lineHeight / 3f, 0.15f * f.paint(Role.BODY).textSize)
+        val band = min(lineHeight / 3f, 0.15f * f.paint(InputRole.BODY).textSize)
         canvas.clipRect(-1e5f, -band, 1e5f, lineHeight + band)
       }
       if (g.scale != 1f) canvas.scale(g.scale, g.scale, g.x + g.width / 2f, lineHeight / 2f)
@@ -2069,10 +1848,10 @@ class NitroInputView(context: Context) : FrameLayout(context) {
    * the corner that the notch never opens onto the arc itself.
    */
   private val labelInsetPx: Float
-    get() = max(LABEL_INSET_DP * density, inputFrame.cornerRadius * density + LABEL_CORNER_GAP_DP * density)
+    get() = InputFrame.labelInsetPx(inputFrame, density)
 
   private val frameSideInsetPx: Float
-    get() = if (inputFrame.draws) labelInsetPx else 0f
+    get() = InputFrame.sideInsetPx(inputFrame, density)
 
   /**
    * Room at the top for the floated label - which only the filled variant
@@ -2082,20 +1861,12 @@ class NitroInputView(context: Context) : FrameLayout(context) {
    * text stays centred the way it would with no label at all.
    */
   private val frameTopInsetPx: Float
-    get() {
-      if (!inputFrame.hasLabel || inputFrame.variant != Variant.FILLED) return 0f
-      // 1.4 is a fudge, not a Material metric - see the note on iOS.
-      return floatedLabelSizePx * 1.4f
-    }
+    get() = InputFrame.topInsetPx(inputFrame, restingLabelSizePx, density)
 
-  private val restingLabelSizePx: Float get() = fonts.paint(Role.BODY).textSize
+  private val restingLabelSizePx: Float get() = fonts.paint(InputRole.BODY).textSize
 
   private val floatedLabelSizePx: Float
-    get() {
-      val explicit = inputFrame.labelFontSize
-      if (explicit > 0f) return explicit * density
-      return max(MIN_FLOATED_LABEL_DP * density, restingLabelSizePx * FLOATED_LABEL_RATIO)
-    }
+    get() = InputFrame.floatedLabelSizePx(inputFrame, restingLabelSizePx, density)
 
   /** The label floats once focused or holding text - or always, if asked. */
   private val labelShouldFloat: Boolean
@@ -2117,40 +1888,11 @@ class NitroInputView(context: Context) : FrameLayout(context) {
    * slots as `maskSlotPlaceholder`: "+1 (___) ___-____".
    */
   private val basePlaceholder: String
-    get() {
-      if (format.placeholder.isEmpty() && format.mode == Mode.MASK && format.keepPlaceholder && maskEngine.isActive()) {
-        maskEngine.applyAll("", 0, true, false, false)
-        return maskEngine.lastTailPlaceholder()
-      }
-      return format.placeholder
-    }
+    get() = InputText.basePlaceholder(format, maskEngine)
 
-  /**
-   * `keepPlaceholder`: what is still to come after the typed text, drawn in the
-   * placeholder colour. The caller's placeholder from where the text ends -
-   * "1234 5" leaves "678 9012" of "1234 5678 9012" - or, without one, the rest
-   * of the mask. The placeholder is written for `mask`, so when one of
-   * `maskAffinityFormats` has taken over (a 4-6-5 Amex under a 4-4-4-4
-   * placeholder) its characters no longer line up, and that format's own tail
-   * is shown instead. A complete text has nothing to come.
-   */
+  /** `keepPlaceholder`: what is still to come after the typed text ([InputText.ghostTail]). */
   private val ghostTail: String
-    get() {
-      if (format.mode != Mode.MASK || !format.keepPlaceholder || text.isEmpty() || keyboard.secureTextEntry ||
-        !maskEngine.isActive()
-      ) {
-        return ""
-      }
-      val typed = text.codePointCount(0, text.length)
-      maskEngine.applyAll(text, typed, true, false, false)
-      if (maskEngine.lastComplete()) return ""
-      val placeholder = format.placeholder
-      if (placeholder.isNotEmpty() && maskEngine.lastFormatIndex() == 0) {
-        val total = placeholder.codePointCount(0, placeholder.length)
-        return if (typed < total) placeholder.substring(placeholder.offsetByCodePoints(0, typed)) else ""
-      }
-      return maskEngine.lastTailPlaceholder()
-    }
+    get() = InputText.ghostTail(text, format, maskEngine, keyboard.secureTextEntry)
 
   private fun resolvedStrokeColor(): Int {
     val base = inputFrame.strokeColor ?: mutedTextColor
@@ -2203,7 +1945,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   }
 
   private fun rebuildLabelPaint() {
-    val body = fonts.paint(Role.BODY)
+    val body = fonts.paint(InputRole.BODY)
     labelPaint.typeface = body.typeface
     labelPaint.textSize = restingLabelSizePx
   }
@@ -2427,27 +2169,12 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   companion object {
     /** Matches iOS's `.placeholderText`, which is the label colour at 30-40%. */
     private const val PLACEHOLDER_ALPHA = 0.38f
-    private const val ALL_DIGITS = "0123456789"
     private const val BLINK_MS = 500L
     private const val CARET_WIDTH_DP = 2f
     /** Fraction of the line height the caret leaves free (split between top and bottom). */
     private const val CARET_INSET = 0.1f
-    /** How far the label starts from the frame's left edge, at a minimum. */
-    private const val LABEL_INSET_DP = 16f
-    /**
-     * The room a framed field keeps above and below its text. Flat, unlike the
-     * side inset: that one grows with `cornerRadius` because the *label* has to
-     * clear the corner curve, which is a horizontal problem. The text sits in
-     * the middle of the box, so a rounder frame must not make the field taller.
-     */
-    private const val FRAME_PADDING_DP = 16f
-    /** Clearance the label keeps past the corner arc, so the notch opens onto the straight run. */
-    private const val LABEL_CORNER_GAP_DP = 8f
     /** Breathing room the notch leaves on each side of the label. */
     private const val LABEL_GAP_PADDING_DP = 4f
-    /** The floated label's size, as a fraction of the resting one. */
-    private const val FLOATED_LABEL_RATIO = 0.75f
-    private const val MIN_FLOATED_LABEL_DP = 9f
     /**
      * Taken from Material's own text fields. MUI's OutlinedInput runs the label
      * 200ms on the standard decelerate curve and the legend's width 100ms after
@@ -2462,7 +2189,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     private const val NOTCH_CLOSE_MS = 50L
     /** Material's standard decelerate, the same curve the iOS side uses. */
     private val DECELERATE = PathInterpolator(0f, 0f, 0.2f, 1f)
-    private val ROLES = Role.values()
+    private val ROLES = InputRole.values()
   }
 }
 
