@@ -99,6 +99,15 @@ jobs:
             adb shell settings put global window_animation_scale 0
             adb shell settings put global transition_animation_scale 0
             adb shell settings put global animator_duration_scale 1
+      # The action snapshots .harness/cache/metro before it runs and hands
+      # the listing to its cache-save step as one environment variable. After
+      # a full first run that listing is ~150 KB, over Linux's 128 KB limit on
+      # a single environment string, so the step cannot start and fails the
+      # job even when the retry passed. Starting the retry from an empty
+      # cache keeps the listing as small as the first run's.
+      - name: Clear the first run's Metro cache
+        if: steps.suites.outcome == 'failure'
+        run: rm -rf example/.harness/cache/metro example/.harness/cache/metro-file-map
       - name: Run the suites again
         if: steps.suites.outcome == 'failure'
         uses: callstackincubator/react-native-harness@v1.5.0
@@ -183,6 +192,11 @@ jobs:
           xcrun simctl shutdown "$udid"
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b
+      # As in the Android job: a full Metro cache makes the action's cache-save
+      # step fail to start.
+      - name: Clear the first run's Metro cache
+        if: steps.suites.outcome == 'failure'
+        run: rm -rf example/.harness/cache/metro example/.harness/cache/metro-file-map
       - name: Run the suites again
         if: steps.suites.outcome == 'failure'
         uses: callstackincubator/react-native-harness@v1.5.0
