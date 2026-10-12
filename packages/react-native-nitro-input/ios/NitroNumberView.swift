@@ -320,6 +320,7 @@ final class NitroNumberView: UIView {
   /// passes a second on a trading screen). Past `budget` bytes, what has gone
   /// unused for `idle` seconds is dropped, oldest first; what is still in use
   /// stays unless the cache passes `limit`. A memory warning empties it.
+  /// Thread-safe: the glyphs are blurred off the main thread and drawn on it.
   private final class RecentImageCache<Key: Hashable> {
     private struct Entry {
       let image: UIImage
@@ -332,6 +333,7 @@ final class NitroNumberView: UIView {
     private let limit: Int
     private let idle: CFTimeInterval
     private var observer: NSObjectProtocol?
+    private let lock = NSLock()
 
     init(budget: Int = 8 << 20, limit: Int = 64 << 20, idle: CFTimeInterval = 2) {
       self.budget = budget
@@ -340,14 +342,23 @@ final class NitroNumberView: UIView {
       observer = NotificationCenter.default.addObserver(
         forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: .main
       ) { [weak self] _ in
-        self?.entries.removeAll()
-        self?.bytes = 0
+        guard let self else { return }
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        self.entries.removeAll()
+        self.bytes = 0
       }
     }
 
-    var count: Int { entries.count }
+    var count: Int {
+      lock.lock()
+      defer { lock.unlock() }
+      return entries.count
+    }
 
     subscript(key: Key) -> UIImage? {
+      lock.lock()
+      defer { lock.unlock() }
       guard var entry = entries[key] else { return nil }
       entry.used = CACurrentMediaTime()
       entries[key] = entry
@@ -356,6 +367,8 @@ final class NitroNumberView: UIView {
 
     func insert(_ image: UIImage, for key: Key) {
       let cost = image.cgImage.map { $0.bytesPerRow * $0.height } ?? 0
+      lock.lock()
+      defer { lock.unlock() }
       let now = CACurrentMediaTime()
       if let old = entries.updateValue(Entry(image: image, bytes: cost, used: now), forKey: key) { bytes -= old.bytes }
       bytes += cost
@@ -439,6 +452,10 @@ final class NitroNumberView: UIView {
       let top: CGFloat
       let glyphs: String
     }
+    /// `sharedImages` and `sharedTinted` are read and written off the main
+    /// thread too (the warm-up, a requested blur): only under this lock, and
+    /// never held while an image renders.
+    private static let imagesLock = NSLock()
     private static var sharedImages: [ImageKey: UIImage] = [:]
     /// Blurred glyphs, the digit's own colour (tint 0) and the flash's alike.
     private static let sharedBlurred = RecentImageCache<TintKey>()
@@ -567,8 +584,12 @@ final class NitroNumberView: UIView {
     /// per-glyph `NSAttributedString.draw` dominating the main thread.
     func image(_ text: String, role: GlyphRole) -> UIImage? {
       let key = ImageKey(font: fontTag(role), color: colorKey(for: role), scale: renderScale, text: text, role: role)
-      if let cached = Self.sharedImages[key] { return cached }
-      let string = attributed(text, role: role)
+      Self.imagesLock.lock()
+      let cached = Self.sharedImages[key]
+      Self.imagesLock.unlock()
+      if let cached { return cached }
+      // Not `attributed(_:role:)`: its cache is the main thread's, and this runs off it too.
+      let string = NSAttributedString(string: text, attributes: [.font: font(for: role), .foregroundColor: color(for: role)])
       let size = string.size()
       guard size.width > 0, size.height > 0 else { return nil }
       let format = UIGraphicsImageRendererFormat()
@@ -578,8 +599,10 @@ final class NitroNumberView: UIView {
       let image = UIGraphicsImageRenderer(size: bounds, format: format).image { _ in
         string.draw(at: .zero)
       }
+      Self.imagesLock.lock()
       if Self.sharedImages.count >= Self.sharedCapacity { Self.sharedImages.removeAll(keepingCapacity: true) }
       Self.sharedImages[key] = image
+      Self.imagesLock.unlock()
       return image
     }
 
@@ -617,6 +640,45 @@ final class NitroNumberView: UIView {
       if let tint { return tintedBlurredImage(text, role: role, tint: tint, level: level) }
       return blurredImage(text, role: role, level: level)
     }
+
+    /// `swapImage` for the main thread, which never blurs: the blurred image if
+    /// it is made already, or nil, and it is made on `glyphQueue` for a frame
+    /// to come (the caller draws the sharp glyph meanwhile). Opening a screen
+    /// of numeric figures blurred and rasterized every digit at every level on
+    /// the main thread, ~1 s of it in blocks of up to 180 ms.
+    func readySwapImage(_ text: String, role: GlyphRole = .digit, level: Int, tint: UIColor?) -> UIImage? {
+      if level <= 0 || numericBlur <= 0 { return swapImage(text, role: role, level: 0, tint: tint) }
+      let key = TintKey(image: ImageKey(font: fontTag(role), color: colorKey(for: role), scale: renderScale, text: text, role: role), tint: tint.map { Self.key(of: $0) } ?? 0, level: level, blur: blurKey)
+      if let cached = Self.sharedBlurred[key] { return cached }
+      let now = CACurrentMediaTime()
+      Self.pendingLock.lock()
+      // One that could not be made is not asked for again every frame.
+      let recentlyFailed = Self.failed[key].map { now - $0 < Self.retryInterval } ?? false
+      let first = !recentlyFailed && Self.pending.insert(key).inserted
+      Self.pendingLock.unlock()
+      if first {
+        Self.glyphQueue.async {
+          let made = self.swapImage(text, role: role, level: level, tint: tint) != nil
+          Self.pendingLock.lock()
+          Self.pending.remove(key)
+          if made { Self.failed[key] = nil } else { Self.failed[key] = CACurrentMediaTime() }
+          Self.pendingLock.unlock()
+        }
+      }
+      return nil
+    }
+
+    /// Where a glyph the screen is waiting on is blurred: ahead of the warm-up's queue.
+    private static let glyphQueue = DispatchQueue(label: "NitroNumber.glyphs", qos: .userInitiated)
+    /// Where every digit is blurred ahead of a numeric transition (`warmSwapImages`).
+    static let warmQueue = DispatchQueue(label: "NitroNumber.warm", qos: .utility)
+    /// Blurs asked for and not made yet, so a glyph asked for every frame is made once.
+    private static var pending = Set<TintKey>()
+    /// When a blur last could not be made (vImage or the renderer failed), by key.
+    private static var failed: [TintKey: CFTimeInterval] = [:]
+    private static let retryInterval: CFTimeInterval = 2
+    /// Guards `pending` and `failed`.
+    private static let pendingLock = NSLock()
 
     private var blurKey: Int { Int((numericBlur * 1000).rounded()) }
 
@@ -680,7 +742,10 @@ final class NitroNumberView: UIView {
     /// opacity. Made once per font, density and tint.
     func tintedImage(_ text: String, role: GlyphRole = .digit, tint: UIColor) -> UIImage? {
       let key = TintKey(image: ImageKey(font: fontTag(role), color: colorKey(for: role), scale: renderScale, text: text, role: role), tint: Self.key(of: tint))
-      if let cached = Self.sharedTinted[key] { return cached }
+      Self.imagesLock.lock()
+      let cached = Self.sharedTinted[key]
+      Self.imagesLock.unlock()
+      if let cached { return cached }
       let string = NSAttributedString(string: text, attributes: [.font: font(for: role), .foregroundColor: tint])
       let size = string.size()
       guard size.width > 0, size.height > 0 else { return nil }
@@ -690,8 +755,10 @@ final class NitroNumberView: UIView {
       let image = UIGraphicsImageRenderer(size: CGSize(width: ceil(size.width), height: ceil(size.height)), format: format).image { _ in
         string.draw(at: .zero)
       }
+      Self.imagesLock.lock()
       if Self.sharedTinted.count >= 128 { Self.sharedTinted.removeAll(keepingCapacity: true) }
       Self.sharedTinted[key] = image
+      Self.imagesLock.unlock()
       return image
     }
 
@@ -1263,22 +1330,27 @@ final class NitroNumberView: UIView {
   }
 
   /// Renders the ten digits' sharp and blurred images ahead of the first
-  /// numeric swap, on the next turn of the main queue so the mount itself
-  /// pays nothing. Rendered on demand instead, the first change of a session
-  /// spent its opening frames drawing glyphs, and the spring had landed by
-  /// the time the second frame was on screen.
+  /// numeric swap, off the main thread. The fonts, colours and tints are read
+  /// on the next turn of the main queue, once the props of this update have
+  /// all landed. Rendered on demand instead, the first change of a session
+  /// spent its opening frames drawing glyphs; rendered on the main queue, a
+  /// screen of numeric figures opened with ~1 s of it, in blocks of up to
+  /// 180 ms (a dropped frame at the first block).
   private func warmSwapImages() {
     guard timing.transition == .numeric else { return }
     DispatchQueue.main.async { [weak self] in
       guard let self, self.timing.transition == .numeric else { return }
+      let fonts = self.fonts
       let tints = [self.flash.upColor, self.flash.downColor].compactMap { $0 }
       let roles: [GlyphRole] = self.format.fractionDigits > 0 ? [.digit, .fraction] : [.digit]
-      for role in roles {
-        for digit in self.fonts.glyphs {
-          for level in 0...Self.numericBlurLevels {
-            _ = self.fonts.blurredImage(digit, role: role, level: level)
-            for tint in tints {
-              _ = self.fonts.tintedBlurredImage(digit, role: role, tint: tint, level: level)
+      FontSet.warmQueue.async {
+        for role in roles {
+          for digit in fonts.glyphs {
+            for level in 0...Self.numericBlurLevels {
+              _ = fonts.blurredImage(digit, role: role, level: level)
+              for tint in tints {
+                _ = fonts.tintedBlurredImage(digit, role: role, tint: tint, level: level)
+              }
             }
           }
         }
@@ -1968,12 +2040,13 @@ final class NitroNumberView: UIView {
       if layer.isHidden != hidden { layer.isHidden = hidden }
       if hidden { return }
       if slot.text != text || slot.level != level {
-        if let image = fonts.blurredImage(text, role: role, level: level) {
-          layer.contents = image.cgImage
-          layer.bounds = CGRect(origin: .zero, size: image.size)
-        }
+        // A blur not made yet draws sharp, and the slot asks again next frame.
+        let ready = fonts.readySwapImage(text, role: role, level: level, tint: nil)
+        let image = ready ?? sharp
+        layer.contents = image.cgImage
+        layer.bounds = CGRect(origin: .zero, size: image.size)
         slot.text = text
-        slot.level = level
+        slot.level = ready != nil ? level : -1
       }
       layer.position = center
       layer.opacity = Float(layerAlpha)
@@ -2014,12 +2087,14 @@ final class NitroNumberView: UIView {
       if layer.isHidden != hidden { layer.isHidden = hidden }
       if hidden { return }
       if slot.glyph != glyph || slot.level != level || slot.tint != tintKey {
-        if let image = fonts.swapImage(text, role: role, level: level, tint: tint) {
+        // A blur not made yet draws sharp, and the slot asks again next frame.
+        let ready = fonts.readySwapImage(text, role: role, level: level, tint: tint)
+        if let image = ready ?? fonts.swapImage(text, role: role, level: 0, tint: tint) {
           layer.contents = image.cgImage
           layer.bounds = CGRect(origin: .zero, size: image.size)
         }
         slot.glyph = glyph
-        slot.level = level
+        slot.level = ready != nil ? level : -1
         slot.tint = tintKey
       }
       layer.position = center

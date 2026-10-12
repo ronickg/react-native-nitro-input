@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- **Android: `NitroNumber`'s numeric transition no longer blocks the UI
+  thread (ANRs).** A glyph mask the warm thread had not made yet was blurred
+  in `onDraw`, and the shared mask cache made every mask inside its lock. Two
+  ANRs on low-end phones followed: the UI thread `Blocked` in the cache's
+  `get` behind the warm thread (which runs at `MIN_PRIORITY`), and the UI
+  thread waiting for a GC while the blur allocated two float copies of a large
+  glyph. Now masks are made outside the lock, the UI thread never blurs (a
+  mask not warmed yet is drawn sharp for a frame while the warm thread makes
+  it), and the blur reuses per-thread buffers instead of allocating per mask.
+  A mask the screen is waiting on is made ahead of the warm-up's queue (it
+  waited behind every digit at every blur level, ~50 ms), the warm thread runs
+  at background priority rather than the lowest, and a mask that cannot be
+  made is skipped rather than crashing the app.
+- **iOS: the numeric transition no longer blurs on the main thread.** Its
+  digits were blurred and rasterized ahead of the first swap, but on the main
+  queue: opening a screen of numeric figures spent ~1 s of the main thread on
+  it (Release, simulator), in blocks of up to ~180 ms, and a prefix or suffix
+  that changed text was blurred on demand mid-frame. The warm-up now runs on
+  a background queue, a blur the screen is waiting on on a second one ahead
+  of it (drawn sharp until it lands), and the shared glyph caches are
+  thread-safe.
 - **Android: `keepPlaceholder`'s greyed tail stays inside the field.** The
   rest of the placeholder, drawn after what was typed, was not clipped to the
   text area as the field's own text and hint are: in a padded field narrower
