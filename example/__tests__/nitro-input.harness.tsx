@@ -56,12 +56,18 @@ describe('NitroInput', () => {
         <NitroInput autoWidth fontSize={20} defaultValue="1234.5" mode="number" prefix="$" groupingSeparator="," fractionDigits={2} transition="reflow" onLayout={layouts[5]!.onLayout} />
       </View>
     )
-    await waitFor(() => expect(Math.min(...layouts.map((l) => l.state.current?.width ?? 0))).toBeGreaterThan(0))
-    const w = layouts.map((l) => l.state.current!.width)
-    // "$1,234": six glyphs, two points after each.
-    expect(Math.abs(w[1]! - w[0]! - 12)).toBeLessThanOrEqual(2)
-    expect(Math.abs(w[3]! - w[2]! - 12)).toBeLessThanOrEqual(2)
-    expectSameLength(w[4]!, w[5]!)
+    // Retried until the layout settles: an autoWidth field's width comes from
+    // a native measure through a React commit, so the first layout can be the
+    // parent's width (a pass in which some fields have measured and some have
+    // not).
+    await waitFor(() => {
+      const w = layouts.map((l) => l.state.current?.width ?? 0)
+      expect(Math.min(...w)).toBeGreaterThan(0)
+      // "$1,234": six glyphs, two points after each.
+      expect(Math.abs(w[1]! - w[0]! - 12)).toBeLessThanOrEqual(2)
+      expect(Math.abs(w[3]! - w[2]! - 12)).toBeLessThanOrEqual(2)
+      expectSameLength(w[4]!, w[5]!)
+    })
   })
 
   it('keeps the caret where it is when a controlled parent echoes the same text back', async () => {
