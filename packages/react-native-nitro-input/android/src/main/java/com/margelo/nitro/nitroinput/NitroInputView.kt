@@ -398,7 +398,19 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       ghostPaint.set(paint)
       ghostPaint.color = currentHintTextColor
       val x = compoundPaddingLeft + textLayout.getPrimaryHorizontal(length())
+      // Inside the text area, as the field clips its own text and hint: drawn
+      // after super.onDraw has restored the canvas, a tail longer than the
+      // room left ran over the padding to the field's edge (a full field, or
+      // a long placeholder in a narrow one).
+      canvas.save()
+      canvas.clipRect(
+        (scrollX + compoundPaddingLeft).toFloat(),
+        scrollY.toFloat(),
+        (scrollX + width - compoundPaddingRight).toFloat(),
+        (scrollY + height).toFloat(),
+      )
       canvas.drawText(tail, x, baseline.toFloat(), ghostPaint)
+      canvas.restore()
     }
 
     override fun onSelectionChanged(selStart: Int, selEnd: Int) {
