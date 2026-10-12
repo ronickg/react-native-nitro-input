@@ -129,8 +129,9 @@ describe('autoWidth', () => {
     expect(measured(render(<NitroInput autoWidth="auto" />))).toEqual({ width: 120, height: 48 })
     expect(measured(render(<NitroInput autoWidth="auto" style={{ width: 200 }} />))).toEqual({ height: 48 })
     expect(measured(render(<NitroInput autoWidth="auto" style={{ flex: 1 }} />))).toEqual({ height: 48 })
+    // The padding is added to the measured height, as TextInput's is.
     expect(measured(render(<NitroInput autoWidth="auto" style={[{ padding: 4 }, { width: '100%' }]} />))).toEqual({
-      height: 48,
+      height: 56,
     })
   })
 
@@ -289,5 +290,32 @@ describe('typography in style, as TextInput takes it', () => {
     expect(nativeProps(render(<NitroInput style={{ textAlign: 'end' }} />)).textAlignment).toBe('right')
     expect(nativeProps(render(<NitroInput style={{ textAlign: 'end', direction: 'rtl' }} />)).textAlignment).toBe('left')
     expect(nativeProps(render(<NitroInput style={{ textAlign: 'justify' }} />)).textAlignment).toBe('auto')
+  })
+})
+
+describe('padding and border in style', () => {
+  const measured = (renderer: ReactTestRenderer) => {
+    const onSizeChange = nativeProps(renderer).onSizeChange as { f: (w: number, h: number) => void }
+    act(() => onSizeChange.f(120, 48))
+    return (nativeProps(renderer).style as unknown[])[0]
+  }
+  const insets = (renderer: ReactTestRenderer) => {
+    const p = nativeProps(renderer)
+    return [p.textInsetLeft, p.textInsetTop, p.textInsetRight, p.textInsetBottom]
+  }
+
+  it('grows an autoWidth field by them instead of squeezing its text', () => {
+    const renderer = render(<NitroInput autoWidth style={{ paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1 }} />)
+    expect(measured(renderer)).toEqual({ width: 120 + 18, height: 48 + 6 })
+    expect(insets(renderer)).toEqual([9, 3, 9, 3])
+  })
+
+  it('resolves the edges the way Yoga does', () => {
+    // A start / end edge before left / right, before horizontal, before all.
+    expect(insets(render(<NitroInput style={{ padding: 1, paddingHorizontal: 2, paddingLeft: 3, paddingStart: 4 }} />))).toEqual([4, 1, 2, 1])
+    // Start is the right edge right-to-left.
+    expect(insets(render(<NitroInput style={{ paddingStart: 4, direction: 'rtl' }} />))).toEqual([0, 0, 4, 0])
+    // A percentage needs the parent's size: not resolved, counted as 0.
+    expect(insets(render(<NitroInput style={{ padding: '10%' }} />))).toEqual([0, 0, 0, 0])
   })
 })

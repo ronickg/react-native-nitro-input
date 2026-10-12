@@ -131,6 +131,10 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<bool> multiline;
     nitro::ReactProp<double> numberOfLines;
     nitro::ReactProp<NitroInputTextAlignVertical> textVerticalAlignment;
+    nitro::ReactProp<double> textInsetLeft;
+    nitro::ReactProp<double> textInsetTop;
+    nitro::ReactProp<double> textInsetRight;
+    nitro::ReactProp<double> textInsetBottom;
     nitro::ReactProp<bool> scrollEnabled;
     nitro::ReactProp<bool> autoFocus;
     nitro::ReactProp<std::string> fieldTestID;
@@ -240,6 +244,10 @@ namespace margelo::nitro::nitroinput::views {
              multiline.hasSameValue(other.multiline) &&
              numberOfLines.hasSameValue(other.numberOfLines) &&
              textVerticalAlignment.hasSameValue(other.textVerticalAlignment) &&
+             textInsetLeft.hasSameValue(other.textInsetLeft) &&
+             textInsetTop.hasSameValue(other.textInsetTop) &&
+             textInsetRight.hasSameValue(other.textInsetRight) &&
+             textInsetBottom.hasSameValue(other.textInsetBottom) &&
              scrollEnabled.hasSameValue(other.scrollEnabled) &&
              autoFocus.hasSameValue(other.autoFocus) &&
              fieldTestID.hasSameValue(other.fieldTestID) &&
@@ -350,6 +358,10 @@ namespace margelo::nitro::nitroinput::views {
              multiline.isProvided() ||
              numberOfLines.isProvided() ||
              textVerticalAlignment.isProvided() ||
+             textInsetLeft.isProvided() ||
+             textInsetTop.isProvided() ||
+             textInsetRight.isProvided() ||
+             textInsetBottom.isProvided() ||
              scrollEnabled.isProvided() ||
              autoFocus.isProvided() ||
              fieldTestID.isProvided() ||

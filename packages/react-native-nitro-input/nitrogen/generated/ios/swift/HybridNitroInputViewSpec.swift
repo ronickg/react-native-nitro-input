@@ -79,6 +79,10 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   var multiline: Bool { get set }
   var numberOfLines: Double { get set }
   var textVerticalAlignment: NitroInputTextAlignVertical { get set }
+  var textInsetLeft: Double { get set }
+  var textInsetTop: Double { get set }
+  var textInsetRight: Double { get set }
+  var textInsetBottom: Double { get set }
   var scrollEnabled: Bool { get set }
   var autoFocus: Bool { get set }
   var fieldTestID: String { get set }

@@ -215,6 +215,14 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     set(v) { field = v; markConfigDirty() }
   override var textVerticalAlignment: NitroInputTextAlignVertical = NitroInputTextAlignVertical.AUTO
     set(v) { field = v; markConfigDirty() }
+  override var textInsetLeft: Double = 0.0
+    set(v) { field = v; markConfigDirty() }
+  override var textInsetTop: Double = 0.0
+    set(v) { field = v; markConfigDirty() }
+  override var textInsetRight: Double = 0.0
+    set(v) { field = v; markConfigDirty() }
+  override var textInsetBottom: Double = 0.0
+    set(v) { field = v; markConfigDirty() }
   override var scrollEnabled: Boolean = true
     set(v) { field = v; markConfigDirty() }
   override var autoFocus: Boolean = false
@@ -460,6 +468,10 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     multiline = false
     numberOfLines = 0.0
     textVerticalAlignment = NitroInputTextAlignVertical.AUTO
+    textInsetLeft = 0.0
+    textInsetTop = 0.0
+    textInsetRight = 0.0
+    textInsetBottom = 0.0
     scrollEnabled = true
     autoFocus = false
     plain = false
@@ -734,6 +746,10 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
       focusedStrokeColor = colorFromARGB(focusedStrokeColor),
       strokeWidth = Math.max(0.0, finite(strokeWidth, 1.0)).toFloat(),
       fillColor = colorFromARGB(fillColor),
+    )
+    inputView.contentInsets = android.graphics.RectF(
+      Math.max(0.0, finite(textInsetLeft, 0.0)).toFloat(), Math.max(0.0, finite(textInsetTop, 0.0)).toFloat(),
+      Math.max(0.0, finite(textInsetRight, 0.0)).toFloat(), Math.max(0.0, finite(textInsetBottom, 0.0)).toFloat(),
     )
     inputView.alignment = when (textAlignment) {
       NitroInputTextAlign.CENTER -> NitroInputView.Alignment.CENTER

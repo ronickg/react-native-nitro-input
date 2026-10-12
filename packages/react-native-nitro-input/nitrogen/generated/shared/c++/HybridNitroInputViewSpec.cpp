@@ -152,6 +152,14 @@ namespace margelo::nitro::nitroinput {
       prototype.registerHybridSetter("numberOfLines", &HybridNitroInputViewSpec::setNumberOfLines);
       prototype.registerHybridGetter("textVerticalAlignment", &HybridNitroInputViewSpec::getTextVerticalAlignment);
       prototype.registerHybridSetter("textVerticalAlignment", &HybridNitroInputViewSpec::setTextVerticalAlignment);
+      prototype.registerHybridGetter("textInsetLeft", &HybridNitroInputViewSpec::getTextInsetLeft);
+      prototype.registerHybridSetter("textInsetLeft", &HybridNitroInputViewSpec::setTextInsetLeft);
+      prototype.registerHybridGetter("textInsetTop", &HybridNitroInputViewSpec::getTextInsetTop);
+      prototype.registerHybridSetter("textInsetTop", &HybridNitroInputViewSpec::setTextInsetTop);
+      prototype.registerHybridGetter("textInsetRight", &HybridNitroInputViewSpec::getTextInsetRight);
+      prototype.registerHybridSetter("textInsetRight", &HybridNitroInputViewSpec::setTextInsetRight);
+      prototype.registerHybridGetter("textInsetBottom", &HybridNitroInputViewSpec::getTextInsetBottom);
+      prototype.registerHybridSetter("textInsetBottom", &HybridNitroInputViewSpec::setTextInsetBottom);
       prototype.registerHybridGetter("scrollEnabled", &HybridNitroInputViewSpec::getScrollEnabled);
       prototype.registerHybridSetter("scrollEnabled", &HybridNitroInputViewSpec::setScrollEnabled);
       prototype.registerHybridGetter("autoFocus", &HybridNitroInputViewSpec::getAutoFocus);

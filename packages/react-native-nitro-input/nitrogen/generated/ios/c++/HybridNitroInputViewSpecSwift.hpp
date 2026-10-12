@@ -560,6 +560,30 @@ namespace margelo::nitro::nitroinput {
     inline void setTextVerticalAlignment(NitroInputTextAlignVertical textVerticalAlignment) noexcept override {
       _swiftPart.setTextVerticalAlignment(static_cast<int>(textVerticalAlignment));
     }
+    inline double getTextInsetLeft() noexcept override {
+      return _swiftPart.getTextInsetLeft();
+    }
+    inline void setTextInsetLeft(double textInsetLeft) noexcept override {
+      _swiftPart.setTextInsetLeft(std::forward<decltype(textInsetLeft)>(textInsetLeft));
+    }
+    inline double getTextInsetTop() noexcept override {
+      return _swiftPart.getTextInsetTop();
+    }
+    inline void setTextInsetTop(double textInsetTop) noexcept override {
+      _swiftPart.setTextInsetTop(std::forward<decltype(textInsetTop)>(textInsetTop));
+    }
+    inline double getTextInsetRight() noexcept override {
+      return _swiftPart.getTextInsetRight();
+    }
+    inline void setTextInsetRight(double textInsetRight) noexcept override {
+      _swiftPart.setTextInsetRight(std::forward<decltype(textInsetRight)>(textInsetRight));
+    }
+    inline double getTextInsetBottom() noexcept override {
+      return _swiftPart.getTextInsetBottom();
+    }
+    inline void setTextInsetBottom(double textInsetBottom) noexcept override {
+      _swiftPart.setTextInsetBottom(std::forward<decltype(textInsetBottom)>(textInsetBottom));
+    }
     inline bool getScrollEnabled() noexcept override {
       return _swiftPart.getScrollEnabled();
     }

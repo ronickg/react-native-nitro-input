@@ -183,3 +183,36 @@ describe('a TextInput style', () => {
     expect(rectOf(state.view!).width).toBeGreaterThan(0)
   })
 })
+
+describe('a size TextInput would give', () => {
+  it('is lineHeight tall on one line', async () => {
+    const { state, Box } = boxed()
+    await render(
+      <Box>
+        <NitroInput defaultValue="Tall" lineHeight={40} fontSize={18} autoWidth />
+      </Box>
+    )
+    await expectFinalAtMount(state)
+    expect(state.mounted!.height).toBeCloseTo(40, 0)
+  })
+
+  it('grows by its padding and border instead of squeezing the text', async () => {
+    const plain = boxed()
+    const padded = boxed()
+    await render(
+      <View>
+        <plain.Box>
+          <NitroInput defaultValue="blue" fontSize={18} autoWidth />
+        </plain.Box>
+        <padded.Box>
+          <NitroInput defaultValue="blue" fontSize={18} autoWidth style={{ paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1 }} />
+        </padded.Box>
+      </View>
+    )
+    await expectFinalAtMount(padded.state)
+    const a = rectOf(plain.state.view!)
+    const b = rectOf(padded.state.view!)
+    expect(b.width - a.width).toBeCloseTo(18, 0)
+    expect(b.height - a.height).toBeCloseTo(8, 0)
+  })
+})

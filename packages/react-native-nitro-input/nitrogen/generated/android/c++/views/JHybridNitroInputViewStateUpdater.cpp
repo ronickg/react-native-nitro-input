@@ -399,6 +399,26 @@ void JHybridNitroInputViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCla
     hybridView->setTextVerticalAlignment(newProps->textVerticalAlignment.get());
   }
   if (oldProps == nullptr
+        ? newProps->textInsetLeft.isProvided()
+        : !newProps->textInsetLeft.hasSameValue(oldProps->textInsetLeft)) {
+    hybridView->setTextInsetLeft(newProps->textInsetLeft.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->textInsetTop.isProvided()
+        : !newProps->textInsetTop.hasSameValue(oldProps->textInsetTop)) {
+    hybridView->setTextInsetTop(newProps->textInsetTop.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->textInsetRight.isProvided()
+        : !newProps->textInsetRight.hasSameValue(oldProps->textInsetRight)) {
+    hybridView->setTextInsetRight(newProps->textInsetRight.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->textInsetBottom.isProvided()
+        : !newProps->textInsetBottom.hasSameValue(oldProps->textInsetBottom)) {
+    hybridView->setTextInsetBottom(newProps->textInsetBottom.get());
+  }
+  if (oldProps == nullptr
         ? newProps->scrollEnabled.isProvided()
         : !newProps->scrollEnabled.hasSameValue(oldProps->scrollEnabled)) {
     hybridView->setScrollEnabled(newProps->scrollEnabled.get());

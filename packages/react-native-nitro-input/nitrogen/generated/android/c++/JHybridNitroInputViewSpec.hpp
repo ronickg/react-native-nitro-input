@@ -188,6 +188,14 @@ namespace margelo::nitro::nitroinput {
     void setNumberOfLines(double numberOfLines) override;
     NitroInputTextAlignVertical getTextVerticalAlignment() override;
     void setTextVerticalAlignment(NitroInputTextAlignVertical textVerticalAlignment) override;
+    double getTextInsetLeft() override;
+    void setTextInsetLeft(double textInsetLeft) override;
+    double getTextInsetTop() override;
+    void setTextInsetTop(double textInsetTop) override;
+    double getTextInsetRight() override;
+    void setTextInsetRight(double textInsetRight) override;
+    double getTextInsetBottom() override;
+    void setTextInsetBottom(double textInsetBottom) override;
     bool getScrollEnabled() override;
     void setScrollEnabled(bool scrollEnabled) override;
     bool getAutoFocus() override;

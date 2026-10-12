@@ -89,6 +89,10 @@ namespace margelo::nitro::nitroinput::views {
     multiline(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "multiline", rawProps, sourceProps.multiline)),
     numberOfLines(nitro::ReactProp<double>::fromRawValue("NitroInputView", "numberOfLines", rawProps, sourceProps.numberOfLines)),
     textVerticalAlignment(nitro::ReactProp<NitroInputTextAlignVertical>::fromRawValue("NitroInputView", "textVerticalAlignment", rawProps, sourceProps.textVerticalAlignment)),
+    textInsetLeft(nitro::ReactProp<double>::fromRawValue("NitroInputView", "textInsetLeft", rawProps, sourceProps.textInsetLeft)),
+    textInsetTop(nitro::ReactProp<double>::fromRawValue("NitroInputView", "textInsetTop", rawProps, sourceProps.textInsetTop)),
+    textInsetRight(nitro::ReactProp<double>::fromRawValue("NitroInputView", "textInsetRight", rawProps, sourceProps.textInsetRight)),
+    textInsetBottom(nitro::ReactProp<double>::fromRawValue("NitroInputView", "textInsetBottom", rawProps, sourceProps.textInsetBottom)),
     scrollEnabled(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "scrollEnabled", rawProps, sourceProps.scrollEnabled)),
     autoFocus(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "autoFocus", rawProps, sourceProps.autoFocus)),
     fieldTestID(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "fieldTestID", rawProps, sourceProps.fieldTestID)),
@@ -198,6 +202,10 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("multiline"): return true;
       case hashString("numberOfLines"): return true;
       case hashString("textVerticalAlignment"): return true;
+      case hashString("textInsetLeft"): return true;
+      case hashString("textInsetTop"): return true;
+      case hashString("textInsetRight"): return true;
+      case hashString("textInsetBottom"): return true;
       case hashString("scrollEnabled"): return true;
       case hashString("autoFocus"): return true;
       case hashString("fieldTestID"): return true;

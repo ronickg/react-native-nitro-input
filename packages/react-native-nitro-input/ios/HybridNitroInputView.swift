@@ -150,6 +150,12 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var multiline: Bool = false { didSet { markConfigDirty() } }
   var numberOfLines: Double = 0 { didSet { markConfigDirty() } }
   var textVerticalAlignment: NitroInputTextAlignVertical = .auto { didSet { markConfigDirty() } }
+  /// The style's padding and border. Android insets its content by them; on
+  /// iOS React Native already lays the view's content out inside them.
+  var textInsetLeft: Double = 0
+  var textInsetTop: Double = 0
+  var textInsetRight: Double = 0
+  var textInsetBottom: Double = 0
   var scrollEnabled: Bool = true { didSet { markConfigDirty() } }
   var autoFocus: Bool = false { didSet { markConfigDirty() } }
   var fieldTestID: String = "" { didSet { markConfigDirty() } }
@@ -363,6 +369,10 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     multiline = false
     numberOfLines = 0
     textVerticalAlignment = .auto
+    textInsetLeft = 0
+    textInsetTop = 0
+    textInsetRight = 0
+    textInsetBottom = 0
     scrollEnabled = true
     autoFocus = false
     fieldTestID = ""

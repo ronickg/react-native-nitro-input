@@ -210,6 +210,9 @@ final class InputMetrics {
   let suffixOffset: CGFloat
   /// Height of the line box (the body font's line height).
   let lineHeight: CGFloat
+  /// The height a single line asks for: `lineHeight` when the typography sets
+  /// one, else the font's own, as on Android (and as `TextInput` sizes itself).
+  let lineBoxHeight: CGFloat
   /// The advance of one of the bullets a plain secure field draws (see `init`).
   let secureBulletWidth: CGFloat
   private var widthCache: [WidthKey: CGFloat] = [:]
@@ -232,6 +235,7 @@ final class InputMetrics {
     prefixOffset = t.prefixOffset * scale
     suffixOffset = t.suffixOffset * scale
     lineHeight = ceil(body.lineHeight)
+    lineBoxHeight = t.lineHeight > 0 ? t.lineHeight : lineHeight
     // A plain secure field is drawn by UITextField, which shows every
     // character as U+2219 in the *system* font at the field's size - in the
     // field's weight when that is the system font, regular otherwise - not as
@@ -524,7 +528,7 @@ final class HybridNitroInputMeasure: HybridNitroInputMeasureSpec {
       ? InputSizing.plainWidth(metrics, format: format, text: text, hint: hint, tail: tail, secure: sizing.secureTextEntry)
       : InputSizing.reflowWidth(metrics, format: format, text: text, hint: hint, tail: tail, secure: sizing.secureTextEntry)
     let size = InputSizing.reported(width: InputFrameMetrics.width(content: width, frame: frame, metrics: metrics),
-                                    height: InputFrameMetrics.singleLineHeight(metrics.lineHeight, frame: frame, metrics: metrics))
+                                    height: InputFrameMetrics.singleLineHeight(metrics.lineBoxHeight, frame: frame, metrics: metrics))
     return NitroInputSize(width: Double(size.width), height: Double(size.height))
   }
 }

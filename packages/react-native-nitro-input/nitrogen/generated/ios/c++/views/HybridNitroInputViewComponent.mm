@@ -512,6 +512,30 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.textVerticalAlignment.hasSameValue(oldViewProps->textVerticalAlignment)) {
       swiftPart.setTextVerticalAlignment(static_cast<int>(newViewProps.textVerticalAlignment.get()));
     }
+    // textInsetLeft: number
+    if (oldViewProps == nullptr
+          ? newViewProps.textInsetLeft.isProvided()
+          : !newViewProps.textInsetLeft.hasSameValue(oldViewProps->textInsetLeft)) {
+      swiftPart.setTextInsetLeft(newViewProps.textInsetLeft.get());
+    }
+    // textInsetTop: number
+    if (oldViewProps == nullptr
+          ? newViewProps.textInsetTop.isProvided()
+          : !newViewProps.textInsetTop.hasSameValue(oldViewProps->textInsetTop)) {
+      swiftPart.setTextInsetTop(newViewProps.textInsetTop.get());
+    }
+    // textInsetRight: number
+    if (oldViewProps == nullptr
+          ? newViewProps.textInsetRight.isProvided()
+          : !newViewProps.textInsetRight.hasSameValue(oldViewProps->textInsetRight)) {
+      swiftPart.setTextInsetRight(newViewProps.textInsetRight.get());
+    }
+    // textInsetBottom: number
+    if (oldViewProps == nullptr
+          ? newViewProps.textInsetBottom.isProvided()
+          : !newViewProps.textInsetBottom.hasSameValue(oldViewProps->textInsetBottom)) {
+      swiftPart.setTextInsetBottom(newViewProps.textInsetBottom.get());
+    }
     // scrollEnabled: boolean
     if (oldViewProps == nullptr
           ? newViewProps.scrollEnabled.isProvided()

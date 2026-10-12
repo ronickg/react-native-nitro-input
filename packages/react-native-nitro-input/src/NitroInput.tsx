@@ -744,6 +744,45 @@ export type NitroInputTransition = 'none' | 'reflow'
  * Like a `TextInput`, it takes its width from its parent; `autoWidth` sizes
  * it to its content instead, and is on by default when the text reflows.
  */
+interface Insets {
+  left: number
+  top: number
+  right: number
+  bottom: number
+}
+const NO_INSETS: Insets = { left: 0, top: 0, right: 0, bottom: 0 }
+
+/**
+ * The style's padding plus border per edge, resolved the way Yoga does: a
+ * start / end edge before left / right, then horizontal / vertical, then all.
+ * A size measured for the text gets them added, as `TextInput`'s is, so a
+ * padded field grows rather than squeezing its text. Percentages are not
+ * resolved here (they need the parent's size) and count as 0.
+ */
+function styleInsets(flat: Record<string, unknown> | undefined, rightToLeft: boolean): Insets {
+  if (flat == null) return NO_INSETS
+  const n = (key: string): number | undefined => {
+    const value = flat[key]
+    return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+  }
+  const start = rightToLeft ? 'End' : 'Start'
+  const end = rightToLeft ? 'Start' : 'End'
+  const insets = {
+    left:
+      (n(`padding${start}`) ?? n('paddingLeft') ?? n('paddingHorizontal') ?? n('padding') ?? 0) +
+      (n(`border${start}Width`) ?? n('borderLeftWidth') ?? n('borderWidth') ?? 0),
+    right:
+      (n(`padding${end}`) ?? n('paddingRight') ?? n('paddingHorizontal') ?? n('padding') ?? 0) +
+      (n(`border${end}Width`) ?? n('borderRightWidth') ?? n('borderWidth') ?? 0),
+    top:
+      (n('paddingTop') ?? n('paddingVertical') ?? n('padding') ?? 0) + (n('borderTopWidth') ?? n('borderWidth') ?? 0),
+    bottom:
+      (n('paddingBottom') ?? n('paddingVertical') ?? n('padding') ?? 0) +
+      (n('borderBottomWidth') ?? n('borderWidth') ?? 0),
+  }
+  return insets.left === 0 && insets.right === 0 && insets.top === 0 && insets.bottom === 0 ? NO_INSETS : insets
+}
+
 function styleTextAlign(value: TextStyle['textAlign'], rightToLeft: boolean): NitroInputTextAlign | undefined {
   switch (value) {
     case undefined:
@@ -1112,6 +1151,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
     const rightToLeft =
       flat?.direction === 'rtl' || (flat?.direction !== 'ltr' && I18nManager.isRTL)
     const textAlign = textAlignProp ?? styleTextAlign(flat?.textAlign, rightToLeft)
+    const insets = useMemo(() => styleInsets(flat as Record<string, unknown> | undefined, rightToLeft), [flat, rightToLeft])
     // `TextInput` stretches to its parent; sizing to content is this
     // component's own behaviour, and it is what stops it being a drop-in.
     // `NitroInput` turns it off so flexbox gives it the parent's width, the
@@ -1522,15 +1562,17 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       }
     }
     const shownSize = size ?? seedRef.current
-    const autoSize = useMemo(
-      () =>
-        shownSize !== null
-          ? autoWidth
-            ? { width: shownSize.width, height: shownSize.height }
-            : { height: shownSize.height }
-          : { height: resolvedFontSize * 1.25 },
-      [shownSize, resolvedFontSize, autoWidth]
-    )
+    // The size measured for the text, plus the style's padding and border
+    // (Yoga's box includes them; `TextInput`'s measured size gets them too).
+    const autoSize = useMemo(() => {
+      const extraWidth = insets.left + insets.right
+      const extraHeight = insets.top + insets.bottom
+      return shownSize !== null
+        ? autoWidth
+          ? { width: shownSize.width + extraWidth, height: shownSize.height + extraHeight }
+          : { height: shownSize.height + extraHeight }
+        : { height: resolvedFontSize * 1.25 + extraHeight }
+    }, [shownSize, resolvedFontSize, autoWidth, insets])
 
     return (
       <NativeNitroInputView
@@ -1573,6 +1615,10 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
         editable={(editable ?? true) && !(readOnly ?? false)}
         numberOfLines={Math.max(0, Math.trunc(numberOfLines ?? rows ?? 0))}
         textVerticalAlignment={textAlignVertical ?? 'auto'}
+        textInsetLeft={insets.left}
+        textInsetTop={insets.top}
+        textInsetRight={insets.right}
+        textInsetBottom={insets.bottom}
         scrollEnabled={scrollEnabled ?? true}
         autoFocus={autoFocus ?? false}
         fieldTestID={viewProps.testID ?? ''}

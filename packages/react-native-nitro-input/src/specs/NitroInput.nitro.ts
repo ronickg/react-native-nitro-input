@@ -363,6 +363,15 @@ export interface NitroInputProps extends HybridViewProps {
   /** `multiline`: where the text sits in the box. Default: `'auto'` (top). */
   textVerticalAlignment: NitroInputTextAlignVertical
   /**
+   * The style's padding and border, in points, resolved per edge by
+   * `NitroInput`. Android insets the text, the overlay and the frame by them;
+   * on iOS React Native already lays the view's content out inside them.
+   */
+  textInsetLeft: number
+  textInsetTop: number
+  textInsetRight: number
+  textInsetBottom: number
+  /**
    * `multiline`: whether the field scrolls once the text is taller than it.
    * Turning it off lets a growing field drive its own height. Default: `true`.
    */

@@ -587,7 +587,7 @@ screen behaves like theirs with these settings:
 | `onKeyPress` | `(event) => void` | – | Before the text changes: the character, `'Backspace'` or `'Enter'`. |
 | `onNativeRef` | `(ref) => void` | – | Receives the Nitro object on mount. |
 | `id` / `aria-label` | `string` | – | React Native's HTML-style aliases for `nativeID` / `accessibilityLabel`, resolved here because a Nitro view is handed the raw props; each wins over the older spelling. |
-| `style`, `testID`, … | `ViewProps` | – | Regular view props. `testID` and the accessibility label are forwarded to the system field, the element VoiceOver, TalkBack and e2e tools interact with. The field takes its width from its parent like a `TextInput`; see `autoWidth`. |
+| `style`, `testID`, … | `ViewProps`; `style` as `TextInput`'s | – | Regular view props. `testID` and the accessibility label are forwarded to the system field, the element VoiceOver, TalkBack and e2e tools interact with. The field takes its width from its parent like a `TextInput`; see `autoWidth`. As on a `TextInput`, `style` can carry the typography (`fontSize`, `fontWeight`, `fontFamily`, `color`, `letterSpacing`, `lineHeight`, `textAlign`, `textAlignVertical`; the props of the same name win), and its padding and border inset the text and add to a size the field works out for itself. Two deliberate differences: digits are always tabular (Android's Roboto has them anyway, and a field keeps its width whether it reflows or not), and Android gets no default padding (iOS's `TextInput` has none; React Native's Android one keeps the platform field's). |
 
 `keyboardType`: `'default' | 'number-pad' | 'decimal-pad' | 'numeric' | 'email-address' | 'phone-pad' | 'url' | 'ascii-capable' | 'numbers-and-punctuation'`.
 

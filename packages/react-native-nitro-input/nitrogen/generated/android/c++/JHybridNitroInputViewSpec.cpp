@@ -797,6 +797,42 @@ namespace margelo::nitro::nitroinput {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroInputTextAlignVertical> /* textVerticalAlignment */)>("setTextVerticalAlignment");
     method(_javaPart, JNitroInputTextAlignVertical::fromCpp(textVerticalAlignment));
   }
+  double JHybridNitroInputViewSpec::getTextInsetLeft() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getTextInsetLeft");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setTextInsetLeft(double textInsetLeft) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* textInsetLeft */)>("setTextInsetLeft");
+    method(_javaPart, textInsetLeft);
+  }
+  double JHybridNitroInputViewSpec::getTextInsetTop() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getTextInsetTop");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setTextInsetTop(double textInsetTop) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* textInsetTop */)>("setTextInsetTop");
+    method(_javaPart, textInsetTop);
+  }
+  double JHybridNitroInputViewSpec::getTextInsetRight() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getTextInsetRight");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setTextInsetRight(double textInsetRight) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* textInsetRight */)>("setTextInsetRight");
+    method(_javaPart, textInsetRight);
+  }
+  double JHybridNitroInputViewSpec::getTextInsetBottom() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getTextInsetBottom");
+    auto __result = method(_javaPart);
+    return __result;
+  }
+  void JHybridNitroInputViewSpec::setTextInsetBottom(double textInsetBottom) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* textInsetBottom */)>("setTextInsetBottom");
+    method(_javaPart, textInsetBottom);
+  }
   bool JHybridNitroInputViewSpec::getScrollEnabled() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean()>("getScrollEnabled");
     auto __result = method(_javaPart);

@@ -1945,7 +1945,11 @@ final class NitroInputView: UIView {
 
   private func intrinsicHeight() -> CGFloat {
     // A single line is centred in its height; a frame adds its padding (and a filled label's line).
-    guard traits.multiline else { return InputFrameMetrics.singleLineHeight(fonts.lineHeight, frame: inputFrame, metrics: fonts.metrics) }
+    // `lineHeight` sets a single line's height too, as on Android; it was the
+    // font's own line box here whatever the prop said.
+    guard traits.multiline else {
+      return InputFrameMetrics.singleLineHeight(fonts.metrics.lineBoxHeight, frame: inputFrame, metrics: fonts.metrics)
+    }
     let line = lineBoxHeight
     // Only the frame's room is on top of the text. The rest of the text view's
     // inset is `lineBoxPadding`, which is the *first* line's share of the

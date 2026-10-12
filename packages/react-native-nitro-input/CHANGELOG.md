@@ -75,6 +75,19 @@
   `fontWeight`, `fontFamily`, `color`, `letterSpacing`, `lineHeight`,
   `textAlign` and `textAlignVertical` from `style`, as `TextInput` does (its
   `style` is typed as `TextInput`'s); the props of the same name win.
+- **`NitroInput` matches `TextInput` in three more places**, found by a
+  visual comparison of the two side by side:
+  - Android: `textAlign` `center` / `right` on a plain field did nothing; the
+    alignment set when the field became plain (before `textAlign` arrived in
+    the same commit) overrode it.
+  - A `style` padding or border insets the text and adds to the size the
+    field works out for itself, as `TextInput`'s does. An `autoWidth` field
+    with `paddingHorizontal: 8` squeezed its text to "…" on iOS; on Android
+    the padding did not inset the text at all (React Native never hands a
+    Nitro view its padding there, so the view now insets its text, overlay and
+    frame itself).
+  - iOS: `lineHeight` sets a single line's height, as on Android; it was the
+    font's own line box whatever the prop said.
 
 ## 0.3.8
 

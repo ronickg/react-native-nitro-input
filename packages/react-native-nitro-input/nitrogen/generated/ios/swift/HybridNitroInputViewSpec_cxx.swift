@@ -898,6 +898,50 @@ open class HybridNitroInputViewSpec_cxx {
     }
   }
   
+  public final var textInsetLeft: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.textInsetLeft
+    }
+    @inline(__always)
+    set {
+      self.__implementation.textInsetLeft = newValue
+    }
+  }
+  
+  public final var textInsetTop: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.textInsetTop
+    }
+    @inline(__always)
+    set {
+      self.__implementation.textInsetTop = newValue
+    }
+  }
+  
+  public final var textInsetRight: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.textInsetRight
+    }
+    @inline(__always)
+    set {
+      self.__implementation.textInsetRight = newValue
+    }
+  }
+  
+  public final var textInsetBottom: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.textInsetBottom
+    }
+    @inline(__always)
+    set {
+      self.__implementation.textInsetBottom = newValue
+    }
+  }
+  
   public final var scrollEnabled: Bool {
     @inline(__always)
     get {
