@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- **Android: `NitroNumber`'s numeric transition no longer blocks the UI
+  thread (ANRs).** A glyph mask the warm thread had not made yet was blurred
+  in `onDraw`, and the shared mask cache made every mask inside its lock. Two
+  ANRs on low-end phones followed: the UI thread `Blocked` in the cache's
+  `get` behind the warm thread (which runs at `MIN_PRIORITY`), and the UI
+  thread waiting for a GC while the blur allocated two float copies of a large
+  glyph. Now masks are made outside the lock, the UI thread never blurs (a
+  mask not warmed yet is drawn sharp for a frame while the warm thread makes
+  it), and the blur reuses per-thread buffers instead of allocating per mask.
+
 ## 0.3.8
 
 - **`NitroNumber` shows what its `format` prints, value by value.** It read the

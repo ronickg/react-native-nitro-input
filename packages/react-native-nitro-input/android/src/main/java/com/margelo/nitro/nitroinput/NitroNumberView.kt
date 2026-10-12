@@ -54,6 +54,8 @@ private const val NUMERIC_BLUR = 0.08f
 /** Blurred copies per digit, from a touch of blur to the full one. */
 private const val NUMERIC_BLUR_LEVELS = 6
 
+private fun isMainThread(): Boolean = Looper.myLooper() === Looper.getMainLooper()
+
 /** `RollingEngine::TextSlot`. */
 private const val TEXT_PREFIX = 0
 private const val TEXT_SUFFIX = 1
@@ -449,7 +451,20 @@ class NitroNumberView(context: Context) : View(context) {
         digitIndex * (NUMERIC_BLUR_LEVELS + 1) + level.coerceIn(0, NUMERIC_BLUR_LEVELS)
       digitMasks.get(slot)?.let { return it }
       val radius = if (level <= 0 || numericBlur <= 0f) 0 else Math.round(lineHeight * numericBlur * level / NUMERIC_BLUR_LEVELS).coerceAtLeast(1)
-      val mask = BlurredGlyphCache.get("${key(role)}|$digitIndex|$radius|$blurPad") {
+      val cacheKey = "${key(role)}|$digitIndex|$radius|$blurPad"
+      if (radius > 0 && isMainThread()) {
+        // Not warmed yet (a font or size that just changed): blur it on the
+        // warm thread and draw the sharp mask this frame. A blur in onDraw was
+        // ANRing low-end phones, see [BlurredGlyphCache].
+        val ready = BlurredGlyphCache.peek(cacheKey)
+        if (ready == null) {
+          WarmExecutor.request(cacheKey) { blurred(role, digitIndex, level) }
+          return blurred(role, digitIndex, 0)
+        }
+        digitMasks.set(slot, ready)
+        return ready
+      }
+      val mask = BlurredGlyphCache.get(cacheKey) {
         val text = glyphs[digitIndex]
         val pad = blurPad
         val w = ceil(cell).toInt() + 2 * pad
@@ -487,7 +502,15 @@ class NitroNumberView(context: Context) : View(context) {
     fun blurredText(text: String, role: GlyphRole, level: Int): Bitmap? {
       if (text.isEmpty() || lineHeight <= 0f) return null
       val radius = if (level <= 0 || numericBlur <= 0f) 0 else Math.round(lineHeight * numericBlur * level / NUMERIC_BLUR_LEVELS).coerceAtLeast(1)
-      return BlurredGlyphCache.get("${key(role)}|t|$text|$radius|$blurPad") {
+      val cacheKey = "${key(role)}|t|$text|$radius|$blurPad"
+      if (radius > 0 && isMainThread()) {
+        // Never warmed ahead (any text can change into any other): blurred on
+        // the warm thread, sharp until it lands, as [blurred] does.
+        BlurredGlyphCache.peek(cacheKey)?.let { return it }
+        WarmExecutor.request(cacheKey) { blurredText(text, role, level) }
+        return blurredText(text, role, 0)
+      }
+      return BlurredGlyphCache.get(cacheKey) {
         val pad = blurPad
         val w = ceil(width(text, role)).toInt() + 2 * pad
         val h = ceil(lineHeight).toInt() + 2 * pad
@@ -680,10 +703,16 @@ class NitroNumberView(context: Context) : View(context) {
     val w = mask.width
     val h = mask.height
     val stride = mask.rowBytes
-    val bytes = java.nio.ByteBuffer.allocate(stride * h)
+    // Reused, not allocated per mask: two float copies of a large glyph went
+    // to the large-object heap, and a screenful of masks collected mid-frame.
+    val buffers = BlurBuffers.get(stride * h, w * h)
+    val bytes = buffers.bytes
+    bytes.clear()
+    bytes.limit(stride * h)
     mask.copyPixelsToBuffer(bytes)
-    val alpha = FloatArray(w * h) { (bytes.get((it / w) * stride + it % w).toInt() and 0xff).toFloat() }
-    val scratch = FloatArray(w * h)
+    val alpha = buffers.alpha
+    val scratch = buffers.scratch
+    for (i in 0 until w * h) alpha[i] = (bytes.get((i / w) * stride + i % w).toInt() and 0xff).toFloat()
     val window = (2 * radius + 1).toFloat()
     repeat(3) {
       // horizontal
@@ -706,7 +735,7 @@ class NitroNumberView(context: Context) : View(context) {
         }
       }
     }
-    for (i in alpha.indices) bytes.put((i / w) * stride + i % w, Math.round(alpha[i]).coerceIn(0, 255).toByte())
+    for (i in 0 until w * h) bytes.put((i / w) * stride + i % w, Math.round(alpha[i]).coerceIn(0, 255).toByte())
     bytes.rewind()
     mask.copyPixelsFromBuffer(bytes)
   }
@@ -1151,7 +1180,40 @@ class NitroNumberView(context: Context) : View(context) {
   /** One background thread for warming glyph masks, shared by every view. */
   private object WarmExecutor : java.util.concurrent.Executor {
     private val pool = java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "NitroNumberWarm").apply { isDaemon = true; priority = Thread.MIN_PRIORITY } }
+    /** Masks the UI thread has asked for and the warm thread has not made yet. */
+    private val pending = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
     override fun execute(command: Runnable) = pool.execute(command)
+
+    /** Makes [key]'s mask on the warm thread, once however many frames ask for it while it is queued. */
+    fun request(key: String, make: () -> Unit) {
+      if (!pending.add(key)) return
+      pool.execute {
+        try {
+          make()
+        } finally {
+          pending.remove(key)
+        }
+      }
+    }
+  }
+
+  /** Per-thread buffers for [boxBlurMask], grown to the largest mask that thread has blurred. */
+  private object BlurBuffers {
+    class Buffers {
+      var bytes: java.nio.ByteBuffer = java.nio.ByteBuffer.allocate(0)
+      var alpha = FloatArray(0)
+      var scratch = FloatArray(0)
+    }
+
+    private val local = ThreadLocal.withInitial { Buffers() }
+
+    fun get(byteCount: Int, pixelCount: Int): Buffers = local.get()!!.apply {
+      if (bytes.capacity() < byteCount) bytes = java.nio.ByteBuffer.allocate(byteCount)
+      if (alpha.size < pixelCount) {
+        alpha = FloatArray(pixelCount)
+        scratch = FloatArray(pixelCount)
+      }
+    }
   }
 
   /**
@@ -2028,17 +2090,32 @@ class NitroNumberView(context: Context) : View(context) {
     private var bytes = 0L
 
     @Synchronized
+    fun peek(key: String): Bitmap? = entries[key]
+
+    /**
+     * [make] runs OUTSIDE the lock. Run inside it, the warm thread (at
+     * MIN_PRIORITY) held the lock through each blur, and the UI thread's
+     * lookup in onDraw waited on it: ANRs with the main thread `Blocked` in
+     * `get`. Two threads making the same key both make it; the second keeps
+     * the first's bitmap and recycles its own, which nobody has seen.
+     */
     fun get(key: String, make: () -> Bitmap): Bitmap {
-      entries[key]?.let { return it }
+      peek(key)?.let { return it }
       val bitmap = make()
-      entries[key] = bitmap
-      bytes += bitmap.allocationByteCount
-      val eldest = entries.entries.iterator()
-      while (bytes > BUDGET && eldest.hasNext()) {
-        val entry = eldest.next()
-        if (entry.value === bitmap) break
-        bytes -= entry.value.allocationByteCount
-        eldest.remove()
+      synchronized(this) {
+        entries[key]?.let { existing ->
+          bitmap.recycle()
+          return existing
+        }
+        entries[key] = bitmap
+        bytes += bitmap.allocationByteCount
+        val eldest = entries.entries.iterator()
+        while (bytes > BUDGET && eldest.hasNext()) {
+          val entry = eldest.next()
+          if (entry.value === bitmap) break
+          bytes -= entry.value.allocationByteCount
+          eldest.remove()
+        }
       }
       return bitmap
     }
