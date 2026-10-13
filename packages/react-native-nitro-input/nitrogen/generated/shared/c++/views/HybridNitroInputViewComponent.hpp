@@ -99,6 +99,7 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<NitroInputAffixAlign> prefixAlign;
     nitro::ReactProp<NitroInputAffixAlign> suffixAlign;
     nitro::ReactProp<double> textLetterSpacing;
+    nitro::ReactProp<bool> tabularNums;
     nitro::ReactProp<double> prefixSpacing;
     nitro::ReactProp<double> suffixSpacing;
     nitro::ReactProp<double> prefixOffset;
@@ -212,6 +213,7 @@ namespace margelo::nitro::nitroinput::views {
              prefixAlign.hasSameValue(other.prefixAlign) &&
              suffixAlign.hasSameValue(other.suffixAlign) &&
              textLetterSpacing.hasSameValue(other.textLetterSpacing) &&
+             tabularNums.hasSameValue(other.tabularNums) &&
              prefixSpacing.hasSameValue(other.prefixSpacing) &&
              suffixSpacing.hasSameValue(other.suffixSpacing) &&
              prefixOffset.hasSameValue(other.prefixOffset) &&
@@ -326,6 +328,7 @@ namespace margelo::nitro::nitroinput::views {
              prefixAlign.isProvided() ||
              suffixAlign.isProvided() ||
              textLetterSpacing.isProvided() ||
+             tabularNums.isProvided() ||
              prefixSpacing.isProvided() ||
              suffixSpacing.isProvided() ||
              prefixOffset.isProvided() ||

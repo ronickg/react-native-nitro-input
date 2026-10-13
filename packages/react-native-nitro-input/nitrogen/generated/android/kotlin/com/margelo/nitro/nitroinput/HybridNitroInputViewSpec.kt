@@ -253,6 +253,12 @@ abstract class HybridNitroInputViewSpec: HybridView() {
   @get:Keep
   @set:DoNotStrip
   @set:Keep
+  abstract var tabularNums: Boolean
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
   abstract var prefixSpacing: Double
   
   @get:DoNotStrip

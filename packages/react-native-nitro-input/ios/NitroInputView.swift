@@ -144,6 +144,8 @@ final class NitroInputView: UIView {
     var suffixAlign: AffixAlign = .baseline
     /// Points added after every glyph, as `Text`'s letterSpacing; an affix gets it in proportion to its size.
     var letterSpacing: CGFloat = 0
+    /// Every digit as wide as the widest (`InputMetrics.bodyDigitWidths` for a font without tabular figures), or each at its own width.
+    var tabularNums = true
     /// Points between the prefix and the text, and between the text and the suffix, in place of the letter spacing there.
     var prefixSpacing: CGFloat? = nil
     var suffixSpacing: CGFloat? = nil
@@ -1952,7 +1954,7 @@ final class NitroInputView: UIView {
     return multiplier
   }
 
-  static func makeFont(size: CGFloat, weight: CGFloat, family: String?) -> UIFont {
+  static func makeFont(size: CGFloat, weight: CGFloat, family: String?, tabular: Bool = true) -> UIFont {
     let uiWeight = uiWeight(weight)
     let traits: [UIFontDescriptor.TraitKey: Any] = [.weight: uiWeight]
     var base: UIFont
@@ -1965,8 +1967,11 @@ final class NitroInputView: UIView {
     } else {
       base = UIFont.systemFont(ofSize: size, weight: uiWeight)
     }
-    // Tabular digits: a column keeps its width while its digit reflows.
-    let feature: [UIFontDescriptor.FeatureKey: Int] = [.type: kNumberSpacingType, .selector: kMonospacedNumbersSelector]
+    // Tabular digits, so a column keeps its width while its digit reflows, unless asked for the font's own.
+    let feature: [UIFontDescriptor.FeatureKey: Int] = [
+      .type: kNumberSpacingType,
+      .selector: tabular ? kMonospacedNumbersSelector : kProportionalNumbersSelector,
+    ]
     let descriptor = base.fontDescriptor.addingAttributes([.featureSettings: [feature]])
     return UIFont(descriptor: descriptor, size: size)
   }

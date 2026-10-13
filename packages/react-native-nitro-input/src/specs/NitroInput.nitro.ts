@@ -268,6 +268,8 @@ export interface NitroInputProps extends HybridViewProps {
   suffixAlign: NitroInputAffixAlign
   /** Points added after every glyph, like `Text`'s `letterSpacing`; an affix gets it in proportion to its size. */
   textLetterSpacing: number
+  /** Every digit as wide as the widest (a font without tabular figures gets them laid out so), or each at its own width. */
+  tabularNums: boolean
   /** Points between the prefix and the text, in place of the letter spacing there. Not finite: the letter spacing. */
   prefixSpacing: number
   /** Points between the text and the suffix, in place of the letter spacing there. Not finite: the letter spacing. */

@@ -142,6 +142,8 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val suffixAlign: AffixAlign = AffixAlign.BASELINE,
     /** Dp added after every glyph, as `Text`'s letterSpacing; an affix gets it in proportion to its size. */
     val letterSpacing: Float = 0f,
+    /** Every digit as wide as the widest (`DigitSlots` for a font without tabular figures), or each at its own width. */
+    val tabularNums: Boolean = true,
     /** Dp between the prefix and the text, and between the text and the suffix, in place of the letter spacing there. */
     val prefixSpacing: Float? = null,
     val suffixSpacing: Float? = null,
@@ -445,7 +447,11 @@ class NitroInputView(context: Context) : FrameLayout(context) {
         (scrollX + width - compoundPaddingRight).toFloat(),
         (scrollY + height).toFloat(),
       )
-      DigitSlots.draw(canvas, tail, x, baseline.toFloat(), ghostPaint)
+      if (typography.tabularNums) {
+        DigitSlots.draw(canvas, tail, x, baseline.toFloat(), ghostPaint)
+      } else {
+        canvas.drawText(tail, x, baseline.toFloat(), ghostPaint)
+      }
       canvas.restore()
     }
 
@@ -646,7 +652,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
 
       override fun afterTextChanged(s: Editable) {
-        DigitSlots.apply(s, editText.paint, keyboard.secureTextEntry)
+        DigitSlots.apply(s, editText.paint, off = !slotsDigits)
       }
     })
     editText.setOnFocusChangeListener { _, focused ->
@@ -855,8 +861,12 @@ class NitroInputView(context: Context) : FrameLayout(context) {
    * for the overlay and the measure. A secure field's bullets stand where the
    * digits are, so it has none.
    */
+  /** Whether the edit text's own digits are slotted: not when proportional, nor under a secure field's bullets. */
+  private val slotsDigits: Boolean
+    get() = typography.tabularNums && !keyboard.secureTextEntry
+
   private fun applyDigitSlots() {
-    editText.text?.let { DigitSlots.apply(it, editText.paint, keyboard.secureTextEntry) }
+    editText.text?.let { DigitSlots.apply(it, editText.paint, off = !slotsDigits) }
     applyHint(force = true)
   }
 
@@ -2093,7 +2103,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val hint = effectivePlaceholder
     if (!force && editText.hint?.toString() == hint) return
     val spanned = android.text.SpannableString(hint)
-    DigitSlots.apply(spanned, editText.paint, off = false)
+    DigitSlots.apply(spanned, editText.paint, off = !typography.tabularNums)
     editText.hint = spanned
   }
 

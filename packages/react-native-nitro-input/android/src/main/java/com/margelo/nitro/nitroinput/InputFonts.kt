@@ -91,7 +91,7 @@ internal class InputFonts(
    * each laid out in a slot as wide as the widest ([DigitSlots]); null when it
    * has them. The affixes keep their own: they never change under the typing.
    */
-  private val bodyDigits: DigitSlots.Digits? = DigitSlots.measure(body)
+  private val bodyDigits: DigitSlots.Digits? = if (t.tabularNums) DigitSlots.measure(body) else null
 
   /** A slotted body digit's advance, its letter spacing aside: the edit text's slot less that spacing. */
   private val bodySlot: Float = bodyDigits?.let { it.slot(bodySpacing) - bodySpacing } ?: 0f
@@ -218,9 +218,9 @@ internal class InputFonts(
     paint.typeface = makeTypeface(t)
     paint.textSize = sizeDp * density
     paint.color = t.color ?: defaultColor
-    // Tabular figures in every mode, as on iOS: the engine slides digit runs
-    // in text mode too, and proportional digits would jitter as they change.
-    paint.fontFeatureSettings = "tnum"
+    // Tabular figures unless asked not to, as on iOS: the engine slides digit
+    // runs in text mode too, and proportional digits would jitter as they change.
+    paint.fontFeatureSettings = if (t.tabularNums) "tnum" else "pnum"
     return paint
   }
 

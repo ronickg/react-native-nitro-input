@@ -445,6 +445,16 @@ export interface NitroInputProps extends Omit<ViewProps, 'children' | 'onFocus' 
    * Default: `0`.
    */
   letterSpacing?: number
+  /**
+   * `true` (the default): every digit as wide as the widest, so typing over a
+   * `keepPlaceholder` mask never moves what is still to come and an amount
+   * keeps its width as its digits change. A font without tabular figures
+   * (Open Runde) has its digits laid out that wide, centred. `false`: each
+   * digit at the font's own width, for prose ("Apt 12") in a proportional
+   * face; it also skips that layout work. Without the prop, a style's
+   * `fontVariant: ['proportional-nums']` turns it off, as on a `TextInput`.
+   */
+  tabularNums?: boolean
   /** Points between the prefix and the text, in place of the letter spacing there. Defaults to the letter spacing. */
   prefixSpacing?: number
   /** Points between the text and the suffix, in place of the letter spacing there. Defaults to the letter spacing. */
@@ -842,6 +852,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       prefixAlign,
       suffixAlign,
       letterSpacing: letterSpacingProp,
+      tabularNums,
       prefixSpacing,
       suffixSpacing,
       prefixOffset,
@@ -1537,6 +1548,7 @@ export const NitroInput = forwardRef<NitroInputHandle, NitroInputProps>(
       textWeight: numericWeight,
       textFamily: fontFamily ?? '',
       textLetterSpacing: letterSpacing ?? 0,
+      tabularNums: tabularNums ?? !flat?.fontVariant?.includes('proportional-nums'),
       prefixSpacing: prefixSpacing ?? Infinity,
       suffixSpacing: suffixSpacing ?? Infinity,
       allowFontScaling: allowFontScaling ?? false,

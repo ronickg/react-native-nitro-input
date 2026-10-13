@@ -320,6 +320,12 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.textLetterSpacing.hasSameValue(oldViewProps->textLetterSpacing)) {
       swiftPart.setTextLetterSpacing(newViewProps.textLetterSpacing.get());
     }
+    // tabularNums: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.tabularNums.isProvided()
+          : !newViewProps.tabularNums.hasSameValue(oldViewProps->tabularNums)) {
+      swiftPart.setTabularNums(newViewProps.tabularNums.get());
+    }
     // prefixSpacing: number
     if (oldViewProps == nullptr
           ? newViewProps.prefixSpacing.isProvided()

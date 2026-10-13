@@ -86,6 +86,19 @@ describe('the size before the view reports', () => {
     expect(mockMeasure).toHaveBeenCalledTimes(2)
   })
 
+  it('is measured with tabular digits unless the prop or a proportional fontVariant says otherwise', () => {
+    const tabular = () => mockMeasure.mock.calls.at(-1)![0].tabularNums
+    const shown = (renderer: ReactTestRenderer) => nativeProps(renderer).tabularNums
+    expect(shown(render(<NitroInput autoWidth defaultValue="12" />))).toBe(true)
+    expect(tabular()).toBe(true)
+    expect(shown(render(<NitroInput autoWidth defaultValue="12" tabularNums={false} />))).toBe(false)
+    expect(tabular()).toBe(false)
+    expect(shown(render(<NitroInput autoWidth defaultValue="12" style={{ fontVariant: ['proportional-nums'] }} />))).toBe(false)
+    expect(tabular()).toBe(false)
+    // The prop wins over the style, as the typography props do.
+    expect(shown(render(<NitroInput autoWidth defaultValue="12" tabularNums style={{ fontVariant: ['proportional-nums'] }} />))).toBe(true)
+  })
+
   it('is not measured for a wrapping field or one whose style sets both sides', () => {
     render(<NitroInput multiline />)
     render(<NitroInput style={{ width: 200, height: 40 }} />)

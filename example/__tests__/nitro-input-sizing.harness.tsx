@@ -252,4 +252,19 @@ describe('digits in a font without tabular figures', () => {
       }
     })
   }
+
+  it('leave each digit its own width with tabularNums off', async () => {
+    const ref = createRef<NitroInputHandle>()
+    const { state, Box } = boxed()
+    await render(
+      <Box>
+        <NitroInput ref={ref} defaultValue="0000" tabularNums={false} fontFamily="OpenRunde-Regular" autoWidth fontSize={22} />
+      </Box>
+    )
+    await expectFinalAtMount(state)
+    const zeros = rectOf(state.view!).width
+    ref.current!.setText('1111')
+    // Open Runde's "1" is about three quarters of its "0".
+    await waitFor(() => expect(rectOf(state.view!).width).toBeLessThan(zeros - 8))
+  })
 })

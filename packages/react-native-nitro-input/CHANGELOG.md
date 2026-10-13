@@ -11,6 +11,10 @@
   laid out as wide as its widest digit, centred, as `NitroNumber`'s columns
   are: in the field's own text, the placeholder, the tail and the measure, on
   both platforms. A font with tabular figures is untouched.
+- **`NitroInput`'s `tabularNums` prop** (default `true`, as on `NitroNumber`):
+  `false` keeps each digit at the font's own width, for prose ("Apt 12") in a
+  proportional face, and skips the slot work. Without the prop, a style's
+  `fontVariant: ['proportional-nums']` turns it off, as on a `TextInput`.
 - **Android: a plain field's text and placeholder ask for tabular figures.**
   The overlay's paints did, the edit text did not, so a font whose tabular
   figures are off by default (ABC Diatype) shifted the tail the same way.

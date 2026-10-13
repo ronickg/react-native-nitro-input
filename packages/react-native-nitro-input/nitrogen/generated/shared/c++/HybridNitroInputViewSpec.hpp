@@ -174,6 +174,8 @@ namespace margelo::nitro::nitroinput {
       virtual void setSuffixAlign(NitroInputAffixAlign suffixAlign) = 0;
       virtual double getTextLetterSpacing() = 0;
       virtual void setTextLetterSpacing(double textLetterSpacing) = 0;
+      virtual bool getTabularNums() = 0;
+      virtual void setTabularNums(bool tabularNums) = 0;
       virtual double getPrefixSpacing() = 0;
       virtual void setPrefixSpacing(double prefixSpacing) = 0;
       virtual double getSuffixSpacing() = 0;

@@ -110,6 +110,8 @@ namespace margelo::nitro::nitroinput {
       jni::local_ref<jni::JString> textFamily = this->getFieldValue(fieldTextFamily);
       static const auto fieldTextLetterSpacing = clazz->getField<double>("textLetterSpacing");
       double textLetterSpacing = this->getFieldValue(fieldTextLetterSpacing);
+      static const auto fieldTabularNums = clazz->getField<jboolean>("tabularNums");
+      jboolean tabularNums = this->getFieldValue(fieldTabularNums);
       static const auto fieldPrefixSpacing = clazz->getField<double>("prefixSpacing");
       double prefixSpacing = this->getFieldValue(fieldPrefixSpacing);
       static const auto fieldSuffixSpacing = clazz->getField<double>("suffixSpacing");
@@ -187,6 +189,7 @@ namespace margelo::nitro::nitroinput {
         textWeight,
         textFamily->toStdString(),
         textLetterSpacing,
+        static_cast<bool>(tabularNums),
         prefixSpacing,
         suffixSpacing,
         static_cast<bool>(allowFontScaling),
@@ -205,7 +208,7 @@ namespace margelo::nitro::nitroinput {
      */
     [[maybe_unused]]
     static jni::local_ref<JNitroInputSizing::javaobject> fromCpp(const NitroInputSizing& value) {
-      using JSignature = JNitroInputSizing(jni::alias_ref<jni::JString>, jni::alias_ref<JNitroInputMode>, jboolean, jboolean, jboolean, double, double, double, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<JNitroInputSignPlacement>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JArrayClass<JNitroInputNotation>>, jboolean, jboolean, jni::alias_ref<jni::JArrayClass<jni::JString>>, jni::alias_ref<JNitroInputMaskAffinity>, jni::alias_ref<JNitroInputTextCase>, jni::alias_ref<jni::JArrayClass<JNitroInputCharacterMapping>>, jni::alias_ref<jni::JString>, jboolean, double, double, double, double, double, jni::alias_ref<jni::JString>, double, double, double, jboolean, double, jni::alias_ref<JNitroInputVariant>, jni::alias_ref<jni::JString>, jni::alias_ref<JNitroInputLabelBehavior>, double, double);
+      using JSignature = JNitroInputSizing(jni::alias_ref<jni::JString>, jni::alias_ref<JNitroInputMode>, jboolean, jboolean, jboolean, double, double, double, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<JNitroInputSignPlacement>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JArrayClass<JNitroInputNotation>>, jboolean, jboolean, jni::alias_ref<jni::JArrayClass<jni::JString>>, jni::alias_ref<JNitroInputMaskAffinity>, jni::alias_ref<JNitroInputTextCase>, jni::alias_ref<jni::JArrayClass<JNitroInputCharacterMapping>>, jni::alias_ref<jni::JString>, jboolean, double, double, double, double, double, jni::alias_ref<jni::JString>, double, jboolean, double, double, jboolean, double, jni::alias_ref<JNitroInputVariant>, jni::alias_ref<jni::JString>, jni::alias_ref<JNitroInputLabelBehavior>, double, double);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
@@ -268,6 +271,7 @@ namespace margelo::nitro::nitroinput {
         value.textWeight,
         jni::make_jstring(value.textFamily),
         value.textLetterSpacing,
+        value.tabularNums,
         value.prefixSpacing,
         value.suffixSpacing,
         value.allowFontScaling,

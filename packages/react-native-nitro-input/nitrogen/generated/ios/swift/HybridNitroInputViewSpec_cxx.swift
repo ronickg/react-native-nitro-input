@@ -546,6 +546,17 @@ open class HybridNitroInputViewSpec_cxx {
     }
   }
   
+  public final var tabularNums: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.tabularNums
+    }
+    @inline(__always)
+    set {
+      self.__implementation.tabularNums = newValue
+    }
+  }
+  
   public final var prefixSpacing: Double {
     @inline(__always)
     get {

@@ -47,6 +47,7 @@ protocol InputSizingProps {
   var textWeight: Double { get }
   var textFamily: String { get }
   var textLetterSpacing: Double { get }
+  var tabularNums: Bool { get }
   var prefixSpacing: Double { get }
   var suffixSpacing: Double { get }
   var allowFontScaling: Bool { get }
@@ -108,6 +109,7 @@ enum InputMapping {
     typography.fontWeight = CGFloat(p.textWeight.isFinite ? p.textWeight : 400)
     typography.fontFamily = p.textFamily.isEmpty ? nil : p.textFamily
     typography.letterSpacing = CGFloat(p.textLetterSpacing.isFinite ? p.textLetterSpacing : 0)
+    typography.tabularNums = p.tabularNums
     typography.prefixSpacing = p.prefixSpacing.isFinite ? CGFloat(p.prefixSpacing) : nil
     typography.suffixSpacing = p.suffixSpacing.isFinite ? CGFloat(p.suffixSpacing) : nil
     typography.allowFontScaling = p.allowFontScaling
@@ -235,9 +237,11 @@ final class InputMetrics {
 
   init(_ t: NitroInputView.Typography) {
     let scale = NitroInputView.systemFontMultiplier(t)
-    body = NitroInputView.makeFont(size: t.fontSize * scale, weight: t.fontWeight, family: t.fontFamily)
-    prefix = NitroInputView.makeFont(size: (t.prefixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily)
-    suffix = NitroInputView.makeFont(size: (t.suffixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily)
+    body = NitroInputView.makeFont(size: t.fontSize * scale, weight: t.fontWeight, family: t.fontFamily, tabular: t.tabularNums)
+    prefix = NitroInputView.makeFont(size: (t.prefixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily,
+                                     tabular: t.tabularNums)
+    suffix = NitroInputView.makeFont(size: (t.suffixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily,
+                                     tabular: t.tabularNums)
     bodySpacing = t.letterSpacing * scale
     prefixLetterSpacing = t.letterSpacing * scale * (prefix.pointSize / body.pointSize)
     suffixLetterSpacing = t.letterSpacing * scale * (suffix.pointSize / body.pointSize)
@@ -259,7 +263,7 @@ final class InputMetrics {
     let bodyFont = body
     let digits = (0..<10).map { NSAttributedString(string: String($0), attributes: [.font: bodyFont, .kern: 0]).size().width }
     bodySlot = digits.max() ?? 0
-    bodyDigitWidths = bodySlot - (digits.min() ?? 0) > bodyFont.pointSize * 0.01 ? digits : nil
+    bodyDigitWidths = t.tabularNums && bodySlot - (digits.min() ?? 0) > bodyFont.pointSize * 0.01 ? digits : nil
   }
 
   func font(for role: NitroInputView.GlyphRole) -> UIFont {

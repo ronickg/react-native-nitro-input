@@ -129,6 +129,8 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     set(v) { field = v; markConfigDirty() }
   override var textLetterSpacing: Double = 0.0
     set(v) { field = v; markConfigDirty() }
+  override var tabularNums: Boolean = true
+    set(v) { field = v; markConfigDirty() }
   override var prefixSpacing: Double = Double.POSITIVE_INFINITY
     set(v) { field = v; markConfigDirty() }
   override var suffixSpacing: Double = Double.POSITIVE_INFINITY
@@ -423,6 +425,7 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     suffixFontSize = Double.NaN
     signPlacement = NitroInputSignPlacement.BEFOREAFFIX
     textLetterSpacing = 0.0
+    tabularNums = true
     prefixSpacing = Double.POSITIVE_INFINITY
     suffixSpacing = Double.POSITIVE_INFINITY
     prefixOffset = 0.0

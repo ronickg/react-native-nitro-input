@@ -359,6 +359,12 @@ namespace margelo::nitro::nitroinput {
     inline void setTextLetterSpacing(double textLetterSpacing) noexcept override {
       _swiftPart.setTextLetterSpacing(std::forward<decltype(textLetterSpacing)>(textLetterSpacing));
     }
+    inline bool getTabularNums() noexcept override {
+      return _swiftPart.getTabularNums();
+    }
+    inline void setTabularNums(bool tabularNums) noexcept override {
+      _swiftPart.setTabularNums(std::forward<decltype(tabularNums)>(tabularNums));
+    }
     inline double getPrefixSpacing() noexcept override {
       return _swiftPart.getPrefixSpacing();
     }
