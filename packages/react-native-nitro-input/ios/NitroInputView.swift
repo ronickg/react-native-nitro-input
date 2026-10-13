@@ -293,6 +293,9 @@ final class NitroInputView: UIView {
     didSet {
       guard alignment != oldValue else { return }
       field.textAlignment = textAlignment(for: alignment)
+      // The new alignment is the field's paragraph style, which the slots' indent rides on.
+      applyDigitSlots()
+      syncAccessibilityPlaceholder()
       render()
     }
   }
@@ -677,6 +680,8 @@ final class NitroInputView: UIView {
   private struct GlyphEntry {
     let layer: CALayer
     let topOffset: CGFloat
+    /// A slotted digit's offset into its advance (`InputMetrics.inset`).
+    let leftInset: CGFloat
     /// The render pass that last saw this glyph; one a pass missed has left.
     var generation: UInt
     /// What the layer was last given, so a frame only sets what moved: most
@@ -791,12 +796,18 @@ final class NitroInputView: UIView {
     // field's own copy exists only so an empty field still has an
     // accessibility value, hence clear.
     let color = traits.plain ? typography.placeholderColor : UIColor.clear
-    let unchanged = field.attributedPlaceholder?.string == placeholder
-      && field.attributedPlaceholder?.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? UIColor == color
-    guard !unchanged || placeholder.isEmpty != (field.attributedPlaceholder == nil) else { return }
-    field.attributedPlaceholder = placeholder.isEmpty
+    // Its digits slotted like the text's, or the placeholder is narrower than
+    // the field measures it, and a typed digit moves the rest along. In the
+    // field's own attributes, which carry its alignment.
+    var slotAttributes = field.defaultTextAttributes
+    slotAttributes[.foregroundColor] = color
+    let next = placeholder.isEmpty
       ? nil
-      : NSAttributedString(string: placeholder, attributes: [.foregroundColor: color])
+      : fonts.metrics.slotted(placeholder, attributes: slotAttributes, lead: false)?.string
+        ?? NSAttributedString(string: placeholder, attributes: [.foregroundColor: color])
+    if let current = field.attributedPlaceholder, let next, current.isEqual(to: next) { return }
+    if field.attributedPlaceholder == nil, next == nil { return }
+    field.attributedPlaceholder = next
   }
 
   override func didMoveToSuperview() {
@@ -844,6 +855,8 @@ final class NitroInputView: UIView {
   private func applyLayoutDirection() {
     engine.setRightToLeft(isRTL)
     field.textAlignment = traits.plain ? textAlignment(for: alignment) : .left
+    applyDigitSlots()
+    syncAccessibilityPlaceholder()
     if didBuildTextView {
       textView.textAlignment = textAlignment(for: alignment)
       applyTextViewTypography()
@@ -1313,8 +1326,47 @@ final class NitroInputView: UIView {
     attributes[.font] = fonts.body
     attributes[.foregroundColor] = traits.plain ? typography.color : UIColor.clear
     field.defaultTextAttributes = attributes
+    fieldSlotted = false
+    applyDigitSlots()
+    syncAccessibilityPlaceholder()
     updateFieldInsets()
     applyTextViewTypography()
+  }
+
+  /// Whether the field's text carries `applyDigitSlots`' kerning.
+  private var fieldSlotted = false
+
+  /// Lays the field's own digits out in the slots the overlay and the measure
+  /// give them when the font has no tabular figures (`InputMetrics.slotted`):
+  /// plain mode draws that text, and otherwise the caret and the selection
+  /// follow it. Setting `attributedText` moves the selection, so it is put
+  /// back; a composition in progress is left alone until it is committed.
+  private func applyDigitSlots() {
+    guard field.markedTextRange == nil else { return }
+    let current = field.text ?? ""
+    guard !traits.secureTextEntry, !current.isEmpty,
+          let slotted = fonts.metrics.slotted(current, attributes: field.defaultTextAttributes, lead: false)?.string else {
+      if fieldSlotted {
+        // Back to one kerning for the whole text: re-setting the attributes applies them throughout.
+        fieldSlotted = false
+        let attributes = field.defaultTextAttributes
+        field.defaultTextAttributes = attributes
+      }
+      return
+    }
+    if let existing = field.attributedText, existing.isEqual(to: slotted) { return }
+    let start = field.beginningOfDocument
+    let selection = field.selectedTextRange.map { (field.offset(from: start, to: $0.start), field.offset(from: start, to: $0.end)) }
+    let wasSetting = isSettingText
+    isSettingText = true
+    field.attributedText = slotted
+    if let (from, to) = selection,
+       let fromPosition = field.position(from: field.beginningOfDocument, offset: from),
+       let toPosition = field.position(from: field.beginningOfDocument, offset: to) {
+      field.selectedTextRange = field.textRange(from: fromPosition, to: toPosition)
+    }
+    isSettingText = wasSetting
+    fieldSlotted = true
   }
 
   /// In reflow mode the overlay draws the prefix and suffix, so the field only
@@ -1582,6 +1634,8 @@ final class NitroInputView: UIView {
     var attributes = field.defaultTextAttributes
     attributes[.foregroundColor] = plain ? typography.color : UIColor.clear
     field.defaultTextAttributes = attributes
+    fieldSlotted = false
+    applyDigitSlots()
     updateFieldInsets()
     // Turning plain on tore the overlay down and reset the engine, so on the
     // way back it has nothing to draw until the next edit: hand it the text.
@@ -1678,6 +1732,7 @@ final class NitroInputView: UIView {
   /// `changed` is false only for the first, unchanged application of the
   /// `text` prop (the engine still needs feeding); a keystroke always changes.
   private func textDidChange(caret: Int, reason: ChangeReason, changed: Bool = true) {
+    applyDigitSlots()
     feedEngine(caret: caret)
     if reason != .prop {
       eventCount += 1
@@ -1999,7 +2054,10 @@ final class NitroInputView: UIView {
     if ghostLabel.superview !== field { field.addSubview(ghostLabel) }
     var attributes = field.defaultTextAttributes
     attributes[.foregroundColor] = typography.placeholderColor.resolvedColor(with: traitCollection)
-    ghostLabel.attributedText = NSAttributedString(string: tail, attributes: attributes)
+    // A first slotted digit's half-room before it moves the label instead (`InputMetrics.slotted`).
+    let slotted = fonts.metrics.slotted(tail, attributes: attributes, lead: true)
+    ghostLabel.attributedText = slotted?.string ?? NSAttributedString(string: tail, attributes: attributes)
+    let lead = slotted?.lead ?? 0
     let box = field.textRect(forBounds: field.bounds)
     let typed = fonts.width(of: text, role: .body) + fonts.bodySpacing * CGFloat(text.unicodeScalars.count)
     let tailWidth = fonts.width(of: tail, role: .body) + fonts.bodySpacing * CGFloat(tail.unicodeScalars.count)
@@ -2014,7 +2072,8 @@ final class NitroInputView: UIView {
     let end = start + typed
     // Text wider than the box scrolls inside the field; the tail has no place then.
     ghostLabel.isHidden = typed > box.width
-    ghostLabel.frame = CGRect(x: end, y: box.minY, width: min(tailWidth + 1, max(0, box.maxX - end)), height: box.height)
+    ghostLabel.frame = CGRect(x: end + lead, y: box.minY, width: min(tailWidth - lead + 1, max(0, box.maxX - end - lead)),
+                              height: box.height)
   }
 
   private func contentWidth() -> CGFloat {
@@ -2177,14 +2236,15 @@ final class NitroInputView: UIView {
           glyphLayer.bounds = CGRect(origin: .zero, size: image.size)
         }
         clipLayer.addSublayer(glyphLayer)
-        glyphLayers[g.id] = GlyphEntry(layer: glyphLayer, topOffset: fonts.top(for: role, text: text, lineTop: 0), generation: generation)
+        glyphLayers[g.id] = GlyphEntry(layer: glyphLayer, topOffset: fonts.top(for: role, text: text, lineTop: 0),
+                                       leftInset: fonts.metrics.inset(of: text, role: role), generation: generation)
         index = glyphLayers.index(forKey: g.id)!
       }
       let entry = glyphLayers.values[index]
       let glyphLayer = entry.layer
       let size = glyphLayer.bounds.size
       let top = band + entry.topOffset + CGFloat(g.y) * lineHeight
-      let position = CGPoint(x: pad + CGFloat(g.x) + size.width / 2, y: top + size.height / 2)
+      let position = CGPoint(x: pad + CGFloat(g.x) + entry.leftInset + size.width / 2, y: top + size.height / 2)
       if position != entry.position {
         glyphLayer.position = position
         glyphLayers.values[index].position = position

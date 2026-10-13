@@ -86,9 +86,53 @@ internal class InputFonts(
     InputRole.SUFFIX -> suffix
   }
 
-  /** Advance of one character, in px. */
+  /**
+   * The body's digits when the font has no tabular figures, which are then
+   * each laid out in a slot as wide as the widest ([DigitSlots]); null when it
+   * has them. The affixes keep their own: they never change under the typing.
+   */
+  private val bodyDigits: DigitSlots.Digits? = DigitSlots.measure(body)
+
+  /** A slotted body digit's advance, its letter spacing aside: the edit text's slot less that spacing. */
+  private val bodySlot: Float = bodyDigits?.let { it.slot(bodySpacing) - bodySpacing } ?: 0f
+
+  private fun slotted(codePoint: Int, role: InputRole): Boolean =
+    role == InputRole.BODY && bodyDigits != null && DigitSlots.isDigit(codePoint)
+
+  /** Advance of one character, in px: a slotted digit's is the slot's. */
   fun width(codePoint: Int, role: InputRole): Float =
-    widthCaches[role.ordinal].getOrPut(codePoint) { paint(role).measureText(charString(codePoint)) }
+    widthCaches[role.ordinal].getOrPut(codePoint) {
+      if (slotted(codePoint, role)) bodySlot else paint(role).measureText(charString(codePoint))
+    }
+
+  /** How far to draw a character in from the left of its advance: a slotted digit is centred in it. */
+  fun inset(codePoint: Int, role: InputRole): Float {
+    if (!slotted(codePoint, role)) return 0f
+    return (bodySlot - bodyDigits!!.widths[codePoint - '0'.code]) / 2f
+  }
+
+  /**
+   * [text] in the body paint as the edit text lays it out, without letter
+   * spacing: whole, or, when its digits are slotted, in runs split at each
+   * digit, which is where the slots' spans split it.
+   */
+  fun plainWidth(text: String): Float {
+    if (bodyDigits == null) return body.measureText(text)
+    var total = 0f
+    var start = 0
+    while (start < text.length) {
+      if (DigitSlots.isDigit(text[start].code)) {
+        total += width(text[start].code, InputRole.BODY)
+        start++
+        continue
+      }
+      var end = start + 1
+      while (end < text.length && !DigitSlots.isDigit(text[end].code)) end++
+      total += body.measureText(text, start, end)
+      start = end
+    }
+    return total
+  }
 
   /** Sum of the per-character advances of [text] (what the engine lays out). */
   fun width(text: String, role: InputRole): Float {

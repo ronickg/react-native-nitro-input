@@ -328,7 +328,7 @@ internal object InputSizing {
    */
   fun plainWidthPx(f: InputFonts, format: Format, body: String): Float =
     f.affixRoom(format.prefix, InputRole.PREFIX) +
-      f.paint(InputRole.BODY).measureText(body) + f.bodySpacing * body.codePointCount(0, body.length) +
+      f.plainWidth(body) + f.bodySpacing * body.codePointCount(0, body.length) +
       f.affixRoom(format.suffix, InputRole.SUFFIX)
 
   /** What a plain field measures: the placeholder when empty, bullets when secure, else the text and its tail. */

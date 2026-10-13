@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- **`keepPlaceholder`'s tail no longer slides while typing, whatever the
+  font.** Digits are tabular in a `NitroInput`, but only fonts that ship
+  tabular figures have them: in one without (Open Runde) a typed "1" was far
+  narrower than the placeholder's "0" it replaced, so the rest of the
+  placeholder slid left on each keystroke (by 14 dp over a card number), and
+  an amount changed width as its digits did. Every digit of such a font is now
+  laid out as wide as its widest digit, centred, as `NitroNumber`'s columns
+  are: in the field's own text, the placeholder, the tail and the measure, on
+  both platforms. A font with tabular figures is untouched.
+- **Android: a plain field's text and placeholder ask for tabular figures.**
+  The overlay's paints did, the edit text did not, so a font whose tabular
+  figures are off by default (ABC Diatype) shifted the tail the same way.
+
 ## 0.4.0
 
 - **Android: `NitroNumber`'s numeric transition no longer blocks the UI
