@@ -142,6 +142,10 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     val suffixAlign: AffixAlign = AffixAlign.BASELINE,
     /** Dp added after every glyph, as `Text`'s letterSpacing; an affix gets it in proportion to its size. */
     val letterSpacing: Float = 0f,
+    /** The font's tabular figures (`tnum`) rather than its proportional ones. */
+    val tabularNums: Boolean = true,
+    /** Every digit laid out as wide as the widest, centred ([DigitSlots]): tabular figures for a font without them. */
+    val slotDigits: Boolean = false,
     /** Dp between the prefix and the text, and between the text and the suffix, in place of the letter spacing there. */
     val prefixSpacing: Float? = null,
     val suffixSpacing: Float? = null,
@@ -445,7 +449,11 @@ class NitroInputView(context: Context) : FrameLayout(context) {
         (scrollX + width - compoundPaddingRight).toFloat(),
         (scrollY + height).toFloat(),
       )
-      canvas.drawText(tail, x, baseline.toFloat(), ghostPaint)
+      if (typography.slotDigits) {
+        DigitSlots.draw(canvas, tail, x, baseline.toFloat(), ghostPaint)
+      } else {
+        canvas.drawText(tail, x, baseline.toFloat(), ghostPaint)
+      }
       canvas.restore()
     }
 
@@ -639,6 +647,16 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     editText.setSingleLine()
     defaultHighlightColor = editText.highlightColor
     editText.addTextChangedListener(Watcher())
+    // After it, and on every change, the engine's own writes included.
+    editText.addTextChangedListener(object : TextWatcher {
+      override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
+
+      override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
+
+      override fun afterTextChanged(s: Editable) {
+        DigitSlots.apply(s, editText.paint, off = !slotsDigits)
+      }
+    })
     editText.setOnFocusChangeListener { _, focused ->
       if (resyncingFocus) return@setOnFocusChangeListener
       restartBlink()
@@ -770,6 +788,13 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   private fun applyEditTextLayout() {
     val f = fonts
     editText.typeface = f.body.typeface
+    // The paints' tabular figures too, which the field's own text, its hint and
+    // keepPlaceholder's tail (drawn in a copy of its paint) did not get: with a
+    // font whose digits are proportional unless asked (ABC Diatype) every typed
+    // "1" was narrower than the "0" of the placeholder it replaced, and the
+    // rest of the placeholder slid left by the difference on each keystroke.
+    // A font with no tabular figures at all is slotted (applyDigitSlots).
+    editText.fontFeatureSettings = f.body.fontFeatureSettings
     // Spaced like the overlay, so the selection highlight lines up with the drawn glyphs.
     editText.letterSpacing = if (f.body.textSize > 0f) f.bodySpacing / f.body.textSize else 0f
     // Not `setTextSize` directly: the platform ignores it while auto-sizing is
@@ -829,6 +854,22 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       Alignment.CENTER -> Gravity.CENTER_HORIZONTAL
       Alignment.RIGHT -> Gravity.RIGHT
     }
+    applyDigitSlots()
+  }
+
+  /**
+   * Gives the edit text's digits, and its hint's, the widest digit's advance
+   * when the font has no tabular figures ([DigitSlots]), as [InputFonts] does
+   * for the overlay and the measure. A secure field's bullets stand where the
+   * digits are, so it has none.
+   */
+  /** Whether the edit text's own digits are slotted: when asked, and not under a secure field's bullets. */
+  private val slotsDigits: Boolean
+    get() = typography.slotDigits && !keyboard.secureTextEntry
+
+  private fun applyDigitSlots() {
+    editText.text?.let { DigitSlots.apply(it, editText.paint, off = !slotsDigits) }
+    applyHint(force = true)
   }
 
   // endregion
@@ -883,7 +924,10 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     // A password input type switches the field to monospace, so its bullets
     // were wider than the field measures them; React Native's TextInput puts
     // the typeface back the same way.
-    if (k.secureTextEntry) editText.typeface = fonts.body.typeface
+    if (k.secureTextEntry) {
+      editText.typeface = fonts.body.typeface
+      editText.fontFeatureSettings = fonts.body.fontFeatureSettings
+    }
     if (rawType != null) editText.setRawInputType(rawType)
     if (k.multiline) {
       editText.setSingleLine(false)
@@ -902,6 +946,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
     if (k.secureTextEntry) {
       editText.transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
     }
+    applyDigitSlots()
     val length = editText.text?.length ?: 0
     if (selectionStart >= 0 && (editText.selectionStart != selectionStart || editText.selectionEnd != selectionEnd)) {
       editText.setSelection(minOf(selectionStart, length), minOf(maxOf(selectionStart, selectionEnd), length))
@@ -1006,6 +1051,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
                             if (edge == Gravity.END) side else 0, 0)
     view.gravity = Gravity.CENTER_VERTICAL
     view.typeface = paint.typeface
+    view.fontFeatureSettings = paint.fontFeatureSettings
     view.setTextSize(TypedValue.COMPLEX_UNIT_PX, paint.textSize)
     view.letterSpacing = if (paint.textSize > 0f) fonts.spacing(role) / paint.textSize else 0f
     // The seam against the text, and the affix's own offset.
@@ -1860,10 +1906,12 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       }
       if (g.scale != 1f) canvas.scale(g.scale, g.scale, g.x + g.width / 2f, lineHeight / 2f)
       val baseline = f.baseline(role, str, 0f) + g.y * lineHeight
+      // A digit in a font without tabular figures, centred in its slot.
+      val inset = f.inset(g.character, role)
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        glyphPositions = f.shaped(g.character, role).draw(canvas, g.x, baseline, paint, glyphPositions)
+        glyphPositions = f.shaped(g.character, role).draw(canvas, g.x + inset, baseline, paint, glyphPositions)
       } else {
-        canvas.drawText(str, g.x, baseline, paint)
+        canvas.drawText(str, g.x + inset, baseline, paint)
       }
       canvas.restore()
     }
@@ -2053,9 +2101,12 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   }
 
   /** The placeholder waits for a resting label to float clear of the line. */
-  private fun applyHint() {
+  private fun applyHint(force: Boolean = false) {
     val hint = effectivePlaceholder
-    if (editText.hint?.toString() != hint) editText.hint = hint
+    if (!force && editText.hint?.toString() == hint) return
+    val spanned = android.text.SpannableString(hint)
+    DigitSlots.apply(spanned, editText.paint, off = !typography.slotDigits)
+    editText.hint = spanned
   }
 
   /** Re-feeds the engine so the placeholder follows the label. */

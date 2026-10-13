@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- **`NitroInput`'s `tabularNums` prop: tabular digits in any font.** Digits
+  were tabular only in fonts that ship tabular figures: in one without (Open
+  Runde) a typed "1" was far narrower than the placeholder's "0" it replaced,
+  so `keepPlaceholder`'s tail slid left on each keystroke (by 14 dp over a
+  card number), and an amount changed width as its digits did.
+  `tabularNums` lays every digit out as wide as the widest, centred, as
+  `NitroNumber`'s columns are: in the field's own text, the placeholder, the
+  tail and the measure, on both platforms. Unset, the field asks for the
+  font's tabular figures as before, at no cost; `false` asks for its
+  proportional ones (as does a style's `fontVariant: ['proportional-nums']`).
+- **Android: a plain field's text and placeholder ask for tabular figures.**
+  The overlay's paints did, the edit text did not, so a font whose tabular
+  figures are off by default (ABC Diatype) shifted the tail the same way.
+
 ## 0.4.0
 
 - **Android: `NitroNumber`'s numeric transition no longer blocks the UI

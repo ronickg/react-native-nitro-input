@@ -47,6 +47,8 @@ protocol InputSizingProps {
   var textWeight: Double { get }
   var textFamily: String { get }
   var textLetterSpacing: Double { get }
+  var tabularNums: Bool { get }
+  var slotDigits: Bool { get }
   var prefixSpacing: Double { get }
   var suffixSpacing: Double { get }
   var allowFontScaling: Bool { get }
@@ -108,6 +110,8 @@ enum InputMapping {
     typography.fontWeight = CGFloat(p.textWeight.isFinite ? p.textWeight : 400)
     typography.fontFamily = p.textFamily.isEmpty ? nil : p.textFamily
     typography.letterSpacing = CGFloat(p.textLetterSpacing.isFinite ? p.textLetterSpacing : 0)
+    typography.tabularNums = p.tabularNums
+    typography.slotDigits = p.slotDigits
     typography.prefixSpacing = p.prefixSpacing.isFinite ? CGFloat(p.prefixSpacing) : nil
     typography.suffixSpacing = p.suffixSpacing.isFinite ? CGFloat(p.suffixSpacing) : nil
     typography.allowFontScaling = p.allowFontScaling
@@ -215,6 +219,17 @@ final class InputMetrics {
   let lineBoxHeight: CGFloat
   /// The advance of one of the bullets a plain secure field draws (see `init`).
   let secureBulletWidth: CGFloat
+  /// The body's digit advances when they are slotted (`tabularNums` set) and
+  /// the font has no tabular figures; nil otherwise. The monospaced-numbers feature asks for them, but a font
+  /// without it (Open Runde) keeps proportional digits: every typed "1" was
+  /// narrower than the placeholder's "0" it replaced, so `keepPlaceholder`'s
+  /// tail slid left on each keystroke and an amount changed width as its
+  /// digits did. Such a font's digits each get a slot as wide as the widest,
+  /// centred in it, as NitroNumber's columns do (and as Android's DigitSlots
+  /// does). The affixes keep their own: they never change under the typing.
+  let bodyDigitWidths: [CGFloat]?
+  /// The slot a body digit is laid out in, when `bodyDigitWidths` is set.
+  let bodySlot: CGFloat
   private var widthCache: [WidthKey: CGFloat] = [:]
 
   private struct WidthKey: Hashable {
@@ -224,9 +239,11 @@ final class InputMetrics {
 
   init(_ t: NitroInputView.Typography) {
     let scale = NitroInputView.systemFontMultiplier(t)
-    body = NitroInputView.makeFont(size: t.fontSize * scale, weight: t.fontWeight, family: t.fontFamily)
-    prefix = NitroInputView.makeFont(size: (t.prefixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily)
-    suffix = NitroInputView.makeFont(size: (t.suffixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily)
+    body = NitroInputView.makeFont(size: t.fontSize * scale, weight: t.fontWeight, family: t.fontFamily, tabular: t.tabularNums)
+    prefix = NitroInputView.makeFont(size: (t.prefixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily,
+                                     tabular: t.tabularNums)
+    suffix = NitroInputView.makeFont(size: (t.suffixFontSize ?? t.fontSize) * scale, weight: t.fontWeight, family: t.fontFamily,
+                                     tabular: t.tabularNums)
     bodySpacing = t.letterSpacing * scale
     prefixLetterSpacing = t.letterSpacing * scale * (prefix.pointSize / body.pointSize)
     suffixLetterSpacing = t.letterSpacing * scale * (suffix.pointSize / body.pointSize)
@@ -245,6 +262,10 @@ final class InputMetrics {
       ? UIFont.systemFont(ofSize: body.pointSize, weight: NitroInputView.uiWeight(t.fontWeight))
       : UIFont.systemFont(ofSize: body.pointSize)
     secureBulletWidth = ("\u{2219}" as NSString).size(withAttributes: [.font: bulletFont]).width
+    let bodyFont = body
+    let digits = (0..<10).map { NSAttributedString(string: String($0), attributes: [.font: bodyFont, .kern: 0]).size().width }
+    bodySlot = digits.max() ?? 0
+    bodyDigitWidths = t.slotDigits && bodySlot - (digits.min() ?? 0) > bodyFont.pointSize * 0.01 ? digits : nil
   }
 
   func font(for role: NitroInputView.GlyphRole) -> UIFont {
@@ -268,9 +289,82 @@ final class InputMetrics {
   func width(of text: String, role: NitroInputView.GlyphRole) -> CGFloat {
     let key = WidthKey(text: text, role: role)
     if let cached = widthCache[key] { return cached }
-    let width = NSAttributedString(string: text, attributes: [.font: font(for: role), .kern: 0]).size().width
+    var width = NSAttributedString(string: text, attributes: [.font: font(for: role), .kern: 0]).size().width
+    if role == .body, bodyDigitWidths != nil {
+      for scalar in text.unicodeScalars { width += 2 * halfRoom(scalar) }
+    }
     widthCache[key] = width
     return width
+  }
+
+  private static func digit(_ scalar: Unicode.Scalar) -> Int? {
+    scalar.value >= 0x30 && scalar.value <= 0x39 ? Int(scalar.value - 0x30) : nil
+  }
+
+  /// Half the room a body digit's slot leaves beside its glyph (0 for anything else).
+  private func halfRoom(_ scalar: Unicode.Scalar) -> CGFloat {
+    guard let widths = bodyDigitWidths, let digit = Self.digit(scalar) else { return 0 }
+    return (bodySlot - widths[digit]) / 2
+  }
+
+  private var pairKernCache: [UInt64: CGFloat] = [:]
+
+  /// The body font's own kerning between `a` and `b`, which non-zero `.kern`s on both leave in place.
+  private func pairKern(_ a: Unicode.Scalar, _ b: Unicode.Scalar) -> CGFloat {
+    let key = UInt64(a.value) << 32 | UInt64(b.value)
+    if let cached = pairKernCache[key] { return cached }
+    // The pair with a kern of 1 on both glyphs, against the same with kerning off.
+    func line(_ kern: CGFloat) -> CGFloat {
+      let pair = NSAttributedString(string: String(a) + String(b), attributes: [.font: body, .kern: kern])
+      return CGFloat(CTLineGetTypographicBounds(CTLineCreateWithAttributedString(pair), nil, nil, nil))
+    }
+    let kern = line(1) - 2 - line(0)
+    pairKernCache[key] = kern
+    return kern
+  }
+
+  /// How far in from the left of its advance to draw `text` (one glyph): a slotted digit is centred in it.
+  func inset(of text: String, role: NitroInputView.GlyphRole) -> CGFloat {
+    guard role == .body, let scalar = text.unicodeScalars.first else { return 0 }
+    return halfRoom(scalar)
+  }
+
+  /// `text` in `attributes`, kerned for UIKit to lay out as the overlay and the
+  /// measure do: the body spacing after every glyph and each digit in its slot.
+  /// Kerning only adds room after a glyph, so half a digit's room goes after
+  /// the glyph before it and half after its own. A first digit has none before
+  /// it: with `lead`, that half is returned for the caller to move the text by
+  /// (the tail's label); without, the first line is indented by it (the
+  /// field's text and placeholder, which UIKit places itself). Nil when the
+  /// digits are not slotted.
+  func slotted(_ text: String, attributes: [NSAttributedString.Key: Any], lead: Bool) -> (string: NSAttributedString, lead: CGFloat)? {
+    guard bodyDigitWidths != nil else { return nil }
+    let result = NSMutableAttributedString(string: text, attributes: attributes)
+    let scalars = Array(text.unicodeScalars)
+    let halves = scalars.map(halfRoom)
+    var leading: CGFloat = 0
+    var offset = 0
+    let kerns = halves.indices.map { bodySpacing + halves[$0] + ($0 + 1 < halves.count ? halves[$0 + 1] : 0) }
+    for (i, scalar) in scalars.enumerated() {
+      var kern = kerns[i]
+      // The font's kerning between two glyphs comes back once both carry a
+      // kern other than 0 (Open Runde kerns "74" by -0.058 em). The measure
+      // has it off, so it is taken back out of the first one's.
+      if i + 1 < scalars.count, kern != 0, kerns[i + 1] != 0 {
+        kern -= pairKern(scalar, scalars[i + 1])
+        if kern == 0 { kern = 0.0001 }
+      }
+      if i == 0 { leading = halves[0] }
+      let length = String(scalar).utf16.count
+      result.addAttribute(.kern, value: kern, range: NSRange(location: offset, length: length))
+      offset += length
+    }
+    if !lead, leading > 0 {
+      let style = ((attributes[.paragraphStyle] as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
+      style.firstLineHeadIndent = leading
+      result.addAttribute(.paragraphStyle, value: style, range: NSRange(location: 0, length: result.length))
+    }
+    return (result, leading)
   }
 
   /// The room an affix takes beside the text: its glyphs, their spacing and the seam.

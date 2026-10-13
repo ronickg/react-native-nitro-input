@@ -86,6 +86,22 @@ describe('the size before the view reports', () => {
     expect(mockMeasure).toHaveBeenCalledTimes(2)
   })
 
+  it("is measured with the font's tabular digits, slotted only when tabularNums asks", () => {
+    // [tnum, slots] as the view and the measure get them.
+    const digits = (element: React.ReactElement) => {
+      const native = nativeProps(render(element))
+      const sizing = mockMeasure.mock.calls.at(-1)![0]
+      expect([sizing.tabularNums, sizing.slotDigits]).toEqual([native.tabularNums, native.slotDigits])
+      return [native.tabularNums, native.slotDigits]
+    }
+    expect(digits(<NitroInput autoWidth defaultValue="12" />)).toEqual([true, false])
+    expect(digits(<NitroInput autoWidth defaultValue="12" tabularNums />)).toEqual([true, true])
+    expect(digits(<NitroInput autoWidth defaultValue="12" tabularNums={false} />)).toEqual([false, false])
+    expect(digits(<NitroInput autoWidth defaultValue="12" style={{ fontVariant: ['proportional-nums'] }} />)).toEqual([false, false])
+    // The prop wins over the style, as the typography props do.
+    expect(digits(<NitroInput autoWidth defaultValue="12" tabularNums style={{ fontVariant: ['proportional-nums'] }} />)).toEqual([true, true])
+  })
+
   it('is not measured for a wrapping field or one whose style sets both sides', () => {
     render(<NitroInput multiline />)
     render(<NitroInput style={{ width: 200, height: 40 }} />)

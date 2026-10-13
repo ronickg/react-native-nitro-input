@@ -124,6 +124,10 @@ namespace margelo::nitro::nitroinput {
     void setSuffixAlign(NitroInputAffixAlign suffixAlign) override;
     double getTextLetterSpacing() override;
     void setTextLetterSpacing(double textLetterSpacing) override;
+    bool getTabularNums() override;
+    void setTabularNums(bool tabularNums) override;
+    bool getSlotDigits() override;
+    void setSlotDigits(bool slotDigits) override;
     double getPrefixSpacing() override;
     void setPrefixSpacing(double prefixSpacing) override;
     double getSuffixSpacing() override;

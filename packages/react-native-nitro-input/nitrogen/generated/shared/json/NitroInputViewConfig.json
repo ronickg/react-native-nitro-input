@@ -41,6 +41,8 @@
     "prefixAlign": true,
     "suffixAlign": true,
     "textLetterSpacing": true,
+    "tabularNums": true,
+    "slotDigits": true,
     "prefixSpacing": true,
     "suffixSpacing": true,
     "prefixOffset": true,

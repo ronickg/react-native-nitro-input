@@ -147,6 +147,10 @@ Alignment of `suffix` only.
 Points added after every glyph, like `Text`'s `letterSpacing` (negative tightens). A smaller prefix or suffix gets it in proportion to its size.
 </Prop>
 
+<Prop name="tabularNums" type="boolean" default="unset">
+Unset: the font's tabular figures, where it has them (the system fonts do), at no cost. `true`: every digit as wide as the widest even in a font without them (Open Runde), laid out that wide and centred, so typing over a `keepPlaceholder` mask never moves what is still to come and an amount keeps its width as its digits change; that layout costs a little on each change. `false`: the font's proportional figures. A style's `fontVariant: ['proportional-nums']` is `false` too, as on a `TextInput`; the prop wins.
+</Prop>
+
 <Prop name="prefixSpacing, suffixSpacing" type="number" default="the letter spacing">
 Points between the prefix and the text, and between the text and the suffix, in place of the letter spacing there.
 </Prop>
