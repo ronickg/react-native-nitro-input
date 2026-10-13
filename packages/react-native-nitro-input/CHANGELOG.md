@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
 
 - **Android: `NitroNumber`'s numeric transition no longer blocks the UI
   thread (ANRs).** A glyph mask the warm thread had not made yet was blurred
