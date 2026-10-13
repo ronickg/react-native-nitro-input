@@ -81,47 +81,47 @@ namespace margelo::nitro::nitroinput {
     inline void setText(const std::string& text) noexcept override {
       _swiftPart.setText(text);
     }
-    inline std::optional<double> getFontSize() noexcept override {
-      auto __result = _swiftPart.getFontSize();
+    inline std::optional<double> getTextSize() noexcept override {
+      auto __result = _swiftPart.getTextSize();
       return __result;
     }
-    inline void setFontSize(std::optional<double> fontSize) noexcept override {
-      _swiftPart.setFontSize(fontSize);
+    inline void setTextSize(std::optional<double> textSize) noexcept override {
+      _swiftPart.setTextSize(textSize);
     }
-    inline std::optional<double> getFontWeight() noexcept override {
-      auto __result = _swiftPart.getFontWeight();
+    inline std::optional<double> getTextWeight() noexcept override {
+      auto __result = _swiftPart.getTextWeight();
       return __result;
     }
-    inline void setFontWeight(std::optional<double> fontWeight) noexcept override {
-      _swiftPart.setFontWeight(fontWeight);
+    inline void setTextWeight(std::optional<double> textWeight) noexcept override {
+      _swiftPart.setTextWeight(textWeight);
     }
-    inline std::optional<std::string> getFontFamily() noexcept override {
-      auto __result = _swiftPart.getFontFamily();
+    inline std::optional<std::string> getTextFamily() noexcept override {
+      auto __result = _swiftPart.getTextFamily();
       return __result;
     }
-    inline void setFontFamily(const std::optional<std::string>& fontFamily) noexcept override {
-      _swiftPart.setFontFamily(fontFamily);
+    inline void setTextFamily(const std::optional<std::string>& textFamily) noexcept override {
+      _swiftPart.setTextFamily(textFamily);
     }
-    inline std::optional<double> getColor() noexcept override {
-      auto __result = _swiftPart.getColor();
+    inline std::optional<double> getTextColor() noexcept override {
+      auto __result = _swiftPart.getTextColor();
       return __result;
     }
-    inline void setColor(std::optional<double> color) noexcept override {
-      _swiftPart.setColor(color);
+    inline void setTextColor(std::optional<double> textColor) noexcept override {
+      _swiftPart.setTextColor(textColor);
     }
-    inline std::optional<double> getLetterSpacing() noexcept override {
-      auto __result = _swiftPart.getLetterSpacing();
+    inline std::optional<double> getTextLetterSpacing() noexcept override {
+      auto __result = _swiftPart.getTextLetterSpacing();
       return __result;
     }
-    inline void setLetterSpacing(std::optional<double> letterSpacing) noexcept override {
-      _swiftPart.setLetterSpacing(letterSpacing);
+    inline void setTextLetterSpacing(std::optional<double> textLetterSpacing) noexcept override {
+      _swiftPart.setTextLetterSpacing(textLetterSpacing);
     }
-    inline std::optional<NitroNumberTextAlign> getTextAlign() noexcept override {
-      auto __result = _swiftPart.getTextAlign();
+    inline std::optional<NitroNumberTextAlign> getTextAlignment() noexcept override {
+      auto __result = _swiftPart.getTextAlignment();
       return __result;
     }
-    inline void setTextAlign(std::optional<NitroNumberTextAlign> textAlign) noexcept override {
-      _swiftPart.setTextAlign(textAlign);
+    inline void setTextAlignment(std::optional<NitroNumberTextAlign> textAlignment) noexcept override {
+      _swiftPart.setTextAlignment(textAlignment);
     }
     inline std::optional<bool> getRightToLeft() noexcept override {
       auto __result = _swiftPart.getRightToLeft();

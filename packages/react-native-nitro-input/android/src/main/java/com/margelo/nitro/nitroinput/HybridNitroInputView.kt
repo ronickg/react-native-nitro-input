@@ -127,7 +127,7 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     set(v) { field = v; markConfigDirty() }
   override var suffixAlign: NitroInputAffixAlign = NitroInputAffixAlign.BASELINE
     set(v) { field = v; markConfigDirty() }
-  override var letterSpacing: Double = 0.0
+  override var textLetterSpacing: Double = 0.0
     set(v) { field = v; markConfigDirty() }
   override var prefixSpacing: Double = Double.POSITIVE_INFINITY
     set(v) { field = v; markConfigDirty() }
@@ -171,17 +171,17 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     set(v) { field = v; markConfigDirty() }
   override var effect: NitroInputEffect = NitroInputEffect.AUTO
     set(v) { field = v; markConfigDirty() }
-  override var fontSize: Double = 32.0
+  override var textSize: Double = 32.0
     set(v) { field = v; markConfigDirty() }
-  override var lineHeight: Double = 0.0
+  override var textLineHeight: Double = 0.0
     set(v) { field = v; markConfigDirty() }
-  override var fontWeight: Double = 400.0
+  override var textWeight: Double = 400.0
     set(v) { field = v; markConfigDirty() }
-  override var fontFamily: String = ""
+  override var textFamily: String = ""
     set(v) { field = v; markConfigDirty() }
-  override var color: Double = Double.NaN
+  override var textColor: Double = Double.NaN
     set(v) { field = v; markConfigDirty() }
-  override var textAlign: NitroInputTextAlign = NitroInputTextAlign.AUTO
+  override var textAlignment: NitroInputTextAlign = NitroInputTextAlign.AUTO
     set(v) { field = v; markConfigDirty() }
   override var rightToLeft: Boolean = false
     set(v) { field = v; markConfigDirty() }
@@ -213,7 +213,15 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     set(v) { field = v; markConfigDirty() }
   override var numberOfLines: Double = 0.0
     set(v) { field = v; markConfigDirty() }
-  override var textAlignVertical: NitroInputTextAlignVertical = NitroInputTextAlignVertical.AUTO
+  override var textVerticalAlignment: NitroInputTextAlignVertical = NitroInputTextAlignVertical.AUTO
+    set(v) { field = v; markConfigDirty() }
+  override var textInsetLeft: Double = 0.0
+    set(v) { field = v; markConfigDirty() }
+  override var textInsetTop: Double = 0.0
+    set(v) { field = v; markConfigDirty() }
+  override var textInsetRight: Double = 0.0
+    set(v) { field = v; markConfigDirty() }
+  override var textInsetBottom: Double = 0.0
     set(v) { field = v; markConfigDirty() }
   override var scrollEnabled: Boolean = true
     set(v) { field = v; markConfigDirty() }
@@ -414,7 +422,7 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     prefixFontSize = Double.NaN
     suffixFontSize = Double.NaN
     signPlacement = NitroInputSignPlacement.BEFOREAFFIX
-    letterSpacing = 0.0
+    textLetterSpacing = 0.0
     prefixSpacing = Double.POSITIVE_INFINITY
     suffixSpacing = Double.POSITIVE_INFINITY
     prefixOffset = 0.0
@@ -438,12 +446,12 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     easing = NitroInputEasing.EXPO
     bounce = 0.15
     effect = NitroInputEffect.AUTO
-    fontSize = 32.0
-    lineHeight = 0.0
-    fontWeight = 400.0
-    fontFamily = ""
-    color = Double.NaN
-    textAlign = NitroInputTextAlign.AUTO
+    textSize = 32.0
+    textLineHeight = 0.0
+    textWeight = 400.0
+    textFamily = ""
+    textColor = Double.NaN
+    textAlignment = NitroInputTextAlign.AUTO
     rightToLeft = false
     caretColor = Double.NaN
     selectionColor = Double.NaN
@@ -459,7 +467,11 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     editable = true
     multiline = false
     numberOfLines = 0.0
-    textAlignVertical = NitroInputTextAlignVertical.AUTO
+    textVerticalAlignment = NitroInputTextAlignVertical.AUTO
+    textInsetLeft = 0.0
+    textInsetTop = 0.0
+    textInsetRight = 0.0
+    textInsetBottom = 0.0
     scrollEnabled = true
     autoFocus = false
     plain = false
@@ -631,7 +643,7 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
     // which sizes the field before this view exists.
     inputView.format = formatOf(this)
     inputView.typography = sizingTypographyOf(this, inputView.resources.displayMetrics.density).copy(
-      color = colorFromARGB(color),
+      color = colorFromARGB(textColor),
       placeholderColor = colorFromARGB(placeholderColor),
       prefixAlign = mapAffixAlign(prefixAlign),
       suffixAlign = mapAffixAlign(suffixAlign),
@@ -699,7 +711,7 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
       plain = plain,
       multiline = multiline,
       numberOfLines = clampInt(numberOfLines, 0, 1000, 0),
-      textAlignVertical = when (textAlignVertical) {
+      textAlignVertical = when (textVerticalAlignment) {
         NitroInputTextAlignVertical.TOP -> NitroInputView.TextAlignVertical.TOP
         NitroInputTextAlignVertical.CENTER -> NitroInputView.TextAlignVertical.CENTER
         NitroInputTextAlignVertical.BOTTOM -> NitroInputView.TextAlignVertical.BOTTOM
@@ -735,7 +747,11 @@ class HybridNitroInputView(private val context: ThemedReactContext) : HybridNitr
       strokeWidth = Math.max(0.0, finite(strokeWidth, 1.0)).toFloat(),
       fillColor = colorFromARGB(fillColor),
     )
-    inputView.alignment = when (textAlign) {
+    inputView.contentInsets = android.graphics.RectF(
+      Math.max(0.0, finite(textInsetLeft, 0.0)).toFloat(), Math.max(0.0, finite(textInsetTop, 0.0)).toFloat(),
+      Math.max(0.0, finite(textInsetRight, 0.0)).toFloat(), Math.max(0.0, finite(textInsetBottom, 0.0)).toFloat(),
+    )
+    inputView.alignment = when (textAlignment) {
       NitroInputTextAlign.CENTER -> NitroInputView.Alignment.CENTER
       NitroInputTextAlign.RIGHT -> NitroInputView.Alignment.RIGHT
       NitroInputTextAlign.LEFT -> NitroInputView.Alignment.LEFT

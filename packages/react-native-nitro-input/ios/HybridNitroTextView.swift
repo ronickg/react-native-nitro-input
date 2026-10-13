@@ -17,12 +17,12 @@ final class HybridNitroTextView: HybridNitroTextViewSpec, RecyclableView {
 
   var text: String = ""
   // Unset unless the element set it: the wrapper sends only those.
-  var fontSize: Double?
-  var fontWeight: Double?
-  var fontFamily: String?
-  var color: Double?
-  var letterSpacing: Double?
-  var textAlign: NitroNumberTextAlign?
+  var textSize: Double?
+  var textWeight: Double?
+  var textFamily: String?
+  var textColor: Double?
+  var textLetterSpacing: Double?
+  var textAlignment: NitroNumberTextAlign?
   var rightToLeft: Bool?
   var duration: Double?
   var easing: NitroInputEasing?
@@ -42,12 +42,12 @@ final class HybridNitroTextView: HybridNitroTextViewSpec, RecyclableView {
   /// (the style first, so the text is laid out in its font).
   func afterUpdate() {
     var style = NitroTextView.Style()
-    if let fontSize, fontSize.isFinite, fontSize > 0 { style.fontSize = CGFloat(fontSize) }
-    if let fontWeight, fontWeight.isFinite { style.fontWeight = CGFloat(fontWeight) }
-    if let fontFamily { style.fontFamily = fontFamily }
-    if let color = color.flatMap(Self.color) { style.color = color }
-    if let letterSpacing, letterSpacing.isFinite { style.letterSpacing = CGFloat(letterSpacing) }
-    switch textAlign {
+    if let textSize, textSize.isFinite, textSize > 0 { style.fontSize = CGFloat(textSize) }
+    if let textWeight, textWeight.isFinite { style.fontWeight = CGFloat(textWeight) }
+    if let textFamily { style.fontFamily = textFamily }
+    if let color = textColor.flatMap(Self.color) { style.color = color }
+    if let textLetterSpacing, textLetterSpacing.isFinite { style.letterSpacing = CGFloat(textLetterSpacing) }
+    switch textAlignment {
     case .left: style.textAlign = .left
     case .center: style.textAlign = .center
     case .right: style.textAlign = .right
@@ -97,8 +97,8 @@ final class HybridNitroTextView: HybridNitroTextViewSpec, RecyclableView {
   /// set, so forget this one's first.
   func prepareForRecycle() {
     text = ""
-    fontSize = nil; fontWeight = nil; fontFamily = nil; color = nil; letterSpacing = nil
-    textAlign = nil; rightToLeft = nil
+    textSize = nil; textWeight = nil; textFamily = nil; textColor = nil; textLetterSpacing = nil
+    textAlignment = nil; rightToLeft = nil
     duration = nil; easing = nil; bounce = nil; effect = nil; respectReduceMotion = nil
     loading = nil
     shimmerColor = nil; shimmerDuration = nil; shimmerAngle = nil; shimmerWidth = nil

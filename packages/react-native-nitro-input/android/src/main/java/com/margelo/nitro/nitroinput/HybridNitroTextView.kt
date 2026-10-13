@@ -26,12 +26,12 @@ class HybridNitroTextView(private val context: ThemedReactContext) : HybridNitro
 
   override var text: String = ""
   // Unset unless the element set it: the wrapper sends only those.
-  override var fontSize: Double? = null
-  override var fontWeight: Double? = null
-  override var fontFamily: String? = null
-  override var color: Double? = null
-  override var letterSpacing: Double? = null
-  override var textAlign: NitroNumberTextAlign? = null
+  override var textSize: Double? = null
+  override var textWeight: Double? = null
+  override var textFamily: String? = null
+  override var textColor: Double? = null
+  override var textLetterSpacing: Double? = null
+  override var textAlignment: NitroNumberTextAlign? = null
   override var rightToLeft: Boolean? = null
   override var duration: Double? = null
   override var easing: NitroInputEasing? = null
@@ -57,12 +57,12 @@ class HybridNitroTextView(private val context: ThemedReactContext) : HybridNitro
 
   private fun apply() {
     textView.style = NitroTextView.Style(
-      fontSize = fontSize?.takeIf { it.isFinite() && it > 0 } ?: 17.0,
-      fontWeight = fontWeight?.takeIf { it.isFinite() } ?: 400.0,
-      fontFamily = fontFamily ?: "",
-      color = color?.let(::colorFromARGB),
-      letterSpacing = (letterSpacing?.takeIf { it.isFinite() } ?: 0.0).toFloat(),
-      textAlign = when (textAlign) {
+      fontSize = textSize?.takeIf { it.isFinite() && it > 0 } ?: 17.0,
+      fontWeight = textWeight?.takeIf { it.isFinite() } ?: 400.0,
+      fontFamily = textFamily ?: "",
+      color = textColor?.let(::colorFromARGB),
+      letterSpacing = (textLetterSpacing?.takeIf { it.isFinite() } ?: 0.0).toFloat(),
+      textAlign = when (textAlignment) {
         NitroNumberTextAlign.LEFT -> NitroNumberView.Alignment.LEFT
         NitroNumberTextAlign.CENTER -> NitroNumberView.Alignment.CENTER
         NitroNumberTextAlign.RIGHT -> NitroNumberView.Alignment.RIGHT
@@ -116,8 +116,8 @@ class HybridNitroTextView(private val context: ThemedReactContext) : HybridNitro
   override fun prepareForRecycle() {
     // The next element's props arrive as a first mount's do, only the ones it set.
     text = ""
-    fontSize = null; fontWeight = null; fontFamily = null; color = null; letterSpacing = null
-    textAlign = null; rightToLeft = null
+    textSize = null; textWeight = null; textFamily = null; textColor = null; textLetterSpacing = null
+    textAlignment = null; rightToLeft = null
     duration = null; easing = null; bounce = null; effect = null; respectReduceMotion = null
     loading = null
     shimmerColor = null; shimmerDuration = null; shimmerAngle = null; shimmerWidth = null

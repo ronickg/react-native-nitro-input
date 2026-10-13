@@ -43,13 +43,13 @@ public protocol HybridNitroNumberViewSpec_protocol: HybridObject, HybridView {
   var shimmerBaseColor: Double? { get set }
   var shimmerDirection: NitroNumberShimmerDirection? { get set }
   var shimmerDelay: Double? { get set }
-  var fontSize: Double? { get set }
+  var textSize: Double? { get set }
   var prefixFontSize: Double? { get set }
   var suffixFontSize: Double? { get set }
   var affixAlign: NitroNumberAffixAlign? { get set }
   var prefixAlign: NitroNumberAffixAlign? { get set }
   var suffixAlign: NitroNumberAffixAlign? { get set }
-  var letterSpacing: Double? { get set }
+  var textLetterSpacing: Double? { get set }
   var prefixSpacing: Double? { get set }
   var suffixSpacing: Double? { get set }
   var prefixOffset: Double? { get set }
@@ -72,10 +72,10 @@ public protocol HybridNitroNumberViewSpec_protocol: HybridObject, HybridView {
   var minimumFontScale: Double? { get set }
   var allowFontScaling: Bool? { get set }
   var maxFontSizeMultiplier: Double? { get set }
-  var fontWeight: Double? { get set }
-  var fontFamily: String? { get set }
-  var color: Double? { get set }
-  var textAlign: NitroNumberTextAlign? { get set }
+  var textWeight: Double? { get set }
+  var textFamily: String? { get set }
+  var textColor: Double? { get set }
+  var textAlignment: NitroNumberTextAlign? { get set }
   var rightToLeft: Bool? { get set }
   var onSizeChange: ((_ width: Double, _ height: Double) -> Void)? { get set }
   var onRevealEnd: (() -> Void)? { get set }

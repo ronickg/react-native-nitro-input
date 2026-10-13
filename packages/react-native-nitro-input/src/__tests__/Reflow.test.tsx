@@ -32,14 +32,14 @@ describe('NitroInput with transition="reflow"', () => {
     expect(props.duration).toBe(400)
     expect(props.easing).toBe('expo')
     expect(props.effect).toBe('auto')
-    expect(props.fontSize).toBe(32)
+    expect(props.textSize).toBe(32)
     expect(props.prefixFontSize).toBe(32)
     expect(props.prefixAlign).toBe('baseline')
     expect(props.suffixAlign).toBe('baseline')
     expect(props.prefixAlign).toBe('baseline')
-    expect(props.color).toBe(Infinity)
+    expect(props.textColor).toBe(Infinity)
     expect(props.placeholderColor).toBe(Infinity)
-    expect(props.fontFamily).toBe('')
+    expect(props.textFamily).toBe('')
     expect(props.maxLength).toBe(0)
     expect(props.editable).toBe(true)
     expect(props.submitBehavior).toBe('blurAndSubmit')
@@ -118,9 +118,9 @@ describe('NitroInput with transition="reflow"', () => {
 
   it('converts colors and font weights', () => {
     const props = nativeProps(render(<NitroInput transition="reflow" color="#ff0000" fontWeight="bold" placeholderTextColor="#00ff00" />))
-    expect(props.color).toBe(0xffff0000)
+    expect(props.textColor).toBe(0xffff0000)
     expect(props.placeholderColor).toBe(0xff00ff00)
-    expect(props.fontWeight).toBe(700)
+    expect(props.textWeight).toBe(700)
   })
 
   it('keeps an uncontrolled field on its initial text', () => {

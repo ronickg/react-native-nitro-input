@@ -56,7 +56,7 @@ namespace margelo::nitro::nitroinput::views {
     signPlacement(nitro::ReactProp<NitroInputSignPlacement>::fromRawValue("NitroInputView", "signPlacement", rawProps, sourceProps.signPlacement)),
     prefixAlign(nitro::ReactProp<NitroInputAffixAlign>::fromRawValue("NitroInputView", "prefixAlign", rawProps, sourceProps.prefixAlign)),
     suffixAlign(nitro::ReactProp<NitroInputAffixAlign>::fromRawValue("NitroInputView", "suffixAlign", rawProps, sourceProps.suffixAlign)),
-    letterSpacing(nitro::ReactProp<double>::fromRawValue("NitroInputView", "letterSpacing", rawProps, sourceProps.letterSpacing)),
+    textLetterSpacing(nitro::ReactProp<double>::fromRawValue("NitroInputView", "textLetterSpacing", rawProps, sourceProps.textLetterSpacing)),
     prefixSpacing(nitro::ReactProp<double>::fromRawValue("NitroInputView", "prefixSpacing", rawProps, sourceProps.prefixSpacing)),
     suffixSpacing(nitro::ReactProp<double>::fromRawValue("NitroInputView", "suffixSpacing", rawProps, sourceProps.suffixSpacing)),
     prefixOffset(nitro::ReactProp<double>::fromRawValue("NitroInputView", "prefixOffset", rawProps, sourceProps.prefixOffset)),
@@ -67,12 +67,12 @@ namespace margelo::nitro::nitroinput::views {
     easing(nitro::ReactProp<NitroInputEasing>::fromRawValue("NitroInputView", "easing", rawProps, sourceProps.easing)),
     bounce(nitro::ReactProp<double>::fromRawValue("NitroInputView", "bounce", rawProps, sourceProps.bounce)),
     effect(nitro::ReactProp<NitroInputEffect>::fromRawValue("NitroInputView", "effect", rawProps, sourceProps.effect)),
-    fontSize(nitro::ReactProp<double>::fromRawValue("NitroInputView", "fontSize", rawProps, sourceProps.fontSize)),
-    lineHeight(nitro::ReactProp<double>::fromRawValue("NitroInputView", "lineHeight", rawProps, sourceProps.lineHeight)),
-    fontWeight(nitro::ReactProp<double>::fromRawValue("NitroInputView", "fontWeight", rawProps, sourceProps.fontWeight)),
-    fontFamily(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "fontFamily", rawProps, sourceProps.fontFamily)),
-    color(nitro::ReactProp<double>::fromRawValue("NitroInputView", "color", rawProps, sourceProps.color)),
-    textAlign(nitro::ReactProp<NitroInputTextAlign>::fromRawValue("NitroInputView", "textAlign", rawProps, sourceProps.textAlign)),
+    textSize(nitro::ReactProp<double>::fromRawValue("NitroInputView", "textSize", rawProps, sourceProps.textSize)),
+    textLineHeight(nitro::ReactProp<double>::fromRawValue("NitroInputView", "textLineHeight", rawProps, sourceProps.textLineHeight)),
+    textWeight(nitro::ReactProp<double>::fromRawValue("NitroInputView", "textWeight", rawProps, sourceProps.textWeight)),
+    textFamily(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "textFamily", rawProps, sourceProps.textFamily)),
+    textColor(nitro::ReactProp<double>::fromRawValue("NitroInputView", "textColor", rawProps, sourceProps.textColor)),
+    textAlignment(nitro::ReactProp<NitroInputTextAlign>::fromRawValue("NitroInputView", "textAlignment", rawProps, sourceProps.textAlignment)),
     rightToLeft(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "rightToLeft", rawProps, sourceProps.rightToLeft)),
     caretColor(nitro::ReactProp<double>::fromRawValue("NitroInputView", "caretColor", rawProps, sourceProps.caretColor)),
     selectionColor(nitro::ReactProp<double>::fromRawValue("NitroInputView", "selectionColor", rawProps, sourceProps.selectionColor)),
@@ -88,7 +88,11 @@ namespace margelo::nitro::nitroinput::views {
     editable(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "editable", rawProps, sourceProps.editable)),
     multiline(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "multiline", rawProps, sourceProps.multiline)),
     numberOfLines(nitro::ReactProp<double>::fromRawValue("NitroInputView", "numberOfLines", rawProps, sourceProps.numberOfLines)),
-    textAlignVertical(nitro::ReactProp<NitroInputTextAlignVertical>::fromRawValue("NitroInputView", "textAlignVertical", rawProps, sourceProps.textAlignVertical)),
+    textVerticalAlignment(nitro::ReactProp<NitroInputTextAlignVertical>::fromRawValue("NitroInputView", "textVerticalAlignment", rawProps, sourceProps.textVerticalAlignment)),
+    textInsetLeft(nitro::ReactProp<double>::fromRawValue("NitroInputView", "textInsetLeft", rawProps, sourceProps.textInsetLeft)),
+    textInsetTop(nitro::ReactProp<double>::fromRawValue("NitroInputView", "textInsetTop", rawProps, sourceProps.textInsetTop)),
+    textInsetRight(nitro::ReactProp<double>::fromRawValue("NitroInputView", "textInsetRight", rawProps, sourceProps.textInsetRight)),
+    textInsetBottom(nitro::ReactProp<double>::fromRawValue("NitroInputView", "textInsetBottom", rawProps, sourceProps.textInsetBottom)),
     scrollEnabled(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "scrollEnabled", rawProps, sourceProps.scrollEnabled)),
     autoFocus(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "autoFocus", rawProps, sourceProps.autoFocus)),
     fieldTestID(nitro::ReactProp<std::string>::fromRawValue("NitroInputView", "fieldTestID", rawProps, sourceProps.fieldTestID)),
@@ -165,7 +169,7 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("signPlacement"): return true;
       case hashString("prefixAlign"): return true;
       case hashString("suffixAlign"): return true;
-      case hashString("letterSpacing"): return true;
+      case hashString("textLetterSpacing"): return true;
       case hashString("prefixSpacing"): return true;
       case hashString("suffixSpacing"): return true;
       case hashString("prefixOffset"): return true;
@@ -176,12 +180,12 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("easing"): return true;
       case hashString("bounce"): return true;
       case hashString("effect"): return true;
-      case hashString("fontSize"): return true;
-      case hashString("lineHeight"): return true;
-      case hashString("fontWeight"): return true;
-      case hashString("fontFamily"): return true;
-      case hashString("color"): return true;
-      case hashString("textAlign"): return true;
+      case hashString("textSize"): return true;
+      case hashString("textLineHeight"): return true;
+      case hashString("textWeight"): return true;
+      case hashString("textFamily"): return true;
+      case hashString("textColor"): return true;
+      case hashString("textAlignment"): return true;
       case hashString("rightToLeft"): return true;
       case hashString("caretColor"): return true;
       case hashString("selectionColor"): return true;
@@ -197,7 +201,11 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("editable"): return true;
       case hashString("multiline"): return true;
       case hashString("numberOfLines"): return true;
-      case hashString("textAlignVertical"): return true;
+      case hashString("textVerticalAlignment"): return true;
+      case hashString("textInsetLeft"): return true;
+      case hashString("textInsetTop"): return true;
+      case hashString("textInsetRight"): return true;
+      case hashString("textInsetBottom"): return true;
       case hashString("scrollEnabled"): return true;
       case hashString("autoFocus"): return true;
       case hashString("fieldTestID"): return true;

@@ -98,7 +98,7 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<NitroInputSignPlacement> signPlacement;
     nitro::ReactProp<NitroInputAffixAlign> prefixAlign;
     nitro::ReactProp<NitroInputAffixAlign> suffixAlign;
-    nitro::ReactProp<double> letterSpacing;
+    nitro::ReactProp<double> textLetterSpacing;
     nitro::ReactProp<double> prefixSpacing;
     nitro::ReactProp<double> suffixSpacing;
     nitro::ReactProp<double> prefixOffset;
@@ -109,12 +109,12 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<NitroInputEasing> easing;
     nitro::ReactProp<double> bounce;
     nitro::ReactProp<NitroInputEffect> effect;
-    nitro::ReactProp<double> fontSize;
-    nitro::ReactProp<double> lineHeight;
-    nitro::ReactProp<double> fontWeight;
-    nitro::ReactProp<std::string> fontFamily;
-    nitro::ReactProp<double> color;
-    nitro::ReactProp<NitroInputTextAlign> textAlign;
+    nitro::ReactProp<double> textSize;
+    nitro::ReactProp<double> textLineHeight;
+    nitro::ReactProp<double> textWeight;
+    nitro::ReactProp<std::string> textFamily;
+    nitro::ReactProp<double> textColor;
+    nitro::ReactProp<NitroInputTextAlign> textAlignment;
     nitro::ReactProp<bool> rightToLeft;
     nitro::ReactProp<double> caretColor;
     nitro::ReactProp<double> selectionColor;
@@ -130,7 +130,11 @@ namespace margelo::nitro::nitroinput::views {
     nitro::ReactProp<bool> editable;
     nitro::ReactProp<bool> multiline;
     nitro::ReactProp<double> numberOfLines;
-    nitro::ReactProp<NitroInputTextAlignVertical> textAlignVertical;
+    nitro::ReactProp<NitroInputTextAlignVertical> textVerticalAlignment;
+    nitro::ReactProp<double> textInsetLeft;
+    nitro::ReactProp<double> textInsetTop;
+    nitro::ReactProp<double> textInsetRight;
+    nitro::ReactProp<double> textInsetBottom;
     nitro::ReactProp<bool> scrollEnabled;
     nitro::ReactProp<bool> autoFocus;
     nitro::ReactProp<std::string> fieldTestID;
@@ -207,7 +211,7 @@ namespace margelo::nitro::nitroinput::views {
              signPlacement.hasSameValue(other.signPlacement) &&
              prefixAlign.hasSameValue(other.prefixAlign) &&
              suffixAlign.hasSameValue(other.suffixAlign) &&
-             letterSpacing.hasSameValue(other.letterSpacing) &&
+             textLetterSpacing.hasSameValue(other.textLetterSpacing) &&
              prefixSpacing.hasSameValue(other.prefixSpacing) &&
              suffixSpacing.hasSameValue(other.suffixSpacing) &&
              prefixOffset.hasSameValue(other.prefixOffset) &&
@@ -218,12 +222,12 @@ namespace margelo::nitro::nitroinput::views {
              easing.hasSameValue(other.easing) &&
              bounce.hasSameValue(other.bounce) &&
              effect.hasSameValue(other.effect) &&
-             fontSize.hasSameValue(other.fontSize) &&
-             lineHeight.hasSameValue(other.lineHeight) &&
-             fontWeight.hasSameValue(other.fontWeight) &&
-             fontFamily.hasSameValue(other.fontFamily) &&
-             color.hasSameValue(other.color) &&
-             textAlign.hasSameValue(other.textAlign) &&
+             textSize.hasSameValue(other.textSize) &&
+             textLineHeight.hasSameValue(other.textLineHeight) &&
+             textWeight.hasSameValue(other.textWeight) &&
+             textFamily.hasSameValue(other.textFamily) &&
+             textColor.hasSameValue(other.textColor) &&
+             textAlignment.hasSameValue(other.textAlignment) &&
              rightToLeft.hasSameValue(other.rightToLeft) &&
              caretColor.hasSameValue(other.caretColor) &&
              selectionColor.hasSameValue(other.selectionColor) &&
@@ -239,7 +243,11 @@ namespace margelo::nitro::nitroinput::views {
              editable.hasSameValue(other.editable) &&
              multiline.hasSameValue(other.multiline) &&
              numberOfLines.hasSameValue(other.numberOfLines) &&
-             textAlignVertical.hasSameValue(other.textAlignVertical) &&
+             textVerticalAlignment.hasSameValue(other.textVerticalAlignment) &&
+             textInsetLeft.hasSameValue(other.textInsetLeft) &&
+             textInsetTop.hasSameValue(other.textInsetTop) &&
+             textInsetRight.hasSameValue(other.textInsetRight) &&
+             textInsetBottom.hasSameValue(other.textInsetBottom) &&
              scrollEnabled.hasSameValue(other.scrollEnabled) &&
              autoFocus.hasSameValue(other.autoFocus) &&
              fieldTestID.hasSameValue(other.fieldTestID) &&
@@ -317,7 +325,7 @@ namespace margelo::nitro::nitroinput::views {
              signPlacement.isProvided() ||
              prefixAlign.isProvided() ||
              suffixAlign.isProvided() ||
-             letterSpacing.isProvided() ||
+             textLetterSpacing.isProvided() ||
              prefixSpacing.isProvided() ||
              suffixSpacing.isProvided() ||
              prefixOffset.isProvided() ||
@@ -328,12 +336,12 @@ namespace margelo::nitro::nitroinput::views {
              easing.isProvided() ||
              bounce.isProvided() ||
              effect.isProvided() ||
-             fontSize.isProvided() ||
-             lineHeight.isProvided() ||
-             fontWeight.isProvided() ||
-             fontFamily.isProvided() ||
-             color.isProvided() ||
-             textAlign.isProvided() ||
+             textSize.isProvided() ||
+             textLineHeight.isProvided() ||
+             textWeight.isProvided() ||
+             textFamily.isProvided() ||
+             textColor.isProvided() ||
+             textAlignment.isProvided() ||
              rightToLeft.isProvided() ||
              caretColor.isProvided() ||
              selectionColor.isProvided() ||
@@ -349,7 +357,11 @@ namespace margelo::nitro::nitroinput::views {
              editable.isProvided() ||
              multiline.isProvided() ||
              numberOfLines.isProvided() ||
-             textAlignVertical.isProvided() ||
+             textVerticalAlignment.isProvided() ||
+             textInsetLeft.isProvided() ||
+             textInsetTop.isProvided() ||
+             textInsetRight.isProvided() ||
+             textInsetBottom.isProvided() ||
              scrollEnabled.isProvided() ||
              autoFocus.isProvided() ||
              fieldTestID.isProvided() ||

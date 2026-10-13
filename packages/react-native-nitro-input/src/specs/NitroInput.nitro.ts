@@ -267,7 +267,7 @@ export interface NitroInputProps extends HybridViewProps {
   /** Vertical alignment of `suffix` relative to the text (the wrapper folds its `affixAlign` into this). */
   suffixAlign: NitroInputAffixAlign
   /** Points added after every glyph, like `Text`'s `letterSpacing`; an affix gets it in proportion to its size. */
-  letterSpacing: number
+  textLetterSpacing: number
   /** Points between the prefix and the text, in place of the letter spacing there. Not finite: the letter spacing. */
   prefixSpacing: number
   /** Points between the text and the suffix, in place of the letter spacing there. Not finite: the letter spacing. */
@@ -289,7 +289,7 @@ export interface NitroInputProps extends HybridViewProps {
   /** How characters enter and leave. Default: `'auto'`. */
   effect: NitroInputEffect
   /** Font size of the text in points. Default: `32`. */
-  fontSize: number
+  textSize: number
   /**
    * Height of the line box in points — the CSS meaning: the total height a
    * line occupies, not extra leading. `0` (the default) uses the font's own.
@@ -302,15 +302,15 @@ export interface NitroInputProps extends HybridViewProps {
    * `lineHeight < font.lineHeight`), and the reason a compressed `lineHeight`
    * renders off-centre on a `TextInput`.
    */
-  lineHeight: number
+  textLineHeight: number
   /** Numeric font weight, `100`–`900`. Default: `400`. */
-  fontWeight: number
+  textWeight: number
   /** Font family name; empty = system font. */
-  fontFamily: string
+  textFamily: string
   /** Text color as a processed ARGB integer; `NaN` = platform label color. */
-  color: number
+  textColor: number
   /** Where the text sits when the view is wider than it. Default: `'auto'`, the start edge. */
-  textAlign: NitroInputTextAlign
+  textAlignment: NitroInputTextAlign
   /**
    * Lay the field out right-to-left: `'auto'` alignment resolves to the right
    * edge, the prefix moves to the right and the suffix to the left, and a
@@ -361,7 +361,16 @@ export interface NitroInputProps extends HybridViewProps {
    */
   numberOfLines: number
   /** `multiline`: where the text sits in the box. Default: `'auto'` (top). */
-  textAlignVertical: NitroInputTextAlignVertical
+  textVerticalAlignment: NitroInputTextAlignVertical
+  /**
+   * The style's padding and border, in points, resolved per edge by
+   * `NitroInput`. Android insets the text, the overlay and the frame by them;
+   * on iOS React Native already lays the view's content out inside them.
+   */
+  textInsetLeft: number
+  textInsetTop: number
+  textInsetRight: number
+  textInsetBottom: number
   /**
    * `multiline`: whether the field scrolls once the text is taller than it.
    * Turning it off lets a growing field drive its own height. Default: `true`.

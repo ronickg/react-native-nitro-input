@@ -40,13 +40,13 @@ export interface NitroInputSizing {
   maskCharacterMap: NitroInputCharacterMapping[]
   maskSlotPlaceholder: string
   keepPlaceholder: boolean
-  fontSize: number
-  lineHeight: number
+  textSize: number
+  textLineHeight: number
   prefixFontSize: number
   suffixFontSize: number
-  fontWeight: number
-  fontFamily: string
-  letterSpacing: number
+  textWeight: number
+  textFamily: string
+  textLetterSpacing: number
   prefixSpacing: number
   suffixSpacing: number
   allowFontScaling: boolean

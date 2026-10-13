@@ -47,10 +47,10 @@ describe('right-to-left', () => {
   it('aligns to the start edge unless told otherwise', () => {
     // `'auto'` is the start edge of the layout direction, as `TextInput` with
     // no `textAlign`; `'left'` and `'right'` are absolute.
-    expect(nativeProps(render(<NitroInput />)).textAlign).toBe('auto')
-    expect(nativeProps(render(<NitroInput textAlign="left" />)).textAlign).toBe('left')
-    expect(nativeProps(render(<NitroInput textAlign="right" />)).textAlign).toBe('right')
-    expect(nativeProps(render(<NitroInput textAlign="center" />)).textAlign).toBe('center')
+    expect(nativeProps(render(<NitroInput />)).textAlignment).toBe('auto')
+    expect(nativeProps(render(<NitroInput textAlign="left" />)).textAlignment).toBe('left')
+    expect(nativeProps(render(<NitroInput textAlign="right" />)).textAlignment).toBe('right')
+    expect(nativeProps(render(<NitroInput textAlign="center" />)).textAlignment).toBe('center')
   })
 })
 
@@ -87,7 +87,7 @@ describe('multiline', () => {
     expect(nativeProps(render(<NitroInput multiline numberOfLines={4} />)).numberOfLines).toBe(4)
     expect(nativeProps(render(<NitroInput multiline rows={3} />)).numberOfLines).toBe(3)
     expect(nativeProps(render(<NitroInput multiline numberOfLines={4} rows={3} />)).numberOfLines).toBe(4)
-    expect(nativeProps(render(<NitroInput multiline textAlignVertical="bottom" />)).textAlignVertical).toBe('bottom')
+    expect(nativeProps(render(<NitroInput multiline textAlignVertical="bottom" />)).textVerticalAlignment).toBe('bottom')
   })
 })
 
@@ -129,8 +129,9 @@ describe('autoWidth', () => {
     expect(measured(render(<NitroInput autoWidth="auto" />))).toEqual({ width: 120, height: 48 })
     expect(measured(render(<NitroInput autoWidth="auto" style={{ width: 200 }} />))).toEqual({ height: 48 })
     expect(measured(render(<NitroInput autoWidth="auto" style={{ flex: 1 }} />))).toEqual({ height: 48 })
+    // The padding is added to the measured height, as TextInput's is.
     expect(measured(render(<NitroInput autoWidth="auto" style={[{ padding: 4 }, { width: '100%' }]} />))).toEqual({
-      height: 48,
+      height: 56,
     })
   })
 
@@ -256,5 +257,65 @@ describe('colours', () => {
     const props = nativeProps(render(<NitroInput strokeColor="not a colour" fillColor={undefined} />))
     expect(props.strokeColor).toBe(Infinity)
     expect(props.fillColor).toBe(Infinity)
+  })
+})
+
+describe('typography in style, as TextInput takes it', () => {
+  it('reads the text keys from style', () => {
+    const props = nativeProps(
+      render(
+        <NitroInput
+          style={{ fontSize: 18, fontWeight: '700', fontFamily: 'Menlo', color: '#ff0000', letterSpacing: 2, lineHeight: 30, textAlign: 'center', textAlignVertical: 'top', width: 200 }}
+        />
+      )
+    )
+    expect(props.textSize).toBe(18)
+    expect(props.textWeight).toBe(700)
+    expect(props.textFamily).toBe('Menlo')
+    expect(props.textLetterSpacing).toBe(2)
+    expect(props.textLineHeight).toBe(30)
+    expect(props.textAlignment).toBe('center')
+    expect(props.textVerticalAlignment).toBe('top')
+    expect(props.textColor).not.toBe(Infinity)
+  })
+
+  it('lets the props of the same name win', () => {
+    const props = nativeProps(render(<NitroInput fontSize={40} fontWeight="300" style={{ fontSize: 18, fontWeight: '700' }} />))
+    expect(props.textSize).toBe(40)
+    expect(props.textWeight).toBe(300)
+  })
+
+  it('reads start, end and justify the way TextInput does', () => {
+    expect(nativeProps(render(<NitroInput style={{ textAlign: 'start' }} />)).textAlignment).toBe('auto')
+    expect(nativeProps(render(<NitroInput style={{ textAlign: 'end' }} />)).textAlignment).toBe('right')
+    expect(nativeProps(render(<NitroInput style={{ textAlign: 'end', direction: 'rtl' }} />)).textAlignment).toBe('left')
+    expect(nativeProps(render(<NitroInput style={{ textAlign: 'justify' }} />)).textAlignment).toBe('auto')
+  })
+})
+
+describe('padding and border in style', () => {
+  const measured = (renderer: ReactTestRenderer) => {
+    const onSizeChange = nativeProps(renderer).onSizeChange as { f: (w: number, h: number) => void }
+    act(() => onSizeChange.f(120, 48))
+    return (nativeProps(renderer).style as unknown[])[0]
+  }
+  const insets = (renderer: ReactTestRenderer) => {
+    const p = nativeProps(renderer)
+    return [p.textInsetLeft, p.textInsetTop, p.textInsetRight, p.textInsetBottom]
+  }
+
+  it('grows an autoWidth field by them instead of squeezing its text', () => {
+    const renderer = render(<NitroInput autoWidth style={{ paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1 }} />)
+    expect(measured(renderer)).toEqual({ width: 120 + 18, height: 48 + 6 })
+    expect(insets(renderer)).toEqual([9, 3, 9, 3])
+  })
+
+  it('resolves the edges the way Yoga does', () => {
+    // A start / end edge before left / right, before horizontal, before all.
+    expect(insets(render(<NitroInput style={{ padding: 1, paddingHorizontal: 2, paddingLeft: 3, paddingStart: 4 }} />))).toEqual([4, 1, 2, 1])
+    // Start is the right edge right-to-left.
+    expect(insets(render(<NitroInput style={{ paddingStart: 4, direction: 'rtl' }} />))).toEqual([0, 0, 4, 0])
+    // A percentage needs the parent's size: not resolved, counted as 0.
+    expect(insets(render(<NitroInput style={{ padding: '10%' }} />))).toEqual([0, 0, 0, 0])
   })
 })

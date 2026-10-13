@@ -59,34 +59,34 @@ void JHybridNitroTextViewStateUpdater::updateViewProps(jni::alias_ref<jni::JClas
     hybridView->setText(newProps->text.get());
   }
   if (oldProps == nullptr
-        ? newProps->fontSize.isProvided()
-        : !newProps->fontSize.hasSameValue(oldProps->fontSize)) {
-    hybridView->setFontSize(newProps->fontSize.get());
+        ? newProps->textSize.isProvided()
+        : !newProps->textSize.hasSameValue(oldProps->textSize)) {
+    hybridView->setTextSize(newProps->textSize.get());
   }
   if (oldProps == nullptr
-        ? newProps->fontWeight.isProvided()
-        : !newProps->fontWeight.hasSameValue(oldProps->fontWeight)) {
-    hybridView->setFontWeight(newProps->fontWeight.get());
+        ? newProps->textWeight.isProvided()
+        : !newProps->textWeight.hasSameValue(oldProps->textWeight)) {
+    hybridView->setTextWeight(newProps->textWeight.get());
   }
   if (oldProps == nullptr
-        ? newProps->fontFamily.isProvided()
-        : !newProps->fontFamily.hasSameValue(oldProps->fontFamily)) {
-    hybridView->setFontFamily(newProps->fontFamily.get());
+        ? newProps->textFamily.isProvided()
+        : !newProps->textFamily.hasSameValue(oldProps->textFamily)) {
+    hybridView->setTextFamily(newProps->textFamily.get());
   }
   if (oldProps == nullptr
-        ? newProps->color.isProvided()
-        : !newProps->color.hasSameValue(oldProps->color)) {
-    hybridView->setColor(newProps->color.get());
+        ? newProps->textColor.isProvided()
+        : !newProps->textColor.hasSameValue(oldProps->textColor)) {
+    hybridView->setTextColor(newProps->textColor.get());
   }
   if (oldProps == nullptr
-        ? newProps->letterSpacing.isProvided()
-        : !newProps->letterSpacing.hasSameValue(oldProps->letterSpacing)) {
-    hybridView->setLetterSpacing(newProps->letterSpacing.get());
+        ? newProps->textLetterSpacing.isProvided()
+        : !newProps->textLetterSpacing.hasSameValue(oldProps->textLetterSpacing)) {
+    hybridView->setTextLetterSpacing(newProps->textLetterSpacing.get());
   }
   if (oldProps == nullptr
-        ? newProps->textAlign.isProvided()
-        : !newProps->textAlign.hasSameValue(oldProps->textAlign)) {
-    hybridView->setTextAlign(newProps->textAlign.get());
+        ? newProps->textAlignment.isProvided()
+        : !newProps->textAlignment.hasSameValue(oldProps->textAlignment)) {
+    hybridView->setTextAlignment(newProps->textAlignment.get());
   }
   if (oldProps == nullptr
         ? newProps->rightToLeft.isProvided()

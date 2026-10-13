@@ -303,7 +303,43 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       if (field == value) return
       field = value
       applyEditTextLayout()
+      // The gravity alone did nothing: the plain field's text alignment, set
+      // when it became plain (before `textAlign` arrived in the same commit),
+      // overrides it, so a centred or right-aligned field stayed at the start.
+      applyTextAlignment()
       overlay.invalidate()
+    }
+
+  /**
+   * A plain field's own text alignment. `AUTO` is the start edge of the layout
+   * direction; `LEFT` and `RIGHT` are absolute, which only
+   * `TEXT_ALIGNMENT_GRAVITY` over an absolute gravity gives - `VIEW_START` /
+   * `VIEW_END` would flip with the direction. A reflowing field's edit text is
+   * hidden behind the overlay and stays at the start.
+   */
+  private fun applyTextAlignment() {
+    editText.textAlignment = if (!keyboard.plain) TEXT_ALIGNMENT_VIEW_START else when (alignment) {
+      Alignment.AUTO -> TEXT_ALIGNMENT_VIEW_START
+      Alignment.CENTER -> TEXT_ALIGNMENT_CENTER
+      Alignment.LEFT, Alignment.RIGHT -> TEXT_ALIGNMENT_GRAVITY
+    }
+  }
+
+  /**
+   * The style's padding and border, in dp. React Native lays an iOS view's
+   * content out inside them, but never hands a Nitro view on Android its
+   * padding, so the text ran to the field's edges: they inset the edit text,
+   * the overlay and the frame here instead (JS sends them; see `NitroInput`).
+   */
+  var contentInsets: android.graphics.RectF = android.graphics.RectF()
+    set(value) {
+      if (field == value) return
+      field = value
+      setPadding(
+        (value.left * density).roundToInt(), (value.top * density).roundToInt(),
+        (value.right * density).roundToInt(), (value.bottom * density).roundToInt(),
+      )
+      invalidate()
     }
 
   /** The outline / fill and floating label this view draws for itself. */
@@ -1010,14 +1046,7 @@ class NitroInputView(context: Context) : FrameLayout(context) {
       applyNativeCursor()
       applyAutoSize()
       applyAffixes()
-      // `AUTO` is the start edge of the layout direction; `LEFT` and `RIGHT`
-      // are absolute, which only `TEXT_ALIGNMENT_GRAVITY` over an absolute
-      // gravity gives - `VIEW_START` / `VIEW_END` would flip with the direction.
-      editText.textAlignment = when (alignment) {
-        Alignment.AUTO -> TEXT_ALIGNMENT_VIEW_START
-        Alignment.CENTER -> TEXT_ALIGNMENT_CENTER
-        Alignment.LEFT, Alignment.RIGHT -> TEXT_ALIGNMENT_GRAVITY
-      }
+      applyTextAlignment()
       // The width now comes from the field, not the engine.
       reportIntrinsicSize()
     } else {
@@ -2038,7 +2067,18 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
   override fun onDraw(canvas: Canvas) {
     super.onDraw(canvas)
-    if (!inputFrame.draws || width <= 0 || height <= 0) return
+    // Inside the style's padding and border, as React Native lays the frame
+    // out on iOS (see [contentInsets]).
+    val boxWidth = width - paddingLeft - paddingRight
+    val boxHeight = height - paddingTop - paddingBottom
+    if (!inputFrame.draws || boxWidth <= 0 || boxHeight <= 0) return
+    val saved = canvas.save()
+    canvas.translate(paddingLeft.toFloat(), paddingTop.toFloat())
+    drawFrame(canvas, boxWidth, boxHeight)
+    canvas.restoreToCount(saved)
+  }
+
+  private fun drawFrame(canvas: Canvas, width: Int, height: Int) {
 
     val filled = inputFrame.variant == Variant.FILLED
     val stroke = strokeWidthPx

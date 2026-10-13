@@ -90,13 +90,13 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
   var shimmerBaseColor: Double? { didSet { markConfigDirty() } }
   var shimmerDirection: NitroNumberShimmerDirection? { didSet { markConfigDirty() } }
   var shimmerDelay: Double? { didSet { markConfigDirty() } }
-  var fontSize: Double? { didSet { markConfigDirty() } }
+  var textSize: Double? { didSet { markConfigDirty() } }
   var prefixFontSize: Double? { didSet { markConfigDirty() } }
   var suffixFontSize: Double? { didSet { markConfigDirty() } }
   var affixAlign: NitroNumberAffixAlign? { didSet { markConfigDirty() } }
   var prefixAlign: NitroNumberAffixAlign? { didSet { markConfigDirty() } }
   var suffixAlign: NitroNumberAffixAlign? { didSet { markConfigDirty() } }
-  var letterSpacing: Double? { didSet { markConfigDirty() } }
+  var textLetterSpacing: Double? { didSet { markConfigDirty() } }
   var prefixSpacing: Double? { didSet { markConfigDirty() } }
   var suffixSpacing: Double? { didSet { markConfigDirty() } }
   var prefixOffset: Double? { didSet { markConfigDirty() } }
@@ -121,10 +121,10 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
   var minimumFontScale: Double? { didSet { markConfigDirty() } }
   var allowFontScaling: Bool? { didSet { markConfigDirty() } }
   var maxFontSizeMultiplier: Double? { didSet { markConfigDirty() } }
-  var fontWeight: Double? { didSet { markConfigDirty() } }
-  var fontFamily: String? { didSet { markConfigDirty() } }
-  var color: Double? { didSet { markConfigDirty() } }
-  var textAlign: NitroNumberTextAlign? { didSet { markConfigDirty() } }
+  var textWeight: Double? { didSet { markConfigDirty() } }
+  var textFamily: String? { didSet { markConfigDirty() } }
+  var textColor: Double? { didSet { markConfigDirty() } }
+  var textAlignment: NitroNumberTextAlign? { didSet { markConfigDirty() } }
   var rightToLeft: Bool? { didSet { markConfigDirty() } }
   var onSizeChange: ((Double, Double) -> Void)? {
     didSet { onMain { self.rollingView.resendIntrinsicSize() } }
@@ -256,13 +256,13 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
     shimmerBaseColor = nil
     shimmerDirection = nil
     shimmerDelay = nil
-    fontSize = nil
+    textSize = nil
     prefixFontSize = nil
     suffixFontSize = nil
     affixAlign = nil
     prefixAlign = nil
     suffixAlign = nil
-    letterSpacing = nil
+    textLetterSpacing = nil
     prefixSpacing = nil
     suffixSpacing = nil
     prefixOffset = nil
@@ -287,10 +287,10 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
     minimumFontScale = nil
     allowFontScaling = nil
     maxFontSizeMultiplier = nil
-    fontWeight = nil
-    fontFamily = nil
-    color = nil
-    textAlign = nil
+    textWeight = nil
+    textFamily = nil
+    textColor = nil
+    textAlignment = nil
     rightToLeft = nil
     onSizeChange = nil
     configDirty = true
@@ -359,16 +359,16 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
     format.digitMax = (digitMax ?? []).map { $0.isFinite ? Int($0.rounded()) : 9 }
 
     var typography = NitroNumberView.Typography()
-    typography.fontSize = CGFloat(fontSize ?? 32)
+    typography.fontSize = CGFloat(textSize ?? 32)
     typography.prefixFontSize = prefixFontSize.map { CGFloat($0) }
     typography.suffixFontSize = suffixFontSize.map { CGFloat($0) }
-    typography.fontWeight = CGFloat(fontWeight ?? 400)
-    typography.fontFamily = fontFamily
-    typography.color = color.map(Self.color(fromARGB:)) ?? .label
+    typography.fontWeight = CGFloat(textWeight ?? 400)
+    typography.fontFamily = textFamily
+    typography.color = textColor.map(Self.color(fromARGB:)) ?? .label
     let sharedAlign = Self.mapAffixAlign(affixAlign)
     typography.prefixAlign = prefixAlign.map { Self.mapAffixAlign($0) } ?? sharedAlign
     typography.suffixAlign = suffixAlign.map { Self.mapAffixAlign($0) } ?? sharedAlign
-    typography.letterSpacing = CGFloat((letterSpacing ?? 0).isFinite ? letterSpacing ?? 0 : 0)
+    typography.letterSpacing = CGFloat((textLetterSpacing ?? 0).isFinite ? textLetterSpacing ?? 0 : 0)
     typography.prefixSpacing = prefixSpacing.flatMap { $0.isFinite ? CGFloat($0) : nil }
     typography.suffixSpacing = suffixSpacing.flatMap { $0.isFinite ? CGFloat($0) : nil }
     typography.prefixOffset = CGFloat((prefixOffset ?? 0).isFinite ? prefixOffset ?? 0 : 0)
@@ -426,7 +426,7 @@ final class HybridNitroNumberView: HybridNitroNumberViewSpec, RecyclableView {
     rollingView.timing = timing
     rollingView.revealMilestones = revealMilestones ?? []
     rollingView.shimmer = shimmer
-    rollingView.alignment = Self.mapAlignment(textAlign)
+    rollingView.alignment = Self.mapAlignment(textAlignment)
     // Fabric does not hand a Hybrid View its layout direction, so JS resolves
     // it and the view is told outright; `effectiveUserInterfaceLayoutDirection`
     // then reads it back for the alignment and the affixes.

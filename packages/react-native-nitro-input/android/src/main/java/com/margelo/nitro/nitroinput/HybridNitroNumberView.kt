@@ -141,7 +141,7 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
     set(v) { field = v; markConfigDirty() }
   override var shimmerDelay: Double? = null
     set(v) { field = v; markConfigDirty() }
-  override var fontSize: Double? = null
+  override var textSize: Double? = null
     set(v) { field = v; markConfigDirty() }
   override var prefixFontSize: Double? = null
     set(v) { field = v; markConfigDirty() }
@@ -153,7 +153,7 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
     set(v) { field = v; markConfigDirty() }
   override var suffixAlign: NitroNumberAffixAlign? = null
     set(v) { field = v; markConfigDirty() }
-  override var letterSpacing: Double? = null
+  override var textLetterSpacing: Double? = null
     set(v) { field = v; markConfigDirty() }
   override var prefixSpacing: Double? = null
     set(v) { field = v; markConfigDirty() }
@@ -201,13 +201,13 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
     set(v) { field = v; markConfigDirty() }
   override var maxFontSizeMultiplier: Double? = null
     set(v) { field = v; markConfigDirty() }
-  override var fontWeight: Double? = null
+  override var textWeight: Double? = null
     set(v) { field = v; markConfigDirty() }
-  override var fontFamily: String? = null
+  override var textFamily: String? = null
     set(v) { field = v; markConfigDirty() }
-  override var color: Double? = null
+  override var textColor: Double? = null
     set(v) { field = v; markConfigDirty() }
-  override var textAlign: NitroNumberTextAlign? = null
+  override var textAlignment: NitroNumberTextAlign? = null
     set(v) { field = v; markConfigDirty() }
   override var rightToLeft: Boolean? = null
     set(v) { field = v; markConfigDirty() }
@@ -360,13 +360,13 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
     shimmerBaseColor = null
     shimmerDirection = null
     shimmerDelay = null
-    fontSize = null
+    textSize = null
     prefixFontSize = null
     suffixFontSize = null
     affixAlign = null
     prefixAlign = null
     suffixAlign = null
-    letterSpacing = null
+    textLetterSpacing = null
     prefixSpacing = null
     suffixSpacing = null
     prefixOffset = null
@@ -391,10 +391,10 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
     minimumFontScale = null
     allowFontScaling = null
     maxFontSizeMultiplier = null
-    fontWeight = null
-    fontFamily = null
-    color = null
-    textAlign = null
+    textWeight = null
+    textFamily = null
+    textColor = null
+    textAlignment = null
     rightToLeft = null
     onSizeChange = null
     configDirty = true
@@ -447,15 +447,15 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
     configDirty = false
 
     rollingView.typography = NitroNumberView.Typography(
-      fontSize = (fontSize ?: 32.0).toFloat(),
+      fontSize = (textSize ?: 32.0).toFloat(),
       prefixFontSize = prefixFontSize?.toFloat(),
       suffixFontSize = suffixFontSize?.toFloat(),
-      fontWeight = clampInt(fontWeight, 100, 900, 400),
-      fontFamily = fontFamily,
-      color = color?.let { colorFromARGB(it) },
+      fontWeight = clampInt(textWeight, 100, 900, 400),
+      fontFamily = textFamily,
+      color = textColor?.let { colorFromARGB(it) },
       prefixAlign = mapAffixAlign(prefixAlign ?: affixAlign),
       suffixAlign = mapAffixAlign(suffixAlign ?: affixAlign),
-      letterSpacing = (letterSpacing ?: 0.0).takeIf { it.isFinite() }?.toFloat() ?: 0f,
+      letterSpacing = (textLetterSpacing ?: 0.0).takeIf { it.isFinite() }?.toFloat() ?: 0f,
       prefixSpacing = prefixSpacing?.takeIf { it.isFinite() }?.toFloat(),
       suffixSpacing = suffixSpacing?.takeIf { it.isFinite() }?.toFloat(),
       prefixOffset = (prefixOffset ?: 0.0).takeIf { it.isFinite() }?.toFloat() ?: 0f,
@@ -545,7 +545,7 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
       downColor = flashDownColor?.let { colorFromARGB(it) },
       durationMs = Math.max(50.0, flashDuration ?: 600.0).toLong(),
     )
-    rollingView.alignment = when (textAlign) {
+    rollingView.alignment = when (textAlignment) {
       NitroNumberTextAlign.CENTER -> NitroNumberView.Alignment.CENTER
       NitroNumberTextAlign.RIGHT -> NitroNumberView.Alignment.RIGHT
       NitroNumberTextAlign.LEFT -> NitroNumberView.Alignment.LEFT

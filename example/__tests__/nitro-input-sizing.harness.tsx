@@ -18,7 +18,7 @@
 import React, { createRef, useLayoutEffect, useRef, useState } from 'react'
 import { View } from 'react-native'
 import { describe, expect, it } from 'react-native-harness'
-import { NitroInput, NumberFormat, type NitroInputHandle, type NitroInputProps } from 'react-native-nitro-input'
+import { NitroInput, NitroNumber, NitroText, NumberFormat, type NitroInputHandle, type NitroInputProps } from 'react-native-nitro-input'
 import { render, sleep, waitFor } from './test-utils'
 
 const usd = new NumberFormat('en-US', { style: 'currency', currency: 'USD' })
@@ -134,5 +134,85 @@ describe('NitroInput first layout', () => {
     const before = rectOf(state.view!).width
     ref.current!.setText('1234567')
     await waitFor(() => expect(rectOf(state.view!).width).toBeGreaterThan(before + 20))
+  })
+})
+
+describe('a TextInput style', () => {
+  // Fabric hands a view its style's keys as props: when a native prop shared a
+  // name with a text style key, `style={{ fontWeight: '700' }}` threw. The
+  // native props are named so that none can (PropNameCollisions.test); this is
+  // the same check on a device, for every component, every text style key.
+  const textStyle = {
+    fontSize: 22,
+    fontWeight: '700' as const,
+    fontFamily: 'OpenRunde-Semibold',
+    fontStyle: 'italic' as const,
+    color: 'tomato',
+    letterSpacing: 1,
+    lineHeight: 30,
+    textAlign: 'center' as const,
+    textAlignVertical: 'center' as const,
+    textDecorationLine: 'underline' as const,
+    textTransform: 'uppercase' as const,
+    fontVariant: ['tabular-nums' as const],
+  }
+
+  it('is taken by NitroInput, as TextInput takes it', async () => {
+    const { state, Box } = boxed()
+    await render(
+      <Box>
+        <NitroInput defaultValue="styled" autoWidth style={textStyle} />
+      </Box>
+    )
+    await expectFinalAtMount(state)
+    // Measured at the style's 22 pt, not the default 32.
+    expect(state.mounted!.height).toBeLessThan(40)
+  })
+
+  it('does not reach NitroNumber or NitroText as props', async () => {
+    const { state, Box } = boxed()
+    await render(
+      <Box>
+        {/* Their style is a view style; a text style is what an app might still pass. */}
+        <NitroNumber value={1234.5} style={textStyle as never} />
+        <NitroText style={textStyle as never}>styled</NitroText>
+      </Box>
+    )
+    await waitFor(() => expect(state.mounted).not.toBeNull())
+    await sleep(SETTLE_MS)
+    expect(rectOf(state.view!).width).toBeGreaterThan(0)
+  })
+})
+
+describe('a size TextInput would give', () => {
+  it('is lineHeight tall on one line', async () => {
+    const { state, Box } = boxed()
+    await render(
+      <Box>
+        <NitroInput defaultValue="Tall" lineHeight={40} fontSize={18} autoWidth />
+      </Box>
+    )
+    await expectFinalAtMount(state)
+    expect(state.mounted!.height).toBeCloseTo(40, 0)
+  })
+
+  it('grows by its padding and border instead of squeezing the text', async () => {
+    const plain = boxed()
+    const padded = boxed()
+    await render(
+      <View>
+        <plain.Box>
+          <NitroInput defaultValue="blue" fontSize={18} autoWidth />
+        </plain.Box>
+        <padded.Box>
+          <NitroInput defaultValue="blue" fontSize={18} autoWidth style={{ paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1 }} />
+        </padded.Box>
+      </View>
+    )
+    await expectFinalAtMount(padded.state)
+    const a = rectOf(plain.state.view!)
+    const b = rectOf(padded.state.view!)
+    expect(b.width - a.width).toBeCloseTo(18, 0)
+    expect(b.height - a.height).toBeCloseTo(8, 0)
   })
 })

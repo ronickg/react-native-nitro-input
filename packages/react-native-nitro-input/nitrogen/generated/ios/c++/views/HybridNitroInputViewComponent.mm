@@ -314,11 +314,11 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.suffixAlign.hasSameValue(oldViewProps->suffixAlign)) {
       swiftPart.setSuffixAlign(static_cast<int>(newViewProps.suffixAlign.get()));
     }
-    // letterSpacing: number
+    // textLetterSpacing: number
     if (oldViewProps == nullptr
-          ? newViewProps.letterSpacing.isProvided()
-          : !newViewProps.letterSpacing.hasSameValue(oldViewProps->letterSpacing)) {
-      swiftPart.setLetterSpacing(newViewProps.letterSpacing.get());
+          ? newViewProps.textLetterSpacing.isProvided()
+          : !newViewProps.textLetterSpacing.hasSameValue(oldViewProps->textLetterSpacing)) {
+      swiftPart.setTextLetterSpacing(newViewProps.textLetterSpacing.get());
     }
     // prefixSpacing: number
     if (oldViewProps == nullptr
@@ -380,41 +380,41 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.effect.hasSameValue(oldViewProps->effect)) {
       swiftPart.setEffect(static_cast<int>(newViewProps.effect.get()));
     }
-    // fontSize: number
+    // textSize: number
     if (oldViewProps == nullptr
-          ? newViewProps.fontSize.isProvided()
-          : !newViewProps.fontSize.hasSameValue(oldViewProps->fontSize)) {
-      swiftPart.setFontSize(newViewProps.fontSize.get());
+          ? newViewProps.textSize.isProvided()
+          : !newViewProps.textSize.hasSameValue(oldViewProps->textSize)) {
+      swiftPart.setTextSize(newViewProps.textSize.get());
     }
-    // lineHeight: number
+    // textLineHeight: number
     if (oldViewProps == nullptr
-          ? newViewProps.lineHeight.isProvided()
-          : !newViewProps.lineHeight.hasSameValue(oldViewProps->lineHeight)) {
-      swiftPart.setLineHeight(newViewProps.lineHeight.get());
+          ? newViewProps.textLineHeight.isProvided()
+          : !newViewProps.textLineHeight.hasSameValue(oldViewProps->textLineHeight)) {
+      swiftPart.setTextLineHeight(newViewProps.textLineHeight.get());
     }
-    // fontWeight: number
+    // textWeight: number
     if (oldViewProps == nullptr
-          ? newViewProps.fontWeight.isProvided()
-          : !newViewProps.fontWeight.hasSameValue(oldViewProps->fontWeight)) {
-      swiftPart.setFontWeight(newViewProps.fontWeight.get());
+          ? newViewProps.textWeight.isProvided()
+          : !newViewProps.textWeight.hasSameValue(oldViewProps->textWeight)) {
+      swiftPart.setTextWeight(newViewProps.textWeight.get());
     }
-    // fontFamily: string
+    // textFamily: string
     if (oldViewProps == nullptr
-          ? newViewProps.fontFamily.isProvided()
-          : !newViewProps.fontFamily.hasSameValue(oldViewProps->fontFamily)) {
-      swiftPart.setFontFamily(newViewProps.fontFamily.get());
+          ? newViewProps.textFamily.isProvided()
+          : !newViewProps.textFamily.hasSameValue(oldViewProps->textFamily)) {
+      swiftPart.setTextFamily(newViewProps.textFamily.get());
     }
-    // color: number
+    // textColor: number
     if (oldViewProps == nullptr
-          ? newViewProps.color.isProvided()
-          : !newViewProps.color.hasSameValue(oldViewProps->color)) {
-      swiftPart.setColor(newViewProps.color.get());
+          ? newViewProps.textColor.isProvided()
+          : !newViewProps.textColor.hasSameValue(oldViewProps->textColor)) {
+      swiftPart.setTextColor(newViewProps.textColor.get());
     }
-    // textAlign: enum
+    // textAlignment: enum
     if (oldViewProps == nullptr
-          ? newViewProps.textAlign.isProvided()
-          : !newViewProps.textAlign.hasSameValue(oldViewProps->textAlign)) {
-      swiftPart.setTextAlign(static_cast<int>(newViewProps.textAlign.get()));
+          ? newViewProps.textAlignment.isProvided()
+          : !newViewProps.textAlignment.hasSameValue(oldViewProps->textAlignment)) {
+      swiftPart.setTextAlignment(static_cast<int>(newViewProps.textAlignment.get()));
     }
     // rightToLeft: boolean
     if (oldViewProps == nullptr
@@ -506,11 +506,35 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.numberOfLines.hasSameValue(oldViewProps->numberOfLines)) {
       swiftPart.setNumberOfLines(newViewProps.numberOfLines.get());
     }
-    // textAlignVertical: enum
+    // textVerticalAlignment: enum
     if (oldViewProps == nullptr
-          ? newViewProps.textAlignVertical.isProvided()
-          : !newViewProps.textAlignVertical.hasSameValue(oldViewProps->textAlignVertical)) {
-      swiftPart.setTextAlignVertical(static_cast<int>(newViewProps.textAlignVertical.get()));
+          ? newViewProps.textVerticalAlignment.isProvided()
+          : !newViewProps.textVerticalAlignment.hasSameValue(oldViewProps->textVerticalAlignment)) {
+      swiftPart.setTextVerticalAlignment(static_cast<int>(newViewProps.textVerticalAlignment.get()));
+    }
+    // textInsetLeft: number
+    if (oldViewProps == nullptr
+          ? newViewProps.textInsetLeft.isProvided()
+          : !newViewProps.textInsetLeft.hasSameValue(oldViewProps->textInsetLeft)) {
+      swiftPart.setTextInsetLeft(newViewProps.textInsetLeft.get());
+    }
+    // textInsetTop: number
+    if (oldViewProps == nullptr
+          ? newViewProps.textInsetTop.isProvided()
+          : !newViewProps.textInsetTop.hasSameValue(oldViewProps->textInsetTop)) {
+      swiftPart.setTextInsetTop(newViewProps.textInsetTop.get());
+    }
+    // textInsetRight: number
+    if (oldViewProps == nullptr
+          ? newViewProps.textInsetRight.isProvided()
+          : !newViewProps.textInsetRight.hasSameValue(oldViewProps->textInsetRight)) {
+      swiftPart.setTextInsetRight(newViewProps.textInsetRight.get());
+    }
+    // textInsetBottom: number
+    if (oldViewProps == nullptr
+          ? newViewProps.textInsetBottom.isProvided()
+          : !newViewProps.textInsetBottom.hasSameValue(oldViewProps->textInsetBottom)) {
+      swiftPart.setTextInsetBottom(newViewProps.textInsetBottom.get());
     }
     // scrollEnabled: boolean
     if (oldViewProps == nullptr

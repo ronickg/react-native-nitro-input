@@ -46,7 +46,7 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   var signPlacement: NitroInputSignPlacement { get set }
   var prefixAlign: NitroInputAffixAlign { get set }
   var suffixAlign: NitroInputAffixAlign { get set }
-  var letterSpacing: Double { get set }
+  var textLetterSpacing: Double { get set }
   var prefixSpacing: Double { get set }
   var suffixSpacing: Double { get set }
   var prefixOffset: Double { get set }
@@ -57,12 +57,12 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   var easing: NitroInputEasing { get set }
   var bounce: Double { get set }
   var effect: NitroInputEffect { get set }
-  var fontSize: Double { get set }
-  var lineHeight: Double { get set }
-  var fontWeight: Double { get set }
-  var fontFamily: String { get set }
-  var color: Double { get set }
-  var textAlign: NitroInputTextAlign { get set }
+  var textSize: Double { get set }
+  var textLineHeight: Double { get set }
+  var textWeight: Double { get set }
+  var textFamily: String { get set }
+  var textColor: Double { get set }
+  var textAlignment: NitroInputTextAlign { get set }
   var rightToLeft: Bool { get set }
   var caretColor: Double { get set }
   var selectionColor: Double { get set }
@@ -78,7 +78,11 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   var editable: Bool { get set }
   var multiline: Bool { get set }
   var numberOfLines: Double { get set }
-  var textAlignVertical: NitroInputTextAlignVertical { get set }
+  var textVerticalAlignment: NitroInputTextAlignVertical { get set }
+  var textInsetLeft: Double { get set }
+  var textInsetTop: Double { get set }
+  var textInsetRight: Double { get set }
+  var textInsetBottom: Double { get set }
   var scrollEnabled: Bool { get set }
   var autoFocus: Bool { get set }
   var fieldTestID: String { get set }

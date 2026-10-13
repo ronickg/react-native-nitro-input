@@ -66,59 +66,59 @@ namespace margelo::nitro::nitroinput {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JString> /* text */)>("setText");
     method(_javaPart, jni::make_jstring(text));
   }
-  std::optional<double> JHybridNitroTextViewSpec::getFontSize() {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getFontSize");
+  std::optional<double> JHybridNitroTextViewSpec::getTextSize() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getTextSize");
     auto __result = method(_javaPart);
     return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
   }
-  void JHybridNitroTextViewSpec::setFontSize(std::optional<double> fontSize) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* fontSize */)>("setFontSize");
-    method(_javaPart, fontSize.has_value() ? jni::JDouble::valueOf(fontSize.value()) : nullptr);
+  void JHybridNitroTextViewSpec::setTextSize(std::optional<double> textSize) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* textSize */)>("setTextSize");
+    method(_javaPart, textSize.has_value() ? jni::JDouble::valueOf(textSize.value()) : nullptr);
   }
-  std::optional<double> JHybridNitroTextViewSpec::getFontWeight() {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getFontWeight");
+  std::optional<double> JHybridNitroTextViewSpec::getTextWeight() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getTextWeight");
     auto __result = method(_javaPart);
     return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
   }
-  void JHybridNitroTextViewSpec::setFontWeight(std::optional<double> fontWeight) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* fontWeight */)>("setFontWeight");
-    method(_javaPart, fontWeight.has_value() ? jni::JDouble::valueOf(fontWeight.value()) : nullptr);
+  void JHybridNitroTextViewSpec::setTextWeight(std::optional<double> textWeight) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* textWeight */)>("setTextWeight");
+    method(_javaPart, textWeight.has_value() ? jni::JDouble::valueOf(textWeight.value()) : nullptr);
   }
-  std::optional<std::string> JHybridNitroTextViewSpec::getFontFamily() {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("getFontFamily");
+  std::optional<std::string> JHybridNitroTextViewSpec::getTextFamily() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("getTextFamily");
     auto __result = method(_javaPart);
     return __result != nullptr ? std::make_optional(__result->toStdString()) : std::nullopt;
   }
-  void JHybridNitroTextViewSpec::setFontFamily(const std::optional<std::string>& fontFamily) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JString> /* fontFamily */)>("setFontFamily");
-    method(_javaPart, fontFamily.has_value() ? jni::make_jstring(fontFamily.value()) : nullptr);
+  void JHybridNitroTextViewSpec::setTextFamily(const std::optional<std::string>& textFamily) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JString> /* textFamily */)>("setTextFamily");
+    method(_javaPart, textFamily.has_value() ? jni::make_jstring(textFamily.value()) : nullptr);
   }
-  std::optional<double> JHybridNitroTextViewSpec::getColor() {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getColor");
+  std::optional<double> JHybridNitroTextViewSpec::getTextColor() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getTextColor");
     auto __result = method(_javaPart);
     return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
   }
-  void JHybridNitroTextViewSpec::setColor(std::optional<double> color) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* color */)>("setColor");
-    method(_javaPart, color.has_value() ? jni::JDouble::valueOf(color.value()) : nullptr);
+  void JHybridNitroTextViewSpec::setTextColor(std::optional<double> textColor) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* textColor */)>("setTextColor");
+    method(_javaPart, textColor.has_value() ? jni::JDouble::valueOf(textColor.value()) : nullptr);
   }
-  std::optional<double> JHybridNitroTextViewSpec::getLetterSpacing() {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getLetterSpacing");
+  std::optional<double> JHybridNitroTextViewSpec::getTextLetterSpacing() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JDouble>()>("getTextLetterSpacing");
     auto __result = method(_javaPart);
     return __result != nullptr ? std::make_optional(__result->value()) : std::nullopt;
   }
-  void JHybridNitroTextViewSpec::setLetterSpacing(std::optional<double> letterSpacing) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* letterSpacing */)>("setLetterSpacing");
-    method(_javaPart, letterSpacing.has_value() ? jni::JDouble::valueOf(letterSpacing.value()) : nullptr);
+  void JHybridNitroTextViewSpec::setTextLetterSpacing(std::optional<double> textLetterSpacing) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<jni::JDouble> /* textLetterSpacing */)>("setTextLetterSpacing");
+    method(_javaPart, textLetterSpacing.has_value() ? jni::JDouble::valueOf(textLetterSpacing.value()) : nullptr);
   }
-  std::optional<NitroNumberTextAlign> JHybridNitroTextViewSpec::getTextAlign() {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JNitroNumberTextAlign>()>("getTextAlign");
+  std::optional<NitroNumberTextAlign> JHybridNitroTextViewSpec::getTextAlignment() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JNitroNumberTextAlign>()>("getTextAlignment");
     auto __result = method(_javaPart);
     return __result != nullptr ? std::make_optional(__result->toCpp()) : std::nullopt;
   }
-  void JHybridNitroTextViewSpec::setTextAlign(std::optional<NitroNumberTextAlign> textAlign) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroNumberTextAlign> /* textAlign */)>("setTextAlign");
-    method(_javaPart, textAlign.has_value() ? JNitroNumberTextAlign::fromCpp(textAlign.value()) : nullptr);
+  void JHybridNitroTextViewSpec::setTextAlignment(std::optional<NitroNumberTextAlign> textAlignment) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JNitroNumberTextAlign> /* textAlignment */)>("setTextAlignment");
+    method(_javaPart, textAlignment.has_value() ? JNitroNumberTextAlign::fromCpp(textAlignment.value()) : nullptr);
   }
   std::optional<bool> JHybridNitroTextViewSpec::getRightToLeft() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JBoolean>()>("getRightToLeft");

@@ -229,7 +229,7 @@ abstract class HybridNitroNumberViewSpec: HybridView() {
   @get:Keep
   @set:DoNotStrip
   @set:Keep
-  abstract var fontSize: Double?
+  abstract var textSize: Double?
   
   @get:DoNotStrip
   @get:Keep
@@ -265,7 +265,7 @@ abstract class HybridNitroNumberViewSpec: HybridView() {
   @get:Keep
   @set:DoNotStrip
   @set:Keep
-  abstract var letterSpacing: Double?
+  abstract var textLetterSpacing: Double?
   
   @get:DoNotStrip
   @get:Keep
@@ -403,25 +403,25 @@ abstract class HybridNitroNumberViewSpec: HybridView() {
   @get:Keep
   @set:DoNotStrip
   @set:Keep
-  abstract var fontWeight: Double?
+  abstract var textWeight: Double?
   
   @get:DoNotStrip
   @get:Keep
   @set:DoNotStrip
   @set:Keep
-  abstract var fontFamily: String?
+  abstract var textFamily: String?
   
   @get:DoNotStrip
   @get:Keep
   @set:DoNotStrip
   @set:Keep
-  abstract var color: Double?
+  abstract var textColor: Double?
   
   @get:DoNotStrip
   @get:Keep
   @set:DoNotStrip
   @set:Keep
-  abstract var textAlign: NitroNumberTextAlign?
+  abstract var textAlignment: NitroNumberTextAlign?
   
   @get:DoNotStrip
   @get:Keep

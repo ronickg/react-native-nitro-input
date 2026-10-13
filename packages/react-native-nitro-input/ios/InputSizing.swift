@@ -40,13 +40,13 @@ protocol InputSizingProps {
   var signPlacement: NitroInputSignPlacement { get }
   var placeholder: String { get }
   var maxLength: Double { get }
-  var fontSize: Double { get }
-  var lineHeight: Double { get }
+  var textSize: Double { get }
+  var textLineHeight: Double { get }
   var prefixFontSize: Double { get }
   var suffixFontSize: Double { get }
-  var fontWeight: Double { get }
-  var fontFamily: String { get }
-  var letterSpacing: Double { get }
+  var textWeight: Double { get }
+  var textFamily: String { get }
+  var textLetterSpacing: Double { get }
   var prefixSpacing: Double { get }
   var suffixSpacing: Double { get }
   var allowFontScaling: Bool { get }
@@ -101,13 +101,13 @@ enum InputMapping {
   /// The typography's sizing half; the view adds the colours, alignment and offsets.
   static func sizingTypography(_ p: some InputSizingProps) -> NitroInputView.Typography {
     var typography = NitroInputView.Typography()
-    typography.fontSize = CGFloat(p.fontSize.isFinite && p.fontSize > 0 ? p.fontSize : 32)
-    typography.lineHeight = CGFloat(p.lineHeight.isFinite && p.lineHeight > 0 ? p.lineHeight : 0)
+    typography.fontSize = CGFloat(p.textSize.isFinite && p.textSize > 0 ? p.textSize : 32)
+    typography.lineHeight = CGFloat(p.textLineHeight.isFinite && p.textLineHeight > 0 ? p.textLineHeight : 0)
     typography.prefixFontSize = p.prefixFontSize.isFinite && p.prefixFontSize > 0 ? CGFloat(p.prefixFontSize) : nil
     typography.suffixFontSize = p.suffixFontSize.isFinite && p.suffixFontSize > 0 ? CGFloat(p.suffixFontSize) : nil
-    typography.fontWeight = CGFloat(p.fontWeight.isFinite ? p.fontWeight : 400)
-    typography.fontFamily = p.fontFamily.isEmpty ? nil : p.fontFamily
-    typography.letterSpacing = CGFloat(p.letterSpacing.isFinite ? p.letterSpacing : 0)
+    typography.fontWeight = CGFloat(p.textWeight.isFinite ? p.textWeight : 400)
+    typography.fontFamily = p.textFamily.isEmpty ? nil : p.textFamily
+    typography.letterSpacing = CGFloat(p.textLetterSpacing.isFinite ? p.textLetterSpacing : 0)
     typography.prefixSpacing = p.prefixSpacing.isFinite ? CGFloat(p.prefixSpacing) : nil
     typography.suffixSpacing = p.suffixSpacing.isFinite ? CGFloat(p.suffixSpacing) : nil
     typography.allowFontScaling = p.allowFontScaling
@@ -210,6 +210,9 @@ final class InputMetrics {
   let suffixOffset: CGFloat
   /// Height of the line box (the body font's line height).
   let lineHeight: CGFloat
+  /// The height a single line asks for: `lineHeight` when the typography sets
+  /// one, else the font's own, as on Android (and as `TextInput` sizes itself).
+  let lineBoxHeight: CGFloat
   /// The advance of one of the bullets a plain secure field draws (see `init`).
   let secureBulletWidth: CGFloat
   private var widthCache: [WidthKey: CGFloat] = [:]
@@ -232,6 +235,7 @@ final class InputMetrics {
     prefixOffset = t.prefixOffset * scale
     suffixOffset = t.suffixOffset * scale
     lineHeight = ceil(body.lineHeight)
+    lineBoxHeight = t.lineHeight > 0 ? t.lineHeight : lineHeight
     // A plain secure field is drawn by UITextField, which shows every
     // character as U+2219 in the *system* font at the field's size - in the
     // field's weight when that is the system font, regular otherwise - not as
@@ -524,7 +528,7 @@ final class HybridNitroInputMeasure: HybridNitroInputMeasureSpec {
       ? InputSizing.plainWidth(metrics, format: format, text: text, hint: hint, tail: tail, secure: sizing.secureTextEntry)
       : InputSizing.reflowWidth(metrics, format: format, text: text, hint: hint, tail: tail, secure: sizing.secureTextEntry)
     let size = InputSizing.reported(width: InputFrameMetrics.width(content: width, frame: frame, metrics: metrics),
-                                    height: InputFrameMetrics.singleLineHeight(metrics.lineHeight, frame: frame, metrics: metrics))
+                                    height: InputFrameMetrics.singleLineHeight(metrics.lineBoxHeight, frame: frame, metrics: metrics))
     return NitroInputSize(width: Double(size.width), height: Double(size.height))
   }
 }

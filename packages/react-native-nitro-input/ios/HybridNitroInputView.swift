@@ -117,7 +117,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var signPlacement: NitroInputSignPlacement = .beforeaffix { didSet { markConfigDirty() } }
   var prefixAlign: NitroInputAffixAlign = .baseline { didSet { markConfigDirty() } }
   var suffixAlign: NitroInputAffixAlign = .baseline { didSet { markConfigDirty() } }
-  var letterSpacing: Double = 0 { didSet { markConfigDirty() } }
+  var textLetterSpacing: Double = 0 { didSet { markConfigDirty() } }
   var prefixSpacing: Double = .infinity { didSet { markConfigDirty() } }
   var suffixSpacing: Double = .infinity { didSet { markConfigDirty() } }
   var prefixOffset: Double = 0 { didSet { markConfigDirty() } }
@@ -128,12 +128,12 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var easing: NitroInputEasing = .expo { didSet { markConfigDirty() } }
   var bounce: Double = 0.15 { didSet { markConfigDirty() } }
   var effect: NitroInputEffect = .auto { didSet { markConfigDirty() } }
-  var fontSize: Double = 32 { didSet { markConfigDirty() } }
-  var lineHeight: Double = 0 { didSet { markConfigDirty() } }
-  var fontWeight: Double = 400 { didSet { markConfigDirty() } }
-  var fontFamily: String = "" { didSet { markConfigDirty() } }
-  var color: Double = .nan { didSet { markConfigDirty() } }
-  var textAlign: NitroInputTextAlign = .auto { didSet { markConfigDirty() } }
+  var textSize: Double = 32 { didSet { markConfigDirty() } }
+  var textLineHeight: Double = 0 { didSet { markConfigDirty() } }
+  var textWeight: Double = 400 { didSet { markConfigDirty() } }
+  var textFamily: String = "" { didSet { markConfigDirty() } }
+  var textColor: Double = .nan { didSet { markConfigDirty() } }
+  var textAlignment: NitroInputTextAlign = .auto { didSet { markConfigDirty() } }
   var rightToLeft: Bool = false { didSet { markConfigDirty() } }
   var caretColor: Double = .nan { didSet { markConfigDirty() } }
   var selectionColor: Double = .nan { didSet { markConfigDirty() } }
@@ -149,7 +149,13 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var editable: Bool = true { didSet { markConfigDirty() } }
   var multiline: Bool = false { didSet { markConfigDirty() } }
   var numberOfLines: Double = 0 { didSet { markConfigDirty() } }
-  var textAlignVertical: NitroInputTextAlignVertical = .auto { didSet { markConfigDirty() } }
+  var textVerticalAlignment: NitroInputTextAlignVertical = .auto { didSet { markConfigDirty() } }
+  /// The style's padding and border. Android insets its content by them; on
+  /// iOS React Native already lays the view's content out inside them.
+  var textInsetLeft: Double = 0
+  var textInsetTop: Double = 0
+  var textInsetRight: Double = 0
+  var textInsetBottom: Double = 0
   var scrollEnabled: Bool = true { didSet { markConfigDirty() } }
   var autoFocus: Bool = false { didSet { markConfigDirty() } }
   var fieldTestID: String = "" { didSet { markConfigDirty() } }
@@ -330,7 +336,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     signPlacement = .beforeaffix
     prefixAlign = .baseline
     suffixAlign = .baseline
-    letterSpacing = 0
+    textLetterSpacing = 0
     prefixSpacing = .infinity
     suffixSpacing = .infinity
     prefixOffset = 0
@@ -341,12 +347,12 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     easing = .expo
     bounce = 0.15
     effect = .auto
-    fontSize = 32
-    lineHeight = 0
-    fontWeight = 400
-    fontFamily = ""
-    color = .nan
-    textAlign = .auto
+    textSize = 32
+    textLineHeight = 0
+    textWeight = 400
+    textFamily = ""
+    textColor = .nan
+    textAlignment = .auto
     rightToLeft = false
     caretColor = .nan
     selectionColor = .nan
@@ -362,7 +368,11 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     editable = true
     multiline = false
     numberOfLines = 0
-    textAlignVertical = .auto
+    textVerticalAlignment = .auto
+    textInsetLeft = 0
+    textInsetTop = 0
+    textInsetRight = 0
+    textInsetBottom = 0
     scrollEnabled = true
     autoFocus = false
     fieldTestID = ""
@@ -552,7 +562,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     // which sizes the field before this view exists (InputSizing.swift).
     let format = InputMapping.format(self)
     var typography = InputMapping.sizingTypography(self)
-    typography.color = Self.color(fromARGB: color) ?? .label
+    typography.color = Self.color(fromARGB: textColor) ?? .label
     typography.placeholderColor = Self.color(fromARGB: placeholderColor) ?? .placeholderText
     typography.prefixAlign = Self.mapAffixAlign(prefixAlign)
     typography.suffixAlign = Self.mapAffixAlign(suffixAlign)
@@ -575,7 +585,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     traits.editable = editable
     traits.multiline = multiline
     traits.numberOfLines = numberOfLines.isFinite ? max(0, Int(numberOfLines)) : 0
-    traits.textAlignVertical = switch textAlignVertical {
+    traits.textAlignVertical = switch textVerticalAlignment {
       case .top: .top
       case .center: .center
       case .bottom: .bottom
@@ -625,7 +635,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     inputView.timing = timing
     inputView.traits = traits
     inputView.worklets = worklets
-    inputView.alignment = Self.mapAlignment(textAlign)
+    inputView.alignment = Self.mapAlignment(textAlignment)
     // Fabric does not hand a Hybrid View its layout direction, so JS resolves
     // it and the view is told outright; `effectiveUserInterfaceLayoutDirection`
     // then reads it back for everything that has an edge.
