@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.1
 
 - **`NitroInput`'s `tabularNums` prop: tabular digits in any font.** Digits
   were tabular only in fonts that ship tabular figures: in one without (Open
