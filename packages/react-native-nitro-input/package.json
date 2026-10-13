@@ -140,10 +140,12 @@
     },
     "hooks": {
       "before:init": [
+        "node ../../scripts/release/stamp-changelog.mjs --check",
         "bun run typecheck",
         "bun run test",
         "bun run test:cpp"
-      ]
+      ],
+      "after:bump": "node ../../scripts/release/stamp-changelog.mjs ${version}"
     }
   }
 }
