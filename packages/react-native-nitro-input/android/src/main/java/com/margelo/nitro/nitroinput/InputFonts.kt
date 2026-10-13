@@ -87,11 +87,12 @@ internal class InputFonts(
   }
 
   /**
-   * The body's digits when the font has no tabular figures, which are then
-   * each laid out in a slot as wide as the widest ([DigitSlots]); null when it
-   * has them. The affixes keep their own: they never change under the typing.
+   * The body's digits when they are slotted (`tabularNums` set) and the font
+   * has no tabular figures: each is then laid out in a slot as wide as the
+   * widest ([DigitSlots]); null otherwise. The affixes keep their own: they
+   * never change under the typing.
    */
-  private val bodyDigits: DigitSlots.Digits? = if (t.tabularNums) DigitSlots.measure(body) else null
+  private val bodyDigits: DigitSlots.Digits? = if (t.slotDigits) DigitSlots.measure(body) else null
 
   /** A slotted body digit's advance, its letter spacing aside: the edit text's slot less that spacing. */
   private val bodySlot: Float = bodyDigits?.let { it.slot(bodySpacing) - bodySpacing } ?: 0f

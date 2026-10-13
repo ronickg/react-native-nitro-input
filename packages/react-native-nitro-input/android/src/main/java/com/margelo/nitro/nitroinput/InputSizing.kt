@@ -42,6 +42,7 @@ internal interface InputSizingProps {
   val textFamily: String
   val textLetterSpacing: Double
   val tabularNums: Boolean
+  val slotDigits: Boolean
   val prefixSpacing: Double
   val suffixSpacing: Double
   val allowFontScaling: Boolean
@@ -98,6 +99,7 @@ internal fun sizingTypographyOf(p: InputSizingProps, density: Float): Typography
     fontFamily = p.textFamily.ifEmpty { null },
     letterSpacing = if (p.textLetterSpacing.isFinite()) p.textLetterSpacing.toFloat() else 0f,
     tabularNums = p.tabularNums,
+    slotDigits = p.slotDigits,
     prefixSpacing = p.prefixSpacing.takeIf { it.isFinite() }?.toFloat(),
     suffixSpacing = p.suffixSpacing.takeIf { it.isFinite() }?.toFloat(),
     allowFontScaling = p.allowFontScaling,
@@ -389,6 +391,7 @@ internal class SizingProps(s: NitroInputSizing) : InputSizingProps {
   override val textFamily = s.textFamily
   override val textLetterSpacing = s.textLetterSpacing
   override val tabularNums = s.tabularNums
+  override val slotDigits = s.slotDigits
   override val prefixSpacing = s.prefixSpacing
   override val suffixSpacing = s.suffixSpacing
   override val allowFontScaling = s.allowFontScaling

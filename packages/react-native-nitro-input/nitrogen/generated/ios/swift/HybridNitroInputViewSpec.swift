@@ -48,6 +48,7 @@ public protocol HybridNitroInputViewSpec_protocol: HybridObject, HybridView {
   var suffixAlign: NitroInputAffixAlign { get set }
   var textLetterSpacing: Double { get set }
   var tabularNums: Bool { get set }
+  var slotDigits: Bool { get set }
   var prefixSpacing: Double { get set }
   var suffixSpacing: Double { get set }
   var prefixOffset: Double { get set }

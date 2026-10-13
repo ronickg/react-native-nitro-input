@@ -518,6 +518,15 @@ namespace margelo::nitro::nitroinput {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jboolean /* tabularNums */)>("setTabularNums");
     method(_javaPart, tabularNums);
   }
+  bool JHybridNitroInputViewSpec::getSlotDigits() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean()>("getSlotDigits");
+    auto __result = method(_javaPart);
+    return static_cast<bool>(__result);
+  }
+  void JHybridNitroInputViewSpec::setSlotDigits(bool slotDigits) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jboolean /* slotDigits */)>("setSlotDigits");
+    method(_javaPart, slotDigits);
+  }
   double JHybridNitroInputViewSpec::getPrefixSpacing() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getPrefixSpacing");
     auto __result = method(_javaPart);

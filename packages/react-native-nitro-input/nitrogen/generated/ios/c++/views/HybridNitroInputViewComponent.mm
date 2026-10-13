@@ -326,6 +326,12 @@ using namespace margelo::nitro::nitroinput::views;
           : !newViewProps.tabularNums.hasSameValue(oldViewProps->tabularNums)) {
       swiftPart.setTabularNums(newViewProps.tabularNums.get());
     }
+    // slotDigits: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.slotDigits.isProvided()
+          : !newViewProps.slotDigits.hasSameValue(oldViewProps->slotDigits)) {
+      swiftPart.setSlotDigits(newViewProps.slotDigits.get());
+    }
     // prefixSpacing: number
     if (oldViewProps == nullptr
           ? newViewProps.prefixSpacing.isProvided()

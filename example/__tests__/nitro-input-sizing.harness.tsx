@@ -44,7 +44,7 @@ const CASES: [string, NitroInputProps][] = [
   ['maxLength', { defaultValue: 'abcdefghij', maxLength: 4, autoWidth: true, fontSize: 20 }],
   ['a line height and a weight', { defaultValue: 'Tall', lineHeight: 40, fontWeight: '600', autoWidth: true, fontSize: 22 }],
   ['a custom font', { fontFamily: 'OpenRunde-Semibold', defaultValue: '$1,250.50', autoWidth: true, fontSize: 16 }],
-  ['a mask in a font without tabular figures', { mode: 'mask', mask: '[0000] [0000]', keepPlaceholder: true, placeholder: '0123 4567', defaultValue: '11', fontFamily: 'OpenRunde-Regular', autoWidth: true, fontSize: 20 }],
+  ['a mask in a font without tabular figures', { mode: 'mask', mask: '[0000] [0000]', keepPlaceholder: true, placeholder: '0123 4567', defaultValue: '11', fontFamily: 'OpenRunde-Regular', tabularNums: true, autoWidth: true, fontSize: 20 }],
 ]
 
 type Rect = { width: number; height: number }
@@ -220,9 +220,9 @@ describe('a size TextInput would give', () => {
 
 describe('digits in a font without tabular figures', () => {
   // Open Runde has proportional digits and no tabular ones to ask for: a "1"
-  // is far narrower than a "0". Each digit is laid out as wide as the widest,
-  // so typing over a kept placeholder never moves what is still to come, and
-  // an amount keeps its width as its digits change.
+  // is far narrower than a "0". With `tabularNums` each digit is laid out as
+  // wide as the widest, so typing over a kept placeholder never moves what is
+  // still to come, and an amount keeps its width as its digits change.
   for (const transition of ['none', 'reflow'] as const) {
     it(`keep a mask's width whatever is typed (${transition})`, async () => {
       const ref = createRef<NitroInputHandle>()
@@ -237,6 +237,7 @@ describe('digits in a font without tabular figures', () => {
             keepPlaceholder
             placeholder="0000 0000 0000"
             fontFamily="OpenRunde-Regular"
+            tabularNums
             autoWidth
             fontSize={22}
           />
@@ -253,18 +254,20 @@ describe('digits in a font without tabular figures', () => {
     })
   }
 
-  it('leave each digit its own width with tabularNums off', async () => {
-    const ref = createRef<NitroInputHandle>()
-    const { state, Box } = boxed()
-    await render(
-      <Box>
-        <NitroInput ref={ref} defaultValue="0000" tabularNums={false} fontFamily="OpenRunde-Regular" autoWidth fontSize={22} />
-      </Box>
-    )
-    await expectFinalAtMount(state)
-    const zeros = rectOf(state.view!).width
-    ref.current!.setText('1111')
-    // Open Runde's "1" is about three quarters of its "0".
-    await waitFor(() => expect(rectOf(state.view!).width).toBeLessThan(zeros - 8))
-  })
+  for (const [name, tabularNums] of [['unset', undefined], ['false', false]] as const) {
+    it(`leave each digit its own width with tabularNums ${name}`, async () => {
+      const ref = createRef<NitroInputHandle>()
+      const { state, Box } = boxed()
+      await render(
+        <Box>
+          <NitroInput ref={ref} defaultValue="0000" tabularNums={tabularNums} fontFamily="OpenRunde-Regular" autoWidth fontSize={22} />
+        </Box>
+      )
+      await expectFinalAtMount(state)
+      const zeros = rectOf(state.view!).width
+      ref.current!.setText('1111')
+      // Open Runde's "1" is about three quarters of its "0".
+      await waitFor(() => expect(rectOf(state.view!).width).toBeLessThan(zeros - 8))
+    })
+  }
 })

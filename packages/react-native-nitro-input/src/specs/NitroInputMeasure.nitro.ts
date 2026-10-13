@@ -48,6 +48,7 @@ export interface NitroInputSizing {
   textFamily: string
   textLetterSpacing: number
   tabularNums: boolean
+  slotDigits: boolean
   prefixSpacing: number
   suffixSpacing: number
   allowFontScaling: boolean

@@ -144,8 +144,10 @@ final class NitroInputView: UIView {
     var suffixAlign: AffixAlign = .baseline
     /// Points added after every glyph, as `Text`'s letterSpacing; an affix gets it in proportion to its size.
     var letterSpacing: CGFloat = 0
-    /// Every digit as wide as the widest (`InputMetrics.bodyDigitWidths` for a font without tabular figures), or each at its own width.
+    /// The font's tabular figures rather than its proportional ones.
     var tabularNums = true
+    /// Every digit laid out as wide as the widest, centred (`InputMetrics.bodyDigitWidths`): tabular figures for a font without them.
+    var slotDigits = false
     /// Points between the prefix and the text, and between the text and the suffix, in place of the letter spacing there.
     var prefixSpacing: CGFloat? = nil
     var suffixSpacing: CGFloat? = nil

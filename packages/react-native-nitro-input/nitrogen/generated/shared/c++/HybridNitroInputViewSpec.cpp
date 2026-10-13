@@ -90,6 +90,8 @@ namespace margelo::nitro::nitroinput {
       prototype.registerHybridSetter("textLetterSpacing", &HybridNitroInputViewSpec::setTextLetterSpacing);
       prototype.registerHybridGetter("tabularNums", &HybridNitroInputViewSpec::getTabularNums);
       prototype.registerHybridSetter("tabularNums", &HybridNitroInputViewSpec::setTabularNums);
+      prototype.registerHybridGetter("slotDigits", &HybridNitroInputViewSpec::getSlotDigits);
+      prototype.registerHybridSetter("slotDigits", &HybridNitroInputViewSpec::setSlotDigits);
       prototype.registerHybridGetter("prefixSpacing", &HybridNitroInputViewSpec::getPrefixSpacing);
       prototype.registerHybridSetter("prefixSpacing", &HybridNitroInputViewSpec::setPrefixSpacing);
       prototype.registerHybridGetter("suffixSpacing", &HybridNitroInputViewSpec::getSuffixSpacing);

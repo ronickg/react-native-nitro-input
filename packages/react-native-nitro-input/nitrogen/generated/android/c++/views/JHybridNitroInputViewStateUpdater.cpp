@@ -244,6 +244,11 @@ void JHybridNitroInputViewStateUpdater::updateViewProps(jni::alias_ref<jni::JCla
     hybridView->setTabularNums(newProps->tabularNums.get());
   }
   if (oldProps == nullptr
+        ? newProps->slotDigits.isProvided()
+        : !newProps->slotDigits.hasSameValue(oldProps->slotDigits)) {
+    hybridView->setSlotDigits(newProps->slotDigits.get());
+  }
+  if (oldProps == nullptr
         ? newProps->prefixSpacing.isProvided()
         : !newProps->prefixSpacing.hasSameValue(oldProps->prefixSpacing)) {
     hybridView->setPrefixSpacing(newProps->prefixSpacing.get());

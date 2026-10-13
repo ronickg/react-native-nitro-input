@@ -18,7 +18,7 @@ public extension NitroInputSizing {
   /**
    * Create a new instance of `NitroInputSizing`.
    */
-  init(text: String, mode: NitroInputMode, plain: Bool, multiline: Bool, secureTextEntry: Bool, maxLength: Double, fractionDigits: Double, maxIntegerDigits: Double, groupingSeparator: String, decimalSeparator: String, prefix: String, suffix: String, signPlacement: NitroInputSignPlacement, placeholder: String, mask: String, maskNotations: [NitroInputNotation], maskAutocomplete: Bool, maskAutoSkip: Bool, maskAffinityFormats: [String], maskAffinityStrategy: NitroInputMaskAffinity, maskTextCase: NitroInputTextCase, maskCharacterMap: [NitroInputCharacterMapping], maskSlotPlaceholder: String, keepPlaceholder: Bool, textSize: Double, textLineHeight: Double, prefixFontSize: Double, suffixFontSize: Double, textWeight: Double, textFamily: String, textLetterSpacing: Double, tabularNums: Bool, prefixSpacing: Double, suffixSpacing: Double, allowFontScaling: Bool, maxFontSizeMultiplier: Double, variant: NitroInputVariant, label: String, labelBehavior: NitroInputLabelBehavior, labelFontSize: Double, cornerRadius: Double) {
+  init(text: String, mode: NitroInputMode, plain: Bool, multiline: Bool, secureTextEntry: Bool, maxLength: Double, fractionDigits: Double, maxIntegerDigits: Double, groupingSeparator: String, decimalSeparator: String, prefix: String, suffix: String, signPlacement: NitroInputSignPlacement, placeholder: String, mask: String, maskNotations: [NitroInputNotation], maskAutocomplete: Bool, maskAutoSkip: Bool, maskAffinityFormats: [String], maskAffinityStrategy: NitroInputMaskAffinity, maskTextCase: NitroInputTextCase, maskCharacterMap: [NitroInputCharacterMapping], maskSlotPlaceholder: String, keepPlaceholder: Bool, textSize: Double, textLineHeight: Double, prefixFontSize: Double, suffixFontSize: Double, textWeight: Double, textFamily: String, textLetterSpacing: Double, tabularNums: Bool, slotDigits: Bool, prefixSpacing: Double, suffixSpacing: Double, allowFontScaling: Bool, maxFontSizeMultiplier: Double, variant: NitroInputVariant, label: String, labelBehavior: NitroInputLabelBehavior, labelFontSize: Double, cornerRadius: Double) {
     self.init(std.string(text), mode, plain, multiline, secureTextEntry, maxLength, fractionDigits, maxIntegerDigits, std.string(groupingSeparator), std.string(decimalSeparator), std.string(prefix), std.string(suffix), signPlacement, std.string(placeholder), std.string(mask), { () -> bridge.std__vector_NitroInputNotation_ in
       var __vector = bridge.create_std__vector_NitroInputNotation_(maskNotations.count)
       for __item in maskNotations {
@@ -37,7 +37,7 @@ public extension NitroInputSizing {
         __vector.push_back(__item)
       }
       return __vector
-    }(), std.string(maskSlotPlaceholder), keepPlaceholder, textSize, textLineHeight, prefixFontSize, suffixFontSize, textWeight, std.string(textFamily), textLetterSpacing, tabularNums, prefixSpacing, suffixSpacing, allowFontScaling, maxFontSizeMultiplier, variant, std.string(label), labelBehavior, labelFontSize, cornerRadius)
+    }(), std.string(maskSlotPlaceholder), keepPlaceholder, textSize, textLineHeight, prefixFontSize, suffixFontSize, textWeight, std.string(textFamily), textLetterSpacing, tabularNums, slotDigits, prefixSpacing, suffixSpacing, allowFontScaling, maxFontSizeMultiplier, variant, std.string(label), labelBehavior, labelFontSize, cornerRadius)
   }
 
   @inline(__always)
@@ -198,6 +198,11 @@ public extension NitroInputSizing {
   @inline(__always)
   var tabularNums: Bool {
     return self.__tabularNums
+  }
+  
+  @inline(__always)
+  var slotDigits: Bool {
+    return self.__slotDigits
   }
   
   @inline(__always)

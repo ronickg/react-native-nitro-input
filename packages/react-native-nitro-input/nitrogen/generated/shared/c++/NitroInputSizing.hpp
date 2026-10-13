@@ -95,6 +95,7 @@ namespace margelo::nitro::nitroinput {
     std::string textFamily     SWIFT_PRIVATE;
     double textLetterSpacing     SWIFT_PRIVATE;
     bool tabularNums     SWIFT_PRIVATE;
+    bool slotDigits     SWIFT_PRIVATE;
     double prefixSpacing     SWIFT_PRIVATE;
     double suffixSpacing     SWIFT_PRIVATE;
     bool allowFontScaling     SWIFT_PRIVATE;
@@ -107,7 +108,7 @@ namespace margelo::nitro::nitroinput {
 
   public:
     NitroInputSizing() = default;
-    explicit NitroInputSizing(std::string text, NitroInputMode mode, bool plain, bool multiline, bool secureTextEntry, double maxLength, double fractionDigits, double maxIntegerDigits, std::string groupingSeparator, std::string decimalSeparator, std::string prefix, std::string suffix, NitroInputSignPlacement signPlacement, std::string placeholder, std::string mask, std::vector<NitroInputNotation> maskNotations, bool maskAutocomplete, bool maskAutoSkip, std::vector<std::string> maskAffinityFormats, NitroInputMaskAffinity maskAffinityStrategy, NitroInputTextCase maskTextCase, std::vector<NitroInputCharacterMapping> maskCharacterMap, std::string maskSlotPlaceholder, bool keepPlaceholder, double textSize, double textLineHeight, double prefixFontSize, double suffixFontSize, double textWeight, std::string textFamily, double textLetterSpacing, bool tabularNums, double prefixSpacing, double suffixSpacing, bool allowFontScaling, double maxFontSizeMultiplier, NitroInputVariant variant, std::string label, NitroInputLabelBehavior labelBehavior, double labelFontSize, double cornerRadius): text(text), mode(mode), plain(plain), multiline(multiline), secureTextEntry(secureTextEntry), maxLength(maxLength), fractionDigits(fractionDigits), maxIntegerDigits(maxIntegerDigits), groupingSeparator(groupingSeparator), decimalSeparator(decimalSeparator), prefix(prefix), suffix(suffix), signPlacement(signPlacement), placeholder(placeholder), mask(mask), maskNotations(maskNotations), maskAutocomplete(maskAutocomplete), maskAutoSkip(maskAutoSkip), maskAffinityFormats(maskAffinityFormats), maskAffinityStrategy(maskAffinityStrategy), maskTextCase(maskTextCase), maskCharacterMap(maskCharacterMap), maskSlotPlaceholder(maskSlotPlaceholder), keepPlaceholder(keepPlaceholder), textSize(textSize), textLineHeight(textLineHeight), prefixFontSize(prefixFontSize), suffixFontSize(suffixFontSize), textWeight(textWeight), textFamily(textFamily), textLetterSpacing(textLetterSpacing), tabularNums(tabularNums), prefixSpacing(prefixSpacing), suffixSpacing(suffixSpacing), allowFontScaling(allowFontScaling), maxFontSizeMultiplier(maxFontSizeMultiplier), variant(variant), label(label), labelBehavior(labelBehavior), labelFontSize(labelFontSize), cornerRadius(cornerRadius) {}
+    explicit NitroInputSizing(std::string text, NitroInputMode mode, bool plain, bool multiline, bool secureTextEntry, double maxLength, double fractionDigits, double maxIntegerDigits, std::string groupingSeparator, std::string decimalSeparator, std::string prefix, std::string suffix, NitroInputSignPlacement signPlacement, std::string placeholder, std::string mask, std::vector<NitroInputNotation> maskNotations, bool maskAutocomplete, bool maskAutoSkip, std::vector<std::string> maskAffinityFormats, NitroInputMaskAffinity maskAffinityStrategy, NitroInputTextCase maskTextCase, std::vector<NitroInputCharacterMapping> maskCharacterMap, std::string maskSlotPlaceholder, bool keepPlaceholder, double textSize, double textLineHeight, double prefixFontSize, double suffixFontSize, double textWeight, std::string textFamily, double textLetterSpacing, bool tabularNums, bool slotDigits, double prefixSpacing, double suffixSpacing, bool allowFontScaling, double maxFontSizeMultiplier, NitroInputVariant variant, std::string label, NitroInputLabelBehavior labelBehavior, double labelFontSize, double cornerRadius): text(text), mode(mode), plain(plain), multiline(multiline), secureTextEntry(secureTextEntry), maxLength(maxLength), fractionDigits(fractionDigits), maxIntegerDigits(maxIntegerDigits), groupingSeparator(groupingSeparator), decimalSeparator(decimalSeparator), prefix(prefix), suffix(suffix), signPlacement(signPlacement), placeholder(placeholder), mask(mask), maskNotations(maskNotations), maskAutocomplete(maskAutocomplete), maskAutoSkip(maskAutoSkip), maskAffinityFormats(maskAffinityFormats), maskAffinityStrategy(maskAffinityStrategy), maskTextCase(maskTextCase), maskCharacterMap(maskCharacterMap), maskSlotPlaceholder(maskSlotPlaceholder), keepPlaceholder(keepPlaceholder), textSize(textSize), textLineHeight(textLineHeight), prefixFontSize(prefixFontSize), suffixFontSize(suffixFontSize), textWeight(textWeight), textFamily(textFamily), textLetterSpacing(textLetterSpacing), tabularNums(tabularNums), slotDigits(slotDigits), prefixSpacing(prefixSpacing), suffixSpacing(suffixSpacing), allowFontScaling(allowFontScaling), maxFontSizeMultiplier(maxFontSizeMultiplier), variant(variant), label(label), labelBehavior(labelBehavior), labelFontSize(labelFontSize), cornerRadius(cornerRadius) {}
 
   public:
     friend bool operator==(const NitroInputSizing& lhs, const NitroInputSizing& rhs) = default;
@@ -155,6 +156,7 @@ namespace margelo::nitro {
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "textFamily"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "textLetterSpacing"))),
         JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "tabularNums"))),
+        JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "slotDigits"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "prefixSpacing"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "suffixSpacing"))),
         JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "allowFontScaling"))),
@@ -200,6 +202,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "textFamily"), JSIConverter<std::string>::toJSI(runtime, arg.textFamily));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "textLetterSpacing"), JSIConverter<double>::toJSI(runtime, arg.textLetterSpacing));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "tabularNums"), JSIConverter<bool>::toJSI(runtime, arg.tabularNums));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "slotDigits"), JSIConverter<bool>::toJSI(runtime, arg.slotDigits));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "prefixSpacing"), JSIConverter<double>::toJSI(runtime, arg.prefixSpacing));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "suffixSpacing"), JSIConverter<double>::toJSI(runtime, arg.suffixSpacing));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "allowFontScaling"), JSIConverter<bool>::toJSI(runtime, arg.allowFontScaling));
@@ -251,6 +254,7 @@ namespace margelo::nitro {
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "textFamily")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "textLetterSpacing")))) return false;
       if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "tabularNums")))) return false;
+      if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "slotDigits")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "prefixSpacing")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "suffixSpacing")))) return false;
       if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "allowFontScaling")))) return false;

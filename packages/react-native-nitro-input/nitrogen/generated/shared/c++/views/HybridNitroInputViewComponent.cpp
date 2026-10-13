@@ -58,6 +58,7 @@ namespace margelo::nitro::nitroinput::views {
     suffixAlign(nitro::ReactProp<NitroInputAffixAlign>::fromRawValue("NitroInputView", "suffixAlign", rawProps, sourceProps.suffixAlign)),
     textLetterSpacing(nitro::ReactProp<double>::fromRawValue("NitroInputView", "textLetterSpacing", rawProps, sourceProps.textLetterSpacing)),
     tabularNums(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "tabularNums", rawProps, sourceProps.tabularNums)),
+    slotDigits(nitro::ReactProp<bool>::fromRawValue("NitroInputView", "slotDigits", rawProps, sourceProps.slotDigits)),
     prefixSpacing(nitro::ReactProp<double>::fromRawValue("NitroInputView", "prefixSpacing", rawProps, sourceProps.prefixSpacing)),
     suffixSpacing(nitro::ReactProp<double>::fromRawValue("NitroInputView", "suffixSpacing", rawProps, sourceProps.suffixSpacing)),
     prefixOffset(nitro::ReactProp<double>::fromRawValue("NitroInputView", "prefixOffset", rawProps, sourceProps.prefixOffset)),
@@ -172,6 +173,7 @@ namespace margelo::nitro::nitroinput::views {
       case hashString("suffixAlign"): return true;
       case hashString("textLetterSpacing"): return true;
       case hashString("tabularNums"): return true;
+      case hashString("slotDigits"): return true;
       case hashString("prefixSpacing"): return true;
       case hashString("suffixSpacing"): return true;
       case hashString("prefixOffset"): return true;

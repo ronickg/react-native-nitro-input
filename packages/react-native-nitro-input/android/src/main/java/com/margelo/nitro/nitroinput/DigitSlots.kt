@@ -17,10 +17,10 @@ private const val DIGITS = "0123456789"
  * The paints ask for `tnum`, but a font without the feature (Open Runde) keeps
  * its proportional digits: every typed "1" was narrower than the placeholder's
  * "0" it replaced, so `keepPlaceholder`'s tail slid left on each keystroke and
- * an amount changed width as its digits did. Every digit is given a slot as
- * wide as the widest digit instead, centred in it, as NitroNumber's columns
- * are. In a font with tabular figures the digits are all that wide already,
- * and nothing changes.
+ * an amount changed width as its digits did. With `tabularNums` every digit
+ * is given a slot as wide as the widest digit instead, centred in it, as
+ * NitroNumber's columns are. In a font with tabular figures the digits are
+ * all that wide already, and nothing changes.
  *
  * In the edit text a slot is a [ReplacementSpan], whose width is a whole
  * pixel, so a slot is the widest digit and one letter spacing rounded up, and

@@ -557,6 +557,17 @@ open class HybridNitroInputViewSpec_cxx {
     }
   }
   
+  public final var slotDigits: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.slotDigits
+    }
+    @inline(__always)
+    set {
+      self.__implementation.slotDigits = newValue
+    }
+  }
+  
   public final var prefixSpacing: Double {
     @inline(__always)
     get {

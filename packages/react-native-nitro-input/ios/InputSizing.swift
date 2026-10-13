@@ -48,6 +48,7 @@ protocol InputSizingProps {
   var textFamily: String { get }
   var textLetterSpacing: Double { get }
   var tabularNums: Bool { get }
+  var slotDigits: Bool { get }
   var prefixSpacing: Double { get }
   var suffixSpacing: Double { get }
   var allowFontScaling: Bool { get }
@@ -110,6 +111,7 @@ enum InputMapping {
     typography.fontFamily = p.textFamily.isEmpty ? nil : p.textFamily
     typography.letterSpacing = CGFloat(p.textLetterSpacing.isFinite ? p.textLetterSpacing : 0)
     typography.tabularNums = p.tabularNums
+    typography.slotDigits = p.slotDigits
     typography.prefixSpacing = p.prefixSpacing.isFinite ? CGFloat(p.prefixSpacing) : nil
     typography.suffixSpacing = p.suffixSpacing.isFinite ? CGFloat(p.suffixSpacing) : nil
     typography.allowFontScaling = p.allowFontScaling
@@ -217,8 +219,8 @@ final class InputMetrics {
   let lineBoxHeight: CGFloat
   /// The advance of one of the bullets a plain secure field draws (see `init`).
   let secureBulletWidth: CGFloat
-  /// The body's digit advances when its font has no tabular figures, or nil
-  /// when it has them. The monospaced-numbers feature asks for them, but a font
+  /// The body's digit advances when they are slotted (`tabularNums` set) and
+  /// the font has no tabular figures; nil otherwise. The monospaced-numbers feature asks for them, but a font
   /// without it (Open Runde) keeps proportional digits: every typed "1" was
   /// narrower than the placeholder's "0" it replaced, so `keepPlaceholder`'s
   /// tail slid left on each keystroke and an amount changed width as its
@@ -263,7 +265,7 @@ final class InputMetrics {
     let bodyFont = body
     let digits = (0..<10).map { NSAttributedString(string: String($0), attributes: [.font: bodyFont, .kern: 0]).size().width }
     bodySlot = digits.max() ?? 0
-    bodyDigitWidths = t.tabularNums && bodySlot - (digits.min() ?? 0) > bodyFont.pointSize * 0.01 ? digits : nil
+    bodyDigitWidths = t.slotDigits && bodySlot - (digits.min() ?? 0) > bodyFont.pointSize * 0.01 ? digits : nil
   }
 
   func font(for role: NitroInputView.GlyphRole) -> UIFont {

@@ -119,6 +119,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
   var suffixAlign: NitroInputAffixAlign = .baseline { didSet { markConfigDirty() } }
   var textLetterSpacing: Double = 0 { didSet { markConfigDirty() } }
   var tabularNums: Bool = true { didSet { markConfigDirty() } }
+  var slotDigits: Bool = false { didSet { markConfigDirty() } }
   var prefixSpacing: Double = .infinity { didSet { markConfigDirty() } }
   var suffixSpacing: Double = .infinity { didSet { markConfigDirty() } }
   var prefixOffset: Double = 0 { didSet { markConfigDirty() } }
@@ -339,6 +340,7 @@ final class HybridNitroInputView: HybridNitroInputViewSpec, RecyclableView {
     suffixAlign = .baseline
     textLetterSpacing = 0
     tabularNums = true
+    slotDigits = false
     prefixSpacing = .infinity
     suffixSpacing = .infinity
     prefixOffset = 0

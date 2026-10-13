@@ -116,6 +116,9 @@ data class NitroInputSizing(
   val tabularNums: Boolean,
   @DoNotStrip
   @Keep
+  val slotDigits: Boolean,
+  @DoNotStrip
+  @Keep
   val prefixSpacing: Double,
   @DoNotStrip
   @Keep
@@ -179,6 +182,7 @@ data class NitroInputSizing(
       && Objects.deepEquals(this.textFamily, other.textFamily)
       && Objects.deepEquals(this.textLetterSpacing, other.textLetterSpacing)
       && Objects.deepEquals(this.tabularNums, other.tabularNums)
+      && Objects.deepEquals(this.slotDigits, other.slotDigits)
       && Objects.deepEquals(this.prefixSpacing, other.prefixSpacing)
       && Objects.deepEquals(this.suffixSpacing, other.suffixSpacing)
       && Objects.deepEquals(this.allowFontScaling, other.allowFontScaling)
@@ -224,6 +228,7 @@ data class NitroInputSizing(
       textFamily,
       textLetterSpacing,
       tabularNums,
+      slotDigits,
       prefixSpacing,
       suffixSpacing,
       allowFontScaling,
@@ -244,8 +249,8 @@ data class NitroInputSizing(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(text: String, mode: NitroInputMode, plain: Boolean, multiline: Boolean, secureTextEntry: Boolean, maxLength: Double, fractionDigits: Double, maxIntegerDigits: Double, groupingSeparator: String, decimalSeparator: String, prefix: String, suffix: String, signPlacement: NitroInputSignPlacement, placeholder: String, mask: String, maskNotations: Array<NitroInputNotation>, maskAutocomplete: Boolean, maskAutoSkip: Boolean, maskAffinityFormats: Array<String>, maskAffinityStrategy: NitroInputMaskAffinity, maskTextCase: NitroInputTextCase, maskCharacterMap: Array<NitroInputCharacterMapping>, maskSlotPlaceholder: String, keepPlaceholder: Boolean, textSize: Double, textLineHeight: Double, prefixFontSize: Double, suffixFontSize: Double, textWeight: Double, textFamily: String, textLetterSpacing: Double, tabularNums: Boolean, prefixSpacing: Double, suffixSpacing: Double, allowFontScaling: Boolean, maxFontSizeMultiplier: Double, variant: NitroInputVariant, label: String, labelBehavior: NitroInputLabelBehavior, labelFontSize: Double, cornerRadius: Double): NitroInputSizing {
-      return NitroInputSizing(text, mode, plain, multiline, secureTextEntry, maxLength, fractionDigits, maxIntegerDigits, groupingSeparator, decimalSeparator, prefix, suffix, signPlacement, placeholder, mask, maskNotations, maskAutocomplete, maskAutoSkip, maskAffinityFormats, maskAffinityStrategy, maskTextCase, maskCharacterMap, maskSlotPlaceholder, keepPlaceholder, textSize, textLineHeight, prefixFontSize, suffixFontSize, textWeight, textFamily, textLetterSpacing, tabularNums, prefixSpacing, suffixSpacing, allowFontScaling, maxFontSizeMultiplier, variant, label, labelBehavior, labelFontSize, cornerRadius)
+    private fun fromCpp(text: String, mode: NitroInputMode, plain: Boolean, multiline: Boolean, secureTextEntry: Boolean, maxLength: Double, fractionDigits: Double, maxIntegerDigits: Double, groupingSeparator: String, decimalSeparator: String, prefix: String, suffix: String, signPlacement: NitroInputSignPlacement, placeholder: String, mask: String, maskNotations: Array<NitroInputNotation>, maskAutocomplete: Boolean, maskAutoSkip: Boolean, maskAffinityFormats: Array<String>, maskAffinityStrategy: NitroInputMaskAffinity, maskTextCase: NitroInputTextCase, maskCharacterMap: Array<NitroInputCharacterMapping>, maskSlotPlaceholder: String, keepPlaceholder: Boolean, textSize: Double, textLineHeight: Double, prefixFontSize: Double, suffixFontSize: Double, textWeight: Double, textFamily: String, textLetterSpacing: Double, tabularNums: Boolean, slotDigits: Boolean, prefixSpacing: Double, suffixSpacing: Double, allowFontScaling: Boolean, maxFontSizeMultiplier: Double, variant: NitroInputVariant, label: String, labelBehavior: NitroInputLabelBehavior, labelFontSize: Double, cornerRadius: Double): NitroInputSizing {
+      return NitroInputSizing(text, mode, plain, multiline, secureTextEntry, maxLength, fractionDigits, maxIntegerDigits, groupingSeparator, decimalSeparator, prefix, suffix, signPlacement, placeholder, mask, maskNotations, maskAutocomplete, maskAutoSkip, maskAffinityFormats, maskAffinityStrategy, maskTextCase, maskCharacterMap, maskSlotPlaceholder, keepPlaceholder, textSize, textLineHeight, prefixFontSize, suffixFontSize, textWeight, textFamily, textLetterSpacing, tabularNums, slotDigits, prefixSpacing, suffixSpacing, allowFontScaling, maxFontSizeMultiplier, variant, label, labelBehavior, labelFontSize, cornerRadius)
     }
   }
 }

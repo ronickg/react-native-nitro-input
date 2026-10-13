@@ -176,6 +176,8 @@ namespace margelo::nitro::nitroinput {
       virtual void setTextLetterSpacing(double textLetterSpacing) = 0;
       virtual bool getTabularNums() = 0;
       virtual void setTabularNums(bool tabularNums) = 0;
+      virtual bool getSlotDigits() = 0;
+      virtual void setSlotDigits(bool slotDigits) = 0;
       virtual double getPrefixSpacing() = 0;
       virtual void setPrefixSpacing(double prefixSpacing) = 0;
       virtual double getSuffixSpacing() = 0;
