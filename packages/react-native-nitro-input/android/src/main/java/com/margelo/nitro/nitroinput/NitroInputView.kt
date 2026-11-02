@@ -24,7 +24,9 @@ import android.util.TypedValue
 import android.view.Choreographer
 import android.view.Gravity
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.animation.PathInterpolator
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
@@ -415,6 +417,45 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   /** Owns keyboard, editing, selection and accessibility; draws nothing but the selection highlight. */
   private inner class HiddenEditText(context: Context) : AppCompatEditText(context) {
     var ready = false
+
+    // A touch that starts in the field stays the field's, as RN's own
+    // ReactEditText does it: without this, a parent ScrollView intercepted
+    // the move of a long-press-and-drag and cancelled the cursor / selection
+    // drag (#73). The touch is handed back only for a vertical page scroll —
+    // a move that is mostly vertical, past the touch slop, with no long press
+    // or selection in progress and nothing for the field itself to scroll.
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+    private var downX = 0f
+    private var downY = 0f
+    private var longPressed = false
+    private var holdingTouch = false
+
+    override fun performLongClick(): Boolean {
+      longPressed = true
+      return super.performLongClick()
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+      when (event.actionMasked) {
+        MotionEvent.ACTION_DOWN -> {
+          downX = event.x
+          downY = event.y
+          longPressed = false
+          holdingTouch = true
+          parent?.requestDisallowInterceptTouchEvent(true)
+        }
+        MotionEvent.ACTION_MOVE -> if (holdingTouch && !longPressed && !hasSelection()) {
+          val dx = Math.abs(event.x - downX)
+          val dy = Math.abs(event.y - downY)
+          if (dy > touchSlop && dy > dx && !canScrollVertically(-1) && !canScrollVertically(1)) {
+            holdingTouch = false
+            parent?.requestDisallowInterceptTouchEvent(false)
+          }
+        }
+        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> holdingTouch = false
+      }
+      return super.onTouchEvent(event)
+    }
 
     override fun getOffsetForPosition(x: Float, y: Float): Int {
       // A plain field draws its own text and the engine holds no glyphs for
