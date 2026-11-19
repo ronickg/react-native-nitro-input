@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.2
 
 - **Android: a long-press or cursor drag inside a scroll view stays with the
   field (#73).** The field's edit text never asked its parent not to
