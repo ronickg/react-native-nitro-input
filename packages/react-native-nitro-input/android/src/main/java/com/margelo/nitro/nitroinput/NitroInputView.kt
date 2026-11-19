@@ -24,6 +24,7 @@ import android.util.TypedValue
 import android.view.Choreographer
 import android.view.Gravity
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.animation.PathInterpolator
 import android.view.inputmethod.EditorInfo
@@ -415,6 +416,33 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   /** Owns keyboard, editing, selection and accessibility; draws nothing but the selection highlight. */
   private inner class HiddenEditText(context: Context) : AppCompatEditText(context) {
     var ready = false
+
+    // Touch hand-off to scrolling parents, as React Native's ReactEditText
+    // does it (#73): the parent may not intercept until the first move, which
+    // keeps the touch here only when the field can scroll its own text. A
+    // long-press selection drag or a cursor drag needs nothing more - the
+    // framework's Editor disallows intercepting itself while one runs. Holding
+    // the whole touch instead (any move but a vertical one) broke paging a
+    // horizontal pager from a field.
+    private var detectScrollMovement = false
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+      when (event.actionMasked) {
+        MotionEvent.ACTION_DOWN -> {
+          detectScrollMovement = true
+          parent?.requestDisallowInterceptTouchEvent(true)
+        }
+        MotionEvent.ACTION_MOVE -> if (detectScrollMovement) {
+          if (!canScrollVertically(-1) && !canScrollVertically(1) &&
+            !canScrollHorizontally(-1) && !canScrollHorizontally(1)
+          ) {
+            parent?.requestDisallowInterceptTouchEvent(false)
+          }
+          detectScrollMovement = false
+        }
+      }
+      return super.onTouchEvent(event)
+    }
 
     override fun getOffsetForPosition(x: Float, y: Float): Int {
       // A plain field draws its own text and the engine holds no glyphs for

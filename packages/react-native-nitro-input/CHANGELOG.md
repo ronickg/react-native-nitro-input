@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- **Android: a long-press or cursor drag inside a scroll view stays with the
+  field (#73).** The field's edit text never asked its parent not to
+  intercept, so a `ScrollView` (or `KeyboardAwareScrollView`) could take the
+  touch on the first move and cancel the selection or cursor drag. It now
+  hands touches over as React Native's `ReactEditText` does: the parent may
+  not intercept until the first move, and gets the touch back then unless the
+  field can scroll its own text. A vertical swipe that starts on a field still
+  scrolls the page, and a horizontal one still pages a pager, read-only fields
+  included.
+
 ## 0.4.1
 
 - **`NitroInput`'s `tabularNums` prop: tabular digits in any font.** Digits
