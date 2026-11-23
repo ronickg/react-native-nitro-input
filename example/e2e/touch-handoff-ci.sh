@@ -23,6 +23,29 @@ curl -sf -o /dev/null --max-time 900 'http://localhost:8081/index.bundle?platfor
   || { echo "Metro did not bundle"; tail -50 metro.log; exit 1; }
 
 CHECKS=(select-drift select-flat cursor-unfocused cursor-focused cursor-drift scroll scroll-long page type mask masked-select-drift)
+# The app's first start on a hosted emulator can sit on a black screen for
+# minutes (one run never got past it in 90 s). Warm it up first: up to 4
+# minutes for the home screen, relaunching once halfway.
+warm=0
+for attempt in 1 2; do
+  adb shell am force-stop com.nitroinput.example
+  adb shell monkey -p com.nitroinput.example -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
+  for _ in $(seq 1 24); do
+    adb shell uiautomator dump /sdcard/warm.xml >/dev/null 2>&1 \
+      && adb shell cat /sdcard/warm.xml 2>/dev/null | grep -q 'home-features' && { warm=1; break 2; }
+    sleep 5
+  done
+  echo "no home screen after 2 minutes (attempt $attempt)"
+done
+if (( ! warm )); then
+  echo "the app never showed its home screen; last logcat:"
+  adb logcat -d -t 200 | grep -iE 'ReactNative|AndroidRuntime|FATAL|nitroinput|ANR' | tail -60
+  adb exec-out screencap -p > touch-handoff-last.png
+  tail -50 metro.log
+  exit 1
+fi
+echo "app is up"
+
 # Each run of a check gets 4 minutes (a wedged emulator can block
 # `adb shell` for good). Exit 3 (the app never showed its home screen) or 124
 # (timed out) is the emulator or the app, not a touch: stop right there.
