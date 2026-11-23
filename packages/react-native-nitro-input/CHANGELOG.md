@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.3
 
 0.4.2 was never published; its change is part of this release, with the
 selection-drag regression it brought fixed before it shipped.
