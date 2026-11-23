@@ -2,6 +2,25 @@
 
 ## 0.4.2
 
+- **Android: a long-press selection drag inside a scroll view or pager grows
+  again.** 0.4.2 handed the touch back to the scrolling parent on the first
+  move even when the long-press had already started a selection drag, so a
+  sideways drag that drifted a little down was taken by the `ScrollView` (or
+  by a pager, drifting or not): the selection stayed on the first word and the
+  magnifier stuck. The field now keeps the touch when the long-press fired
+  first.
+- **Android: a vertical swipe that starts on a field with more text than fits
+  scrolls the page.** The hand-off kept the whole touch whenever the field
+  could scroll its own text in any direction, so a single-line field holding a
+  long value swallowed vertical swipes. It now decides once the finger has
+  moved past the touch slop, and keeps the touch only when the field can
+  scroll in the direction the finger moves.
+
+  React Native's own `TextInput` has both bugs. A swipe that starts on a field
+  still scrolls the page or pages a pager, and #73's cursor drag still works.
+
+## 0.4.2
+
 - **Android: a long-press or cursor drag inside a scroll view stays with the
   field (#73).** The field's edit text never asked its parent not to
   intercept, so a `ScrollView` (or `KeyboardAwareScrollView`) could take the

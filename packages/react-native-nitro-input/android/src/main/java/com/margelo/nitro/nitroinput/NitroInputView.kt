@@ -26,6 +26,7 @@ import android.view.Gravity
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.animation.PathInterpolator
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
@@ -417,31 +418,62 @@ class NitroInputView(context: Context) : FrameLayout(context) {
   private inner class HiddenEditText(context: Context) : AppCompatEditText(context) {
     var ready = false
 
-    // Touch hand-off to scrolling parents, as React Native's ReactEditText
-    // does it (#73): the parent may not intercept until the first move, which
-    // keeps the touch here only when the field can scroll its own text. A
-    // long-press selection drag or a cursor drag needs nothing more - the
-    // framework's Editor disallows intercepting itself while one runs. Holding
-    // the whole touch instead (any move but a vertical one) broke paging a
-    // horizontal pager from a field.
+    // Touch hand-off to scrolling parents (#73). The parent may not intercept
+    // until the finger has moved past the touch slop; the touch then goes back
+    // to it unless the field can scroll its own text in the direction the
+    // finger moves. Holding the whole touch instead (any move but a vertical
+    // one) broke paging a horizontal pager from a field.
+    //
+    // React Native's ReactEditText decides on the first move and keeps the
+    // touch whenever the field can scroll in any direction. Two of its bugs
+    // stay out of here:
+    // - A long-press that fired before the decision keeps the touch: the
+    //   Editor then runs a selection drag (and has already disallowed
+    //   intercepting) or has just placed the cursor. Handing the touch back
+    //   let a ScrollView take a selection drag that drifts a little down, or a
+    //   pager one that runs sideways, and the selection stuck on the first
+    //   word. A long-press after the hand-back disallows intercepting again
+    //   by itself, as does a cursor drag in a focused field.
+    // - A field whose single line of text is longer than the field can scroll
+    //   only sideways, so a vertical swipe that starts on it is the page's.
     private var detectScrollMovement = false
+    private var longPressed = false
+    private var downX = 0f
+    private var downY = 0f
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
       when (event.actionMasked) {
         MotionEvent.ACTION_DOWN -> {
           detectScrollMovement = true
+          longPressed = false
+          downX = event.x
+          downY = event.y
           parent?.requestDisallowInterceptTouchEvent(true)
         }
         MotionEvent.ACTION_MOVE -> if (detectScrollMovement) {
-          if (!canScrollVertically(-1) && !canScrollVertically(1) &&
-            !canScrollHorizontally(-1) && !canScrollHorizontally(1)
-          ) {
-            parent?.requestDisallowInterceptTouchEvent(false)
+          val dx = abs(event.x - downX)
+          val dy = abs(event.y - downY)
+          if (longPressed) {
+            detectScrollMovement = false
+          } else if (dx > touchSlop || dy > touchSlop) {
+            val scrollsItself = if (dy > dx) {
+              canScrollVertically(-1) || canScrollVertically(1)
+            } else {
+              canScrollHorizontally(-1) || canScrollHorizontally(1)
+            }
+            if (!scrollsItself) parent?.requestDisallowInterceptTouchEvent(false)
+            detectScrollMovement = false
           }
-          detectScrollMovement = false
         }
       }
       return super.onTouchEvent(event)
+    }
+
+    override fun performLongClick(): Boolean {
+      val handled = super.performLongClick()
+      if (handled) longPressed = true
+      return handled
     }
 
     override fun getOffsetForPosition(x: Float, y: Float): Int {
