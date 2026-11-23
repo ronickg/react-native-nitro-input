@@ -23,11 +23,25 @@ curl -sf -o /dev/null --max-time 900 'http://localhost:8081/index.bundle?platfor
   || { echo "Metro did not bundle"; tail -50 metro.log; exit 1; }
 
 CHECKS=(select-drift select-flat cursor-unfocused cursor-focused cursor-drift scroll scroll-long page type mask masked-select-drift)
+# Each run of a check gets 4 minutes (a wedged emulator can block
+# `adb shell` for good). Exit 3 (the app never showed its home screen) or 124
+# (timed out) is the emulator or the app, not a touch: stop right there.
+run_check() {
+  timeout 240 env BOOT_WAIT=90 ./e2e/touch-handoff-android.sh $1
+  local rc=$?
+  if (( rc == 3 || rc == 124 )); then
+    echo "$1: $([[ $rc == 3 ]] && echo 'the app never showed its home screen' || echo 'timed out'); stopping"
+    adb exec-out screencap -p > touch-handoff-last.png
+    tail -50 metro.log
+    exit 1
+  fi
+  return $rc
+}
 FAILED=()
 for c in $CHECKS; do
-  BOOT_WAIT=90 ./e2e/touch-handoff-android.sh $c && continue
+  run_check $c && continue
   echo "$c failed; once more"
-  BOOT_WAIT=90 ./e2e/touch-handoff-android.sh $c || FAILED+=($c)
+  run_check $c || FAILED+=($c)
 done
 if (( ${#FAILED} )); then
   echo "failed twice: $FAILED"

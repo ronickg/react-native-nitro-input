@@ -123,7 +123,14 @@ open_screen() {
   local button=${1:-home-pager-fields$([[ $IMPL == rn ]] && echo -rn)} ready=${2:-field:0}
   adb shell am force-stop $PKG
   adb shell monkey -p $PKG -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
-  for _ in $(seq 1 ${BOOT_WAIT:-30}); do visible id:home-features && break; sleep 2; done
+  # By the clock, not a count: a dump on a slow emulator takes seconds. An app
+  # that never shows its home screen (a red box, no Metro) ends the whole run
+  # with 3 rather than every check timing out the same way.
+  local end=$(( SECONDS + ${BOOT_WAIT:-30} ))
+  until visible id:home-features; do
+    (( SECONDS < end )) || { fail "the app did not show its home screen in ${BOOT_WAIT:-30}s"; return 3; }
+    sleep 2
+  done
   for _ in 1 2 3 4 5; do visible id:$button && break; adb shell input swipe $(( SIZE[1] / 2 )) $(( SIZE[2] * 3 / 4 )) $(( SIZE[1] / 2 )) $(( SIZE[2] / 4 )) 300; sleep 1; done
   local b=($(bounds id:$button))
   [[ ${#b} -eq 4 ]] || { fail "no $button button on the home screen"; return 1; }
@@ -250,8 +257,9 @@ for run in $(seq 1 $RUNS); do
   echo "run $run/$RUNS"
   for c in $CHECKS; do
     if [[ $c == mask* && $IMPL == rn ]]; then echo "$c: n/a for TextInput"; continue; fi
-    if [[ $c == mask* ]]; then open_screen home-uno-masks id:uno-mask-clabe-raw || continue
-    else open_screen || continue; fi
+    if [[ $c == mask* ]]; then open_screen home-uno-masks id:uno-mask-clabe-raw
+    else open_screen; fi
+    case $? in 0) ;; 3) exit 3 ;; *) continue ;; esac
     echo "$c"
     check $c
   done
