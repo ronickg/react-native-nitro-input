@@ -22,7 +22,11 @@ for _ in $(seq 1 60); do curl -sf http://localhost:8081/status >/dev/null && bre
 curl -sf -o /dev/null --max-time 900 'http://localhost:8081/index.bundle?platform=android&dev=true&minify=false' \
   || { echo "Metro did not bundle"; tail -50 metro.log; exit 1; }
 
-CHECKS=(select-drift select-flat cursor-unfocused cursor-focused cursor-drift scroll scroll-long page type mask masked-select-drift)
+# cursor-drift stays out: on the hosted API 35 emulator a focused cursor drag
+# whose finger drifts 30dp off the line leaves the cursor where it was, on
+# 0.4.2 and on the fix alike (both pass it on an API 36 emulator), so here it
+# tells nothing apart. Run it locally: ./e2e/touch-handoff-android.sh cursor-drift
+CHECKS=(select-drift select-flat cursor-unfocused cursor-focused scroll scroll-long page type mask masked-select-drift)
 # The app's first start on a hosted emulator can sit on a black screen for
 # minutes (one run never got past it in 90 s). Warm it up first: up to 4
 # minutes for the home screen, relaunching once halfway.
