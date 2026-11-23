@@ -16,6 +16,7 @@ import { RecycleCheckScreen } from './screens/RecycleCheckScreen'
 import { MoneyFormatScreen } from './screens/MoneyFormatScreen'
 import { SavingsDialScreen } from './screens/SavingsDialScreen'
 import { UnoAmountPickerScreen, UnoMaskedInputsScreen } from './screens/UnoScreens'
+import { PagerFieldsScreen } from './screens/PagerFieldsScreen'
 import {
   FlowAmountScreen,
   FlowEmailScreen,
@@ -47,6 +48,7 @@ export type RootStackParamList = {
   SavingsDial: undefined
   UnoAmountPicker: undefined
   UnoMaskedInputs: undefined
+  PagerFields: undefined
   LabSearch: { impl: Impl }
   LabForm: { impl: Impl }
   LabDetail: { title: string }
@@ -169,6 +171,7 @@ function HomeScreen() {
         <Row><Btn testID="home-savings-dial" tone="primary" title="Savings dial (Uno), to zero" onPress={() => nav.navigate('SavingsDial')} /></Row>
         <Row><Btn testID="home-uno-amount" tone="primary" title="Uno: amount picker, custom amount" onPress={() => nav.navigate('UnoAmountPicker')} /></Row>
         <Row><Btn testID="home-uno-masks" tone="primary" title="Uno: masked inputs" onPress={() => nav.navigate('UnoMaskedInputs')} /></Row>
+        <Row><Btn testID="home-pager-fields" title="Fields in a pager (touch hand-off)" onPress={() => nav.navigate('PagerFields')} /></Row>
       </Card>
       <Card title="Original demo" hint="The NitroNumber and reflowing input showcases, and the edge cases.">
         <Row><Btn testID="home-demo" title="Open demo" onPress={() => nav.navigate('Demo')} /></Row>
@@ -200,6 +203,7 @@ export function RootNavigator() {
         <Stack.Screen name="SavingsDial" component={SavingsDialScreen} options={{ title: 'Savings dial', gestureEnabled: false }} />
         <Stack.Screen name="UnoAmountPicker" component={UnoAmountPickerScreen} options={{ title: 'Pay credit' }} />
         <Stack.Screen name="UnoMaskedInputs" component={UnoMaskedInputsScreen} options={{ title: 'Masked inputs' }} />
+        <Stack.Screen name="PagerFields" component={PagerFieldsScreen} options={{ title: 'Fields in a pager' }} />
         <Stack.Screen name="RecycleCheck" component={RecycleCheckScreen} options={{ title: 'Recycle check' }} />
         <Stack.Screen name="LabSearch" component={LabSearchScreen} options={{ title: 'Search list', keyboardHandlingEnabled: false }} />
         <Stack.Screen name="LabForm" component={LabFormScreen} options={{ title: 'Form', keyboardHandlingEnabled: false }} />

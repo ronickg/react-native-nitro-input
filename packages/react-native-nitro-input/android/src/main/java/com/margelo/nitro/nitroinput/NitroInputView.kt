@@ -419,21 +419,31 @@ class NitroInputView(context: Context) : FrameLayout(context) {
 
     // Touch hand-off to scrolling parents, as React Native's ReactEditText
     // does it (#73): the parent may not intercept until the first move, which
-    // keeps the touch here only when the field can scroll its own text. A
-    // long-press selection drag or a cursor drag needs nothing more - the
-    // framework's Editor disallows intercepting itself while one runs. Holding
-    // the whole touch instead (any move but a vertical one) broke paging a
-    // horizontal pager from a field.
+    // keeps the touch here only when the field can scroll its own text.
+    // Holding the whole touch instead (any move but a vertical one) broke
+    // paging a horizontal pager from a field.
+    //
+    // Unlike ReactEditText, the touch stays here when the long-press fired
+    // before that first move: the Editor then runs a selection drag (and has
+    // already disallowed intercepting) or has just placed the cursor, and
+    // handing the touch back would let a ScrollView take a drag that drifts
+    // a little vertically (or a pager one that runs sideways), leaving the
+    // selection stuck on the first word. A first move before the long-press is a
+    // scroll or a swipe and is handed back as before; a long-press after it
+    // disallows intercepting again by itself.
     private var detectScrollMovement = false
+    private var longPressed = false
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
       when (event.actionMasked) {
         MotionEvent.ACTION_DOWN -> {
           detectScrollMovement = true
+          longPressed = false
           parent?.requestDisallowInterceptTouchEvent(true)
         }
         MotionEvent.ACTION_MOVE -> if (detectScrollMovement) {
-          if (!canScrollVertically(-1) && !canScrollVertically(1) &&
+          if (!longPressed &&
+            !canScrollVertically(-1) && !canScrollVertically(1) &&
             !canScrollHorizontally(-1) && !canScrollHorizontally(1)
           ) {
             parent?.requestDisallowInterceptTouchEvent(false)
@@ -442,6 +452,12 @@ class NitroInputView(context: Context) : FrameLayout(context) {
         }
       }
       return super.onTouchEvent(event)
+    }
+
+    override fun performLongClick(): Boolean {
+      val handled = super.performLongClick()
+      if (handled) longPressed = true
+      return handled
     }
 
     override fun getOffsetForPosition(x: Float, y: Float): Int {
