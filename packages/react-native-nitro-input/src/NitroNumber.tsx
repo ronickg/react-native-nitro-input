@@ -376,6 +376,100 @@ interface Size {
 const EMPTY: number[] = []
 const EMPTY_STRINGS: string[] = []
 
+/** What the native callbacks reach: one NitroNumber's refs and state setter. */
+interface NumberSelf {
+  nativeRef: React.MutableRefObject<NitroNumberRef | null>
+  latestOnNativeRef: React.MutableRefObject<((native: NitroNumberRef) => void) | undefined>
+  setSize: React.Dispatch<React.SetStateAction<Size | null>>
+  latestOnRevealEnd: React.MutableRefObject<(() => void) | undefined>
+  latestOnRevealMilestone: React.MutableRefObject<((index: number, milestone: number) => void) | undefined>
+  latestOnAnimationStart: React.MutableRefObject<(() => void) | undefined>
+  latestOnAnimationEnd: React.MutableRefObject<((value: number) => void) | undefined>
+  compactRef: React.MutableRefObject<boolean>
+  latestValue: React.MutableRefObject<ReturnType<typeof withMinorDigits>>
+}
+
+type Deref<T extends object> = () => T | undefined
+
+/**
+ * A weak reference where the engine has them (Hermes, JSC, V8), else a strong
+ * one. Two functions on purpose: an engine keeps one scope per function for
+ * everything its closures capture, so a `() => target` fallback written beside
+ * the weak closure would put `target` in the weak closure's scope too.
+ */
+function weakly<T extends object>(target: T): Deref<T> {
+  return typeof WeakRef === 'function' ? weakDeref(new WeakRef(target)) : strongDeref(target)
+}
+
+function weakDeref<T extends object>(ref: WeakRef<T>): Deref<T> {
+  return () => ref.deref()
+}
+
+function strongDeref<T extends object>(target: T): Deref<T> {
+  return () => target
+}
+
+/**
+ * A Nitro callback that calls `handler(self, ...args)` for as long as the
+ * component behind `self` is alive, holding `self` only weakly.
+ *
+ * Why. Nitro keeps every callback prop of a view as a JS function held from
+ * C++ (in the Fabric props of its shadow node), which Hermes treats as a GC
+ * root. A closure written inside the component shares the render's scope,
+ * so it reaches the fiber (through `setSize`) and the hybrid view's handle
+ * (through `nativeRef`), and the fiber holds the shadow node that holds the
+ * props that hold the closure: a loop through native code that Hermes can
+ * never collect. Every unmounted NitroNumber stayed, its fiber subtree, its
+ * hybrid view and Nitro's C++ part included: over 4,000 after a minute of
+ * a scrolling list, and the app's memory climbed with them. Built here, in
+ * module scope, the closure holds only the weak reference and `handler`
+ * (itself module-level); the fiber is what keeps `self` alive.
+ */
+function relay<A extends unknown[]>(self: NumberSelf, handler: (self: NumberSelf, ...args: A) => void) {
+  return relayTo(weakly(self), handler)
+}
+
+/**
+ * The closure itself, made where `self` is not in scope at all: Hermes (in
+ * debuggable builds, at least) keeps every variable of a function that makes
+ * a closure in that closure's scope, used or not, and a `self` there would
+ * hold the component strongly again.
+ */
+function relayTo<A extends unknown[]>(live: Deref<NumberSelf>, handler: (self: NumberSelf, ...args: A) => void) {
+  return callback((...args: A) => {
+    const target = live()
+    if (target !== undefined) handler(target, ...args)
+  })
+}
+
+function attachNative(self: NumberSelf, instance: NitroNumberRef) {
+  self.nativeRef.current = instance
+  self.latestOnNativeRef.current?.(instance)
+}
+
+function applySize(self: NumberSelf, width: number, height: number) {
+  self.setSize((previous) =>
+    previous !== null && previous.width === width && previous.height === height ? previous : { width, height }
+  )
+}
+
+function fireRevealEnd(self: NumberSelf) {
+  self.latestOnRevealEnd.current?.()
+}
+
+function fireRevealMilestone(self: NumberSelf, index: number, milestone: number) {
+  self.latestOnRevealMilestone.current?.(index, milestone)
+}
+
+function fireAnimationStart(self: NumberSelf) {
+  self.latestOnAnimationStart.current?.()
+}
+
+/** The figure a compact format rolls is not the value (1.2 for 1,234): report the value. */
+function fireAnimationEnd(self: NumberSelf, shown: number) {
+  self.latestOnAnimationEnd.current?.(self.compactRef.current ? toNumber(self.latestValue.current) : shown)
+}
+
 /** Each transition's own timing, used when the props leave it unsaid. */
 const TRANSITION_DEFAULTS: Record<NitroNumberTransition, { duration: number; easing: NitroNumberEasing; stagger: number }> = {
   roll: { duration: 500, easing: 'easeInOut', stagger: 0 },
@@ -476,6 +570,8 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
     ref
   ) {
     const nativeRef = useRef<NitroNumberRef | null>(null)
+    // Whether a compact format is rolling (its figure is not the value); set below.
+    const compactRef = useRef(false)
     const latestOnNativeRef = useRef(onNativeRef)
     latestOnNativeRef.current = onNativeRef
     const latestOnRevealEnd = useRef(onRevealEnd)
@@ -493,61 +589,33 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
 
     const [size, setSize] = useState<Size | null>(null)
 
-    // Nitro callbacks must be wrapped with `callback()` and the wrapper object
-    // has to be referentially stable, otherwise every render re-sets the prop.
-    const hybridRef = useMemo(
-      () =>
-        callback((instance: NitroNumberRef) => {
-          nativeRef.current = instance
-          latestOnNativeRef.current?.(instance)
-        }),
+    // The native callbacks: wrapped with `callback()` and referentially stable
+    // (a new wrapper re-sets the prop every render), and built in module scope
+    // around a weak reference to this component's state (see `relay`).
+    const self = useMemo<NumberSelf>(
+      () => ({
+        nativeRef,
+        latestOnNativeRef,
+        setSize,
+        latestOnRevealEnd,
+        latestOnRevealMilestone,
+        latestOnAnimationStart,
+        latestOnAnimationEnd,
+        compactRef,
+        latestValue,
+      }),
+      // Every member is a ref or a state setter, stable for the component's life.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       []
     )
-    const onSizeChange = useMemo(
-      () =>
-        callback((width: number, height: number) => {
-          setSize((previous) =>
-            previous !== null &&
-            previous.width === width &&
-            previous.height === height
-              ? previous
-              : { width, height }
-          )
-        }),
-      []
-    )
-
-    // Stable like the others; the latest handler is read through a ref so a
-    // caller passing an inline arrow doesn't re-set the native prop each render.
-    const onRevealEndCallback = useMemo(
-      () =>
-        callback(() => {
-          latestOnRevealEnd.current?.()
-        }),
-      []
-    )
-    const onRevealMilestoneCallback = useMemo(
-      () =>
-        callback((index: number, milestone: number) => {
-          latestOnRevealMilestone.current?.(index, milestone)
-        }),
-      []
-    )
-    const onAnimationStartCallback = useMemo(
-      () =>
-        callback(() => {
-          latestOnAnimationStart.current?.()
-        }),
-      []
-    )
-    // The figure a compact format rolls is not the value (1.2 for 1,234): report the value.
-    const onAnimationEndCallback = useMemo(
-      () =>
-        callback((shown: number) => {
-          latestOnAnimationEnd.current?.(compactRef.current ? toNumber(latestValue.current) : shown)
-        }),
-      []
-    )
+    const hybridRef = useMemo(() => relay(self, attachNative), [self])
+    const onSizeChange = useMemo(() => relay(self, applySize), [self])
+    // The latest handlers are read through refs, so a caller passing an inline
+    // arrow doesn't re-set the native prop each render.
+    const onRevealEndCallback = useMemo(() => relay(self, fireRevealEnd), [self])
+    const onRevealMilestoneCallback = useMemo(() => relay(self, fireRevealMilestone), [self])
+    const onAnimationStartCallback = useMemo(() => relay(self, fireAnimationStart), [self])
+    const onAnimationEndCallback = useMemo(() => relay(self, fireAnimationEnd), [self])
     // A new array literal each render must not re-set the native prop. Always an
     // array (empty = no tiers): removing the prop would reach native as `null`,
     // which Nitro's array parser rejects ("Value is null, expected an Object").
@@ -599,7 +667,6 @@ export const NitroNumber = forwardRef<NitroNumberHandle, NitroNumberProps>(
     // rolls the figure 1.2.
     const figure = useMemo(() => (format ? figureOf(format, input) : undefined), [format, input])
     const compact = derived?.compact ? figure : undefined
-    const compactRef = useRef(false)
     compactRef.current = compact !== undefined
     // Which way the value moved, for a compact figure that fell while the value grew (999 → 1K).
     const numericValue = toNumber(input)

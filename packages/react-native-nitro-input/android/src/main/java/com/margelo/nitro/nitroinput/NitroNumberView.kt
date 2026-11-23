@@ -394,10 +394,13 @@ class NitroNumberView(context: Context) : View(context) {
     /**
      * This font set's digit masks by role (digit, fraction), digit and level,
      * filled from the shared cache: a swapping glyph looks two up every frame,
-     * and a lookup there built a key string each time. Written by the warm-up
-     * thread too.
+     * and a lookup there built a key string each time. Filled by the UI
+     * thread only: a queued mask lands in the shared cache, never here.
      */
     private val digitMasks = AtomicReferenceArray<Bitmap>(2 * 10 * (NUMERIC_BLUR_LEVELS + 1))
+
+    /** Stands for this font set in the warm queue ([WarmExecutor.cancel]), without being it. */
+    val warmToken = Any()
 
     fun strip(role: GlyphRole, blankZero: Boolean, modulus: Int): Strip? {
       val cell = digitWidth(role)
@@ -440,8 +443,6 @@ class NitroNumberView(context: Context) : View(context) {
      * at its role's height in the line box.
      */
     fun blurred(role: GlyphRole, digitIndex: Int, level: Int): Bitmap? {
-      val cell = digitWidth(role)
-      if (cell <= 0f || lineHeight <= 0f) return null
       // Level 0 (or no blur at all) is the glyph unblurred, still a mask: a
       // swapping glyph's two copies must be the same kind of thing, drawn the
       // same way at the same sub-pixel position. Hardware text snaps to whole
@@ -450,47 +451,67 @@ class NitroNumberView(context: Context) : View(context) {
       val slot = (if (role == GlyphRole.FRACTION) 10 * (NUMERIC_BLUR_LEVELS + 1) else 0) +
         digitIndex * (NUMERIC_BLUR_LEVELS + 1) + level.coerceIn(0, NUMERIC_BLUR_LEVELS)
       digitMasks.get(slot)?.let { return it }
-      val radius = if (level <= 0 || numericBlur <= 0f) 0 else Math.round(lineHeight * numericBlur * level / NUMERIC_BLUR_LEVELS).coerceAtLeast(1)
-      val cacheKey = "${key(role)}|$digitIndex|$radius|$blurPad"
-      if (radius > 0 && isMainThread()) {
+      // A blur the UI thread wants goes to the warm thread, with the warm thread's paint.
+      val queued = level > 0 && isMainThread()
+      val spec = digitMaskSpec(role, digitIndex, level, if (queued) maskPaints[role.ordinal] else threadPaint(role)) ?: return null
+      if (queued && spec.radius > 0) {
         // Not warmed yet (a font or size that just changed): blur it on the
         // warm thread and draw the sharp mask this frame. A blur in onDraw was
         // ANRing low-end phones, see [BlurredGlyphCache].
-        val ready = BlurredGlyphCache.peek(cacheKey)
+        val ready = BlurredGlyphCache.peek(spec.cacheKey)
         if (ready == null) {
-          WarmExecutor.request(cacheKey) { blurred(role, digitIndex, level) }
+          WarmExecutor.request(spec)
           return blurred(role, digitIndex, 0)
         }
         digitMasks.set(slot, ready)
         return ready
       }
-      val mask = BlurredGlyphCache.get(cacheKey) {
-        val text = glyphs[digitIndex]
-        val pad = blurPad
-        val w = ceil(cell).toInt() + 2 * pad
-        val h = ceil(lineHeight).toInt() + 2 * pad
-        // An alpha mask, not a coloured bitmap: the glyph's coverage, blurred,
-        // that a draw fills with the digit paint's colour. A coloured
-        // ARGB_8888 bitmap round-tripped through get/setPixels came back with
-        // its whole rectangle faintly inked on the GPU; a mask has no colour
-        // to get wrong, and is a quarter of the memory.
-        val mask = Bitmap.createBitmap(w, h, Bitmap.Config.ALPHA_8)
-        val canvas = Canvas(mask)
-        // A paint of its own: the masks are warmed off the main thread, where
-        // the digit paint's alpha is being changed by the draws.
-        val paint = TextPaint(threadPaint(role)).apply { alpha = 255 }
-        canvas.drawText(text, pad + (cell - width(text, role)) / 2f, pad + digitBaseline(role), paint)
-        if (radius > 0) boxBlurMask(mask, radius)
-        // Immutable and uploaded ahead of its first draw: HWUI re-pins a mutable
-        // bitmap at every sync, and the first frame that drew a fresh mask paid
-        // for its texture upload.
-        val done = mask.copy(Bitmap.Config.ALPHA_8, false) ?: mask
-        if (done !== mask) mask.recycle()
-        done
-      }
+      val mask = spec.make()
       digitMasks.set(slot, mask)
       return mask
     }
+
+    /**
+     * What [blurred] draws for [role]'s digit [digitIndex] at [level], as a
+     * [MaskSpec]: a paint and a few numbers, so a mask queued for the warm
+     * thread holds neither this font set nor the view. Measured on the calling
+     * thread; [paint] is the one the mask will be drawn with (the warm
+     * thread's own copy, [maskPaints], for a queued one).
+     */
+    private fun digitMaskSpec(role: GlyphRole, digitIndex: Int, level: Int, paint: TextPaint): MaskSpec? {
+      val cell = digitWidth(role)
+      if (cell <= 0f || lineHeight <= 0f) return null
+      val radius = blurRadius(level)
+      val pad = blurPad
+      val text = glyphs[digitIndex]
+      return MaskSpec(
+        cacheKey = "${key(role)}|$digitIndex|$radius|$pad",
+        paint = paint,
+        text = text,
+        left = pad + (cell - width(text, role)) / 2f,
+        baseline = pad + digitBaseline(role),
+        width = ceil(cell).toInt() + 2 * pad,
+        height = ceil(lineHeight).toInt() + 2 * pad,
+        radius = radius,
+      )
+    }
+
+    /**
+     * Every digit mask of the numeric transition (ten digits at every blur
+     * level, and the fraction's when it has one), for the warm thread.
+     */
+    fun swapMaskSpecs(fraction: Boolean): List<MaskSpec> {
+      val roles = if (fraction) listOf(GlyphRole.DIGIT, GlyphRole.FRACTION) else listOf(GlyphRole.DIGIT)
+      val specs = ArrayList<MaskSpec>(roles.size * 10 * (NUMERIC_BLUR_LEVELS + 1))
+      for (role in roles) for (digit in 0..9) for (level in 0..NUMERIC_BLUR_LEVELS) {
+        digitMaskSpec(role, digit, level, maskPaints[role.ordinal])?.let { specs.add(it) }
+      }
+      return specs
+    }
+
+    /** The blur radius of [level], in px (0: sharp). */
+    private fun blurRadius(level: Int): Int =
+      if (level <= 0 || numericBlur <= 0f) 0 else Math.round(lineHeight * numericBlur * level / NUMERIC_BLUR_LEVELS).coerceAtLeast(1)
 
     /**
      * [text] of [role] as an alpha mask blurred to [level] (of
@@ -500,28 +521,31 @@ class NitroNumberView(context: Context) : View(context) {
      */
     fun blurredText(text: String, role: GlyphRole, level: Int): Bitmap? {
       if (text.isEmpty() || lineHeight <= 0f) return null
-      val radius = if (level <= 0 || numericBlur <= 0f) 0 else Math.round(lineHeight * numericBlur * level / NUMERIC_BLUR_LEVELS).coerceAtLeast(1)
-      val cacheKey = "${key(role)}|t|$text|$radius|$blurPad"
-      if (radius > 0 && isMainThread()) {
+      val queued = level > 0 && isMainThread()
+      val spec = textMaskSpec(text, role, level, if (queued) maskPaints[role.ordinal] else threadPaint(role))
+      if (queued && spec.radius > 0) {
         // Never warmed ahead (any text can change into any other): blurred on
         // the warm thread, sharp until it lands, as [blurred] does.
-        BlurredGlyphCache.peek(cacheKey)?.let { return it }
-        WarmExecutor.request(cacheKey) { blurredText(text, role, level) }
+        BlurredGlyphCache.peek(spec.cacheKey)?.let { return it }
+        WarmExecutor.request(spec)
         return blurredText(text, role, 0)
       }
-      return BlurredGlyphCache.get(cacheKey) {
-        val pad = blurPad
-        val w = ceil(width(text, role)).toInt() + 2 * pad
-        val h = ceil(lineHeight).toInt() + 2 * pad
-        val mask = Bitmap.createBitmap(w.coerceAtLeast(1), h, Bitmap.Config.ALPHA_8)
-        val canvas = Canvas(mask)
-        val paint = TextPaint(threadPaint(role)).apply { alpha = 255 }
-        canvas.drawText(text, pad.toFloat(), pad + baseline(role, text, 0f), paint)
-        if (radius > 0) boxBlurMask(mask, radius)
-        val done = mask.copy(Bitmap.Config.ALPHA_8, false) ?: mask
-        if (done !== mask) mask.recycle()
-        done
-      }
+      return spec.make()
+    }
+
+    private fun textMaskSpec(text: String, role: GlyphRole, level: Int, paint: TextPaint): MaskSpec {
+      val radius = blurRadius(level)
+      val pad = blurPad
+      return MaskSpec(
+        cacheKey = "${key(role)}|t|$text|$radius|$pad",
+        paint = paint,
+        text = text,
+        left = pad.toFloat(),
+        baseline = pad + baseline(role, text, 0f),
+        width = (ceil(width(text, role)).toInt() + 2 * pad).coerceAtLeast(1),
+        height = ceil(lineHeight).toInt() + 2 * pad,
+        radius = radius,
+      )
     }
 
     /** Padding around a blurred glyph's bitmap, enough for the blur's tail. */
@@ -698,56 +722,6 @@ class NitroNumberView(context: Context) : View(context) {
       threadPaint(role).getTextBounds("0", 0, 1, bounds)
       -bounds.top.toFloat()
     }
-  }
-
-  /**
-   * Blurs a single-colour glyph in place: the alpha channel gets three box
-   * passes of [radius] in each axis, and every pixel is put back as [color]
-   * at its blurred coverage.
-   */
-  /**
-   * Blurs an ALPHA_8 [mask] in place: three box passes of [radius], which is a
-   * Gaussian to the eye with a standard deviation of about the radius.
-   */
-  private fun boxBlurMask(mask: Bitmap, radius: Int) {
-    val w = mask.width
-    val h = mask.height
-    val stride = mask.rowBytes
-    // Reused, not allocated per mask: two float copies of a large glyph went
-    // to the large-object heap, and a screenful of masks collected mid-frame.
-    val buffers = BlurBuffers.get(stride * h, w * h)
-    val bytes = buffers.bytes
-    bytes.clear()
-    bytes.limit(stride * h)
-    mask.copyPixelsToBuffer(bytes)
-    val alpha = buffers.alpha
-    val scratch = buffers.scratch
-    for (i in 0 until w * h) alpha[i] = (bytes.get((i / w) * stride + i % w).toInt() and 0xff).toFloat()
-    val window = (2 * radius + 1).toFloat()
-    repeat(3) {
-      // horizontal
-      for (y in 0 until h) {
-        val row = y * w
-        var sum = 0f
-        for (x in -radius..radius) sum += alpha[row + x.coerceIn(0, w - 1)]
-        for (x in 0 until w) {
-          scratch[row + x] = sum / window
-          sum += alpha[row + (x + radius + 1).coerceIn(0, w - 1)] - alpha[row + (x - radius).coerceIn(0, w - 1)]
-        }
-      }
-      // vertical
-      for (x in 0 until w) {
-        var sum = 0f
-        for (y in -radius..radius) sum += scratch[y.coerceIn(0, h - 1) * w + x]
-        for (y in 0 until h) {
-          alpha[y * w + x] = sum / window
-          sum += scratch[(y + radius + 1).coerceIn(0, h - 1) * w + x] - scratch[(y - radius).coerceIn(0, h - 1) * w + x]
-        }
-      }
-    }
-    for (i in 0 until w * h) bytes.put((i / w) * stride + i % w, Math.round(alpha[i]).coerceIn(0, 255).toByte())
-    bytes.rewind()
-    mask.copyPixelsFromBuffer(bytes)
   }
 
   /** System font scale for `allowFontScaling`, capped by `maxFontSizeMultiplier`. */
@@ -1171,29 +1145,100 @@ class NitroNumberView(context: Context) : View(context) {
     invalidate()
   }
 
+  /** The font set whose swap masks were last queued, and whether with the fraction's. */
+  private var warmedFonts: FontSet? = null
+  private var warmedFraction = false
+
   /**
    * Renders the numeric transition's glyph masks, every digit at every blur
    * level, on a background thread before they are needed. Made on demand, a
    * change's first frames each paid for a few software blurs on the UI
    * thread and ran late; iOS warms its images the same way.
+   *
+   * Once per font set: the `timing` and the font setters both land here when
+   * a view mounts. A new font set (a font, size or colour change) takes the
+   * old one's warm-ups out of the queue first, unless another view still
+   * wants them: on a colour animation they were never going to be drawn.
    */
   private fun warmSwapMasks() {
-    if (timing.transition != Transition.NUMERIC) return
+    if (timing.transition != Transition.NUMERIC) {
+      cancelWarmUps()
+      return
+    }
     val set = fonts
     val fraction = format.fractionDigits > 0
-    // One task a mask, so a mask the UI thread asks for meanwhile is made
-    // next rather than after the whole set (70 to 140 blurs).
-    val roles = if (fraction) listOf(GlyphRole.DIGIT, GlyphRole.FRACTION) else listOf(GlyphRole.DIGIT)
-    for (role in roles) for (digit in 0..9) for (level in 0..NUMERIC_BLUR_LEVELS) {
-      WarmExecutor.execute { set.blurred(role, digit, level) }
+    if (set === warmedFonts && (warmedFraction || !fraction)) return
+    if (set !== warmedFonts) cancelWarmUps()
+    warmedFonts = set
+    warmedFraction = fraction
+    WarmExecutor.warm(set.warmToken, set.swapMaskSpecs(fraction))
+  }
+
+  /** Takes this view's queued warm-ups out of the queue (those no other view asked for). */
+  private fun cancelWarmUps() {
+    val set = warmedFonts ?: return
+    warmedFonts = null
+    warmedFraction = false
+    WarmExecutor.cancel(set.warmToken)
+  }
+
+  /**
+   * A glyph mask to make: the text, the paint to draw it with and where it
+   * goes in the bitmap, measured on the UI thread. A nested class and plain
+   * values, so a mask waiting in [WarmExecutor]'s queue holds a paint and a
+   * few numbers, never a font set or the view: when the masks were lambdas
+   * over the (inner) font set, every queued one kept its whole view alive,
+   * strips and layers included, and a backlog of them ran low-end phones out
+   * of memory.
+   */
+  private class MaskSpec(
+    val cacheKey: String,
+    /** Never drawn with or changed by the UI thread once queued (a font set's mask paint). */
+    val paint: TextPaint,
+    val text: String,
+    /** The text's left edge and baseline in the bitmap, padding included. */
+    val left: Float,
+    val baseline: Float,
+    val width: Int,
+    val height: Int,
+    val radius: Int,
+  ) {
+    /** The mask, from the shared cache or drawn (and blurred) now on the calling thread. */
+    fun make(): Bitmap = BlurredGlyphCache.get(cacheKey) {
+      // An alpha mask, not a coloured bitmap: the glyph's coverage, blurred,
+      // that a draw fills with the digit paint's colour. A coloured
+      // ARGB_8888 bitmap round-tripped through get/setPixels came back with
+      // its whole rectangle faintly inked on the GPU; a mask has no colour
+      // to get wrong, and is a quarter of the memory.
+      val mask = Bitmap.createBitmap(width, height, Bitmap.Config.ALPHA_8)
+      val canvas = Canvas(mask)
+      // A paint of its own: the UI thread changes its paints' alpha as it draws.
+      val paint = TextPaint(paint).apply { alpha = 255 }
+      canvas.drawText(text, left, baseline, paint)
+      if (radius > 0) boxBlurMask(mask, radius)
+      // Immutable and uploaded ahead of its first draw: HWUI re-pins a mutable
+      // bitmap at every sync, and the first frame that drew a fresh mask paid
+      // for its texture upload.
+      val done = mask.copy(Bitmap.Config.ALPHA_8, false) ?: mask
+      if (done !== mask) mask.recycle()
+      done
     }
   }
 
   /**
    * One background thread for glyph masks, shared by every view. A mask the UI
    * thread is waiting on ([request]) goes to the front of the queue, ahead of
-   * the ten-digits-at-every-level warm-ups ([execute]): behind a font change's
+   * the ten-digits-at-every-level warm-ups ([warm]): behind a font change's
    * warm-up, the glyph on screen stayed sharp for its whole swap.
+   *
+   * Bounded both ways, and keyed by mask, so it cannot outgrow its one thread
+   * however many fonts, sizes and colours come and go: a mask is queued once
+   * however many views ask for it, a dropped view's or an old font set's
+   * warm-ups are taken out ([cancel]), and past [MAX_WARM] (or [MAX_URGENT])
+   * the oldest are dropped. A dropped warm-up costs at most a sharp glyph
+   * for a swap's first frames, then [request] makes it. An unbounded queue
+   * of masks for colours already gone grew to hundreds of thousands and
+   * took the app down on low-end phones (0.4.1).
    *
    * At background priority plus one step (Glide's choice): below the UI
    * thread, not starved under load (Thread.MIN_PRIORITY is the lowest nice
@@ -1203,13 +1248,25 @@ class NitroNumberView(context: Context) : View(context) {
    * on Android, and a failure retried every frame logged every frame. Any
    * other Error is a bug and is not swallowed.
    */
-  private object WarmExecutor : java.util.concurrent.Executor {
-    private val queue = java.util.concurrent.LinkedBlockingDeque<Runnable>()
-    /** Masks the UI thread has asked for and the warm thread has not made yet. */
-    private val pending = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+  private object WarmExecutor {
+    /** Warm-ups kept at most: four numeric typographies with fractions, ten digits at seven levels in two roles. */
+    const val MAX_WARM = 4 * 2 * 10 * (NUMERIC_BLUR_LEVELS + 1)
+    /** Masks frames are waiting on, kept at most (a screenful of swapping glyphs and texts is far fewer). */
+    const val MAX_URGENT = 256
+    private const val RETRY_MS = 2000L
+
+    private val lock = Object()
+    /** Masks the UI thread is waiting on, newest first, and their keys (also while one is being made). */
+    private val urgent = ArrayDeque<MaskSpec>()
+    private val urgentKeys = HashSet<String>()
+    /** Warm-ups by mask key, oldest first, each with the font sets ([FontSet.warmToken]) that want it. */
+    private val warm = LinkedHashMap<String, WarmUp>()
     /** When a mask last failed, by key: not asked for again until [RETRY_MS] later. */
     private val failed = java.util.concurrent.ConcurrentHashMap<String, Long>()
-    private const val RETRY_MS = 2000L
+
+    private class WarmUp(val spec: MaskSpec) {
+      val owners = HashSet<Any>(2)
+    }
 
     init {
       Thread({
@@ -1217,17 +1274,22 @@ class NitroNumberView(context: Context) : View(context) {
           android.os.Process.THREAD_PRIORITY_BACKGROUND + android.os.Process.THREAD_PRIORITY_MORE_FAVORABLE
         )
         while (true) {
-          val task = try {
-            queue.take()
+          val spec = try {
+            next()
           } catch (_: InterruptedException) {
             continue
           }
           try {
-            task.run()
+            if (BlurredGlyphCache.peek(spec.cacheKey) == null) spec.make()
+            failed.remove(spec.cacheKey)
           } catch (e: Exception) {
+            failed[spec.cacheKey] = SystemClock.uptimeMillis()
             android.util.Log.w("NitroNumber", "A glyph mask could not be made; the glyph is drawn sharp", e)
           } catch (e: OutOfMemoryError) {
+            failed[spec.cacheKey] = SystemClock.uptimeMillis()
             android.util.Log.w("NitroNumber", "Out of memory making a glyph mask; the glyph is drawn sharp", e)
+          } finally {
+            synchronized(lock) { urgentKeys.remove(spec.cacheKey) }
           }
         }
       }, "NitroNumberWarm").apply {
@@ -1236,31 +1298,68 @@ class NitroNumberView(context: Context) : View(context) {
       }
     }
 
-    override fun execute(command: Runnable) {
-      queue.offerLast(command)
+    /** The next mask to make, waiting for one: a frame's before any warm-up. */
+    private fun next(): MaskSpec = synchronized(lock) {
+      while (urgent.isEmpty() && warm.isEmpty()) lock.wait()
+      if (urgent.isNotEmpty()) return urgent.removeFirst()
+      val oldest = warm.values.iterator()
+      val warmUp = oldest.next()
+      oldest.remove()
+      // Kept in [urgentKeys] while it is made, so a frame asking meanwhile doesn't queue it again.
+      urgentKeys.add(warmUp.spec.cacheKey)
+      warmUp.spec
     }
 
-    /** Makes [key]'s mask on the warm thread next, once however many frames ask for it while it is queued. */
-    fun request(key: String, make: () -> Unit) {
-      failed[key]?.let { if (SystemClock.uptimeMillis() - it < RETRY_MS) return }
-      if (!pending.add(key)) return
-      queue.offerFirst(
-        Runnable {
-          try {
-            make()
-            failed.remove(key)
-          } catch (e: Exception) {
-            failed[key] = SystemClock.uptimeMillis()
-            throw e
-          } catch (e: OutOfMemoryError) {
-            failed[key] = SystemClock.uptimeMillis()
-            throw e
-          } finally {
-            pending.remove(key)
-          }
-        }
-      )
+    private fun recentlyFailed(key: String): Boolean {
+      val at = failed[key] ?: return false
+      return SystemClock.uptimeMillis() - at < RETRY_MS
     }
+
+    /** Makes [spec]'s mask on the warm thread next, once however many frames ask for it while it is queued. */
+    fun request(spec: MaskSpec) {
+      val key = spec.cacheKey
+      if (recentlyFailed(key)) return
+      synchronized(lock) {
+        if (!urgentKeys.add(key)) return
+        warm.remove(key)
+        urgent.addFirst(spec)
+        while (urgent.size > MAX_URGENT) urgentKeys.remove(urgent.removeLast().cacheKey)
+        lock.notifyAll()
+      }
+    }
+
+    /** Queues [specs] behind every frame's masks, for the font set [owner] stands for. */
+    fun warm(owner: Any, specs: List<MaskSpec>) {
+      // Outside the lock: the cache has a lock of its own.
+      val missing = specs.filter { BlurredGlyphCache.peek(it.cacheKey) == null && !recentlyFailed(it.cacheKey) }
+      if (missing.isEmpty()) return
+      synchronized(lock) {
+        for (spec in missing) {
+          if (spec.cacheKey in urgentKeys) continue
+          warm.getOrPut(spec.cacheKey) { WarmUp(spec) }.owners.add(owner)
+        }
+        val oldest = warm.values.iterator()
+        while (warm.size > MAX_WARM && oldest.hasNext()) {
+          oldest.next()
+          oldest.remove()
+        }
+        lock.notifyAll()
+      }
+    }
+
+    /** Takes out the warm-ups only [owner] wanted; the ones another font set wants too stay. */
+    fun cancel(owner: Any) {
+      synchronized(lock) {
+        val each = warm.values.iterator()
+        while (each.hasNext()) {
+          val warmUp = each.next()
+          if (warmUp.owners.remove(owner) && warmUp.owners.isEmpty()) each.remove()
+        }
+      }
+    }
+
+    /** Warm-ups and frame requests waiting, for tests and diagnostics. */
+    fun queued(): Int = synchronized(lock) { warm.size + urgent.size }
   }
 
   /** Per-thread buffers for [boxBlurMask], grown to the largest mask that thread has blurred. */
@@ -2112,6 +2211,7 @@ class NitroNumberView(context: Context) : View(context) {
    */
   fun release() {
     stopAnimation()
+    cancelWarmUps()
     engine.reset()
     moving = false
     wheels.clear()
@@ -2211,6 +2311,59 @@ class NitroNumberView(context: Context) : View(context) {
   }
 
   companion object {
+    /**
+     * Blurs an ALPHA_8 [mask] in place: three box passes of [radius], which is a
+     * Gaussian to the eye with a standard deviation of about the radius.
+     */
+    private fun boxBlurMask(mask: Bitmap, radius: Int) {
+      val w = mask.width
+      val h = mask.height
+      val stride = mask.rowBytes
+      // Reused, not allocated per mask: two float copies of a large glyph went
+      // to the large-object heap, and a screenful of masks collected mid-frame.
+      val buffers = BlurBuffers.get(stride * h, w * h)
+      val bytes = buffers.bytes
+      bytes.clear()
+      bytes.limit(stride * h)
+      mask.copyPixelsToBuffer(bytes)
+      val alpha = buffers.alpha
+      val scratch = buffers.scratch
+      for (i in 0 until w * h) alpha[i] = (bytes.get((i / w) * stride + i % w).toInt() and 0xff).toFloat()
+      val window = (2 * radius + 1).toFloat()
+      repeat(3) {
+        // horizontal
+        for (y in 0 until h) {
+          val row = y * w
+          var sum = 0f
+          for (x in -radius..radius) sum += alpha[row + x.coerceIn(0, w - 1)]
+          for (x in 0 until w) {
+            scratch[row + x] = sum / window
+            sum += alpha[row + (x + radius + 1).coerceIn(0, w - 1)] - alpha[row + (x - radius).coerceIn(0, w - 1)]
+          }
+        }
+        // vertical
+        for (x in 0 until w) {
+          var sum = 0f
+          for (y in -radius..radius) sum += scratch[y.coerceIn(0, h - 1) * w + x]
+          for (y in 0 until h) {
+            alpha[y * w + x] = sum / window
+            sum += scratch[(y + radius + 1).coerceIn(0, h - 1) * w + x] - scratch[(y - radius).coerceIn(0, h - 1) * w + x]
+          }
+        }
+      }
+      for (i in 0 until w * h) bytes.put((i / w) * stride + i % w, Math.round(alpha[i]).coerceIn(0, 255).toByte())
+      bytes.rewind()
+      mask.copyPixelsFromBuffer(bytes)
+    }
+
+
+    /**
+     * Glyph masks waiting for the warm thread, warm-ups and frame requests
+     * together; bounded (see WarmExecutor). For tests and diagnostics.
+     */
+    @JvmStatic
+    fun queuedGlyphMasks(): Int = WarmExecutor.queued()
+
     /** The glyphs drawn for 0…9 unless `digitGlyphs` gives ten others. */
     private val DIGITS = Array(10) { it.toString() }
     /** Flash paints a font set keeps per role (a change flash has an up and a down colour). */

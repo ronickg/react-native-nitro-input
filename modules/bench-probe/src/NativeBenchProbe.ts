@@ -40,6 +40,11 @@ export interface Spec extends TurboModule {
   trackNativeViews(classPrefix: string): number
   /** How many of the tracked views are still alive (Android; -1 on iOS). */
   trackedLiveCount(): number
+  /**
+   * Android: how many glyph masks NitroNumber's warm thread has queued (warm-ups
+   * and frame requests). Bounded by the library; -1 on iOS or when it is not linked.
+   */
+  glyphMaskQueue(): number
   /** Start counting display frames on the main thread (CADisplayLink / Choreographer). */
   startFrames(): void
   /** Stop and summarize: { frames, seconds, fps, hz, dropped, long, p50, p95, p99, max } (gaps in ms). */
