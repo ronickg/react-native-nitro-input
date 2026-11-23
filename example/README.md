@@ -13,3 +13,4 @@ bun run test:harness:ios        # the on-device suites in __tests__/, from the r
 - `__tests__/*.harness.tsx`: the on-device suites, run by [React Native Harness](https://www.react-native-harness.dev) inside this app (see [`__tests__/README.md`](__tests__/README.md)). CI runs them on an iOS simulator and an Android emulator.
 - `src/screens/`: the demo and the manual checks (parity with `TextInput`, navigation, form sheets, keyboard-controller, RTL, view props, recycling), driven by `testID`.
 - Bundle id `com.nitroinput.example` on both platforms, so it installs next to the bench app.
+
