@@ -122,6 +122,66 @@ jobs:
             adb shell settings put global transition_animation_scale 0
             adb shell settings put global animator_duration_scale 1
 
+  # Real touches, which Harness cannot send: a long-press selection drag, a
+  # cursor drag, a scroll and a page swipe that start on a NitroInput inside a
+  # ScrollView inside a pager, driven with adb motionevents
+  # (example/e2e/touch-handoff-android.sh). 0.4.2 lost the selection drag to
+  # the scroll views; this keeps that from coming back.
+  touch-handoff:
+    name: Android touch hand-off
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install
+        run: |
+          bun install --frozen-lockfile
+          sudo apt-get install -y zsh > /dev/null
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: NDK
+        run: |
+          for attempt in 1 2 3; do
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;27.1.12297006" > /dev/null && exit 0
+            echo "sdkmanager failed (attempt $attempt)"; sleep 20
+          done
+          exit 1
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build the example app
+        working-directory: example/android
+        run: >
+          ./gradlew :app:assembleDebug
+          -PreactNativeArchitectures=x86_64
+          --no-daemon
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Touch hand-off checks
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          # One line: the action runs each line of a script in its own shell.
+          script: ./example/e2e/touch-handoff-ci.sh android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Metro log and last screen
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: touch-handoff
+          path: |
+            example/metro.log
+            example/touch-handoff-last.png
+          if-no-files-found: ignore
+
   ios:
     name: iOS simulator
     # Xcode 26 is the default here; its simulators are the iPhone 17 family on iOS 26.5.

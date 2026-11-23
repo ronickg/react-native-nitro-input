@@ -11,6 +11,7 @@
 #                 moves to the start (flat and drifting down); in an unfocused one
 #                 Android drags no cursor, and the drag must not page the pager
 #   scroll        a vertical swipe that starts on a field scrolls the page
+#   scroll-long   the same, starting on a field whose text is longer than it
 #   page          a horizontal swipe that starts on a field pages the pager
 #   type          tap, then type: the text lands in the field
 #   mask          Uno: masked inputs, CLABE typed in: formatted in groups
@@ -22,6 +23,7 @@
 #   bun run start                       # Metro for the example, in another terminal
 #   ./e2e/touch-handoff-android.sh      # every check once; ANDROID_SERIAL picks the device
 #   RUNS=3 ./e2e/touch-handoff-android.sh select-drift page
+#   IMPL=rn ./e2e/touch-handoff-android.sh   # React Native's TextInput, to compare
 #
 # 0.4.2 (#74) fails select-drift: its first move handed the touch back to the
 # ScrollView after the long-press had started a selection drag.
@@ -30,6 +32,7 @@ set -u
 export ANDROID_SERIAL=${ANDROID_SERIAL:-$(adb devices | awk 'NR==2 {print $1}')}
 PKG=${PKG:-com.nitroinput.example}
 RUNS=${RUNS:-1}
+IMPL=${IMPL:-ours}   # rn: the same screen with React Native's TextInput, to compare
 FAILS=0
 PASSES=0
 DENSITY=$(adb shell wm density | grep -oE '[0-9]+' | tail -1)
@@ -37,20 +40,50 @@ dp() { echo $(( $1 * DENSITY / 160 )); }
 
 SIZE=($(adb shell wm size | tail -1 | grep -oE '[0-9]+'))
 
-# The element tree comes from argent (https://github.com/software-mansion/argent):
-# its UiAutomation helper holds the device's only UiAutomation connection, so
-# `uiautomator dump` returns nothing while argent drives the device.
+# The element tree, one line per element: 'Role "label" id="testID" (x,y,w,h)'
+# with the frame in fractions of the screen. It comes from argent
+# (https://github.com/software-mansion/argent) when it is installed: its
+# UiAutomation helper holds the device's only UiAutomation connection, so
+# `uiautomator dump` returns nothing while argent drives the device. Without
+# argent (CI) it comes from `uiautomator dump`. TREE=uiautomator forces that.
+TREE=${TREE:-$(command -v argent >/dev/null && echo argent || echo uiautomator)}
+tree() {
+  if [[ $TREE == argent ]]; then
+    argent run describe --udid $ANDROID_SERIAL 2>/dev/null | python3 -c 'import json, sys; print(json.load(sys.stdin)["description"])'
+    return
+  fi
+  adb shell rm -f /sdcard/touch-handoff.xml
+  for _ in 1 2 3 4; do
+    adb shell uiautomator dump /sdcard/touch-handoff.xml >/dev/null 2>&1 && break
+    sleep 0.5
+  done
+  adb shell cat /sdcard/touch-handoff.xml 2>/dev/null | python3 -c '
+import re, sys, xml.etree.ElementTree as ET
+w, h = int(sys.argv[1]), int(sys.argv[2])
+try: root = ET.fromstring(sys.stdin.read())
+except ET.ParseError: sys.exit(0)
+for n in root.iter("node"):
+    b = list(map(int, re.findall(r"\d+", n.get("bounds", ""))))
+    if len(b) != 4: continue
+    role = "TextField" if n.get("class", "").endswith("EditText") else "View"
+    label = (n.get("text") or n.get("content-desc") or "").replace("\"", "")
+    rid = n.get("resource-id", "").split("/")[-1]
+    print(f"{role} \"{label}\"" + (f" id=\"{rid}\"" if rid else "") +
+          f"  ({b[0]/w:.4f},{b[1]/h:.4f},{(b[2]-b[0])/w:.4f},{(b[3]-b[1])/h:.4f})")
+' ${SIZE[1]} ${SIZE[2]}
+}
+
 # "left top right bottom<TAB>label" in px of the element picked by $1:
 #   id:<testID>   the element with that testID
 #   field:<n>     the field of page one whose text carries "0-<n>"
 #   nth:<k>       the k-th field on screen (field k-1 of page one, whatever its text)
 node() {
-  argent run describe --udid $ANDROID_SERIAL 2>/dev/null | python3 -c '
-import json, re, sys
+  tree | python3 -c '
+import re, sys
 want, w, h = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
 kind, _, arg = want.partition(":")
 nth = 0
-for line in json.load(sys.stdin)["description"].splitlines():
+for line in sys.stdin.read().splitlines():
     m = re.search(r"\(([\d.]+),([\d.]+),([\d.]+),([\d.]+)\)\s*$", line)
     if not m: continue
     label = re.search(r"^\s*\S+\s+\"(.*?)\"(?=\s+(?:id=|\[|\())", line)
@@ -87,10 +120,10 @@ touch() {
 
 # Opens the screen behind the home button with testID $1 (default: the pager).
 open_screen() {
-  local button=${1:-home-pager-fields} ready=${2:-field:0}
+  local button=${1:-home-pager-fields$([[ $IMPL == rn ]] && echo -rn)} ready=${2:-field:0}
   adb shell am force-stop $PKG
   adb shell monkey -p $PKG -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
-  for _ in $(seq 1 30); do visible id:home-features && break; sleep 2; done
+  for _ in $(seq 1 ${BOOT_WAIT:-30}); do visible id:home-features && break; sleep 2; done
   for _ in 1 2 3 4 5; do visible id:$button && break; adb shell input swipe $(( SIZE[1] / 2 )) $(( SIZE[2] * 3 / 4 )) $(( SIZE[1] / 2 )) $(( SIZE[2] / 4 )) 300; sleep 1; done
   local b=($(bounds id:$button))
   [[ ${#b} -eq 4 ]] || { fail "no $button button on the home screen"; return 1; }
@@ -122,6 +155,7 @@ cursor_drag() {
   local y=$(( (b[2] + b[4]) / 2 ))
   if [[ $focused == focused ]]; then adb shell input tap $(( b[3] - $(dp 8) )) $y; sleep 1; fi
   touch $(( b[3] - $(dp 8) )) $y $(( b[1] + 2 )) $(( y + $(dp $drift) )) 14 1.2
+  sleep 0.7
   adb shell input text Z; sleep 0.8
   local after=$(text_of $id) page=$(text_of id:pager-status)
   if [[ $focused == focused ]]; then
@@ -158,6 +192,16 @@ check() {
       if [[ ${#top1} -eq 0 || ${top1[2]} -lt $(( top0[2] - $(dp 60) )) ]]; then pass "vertical swipe from a field scrolled the page"
       else fail "vertical swipe from a field did not scroll the page (top ${top0[2]} -> ${top1[2]:-gone})"; fi
       touch $x $(( y - $(dp 220) )) $x $y 8 0   # back
+      ;;
+    scroll-long)
+      # Field 7's text is longer than the field, so the field can scroll it
+      # sideways. A vertical swipe that starts on it is still the page's.
+      local top0=($(bounds field:0)) b=($(bounds field:7))
+      local x=$(( (b[1] + b[3]) / 2 )) y=$(( (b[2] + b[4]) / 2 ))
+      touch $x $y $x $(( y - $(dp 220) )) 8 0
+      local top1=($(bounds field:0))
+      if [[ ${#top1} -eq 0 || ${top1[2]} -lt $(( top0[2] - $(dp 60) )) ]]; then pass "vertical swipe from a field with overflowing text scrolled the page"
+      else fail "vertical swipe from a field with overflowing text did not scroll the page (top ${top0[2]} -> ${top1[2]:-gone})"; fi
       ;;
     page)
       local b=($(bounds nth:3))
@@ -200,11 +244,12 @@ check() {
   esac
 }
 
-CHECKS=(select-drift select-flat cursor-unfocused cursor-focused cursor-drift scroll page type mask masked-select-drift)
+CHECKS=(select-drift select-flat cursor-unfocused cursor-focused cursor-drift scroll scroll-long page type mask masked-select-drift)
 (( $# )) && CHECKS=($@)
 for run in $(seq 1 $RUNS); do
   echo "run $run/$RUNS"
   for c in $CHECKS; do
+    if [[ $c == mask* && $IMPL == rn ]]; then echo "$c: n/a for TextInput"; continue; fi
     if [[ $c == mask* ]]; then open_screen home-uno-masks id:uno-mask-clabe-raw || continue
     else open_screen || continue; fi
     echo "$c"

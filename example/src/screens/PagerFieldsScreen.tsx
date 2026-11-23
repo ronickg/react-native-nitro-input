@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
+import { ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native'
+import { useRoute } from '@react-navigation/native'
 import { NitroInput } from 'react-native-nitro-input'
 
 /**
@@ -8,12 +9,17 @@ import { NitroInput } from 'react-native-nitro-input'
  * has to go to whoever the gesture is for: a vertical swipe scrolls the page,
  * a horizontal one pages, and a long-press selection drag or a cursor drag
  * stays with the field however the finger drifts. `e2e/touch-handoff-android.sh`
- * drives it.
+ * drives it. With `impl: 'rn'` the fields are React Native's own TextInput, to
+ * compare against. Field 7's text is longer than the field, so it can scroll
+ * its own text sideways.
  */
 const PAGES = ['One', 'Two', 'Three']
 const FIELDS = 14
 
+const LONG = ' echo foxtrot golf hotel india juliett kilo lima mike november oscar'
+
 export function PagerFieldsScreen() {
+  const impl = (useRoute().params as { impl?: 'ours' | 'rn' } | undefined)?.impl ?? 'ours'
   const { width } = useWindowDimensions()
   const [page, setPage] = useState(0)
   return (
@@ -32,15 +38,25 @@ export function PagerFieldsScreen() {
             <Text style={s.title}>{`Page ${name}`}</Text>
             {Array.from({ length: FIELDS }, (_, i) => (
               <View key={i} style={s.box}>
-                <NitroInput
-                  testID={`pager-field-${p}-${i}`}
-                  style={s.field}
-                  defaultValue={`alpha bravo charlie delta ${p}-${i}`}
-                  fontSize={16}
-                  color="#081033"
-                  autoCorrect={false}
-                  autoCapitalize="none"
-                />
+                {impl === 'rn' ? (
+                  <TextInput
+                    testID={`pager-field-${p}-${i}`}
+                    style={[s.field, s.rnText]}
+                    defaultValue={`alpha bravo charlie delta ${p}-${i}${i === 7 ? LONG : ''}`}
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                  />
+                ) : (
+                  <NitroInput
+                    testID={`pager-field-${p}-${i}`}
+                    style={s.field}
+                    defaultValue={`alpha bravo charlie delta ${p}-${i}${i === 7 ? LONG : ''}`}
+                    fontSize={16}
+                    color="#081033"
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                  />
+                )}
               </View>
             ))}
           </ScrollView>
@@ -57,4 +73,5 @@ const s = StyleSheet.create({
   title: { fontSize: 20, fontWeight: '700', color: '#081033' },
   box: { height: 56, borderRadius: 12, backgroundColor: '#FFFFFF', paddingHorizontal: 16, justifyContent: 'center' },
   field: { height: 40 },
+  rnText: { fontSize: 16, color: '#081033', padding: 0 },
 })
