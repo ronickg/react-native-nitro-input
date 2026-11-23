@@ -185,6 +185,14 @@ class BenchProbeModule(reactContext: ReactApplicationContext) : NativeBenchProbe
 
   override fun trackedLiveCount(): Double = tracked.size.toDouble()
 
+  // Reflection: this probe does not depend on the library, and the bench app links others.
+  override fun glyphMaskQueue(): Double = try {
+    val method = Class.forName("com.margelo.nitro.nitroinput.NitroNumberView").getMethod("queuedGlyphMasks")
+    (method.invoke(null) as Int).toDouble()
+  } catch (_: Throwable) {
+    -1.0
+  }
+
   override fun forceGc() {
     // A detached view is freed by the Java collector; the C++ engine behind it
     // (an fbjni HybridData) by the destructor thread after that. Two rounds so

@@ -8,7 +8,7 @@ import { View, type LayoutRectangle } from 'react-native'
 import { describe, expect, it } from 'react-native-harness'
 import { NitroNumber, NumberFormat, type NitroNumberHandle } from 'react-native-nitro-input'
 import { deferred, expectSameLength, render, sleep, waitFor, withTimeout } from './test-utils'
-import { forceGc, trackNativeViews, trackedLiveCount } from 'bench-probe'
+import { forceGc, glyphMaskQueue, trackNativeViews, trackedLiveCount } from 'bench-probe'
 
 /**
  * The most recent `onLayout` rectangle of one view, kept by reference. Pair it
@@ -412,5 +412,131 @@ describe('NitroNumber lifetime', () => {
     }
     await rerender(tree(5000))
     await waitFor(() => expect(refs.map((ref) => ref.current?.getValue())).toEqual(refs.map((_, i) => 5000 + i)), { timeout: 5000 })
+  })
+
+  // The numeric transition blurs each digit's masks on a background thread
+  // ahead of use. In 0.4.1 every queued mask was a closure over the view's
+  // font set, so a view dropped before its masks were made stayed alive with
+  // its strips and layers until the thread got to them; with many fonts or
+  // colours the queue never caught up and low-end phones ran out of memory.
+  // Big glyphs in a new colour per copy (a few thousand slow blurs queued),
+  // dropped at once: after a collection the views must be gone, masks or not.
+  it('lets go of numeric views whose glyph masks are still queued', async () => {
+    const copies = 24
+    const cycles = 3
+    const refs = Array.from({ length: copies }, () => createRef<NitroNumberHandle>())
+    const tree = (cycle: number) => (
+      <View>
+        {refs.map((ref, i) => (
+          <NitroNumber
+            key={i}
+            ref={ref}
+            value={1234.56 + i}
+            fractionDigits={2}
+            transition="numeric"
+            fontSize={56}
+            color={`hsl(${(cycle * 97 + i * 15) % 360}, 70%, 40%)`}
+            style={content}
+          />
+        ))}
+      </View>
+    )
+    const { rerender } = await render(<View />)
+    let tracked: number | null = 0
+    for (let cycle = 1; cycle <= cycles; cycle++) {
+      await rerender(tree(cycle))
+      await waitFor(() => expect(refs[copies - 1].current?.native).not.toBeNull(), { timeout: 5000 })
+      tracked = trackNativeViews()
+      await rerender(<View />)
+    }
+    forceGc()
+    await sleep(300)
+    forceGc()
+    await sleep(200)
+    const alive = trackedLiveCount()
+    if (tracked != null && alive != null) {
+      expect(tracked).toBeGreaterThanOrEqual(copies)
+      expect(alive).toBeLessThan(copies)
+    }
+  })
+
+  // Nitro keeps each callback prop as a rooted JS function inside the
+  // ShadowNode's props. NitroNumber's callbacks used to close over the
+  // component's refs (the hybrid handle, the fiber's state setter), so the
+  // props rooted the fiber, the fiber the props: Hermes could never collect
+  // an unmounted copy's hybrid, and with it the native view's memory (0.4.1:
+  // thousands of HybridNitroNumberViews after a long list). The callbacks
+  // now reach the component through a WeakRef. Three cycles of 24 copies
+  // dropped, a full Hermes collection: most of the handles must be gone.
+  it('lets Hermes collect the hybrids of unmounted copies', async () => {
+    const hermesGc = (globalThis as { gc?: () => void }).gc
+    if (typeof hermesGc !== 'function' || typeof WeakRef === 'undefined') return // release builds expose no gc()
+    const copies = 24
+    const cycles = 3
+    const refs = Array.from({ length: copies }, () => createRef<NitroNumberHandle>())
+    const handles: WeakRef<object>[] = []
+    const tree = (base: number) => (
+      <View>
+        {refs.map((ref, i) => (
+          <NitroNumber key={i} ref={ref} value={base + i} onAnimationEnd={() => {}} style={content} />
+        ))}
+      </View>
+    )
+    const { rerender } = await render(<View />)
+    for (let cycle = 1; cycle <= cycles; cycle++) {
+      await rerender(tree(1000 * cycle))
+      await waitFor(() => expect(refs[copies - 1].current?.native).not.toBeNull(), { timeout: 5000 })
+      for (const ref of refs) {
+        const native = ref.current?.native
+        if (native != null) handles.push(new WeakRef(native as object))
+      }
+      await rerender(<View />)
+    }
+    // A WeakRef clears only after the job that read it ends: collect, then yield.
+    for (let round = 0; round < 3; round++) {
+      hermesGc()
+      await sleep(200)
+    }
+    const alive = handles.filter((handle) => handle.deref() !== undefined).length
+    expect(handles.length).toBeGreaterThanOrEqual(copies * cycles)
+    // A leak keeps every one; React may hold the last cycle's for a while.
+    expect(alive).toBeLessThanOrEqual(copies)
+  })
+
+  // The same queue, bounded: twelve numbers recoloured every 50 ms make a
+  // new typography each time (140 masks each). In 0.4.1 the queue only grew;
+  // now it is keyed by mask, an old colour's warm-ups leave with it and the
+  // rest is capped, so it stays under the cap (560 warm-ups + 256 requests).
+  it('keeps its glyph mask queue bounded while the colour animates', async () => {
+    const ref = createRef<NitroNumberHandle>()
+    const tree = (step: number) => (
+      <View>
+        {Array.from({ length: 12 }, (_, i) => (
+          <NitroNumber
+            key={i}
+            ref={i === 11 ? ref : undefined}
+            value={1000 + step * 7 + i}
+            fractionDigits={2}
+            transition="numeric"
+            fontSize={40}
+            color={`hsl(${(step * 37 + i * 29) % 360}, 70%, 40%)`}
+            style={content}
+          />
+        ))}
+      </View>
+    )
+    const { rerender } = await render(tree(0))
+    await waitFor(() => expect(ref.current?.native).not.toBeNull())
+    let most = 0
+    for (let step = 1; step <= 40; step++) {
+      await rerender(tree(step))
+      await sleep(50)
+      const queued = glyphMaskQueue()
+      if (queued == null) return // iOS, or a build without the probe
+      most = Math.max(most, queued)
+    }
+    expect(most).toBeLessThanOrEqual(816)
+    // And the numbers still land on their values.
+    await waitFor(() => expect(ref.current?.getValue()).toBe(1000 + 40 * 7 + 11))
   })
 })

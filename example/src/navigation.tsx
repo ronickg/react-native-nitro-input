@@ -13,6 +13,7 @@ import { KeyboardControllerScreen } from './screens/KeyboardControllerScreen'
 import { ViewPropsReproScreen } from './screens/ViewPropsRepro'
 import { RtlScreen } from './screens/RtlScreen'
 import { RecycleCheckScreen } from './screens/RecycleCheckScreen'
+import { NumberStressScreen, type NumberStressMode } from './screens/NumberStressScreen'
 import { MoneyFormatScreen } from './screens/MoneyFormatScreen'
 import { SavingsDialScreen } from './screens/SavingsDialScreen'
 import { UnoAmountPickerScreen, UnoMaskedInputsScreen } from './screens/UnoScreens'
@@ -43,6 +44,7 @@ export type RootStackParamList = {
   ViewPropsRepro: undefined
   Rtl: undefined
   RecycleCheck: undefined
+  NumberStress: { mode?: NumberStressMode } | undefined
   MoneyFormat: undefined
   SavingsDial: undefined
   UnoAmountPicker: undefined
@@ -166,6 +168,7 @@ function HomeScreen() {
       <Card title="NitroNumber" hint="The benchmarks against other libraries live in the bench app (bench/).">
         <Row><Btn testID="home-money-format" tone="primary" title="Money: bigint, stripIfInteger, halfEven" onPress={() => nav.navigate('MoneyFormat')} /></Row>
         <Row><Btn testID="home-recycle" title="Recycle check (400-row lists)" onPress={() => nav.navigate('RecycleCheck')} /></Row>
+        <Row><Btn testID="home-number-stress" title="Memory stress (churn, many typographies)" onPress={() => nav.navigate('NumberStress')} /></Row>
         <Row><Btn testID="home-savings-dial" tone="primary" title="Savings dial (Uno), to zero" onPress={() => nav.navigate('SavingsDial')} /></Row>
         <Row><Btn testID="home-uno-amount" tone="primary" title="Uno: amount picker, custom amount" onPress={() => nav.navigate('UnoAmountPicker')} /></Row>
         <Row><Btn testID="home-uno-masks" tone="primary" title="Uno: masked inputs" onPress={() => nav.navigate('UnoMaskedInputs')} /></Row>
@@ -201,6 +204,9 @@ export function RootNavigator() {
         <Stack.Screen name="UnoAmountPicker" component={UnoAmountPickerScreen} options={{ title: 'Pay credit' }} />
         <Stack.Screen name="UnoMaskedInputs" component={UnoMaskedInputsScreen} options={{ title: 'Masked inputs' }} />
         <Stack.Screen name="RecycleCheck" component={RecycleCheckScreen} options={{ title: 'Recycle check' }} />
+        <Stack.Screen name="NumberStress" options={{ title: 'Memory stress' }}>
+          {({ route }) => <NumberStressScreen mode={route.params?.mode} />}
+        </Stack.Screen>
         <Stack.Screen name="LabSearch" component={LabSearchScreen} options={{ title: 'Search list', keyboardHandlingEnabled: false }} />
         <Stack.Screen name="LabForm" component={LabFormScreen} options={{ title: 'Form', keyboardHandlingEnabled: false }} />
         <Stack.Screen name="LabDetail" component={LabDetailScreen} options={{ title: 'Detail' }} />

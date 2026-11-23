@@ -214,7 +214,8 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
   override var onSizeChange: ((width: Double, height: Double) -> Unit)? = null
     set(v) {
       field = v
-      onMain { rollingView.resendIntrinsicSize() }
+      // Not `rollingView`: on a dropped hybrid that would make a fresh view to send nothing.
+      onMain { attachedView?.resendIntrinsicSize() }
     }
 
   // endregion
@@ -294,6 +295,7 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
    */
   override fun onDropView() {
     recycled = false
+    releaseCallbacks()
     onMain {
       attachedView?.release()
       // With view recycling on, Fabric asks for prepareForRecycle right after
@@ -305,7 +307,28 @@ class HybridNitroNumberView(private val context: ThemedReactContext) : HybridNit
 
   /** JS called `dispose()` on the ref: same as a drop. */
   override fun dispose() {
+    releaseCallbacks()
     onMain { attachedView?.release() }
+  }
+
+  /**
+   * Lets go of the JS functions this hybrid holds (`onSizeChange` and the
+   * animation and reveal events). Each is a JS function kept alive from
+   * native, so Hermes counts it as a root; its closure reaches the
+   * component's refs, one of which holds the JS handle to this hybrid, and
+   * that handle keeps this hybrid. Held past the drop, that loop is one
+   * Hermes can never collect, however large `memorySize` says it is: every
+   * dropped NitroNumber stayed (its hybrid, Nitro's C++ part and the
+   * function wrappers), ~7,000 of them after a few minutes of a scrolling
+   * list. Dropped, the handle is ordinary garbage. A recycled view gets
+   * its callbacks back with its new element's props.
+   */
+  private fun releaseCallbacks() {
+    onSizeChange = null
+    onRevealEnd = null
+    onRevealMilestone = null
+    onAnimationStart = null
+    onAnimationEnd = null
   }
 
   /**

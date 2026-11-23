@@ -352,6 +352,10 @@ RCT_EXPORT_MODULE()
   return @(-1);
 }
 
+- (NSNumber *)glyphMaskQueue {
+  return @(-1);
+}
+
 - (void)forceGc {
   // No collector here; freed malloc pages are the part of the footprint that
   // is noise. Ask every zone to give them back so a floor is a floor.

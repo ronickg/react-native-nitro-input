@@ -74,6 +74,12 @@ export function trackedLiveCount(): number | null {
   return n == null || n < 0 ? null : n
 }
 
+/** Android: NitroNumber's queued glyph masks (see the spec). null where not measured (iOS). */
+export function glyphMaskQueue(): number | null {
+  const n = NativeBenchProbe?.glyphMaskQueue?.()
+  return n == null || n < 0 ? null : n
+}
+
 export function startFrames() {
   NativeBenchProbe?.startFrames()
 }
