@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- **iOS: no more crash editing next to an emoji.** UIKit can hand
+  `textField(_:shouldChangeCharactersIn:)` a range whose offset falls inside a
+  surrogate pair (an emoji, or another character outside the Basic
+  Multilingual Plane). Converting it to code points stepped back from an
+  unaligned index: that trapped (`EXC_BREAKPOINT`, "String index is out of
+  bounds") when the pair was the first character, and counted one code point
+  too few anywhere else, so number, mask and `transform` edits and the
+  reported selection landed one character early. Such an offset now counts as
+  the start of its code point, as `String.replaceSubrange` rounds it. Covered
+  by `bun run test:swift`.
+
 ## 0.4.3
 
 0.4.2 was never published; its change is part of this release, with the
