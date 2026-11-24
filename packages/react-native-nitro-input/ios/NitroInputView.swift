@@ -1881,19 +1881,11 @@ final class NitroInputView: UIView {
   static func isSign(_ scalar: Unicode.Scalar) -> Bool { InputText.isSign(scalar) }
 
   static func codePointOffset(in string: String, utf16 offset: Int) -> Int {
-    let utf16 = string.utf16
-    let clamped = min(max(0, offset), utf16.count)
-    let index = utf16.index(utf16.startIndex, offsetBy: clamped)
-    let scalars = string.unicodeScalars
-    let scalarIndex = index.samePosition(in: scalars) ?? scalars.index(before: min(index, scalars.endIndex))
-    return scalars.distance(from: scalars.startIndex, to: scalarIndex)
+    CodePointOffsets.codePoint(in: string, utf16: offset)
   }
 
   static func utf16Offset(in string: String, codePoint offset: Int) -> Int {
-    let scalars = string.unicodeScalars
-    let clamped = min(max(0, offset), scalars.count)
-    let index = scalars.index(scalars.startIndex, offsetBy: clamped)
-    return string.utf16.distance(from: string.utf16.startIndex, to: index)
+    CodePointOffsets.utf16(in: string, codePoint: offset)
   }
 
   // MARK: - Display link
